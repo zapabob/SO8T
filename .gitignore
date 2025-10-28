@@ -1,10 +1,12 @@
-# SO8T Safe Agent .gitignore
-
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -18,11 +20,88 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual environments
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
 .env
 .venv
 env/
@@ -31,94 +110,237 @@ ENV/
 env.bak/
 venv.bak/
 
-# IDE
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# SO8T specific
+# Model files
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.bin
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Checkpoints
+checkpoints/
+*.checkpoint
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE specific
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Cursor specific
+.cursor/
 
-# Model files
-models/
-checkpoints/
-dist/
-*.bin
-*.safetensors
-*.gguf
-
-# Data files
-data/
-*.jsonl
+# Large data files
 *.csv
+*.jsonl
 *.parquet
 
-# Logs
-logs/
-*.log
+# Visualization outputs
+*.png
+*.pdf
+*.jpg
+*.jpeg
+*.gif
+*.svg
 
-# Outputs
-outputs/
+# Audio files
+*.wav
+*.mp3
+*.ogg
+
+# Video files
+*.mp4
+*.avi
+*.mov
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Test outputs
+test_outputs/
+test_results/
 eval_results/
-wandb/
 
-# OS
-.DS_Store
-Thumbs.db
+# Model outputs
+outputs/
+inference_results/
+demonstration_results/
 
-# Temporary files
-*.tmp
-*.temp
+# Training outputs
+training_outputs/
+training_logs/
 
-# Documentation
-_docs/
-*.md
-!README.md
+# Safety outputs
+safety_outputs/
+safety_logs/
 
-# Tests
-tests/
-test_*.py
-*_test.py
+# Visualization outputs
+visualizations/
+plots/
+paper_plots/
 
-# Examples
-examples/
-notebooks/
+# Notebook outputs
+notebooks/outputs/
 
-# Docker
-Dockerfile*
-docker-compose*.yml
-.dockerignore
+# Agent outputs
+agents/outputs/
 
-# CI/CD
-.github/
-.gitlab-ci.yml
-.travis.yml
-.circleci/
+# Shared outputs
+shared/outputs/
 
-# Monitoring
-monitoring/
-nginx/
+# Config backups
+configs/backup/
+configs/*.bak
 
-# Scripts (keep only essential ones)
-scripts/
-!scripts/download_model.py
-!scripts/convert_to_gguf.py
-!scripts/setup_environment.py
+# Model backups
+models/backup/
+models/*.bak
 
-# Configs (keep only essential ones)
-configs/
-!configs/training_config.yaml
-!configs/inference_config.yaml
-!configs/evaluation_config.yaml
+# Script outputs
+scripts/outputs/
+scripts/logs/
 
-# Requirements
-requirements*.txt
-!requirements.txt
+# Test outputs
+tests/outputs/
+tests/logs/
 
-# Other
-*.yml
-*.yaml
-!docker-compose.yml
-!configs/*.yaml
+# Documentation outputs
+docs/outputs/
+docs/logs/
+
+# Modelfile backups
+modelfiles/backup/
+modelfiles/*.bak
+
+# Implementation logs
+_docs/backup/
+_docs/*.bak
+
+# Large model directories
+Phi-3-vision-128k-instruct/
+Qwen3-4B-Thinking-2507-FP8/
+
+# Ollama models
+.ollama/
+
+# LM Studio models
+.lmstudio/
+
+# Hugging Face cache
+.cache/
+huggingface/
+
+# Transformers cache
+.transformers/
+
+# Datasets cache
+.datasets/
+
+# Tokenizers cache
+.tokenizers/
+
+# Accelerate cache
+.accelerate/
+
+# DeepSpeed cache
+.deepspeed/
+
+# FairScale cache
+.fairscale/
+
+# Megatron cache
+.megatron/
+
+# NeMo cache
+.nemo/
+
+# PyTorch cache
+.torch/
+
+# TensorFlow cache
+.tensorflow/
+
+# JAX cache
+.jax/
+
+# ONNX cache
+.onnx/
+
+# OpenVINO cache
+.openvino/
+
+# TensorRT cache
+.tensorrt/
+
+# CoreML cache
+.coreml/
+
+# TFLite cache
+.tflite/
+
+# ONNX Runtime cache
+.onnxruntime/
+
+# OpenVINO Runtime cache
+.openvino_runtime/
+
+# TensorRT Runtime cache
+.tensorrt_runtime/
+
+# CoreML Runtime cache
+.coreml_runtime/
+
+# TFLite Runtime cache
+.tflite_runtime/
+
+# Custom caches
+custom_cache/
+user_cache/

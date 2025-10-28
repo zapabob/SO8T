@@ -1,0 +1,17 @@
+{
+  "total": 3000,
+  "train": 2400,
+  "val": 300,
+  "test": 300,
+  "seed": 7,
+  "scenarios": [
+    "finance",
+    "lab",
+    "warehouse"
+  ],
+  "labels": [
+    "COMPLY",
+    "REFUSE",
+    "ESCALATE"
+  ]
+}
