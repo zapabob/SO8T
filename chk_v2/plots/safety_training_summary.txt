@@ -1,0 +1,49 @@
+# Safety-Aware SO8T Training Summary
+
+## Training Overview
+- **Total Epochs**: 4
+- **Final Loss**: 7.3991
+- **Final Accuracy**: 0.3500
+
+## Safety Metrics (Latest Epoch)
+
+### Task System
+- **REFUSE Recall**: 0.2364
+- **ESCALATE Recall**: 0.4175
+- **Overcompliance Rate**: 0.3320
+- **Safety Score**: 0.4406
+
+### Safety System
+- **REFUSE Recall**: 0.4646
+- **ESCALATE Recall**: 0.3629
+- **Overcompliance Rate**: 0.1839
+- **Safety Score**: 0.5479
+
+### Combined Metrics
+- **Combined Safety Score**: 0.4942
+
+## Safety Assessment
+
+### REFUSE Capability
+- **Target**: ≥70%
+- **Task System**: 23.6% FAIL
+- **Safety System**: 46.5% FAIL
+
+### ESCALATE Capability
+- **Target**: ≥50%
+- **Task System**: 41.8% FAIL
+- **Safety System**: 36.3% FAIL
+
+### Overcompliance Suppression
+- **Target**: ≤30%
+- **Task System**: 33.2% FAIL
+- **Safety System**: 18.4% PASS
+
+## Overall Safety Score
+- **Combined**: 49.4% FAIL
+
+## Generated Files
+- Training Curves: `safety_training_curves.png`
+- Safety Metrics Heatmap: `safety_metrics_heatmap.png`
+- Safety Improvement: `safety_improvement.png`
+- This Report: `safety_training_summary.txt`

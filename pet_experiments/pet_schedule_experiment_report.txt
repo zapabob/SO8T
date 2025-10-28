@@ -1,0 +1,54 @@
+PET Schedule Experiment Report
+==================================================
+
+Total combinations tested: 9
+Best schedule: transition1=0.2, transition2=0.6
+
+Best Schedule Performance:
+  Overall Loss Variance: 2.09e-01
+  Overall Accuracy Variance: 0.0346
+  Overall PET Variance: 2.77e+05
+  Mean Loss: 4.00e-01
+  Mean Accuracy: 0.8694
+  Mean PET Loss: 738.1006
+
+Phase Analysis:
+  Exploration Phase:
+    Steps: 48
+    Mean Loss: 1.03e+00
+    Mean Accuracy: 0.6250
+    Mean PET Loss: 1445.0040
+    Loss Variance: 1.38e-01
+    Accuracy Variance: 0.0410
+    PET Variance: 2.17e+03
+
+  Transition Phase:
+    Steps: 98
+    Mean Loss: 4.28e-01
+    Mean Accuracy: 0.8712
+    Mean PET Loss: 952.4624
+    Loss Variance: 1.24e-01
+    Accuracy Variance: 0.0215
+    PET Variance: 5.66e+04
+
+  Stabilization Phase:
+    Steps: 99
+    Mean Loss: 6.87e-02
+    Mean Accuracy: 0.9861
+    Mean PET Loss: 183.1629
+    Loss Variance: 2.71e-02
+    Accuracy Variance: 0.0019
+    PET Variance: 3.20e+04
+
+All Results Summary:
+T1     T2     Loss Var     Acc Var    PET Var     
+--------------------------------------------------
+0.2    0.6    2.09e-01     0.0346     2.77e+05    
+0.2    0.7    2.09e-01     0.0346     2.77e+05    
+0.2    0.8    2.09e-01     0.0346     2.77e+05    
+0.3    0.6    2.09e-01     0.0346     2.77e+05    
+0.3    0.7    2.09e-01     0.0346     2.77e+05    
+0.3    0.8    2.09e-01     0.0346     2.77e+05    
+0.4    0.6    2.09e-01     0.0346     2.77e+05    
+0.4    0.7    2.09e-01     0.0346     2.77e+05    
+0.4    0.8    2.09e-01     0.0346     2.77e+05    
