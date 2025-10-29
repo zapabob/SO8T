@@ -1,0 +1,231 @@
+# Cursor Rules for SO8T Project
+
+## Project Overview
+This is the SO8T (SO(8) Transformer) project, implementing advanced multimodal LLM with safety features and local processing capabilities.
+
+## Audio Notification Rules
+**CRITICAL**: At the end of every Agent task or Plan completion, ALWAYS play the audio file:
+- File: `C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav`
+- Trigger: Agent completion, Plan completion, Task completion
+- Purpose: Audio notification for user awareness
+
+## Audio Playback Implementation
+```powershell
+# Play audio notification
+if (Test-Path "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav") {
+    Add-Type -AssemblyName System.Windows.Forms
+    [System.Media.SoundPlayer]::new("C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav").Play()
+}
+```
+
+## Project Structure
+- `so8t-mmllm/`: Main multimodal LLM implementation
+- `src/`: Source code modules
+- `scripts/`: PowerShell execution scripts
+- `configs/`: Configuration files
+- `docs/`: Documentation
+
+## Key Technologies
+- SO(8) Group Structure: 8-dimensional rotation gates
+- PET Regularization: Second-order difference penalty
+- QLoRA 8bit: Efficient fine-tuning
+- Local OCR: OpenCV + Tesseract
+- SQLite Audit: Complete decision logging
+- GGUF Conversion: llama.cpp inference
+
+## Safety Guidelines
+- Always prioritize user safety and privacy
+- Process images locally without external sharing
+- Log all decisions for transparency
+- Escalate complex ethical decisions when needed
+
+## Code Style Guidelines
+- **NO EMOJIS**: Never use emojis in code, comments, or output
+- Use plain text symbols instead: ✅ → [OK], ❌ → [NG], 🚀 → [START], etc.
+- This prevents Unicode encoding errors on Windows systems
+- All console output must be ASCII-compatible
+- Use descriptive text instead of emoji symbols
+
+## Testing Guidelines
+- **Direct Ollama Testing**: ALWAYS use direct ollama commands instead of Python scripts
+- Use `ollama run model_name "prompt"` for ALL testing scenarios
+- Test complex scenarios: mathematical reasoning, SO(8) gates, PET regularization
+- Test multimodal capabilities with image+text prompts
+- Test self-verification and ethical reasoning
+- Always test with stop parameters disabled for full response generation
+- Use descriptive test names and document results in _docs/
+- **MANDATORY**: Create batch files (.bat) for complex test sequences
+- **MANDATORY**: Use UTF-8 encoding (chcp 65001) to prevent character corruption
+- **MANDATORY**: Test results must be saved to _docs/ directory
+
+## Ollama Server Direct Testing
+- **MANDATORY**: Start Ollama server directly before testing
+- **MANDATORY**: Use English prompts for complex testing scenarios
+- **MANDATORY**: Test various complex scenarios in English
+- **MANDATORY**: Use direct ollama server interaction
+- **MANDATORY**: Test mathematical reasoning, scientific concepts, and advanced AI capabilities
+- **MANDATORY**: Test multimodal capabilities with English prompts
+- **MANDATORY**: Test self-verification and ethical reasoning in English
+- **MANDATORY**: Test complex logical reasoning and problem-solving
+- **MANDATORY**: Test advanced language understanding and generation
+
+## Audio Notification Requirements
+**CRITICAL**: At the end of every Agent task or Plan completion, ALWAYS play the audio file:
+- File: `C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav`
+- Trigger: Agent completion, Plan completion, Task completion
+- Purpose: Audio notification for user awareness
+
+**ABSOLUTELY MANDATORY**: Audio MUST be played at the end of EVERY operation
+**NO EXCEPTIONS**: Even if audio fails, try multiple methods
+**ALWAYS VERIFY**: Check if audio actually played successfully
+
+1. **Agent Completion**: Play audio when any Agent task finishes
+2. **Plan Completion**: Play audio when any Plan phase completes
+3. **Task Completion**: Play audio when any major task finishes
+4. **Error Completion**: Play audio even when tasks complete with errors
+5. **Success Completion**: Play audio when tasks complete successfully
+6. **Test Completion**: Play audio after EVERY test execution
+7. **Ollama Test Completion**: Play audio after EVERY ollama test command
+8. **MANDATORY**: Audio file must be played at the end of EVERY operation
+9. **MANDATORY**: Use PowerShell command for audio playback
+10. **MANDATORY**: Check file existence before playing audio
+11. **MANDATORY**: Play audio on ALL Agent task completions (success or error)
+12. **MANDATORY**: Play audio on ALL Plan phase completions (success or error)
+13. **MANDATORY**: Play audio on ALL major task completions (success or error)
+14. **MANDATORY**: Play audio on ALL test completions (success or error)
+15. **MANDATORY**: Play audio on ALL Ollama command completions (success or error)
+16. **MANDATORY**: Play audio on ALL Agent task completions (success or error)
+17. **MANDATORY**: Play audio on ALL Plan phase completions (success or error)
+18. **MANDATORY**: Play audio on ALL major task completions (success or error)
+19. **MANDATORY**: Play audio on ALL test completions (success or error)
+20. **MANDATORY**: Play audio on ALL Ollama command completions (success or error)
+
+## Implementation Notes
+- Use PowerShell's `Add-Type -AssemblyName System.Windows.Forms` for audio playback
+- Always check file existence before playing
+- Play audio asynchronously to avoid blocking execution
+- Log audio playback attempts for debugging
+
+## Example Usage
+
+### Direct Ollama Testing
+```batch
+@echo off
+chcp 65001 >nul
+echo [TEST] Running SO8T test...
+ollama run so8t-qwen2vl-2b:latest "Your test prompt here"
+echo [AUDIO] Playing completion notification...
+powershell -Command "if (Test-Path 'C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav') { Add-Type -AssemblyName System.Windows.Forms; [System.Media.SoundPlayer]::new('C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav').Play(); Write-Host '[OK] Audio notification played successfully' -ForegroundColor Green } else { Write-Host '[WARNING] Audio file not found' -ForegroundColor Yellow }"
+```
+
+### Agent/Plan/Task Completion Audio
+```batch
+@echo off
+chcp 65001 >nul
+echo [AGENT] Task completed
+echo [AUDIO] Playing completion notification...
+powershell -Command "if (Test-Path 'C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav') { Add-Type -AssemblyName System.Windows.Forms; [System.Media.SoundPlayer]::new('C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav').Play(); Write-Host '[OK] Audio notification played successfully' -ForegroundColor Green } else { Write-Host '[WARNING] Audio file not found' -ForegroundColor Yellow }"
+```
+
+### Error Completion Audio
+```batch
+@echo off
+chcp 65001 >nul
+echo [ERROR] Task failed with error
+echo [AUDIO] Playing completion notification...
+powershell -Command "if (Test-Path 'C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav') { Add-Type -AssemblyName System.Windows.Forms; [System.Media.SoundPlayer]::new('C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav').Play(); Write-Host '[OK] Audio notification played successfully' -ForegroundColor Green } else { Write-Host '[WARNING] Audio file not found' -ForegroundColor Yellow }"
+```
+
+### Ollama Server Direct Testing
+```batch
+@echo off
+chcp 65001 >nul
+echo [OLLAMA] Starting Ollama server for direct testing...
+
+echo [STEP 1] Starting Ollama server...
+ollama serve
+echo [OK] Ollama server started
+
+echo [STEP 2] Testing complex mathematical reasoning...
+ollama run so8t-qwen2vl-2b:latest "Solve this complex mathematical problem step by step: Given a 4-dimensional hypercube, calculate the volume of the intersection with a 3-dimensional sphere of radius r centered at the origin. Show all mathematical steps and reasoning."
+
+echo [STEP 3] Testing scientific concepts...
+ollama run so8t-qwen2vl-2b:latest "Explain the quantum mechanical principles behind SO(8) rotation gates in neural networks. Include mathematical formulations and practical applications."
+
+echo [STEP 4] Testing logical reasoning...
+ollama run so8t-qwen2vl-2b:latest "Analyze this logical paradox: A barber shaves all and only those men in town who do not shave themselves. Who shaves the barber? Provide detailed logical analysis."
+
+echo [STEP 5] Testing ethical reasoning...
+ollama run so8t-qwen2vl-2b:latest "Evaluate the ethical implications of AI systems making autonomous decisions in healthcare. Consider both utilitarian and deontological perspectives."
+
+echo [AUDIO] Playing completion notification...
+powershell -Command "if (Test-Path 'C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav') { Add-Type -AssemblyName System.Windows.Forms; [System.Media.SoundPlayer]::new('C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav').Play(); Write-Host '[OK] Audio notification played successfully' -ForegroundColor Green } else { Write-Host '[WARNING] Audio file not found' -ForegroundColor Yellow }"
+```
+
+### PowerShell Audio Playback
+```powershell
+# MANDATORY: At the end of EVERY operation
+Write-Host "[AUDIO] Playing completion notification..." -ForegroundColor Green
+if (Test-Path "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav") {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Media.SoundPlayer]::new("C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav").Play()
+        Write-Host "[OK] Audio notification played successfully" -ForegroundColor Green
+    } catch {
+        Write-Host "[WARNING] Failed to play audio notification: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "[WARNING] Audio file not found: C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav" -ForegroundColor Yellow
+}
+```
+
+## Audio Playback Implementation
+```powershell
+# MANDATORY: Play audio notification with multiple fallback methods
+Write-Host "[AUDIO] Attempting to play audio notification..." -ForegroundColor Green
+
+# Method 1: Standard SoundPlayer
+if (Test-Path "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav") {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $player = New-Object System.Media.SoundPlayer "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav"
+        $player.PlaySync()
+        Write-Host "[OK] Audio played successfully with SoundPlayer" -ForegroundColor Green
+    } catch {
+        Write-Host "[WARNING] SoundPlayer failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        
+        # Method 2: Fallback to system beep
+        try {
+            [System.Console]::Beep(1000, 500)
+            Write-Host "[OK] Fallback beep played successfully" -ForegroundColor Green
+        } catch {
+            Write-Host "[ERROR] All audio methods failed" -ForegroundColor Red
+        }
+    }
+} else {
+    Write-Host "[ERROR] Audio file not found" -ForegroundColor Red
+    
+    # Method 3: Emergency beep
+    try {
+        [System.Console]::Beep(800, 1000)
+        Write-Host "[OK] Emergency beep played" -ForegroundColor Green
+    } catch {
+        Write-Host "[CRITICAL] No audio available" -ForegroundColor Red
+    }
+}
+```
+
+## Project Completion Status
+- [OK] Repository cleanup and organization
+- [OK] Environment setup and dependencies
+- [OK] SO(8) rotation gate implementation
+- [OK] PET regularization implementation
+- [OK] QLoRA 8bit training
+- [OK] OCR processing pipeline
+- [OK] SQLite audit system
+- [OK] Rotation baking functionality
+- [OK] GGUF conversion
+- [OK] Comprehensive evaluation
+- [OK] Final project report
+
+**Remember**: Always play the audio notification at the end of every Agent task or Plan completion!

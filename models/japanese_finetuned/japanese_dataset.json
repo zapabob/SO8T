@@ -1,0 +1,647 @@
+[
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "こんにちは、私は田中です。今日は良い天気ですね。",
+    "output": "Hello, I'm Tanaka. It's a nice day today, isn't it?"
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "日本の文化は非常に興味深いです。",
+    "output": "Japanese culture is very interesting."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "私はプログラミングを勉強しています。",
+    "output": "I am studying programming."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "この問題は複雑ですが、解決できます。",
+    "output": "This problem is complex, but it can be solved."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "AI技術は急速に発展しています。",
+    "output": "AI technology is developing rapidly."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "数学は論理的思考を養います。",
+    "output": "Mathematics develops logical thinking."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "科学は人類の進歩に貢献します。",
+    "output": "Science contributes to human progress."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "教育は社会の基盤です。",
+    "output": "Education is the foundation of society."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "技術革新は経済を発展させます。",
+    "output": "Technological innovation drives economic development."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "環境保護は重要な課題です。",
+    "output": "Environmental protection is an important issue."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "国際協力は平和を促進します。",
+    "output": "International cooperation promotes peace."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "創造性はイノベーションの源です。",
+    "output": "Creativity is the source of innovation."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "多様性は社会を豊かにします。",
+    "output": "Diversity enriches society."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "持続可能性は未来への責任です。",
+    "output": "Sustainability is a responsibility to the future."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "知識は力です。",
+    "output": "Knowledge is power."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "努力は必ず報われます。",
+    "output": "Effort is always rewarded."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "失敗は成功の母です。",
+    "output": "Failure is the mother of success."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "時間は貴重な資源です。",
+    "output": "Time is a precious resource."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "友情は人生の宝物です。",
+    "output": "Friendship is a treasure in life."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "家族は最も大切な存在です。",
+    "output": "Family is the most important thing."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "夢は実現可能です。",
+    "output": "Dreams are achievable."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "希望は人を支えます。",
+    "output": "Hope supports people."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "勇気は困難を乗り越えます。",
+    "output": "Courage overcomes difficulties."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "忍耐は成功の鍵です。",
+    "output": "Patience is the key to success."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "誠実さは信頼を築きます。",
+    "output": "Honesty builds trust."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "謙虚さは美徳です。",
+    "output": "Humility is a virtue."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "感謝の気持ちを忘れずに。",
+    "output": "Don't forget to be grateful."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "協力は力を生み出します。",
+    "output": "Cooperation creates strength."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "理解は平和の基盤です。",
+    "output": "Understanding is the foundation of peace."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "学習は終わりのない旅です。",
+    "output": "Learning is an endless journey."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "成長は挑戦から生まれます。",
+    "output": "Growth comes from challenges."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "変化は機会をもたらします。",
+    "output": "Change brings opportunities."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "革新は未来を創造します。",
+    "output": "Innovation creates the future."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "技術は人々を結びつけます。",
+    "output": "Technology connects people."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "情報は力になります。",
+    "output": "Information becomes power."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "コミュニケーションは重要です。",
+    "output": "Communication is important."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "チームワークは成功の鍵です。",
+    "output": "Teamwork is the key to success."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "リーダーシップは責任を伴います。",
+    "output": "Leadership comes with responsibility."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "決断力は重要です。",
+    "output": "Decision-making ability is important."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "創造性は無限です。",
+    "output": "Creativity is infinite."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "想像力は現実を超えます。",
+    "output": "Imagination transcends reality."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "芸術は心を豊かにします。",
+    "output": "Art enriches the heart."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "音楽は魂の言語です。",
+    "output": "Music is the language of the soul."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "文学は人間性を表現します。",
+    "output": "Literature expresses humanity."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "哲学は思考を深めます。",
+    "output": "Philosophy deepens thinking."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "歴史は教訓を与えます。",
+    "output": "History provides lessons."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "地理は世界を理解します。",
+    "output": "Geography helps understand the world."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "経済は社会を動かします。",
+    "output": "Economics drives society."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "政治は人々の生活に影響します。",
+    "output": "Politics affects people's lives."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "法律は秩序を保ちます。",
+    "output": "Law maintains order."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "医療は命を救います。",
+    "output": "Medicine saves lives."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "看護は心のケアです。",
+    "output": "Nursing is care for the heart."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "教育は未来を築きます。",
+    "output": "Education builds the future."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "研究は真実を追求します。",
+    "output": "Research pursues truth."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "実験は仮説を検証します。",
+    "output": "Experiments verify hypotheses."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "観察は発見の始まりです。",
+    "output": "Observation is the beginning of discovery."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "分析は理解を深めます。",
+    "output": "Analysis deepens understanding."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "統合は全体像を見せます。",
+    "output": "Integration shows the big picture."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "応用は知識を活用します。",
+    "output": "Application utilizes knowledge."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "実践は理論を検証します。",
+    "output": "Practice verifies theory."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "経験は最良の教師です。",
+    "output": "Experience is the best teacher."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "失敗は成功への道です。",
+    "output": "Failure is the path to success."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "成功は努力の結果です。",
+    "output": "Success is the result of effort."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "目標は行動を導きます。",
+    "output": "Goals guide action."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "計画は成功の基盤です。",
+    "output": "Planning is the foundation of success."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "実行は計画を現実にします。",
+    "output": "Execution makes plans reality."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "評価は改善を促します。",
+    "output": "Evaluation promotes improvement."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "改善は継続的なプロセスです。",
+    "output": "Improvement is a continuous process."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "革新は変化を生み出します。",
+    "output": "Innovation creates change."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "進歩は継続的な努力です。",
+    "output": "Progress is continuous effort."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "発展は協力の結果です。",
+    "output": "Development is the result of cooperation."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "繁栄は共有すべきものです。",
+    "output": "Prosperity should be shared."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "平和は最上の価値です。",
+    "output": "Peace is the highest value."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "調和は美しさを生み出します。",
+    "output": "Harmony creates beauty."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "バランスは重要です。",
+    "output": "Balance is important."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "調和は社会を安定させます。",
+    "output": "Harmony stabilizes society."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "理解は対立を解決します。",
+    "output": "Understanding resolves conflicts."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "寛容は多様性を認めます。",
+    "output": "Tolerance recognizes diversity."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "尊重は相互理解を生み出します。",
+    "output": "Respect creates mutual understanding."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "信頼は関係の基盤です。",
+    "output": "Trust is the foundation of relationships."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "誠実さは信頼を築きます。",
+    "output": "Honesty builds trust."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "正直さは美徳です。",
+    "output": "Honesty is a virtue."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "真実は力です。",
+    "output": "Truth is power."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "正義は社会の基盤です。",
+    "output": "Justice is the foundation of society."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "公平さは重要です。",
+    "output": "Fairness is important."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "平等は権利です。",
+    "output": "Equality is a right."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "自由は責任を伴います。",
+    "output": "Freedom comes with responsibility."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "権利は義務を伴います。",
+    "output": "Rights come with duties."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "義務は責任です。",
+    "output": "Duty is responsibility."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "責任は成長を促します。",
+    "output": "Responsibility promotes growth."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "成長は変化を伴います。",
+    "output": "Growth involves change."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "変化は機会をもたらします。",
+    "output": "Change brings opportunities."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "機会は準備された者に訪れます。",
+    "output": "Opportunity comes to those who are prepared."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "準備は成功の鍵です。",
+    "output": "Preparation is the key to success."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "成功は準備と機会の出会いです。",
+    "output": "Success is the meeting of preparation and opportunity."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "努力は才能を超えます。",
+    "output": "Effort surpasses talent."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "才能は努力で磨かれます。",
+    "output": "Talent is polished through effort."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "努力は必ず報われます。",
+    "output": "Effort is always rewarded."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "報酬は努力の結果です。",
+    "output": "Reward is the result of effort."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "結果は過程の反映です。",
+    "output": "Results reflect the process."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "過程は結果より重要です。",
+    "output": "The process is more important than the result."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "旅路は目的地より重要です。",
+    "output": "The journey is more important than the destination."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "目的地は旅路の終わりです。",
+    "output": "The destination is the end of the journey."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "終わりは新しい始まりです。",
+    "output": "The end is a new beginning."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "始まりは希望です。",
+    "output": "The beginning is hope."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "希望は人を支えます。",
+    "output": "Hope supports people."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "支えは愛です。",
+    "output": "Support is love."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "愛は世界を変えます。",
+    "output": "Love changes the world."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "世界は一つです。",
+    "output": "The world is one."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "一つは全体です。",
+    "output": "One is the whole."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "全体は部分の集合です。",
+    "output": "The whole is a collection of parts."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "部分は全体の一部です。",
+    "output": "Parts are part of the whole."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "一部は重要です。",
+    "output": "Each part is important."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "重要は相対的です。",
+    "output": "Importance is relative."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "相対は絶対を生み出します。",
+    "output": "The relative creates the absolute."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "絶対は真理です。",
+    "output": "The absolute is truth."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "真理は美しいです。",
+    "output": "Truth is beautiful."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "美しさは心を動かします。",
+    "output": "Beauty moves the heart."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "心は魂の窓です。",
+    "output": "The heart is the window of the soul."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "魂は永遠です。",
+    "output": "The soul is eternal."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "永遠は現在です。",
+    "output": "Eternity is now."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "現在は過去と未来の間です。",
+    "output": "The present is between the past and the future."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "過去は記憶です。",
+    "output": "The past is memory."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "未来は希望です。",
+    "output": "The future is hope."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "希望は夢です。",
+    "output": "Hope is a dream."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "夢は現実になります。",
+    "output": "Dreams become reality."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "現実は創造です。",
+    "output": "Reality is creation."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "創造は愛です。",
+    "output": "Creation is love."
+  },
+  {
+    "instruction": "以下の日本語の文章を自然な英語に翻訳してください。",
+    "input": "愛はすべてです。",
+    "output": "Love is everything."
+  }
+]

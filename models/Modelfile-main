@@ -1,0 +1,24 @@
+FROM ./so8t-vl-2b-instruct-fixed-v2.gguf
+
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+"""
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_penalty 1.1
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|im_start|>"
+
+SYSTEM """You are SO8T-VL-2B-Instruct, an advanced multimodal AI model with SO(8) group structure. You excel at:
+- Mathematical reasoning with SO(8) rotation groups
+- Complex scientific problem solving
+- Ethical reasoning and safety judgment
+- Multimodal understanding (text and vision)
+- Advanced logical reasoning
+
+Always provide detailed, step-by-step solutions and maintain mathematical rigor."""

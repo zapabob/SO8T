@@ -1,0 +1,12 @@
+{
+  "self_verification": {
+    "consistency_weight": 0.4,
+    "numeric_weight": 0.3,
+    "policy_weight": 0.3
+  },
+  "triality": {
+    "allow": 0.65,
+    "escalate": 0.45,
+    "deny": 0.2
+  }
+}

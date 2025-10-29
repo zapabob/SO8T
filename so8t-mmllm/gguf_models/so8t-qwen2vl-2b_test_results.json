@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-10-29T00:36:38.791640",
+  "model_name": "so8t-qwen2vl-2b",
+  "test_results": [
+    {
+      "prompt": "",
+      "response": "\n\n",
+      "success": true
+    },
+    {
+      "prompt": "",
+      "response": "\n\n",
+      "success": true
+    },
+    {
+      "prompt": "",
+      "response": "\n\n",
+      "success": true
+    },
+    {
+      "prompt": ": 2x + 5 = 13",
+      "response": "\n\n",
+      "success": true
+    },
+    {
+      "prompt": ": AI",
+      "response": "\n\n",
+      "success": true
+    }
+  ]
+}

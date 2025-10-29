@@ -1,0 +1,36 @@
+{
+  "tokenizer_class": "PreTrainedTokenizerFast",
+  "auto_map": {
+    "AutoTokenizer": [
+      "tokenization_utils_fast.PreTrainedTokenizerFast",
+      null
+    ]
+  },
+  "model_max_length": 2048,
+  "padding_side": "right",
+  "truncation_side": "right",
+  "pad_token": "<pad>",
+  "eos_token": "<eos>",
+  "unk_token": "<unk>",
+  "bos_token": "<bos>",
+  "mask_token": "<mask>",
+  "additional_special_tokens": [
+    "<|im_start|>",
+    "<|im_end|>",
+    "<|endoftext|>",
+    "<|im_sep|>",
+    "<|vision_start|>",
+    "<|vision_end|>",
+    "###",
+    "---",
+    "===",
+    "***"
+  ],
+  "clean_up_tokenization_spaces": true,
+  "model_input_names": [
+    "input_ids",
+    "attention_mask"
+  ],
+  "padding": true,
+  "truncation": true
+}

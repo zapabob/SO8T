@@ -1,0 +1,14 @@
+{
+  "tokenizer_class": "SimpleTokenizer",
+  "vocab_size": 32000,
+  "model_max_length": 1024,
+  "padding_side": "right",
+  "truncation_side": "right",
+  "special_tokens": {
+    "pad_token": "<pad>",
+    "unk_token": "<unk>",
+    "bos_token": "<s>",
+    "eos_token": "</s>",
+    "mask_token": "<mask>"
+  }
+}
