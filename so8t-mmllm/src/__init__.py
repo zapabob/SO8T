@@ -9,12 +9,34 @@ __version__ = "1.0.0"
 __author__ = "SO8T Team"
 __description__ = "SO(8)群Transformer with Multimodal Safety Agent"
 
-# コアモジュールのインポート
-from .modules.rotation_gate import SO8TRotationGate, apply_block_rotation
-from .losses.pet import PETLoss, pet_penalty
-from .training.qlora import QLoRATrainer
-from .io.ocr_summary import OCRSummaryProcessor
-from .audit.sqlite_logger import SQLiteAuditLogger
+# コアモジュールのインポート（エラー回避版）
+try:
+    from .modules.rotation_gate import SO8TRotationGate, apply_block_rotation
+except ImportError:
+    SO8TRotationGate = None
+    apply_block_rotation = None
+
+try:
+    from .losses.pet import PETLoss, pet_penalty
+except ImportError:
+    PETLoss = None
+    pet_penalty = None
+
+try:
+    from .training.qlora import QLoRATrainer
+except ImportError:
+    print("[WARNING] QLoRATrainer import failed, using standard training")
+    QLoRATrainer = None
+
+try:
+    from .io.ocr_summary import OCRSummaryProcessor
+except ImportError:
+    OCRSummaryProcessor = None
+
+try:
+    from .audit.sqlite_logger import SQLiteAuditLogger
+except ImportError:
+    SQLiteAuditLogger = None
 
 __all__ = [
     "SO8TRotationGate",

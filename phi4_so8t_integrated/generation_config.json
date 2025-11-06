@@ -6,5 +6,5 @@
     199999
   ],
   "pad_token_id": 199999,
-  "transformers_version": "4.57.1"
+  "transformers_version": "4.45.0"
 }

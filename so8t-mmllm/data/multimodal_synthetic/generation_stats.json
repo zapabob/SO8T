@@ -1,0 +1,16 @@
+{
+  "total_samples": 125000,
+  "domain_distribution": {
+    "medical": 25000,
+    "finance": 25000,
+    "business": 25000,
+    "information_system": 25000,
+    "general": 25000
+  },
+  "decision_distribution": {
+    "ALLOW": 41715,
+    "ESCALATE": 41490,
+    "DENY": 41795
+  },
+  "generation_time": "2025-11-06T23:00:55.503534"
+}

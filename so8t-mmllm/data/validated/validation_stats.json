@@ -1,0 +1,25 @@
+{
+  "total_samples": 360,
+  "collected_samples": 0,
+  "synthetic_samples": 100000,
+  "duplicates_removed": 99640,
+  "domain_distribution": {
+    "aerospace": 90,
+    "defense": 90,
+    "general": 90,
+    "transport": 90
+  },
+  "decision_distribution": {
+    "ALLOW": 120,
+    "DENY": 120,
+    "ESCALATE": 120
+  },
+  "quality_statistics": {
+    "count": 0,
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "validation_time": "2025-11-06T23:02:34.406569"
+}

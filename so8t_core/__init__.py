@@ -8,6 +8,8 @@ from .pet_regularizer import PETRegularizer, PETSchedule
 from .triality_heads import TrialityHead, TrialityOutput
 from .self_verification import SelfVerifier, VerificationResult
 from .transformer import SO8TTransformerBlock, SO8TModelConfig, SO8TModel
+from .so8t_layer import SO8TRotationGate, SO8TAttentionWrapper
+from .burn_in import BurnInManager, burn_in_phi4_model
 
 __all__ = [
     "SO8SelfAttention",
@@ -21,4 +23,8 @@ __all__ = [
     "SO8TTransformerBlock",
     "SO8TModelConfig",
     "SO8TModel",
+    "SO8TRotationGate",
+    "SO8TAttentionWrapper",
+    "BurnInManager",
+    "burn_in_phi4_model",
 ]

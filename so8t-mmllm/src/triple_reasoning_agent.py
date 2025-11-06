@@ -39,12 +39,25 @@ class Judgment(Enum):
 
 @dataclass
 class ReasoningResult:
-    """推論結果"""
+    """推論結果（拡張版）"""
     judgment: Judgment
     confidence: float
     reason: str
     evidence: Dict[str, Any]
     timestamp: str
+    # 拡張フィールド
+    proposal: str = ""  # 提案（最小安全実行案）
+    risks: List[str] = None  # リスク指摘
+    escalation: Dict[str, str] = None  # エスカレーション指示
+    sources: Dict[str, str] = None  # 根拠（contract/policy/log）
+    
+    def __post_init__(self):
+        if self.risks is None:
+            self.risks = []
+        if self.escalation is None:
+            self.escalation = {}
+        if self.sources is None:
+            self.sources = {}
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -53,6 +66,10 @@ class ReasoningResult:
             'reason': self.reason,
             'evidence': self.evidence,
             'timestamp': self.timestamp,
+            'proposal': self.proposal,
+            'risks': self.risks,
+            'escalation': self.escalation,
+            'sources': self.sources
         }
 
 

@@ -1,0 +1,10 @@
+{
+  "original_model": "Phi-4-mini-instruct",
+  "integrated_layers": 32,
+  "total_layers": 32,
+  "hidden_size": 3072,
+  "num_blocks": 384,
+  "so8t_parameters_per_layer": 64,
+  "total_so8t_parameters": 2048,
+  "note": "Configuration-only integration. Actual weights will be integrated during training."
+}
