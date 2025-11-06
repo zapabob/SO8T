@@ -167,13 +167,22 @@ Thumbs.db
 *.swo
 *~
 
-# Cursor specific
-.cursor/
+# Cursor specific (except notification sounds)
+.cursor/*
+!.cursor/marisa_owattaze.wav
+!.cursor/*.wav
 
-# Large data files
+# Large data files (except important datasets)
 *.csv
-*.jsonl
+# *.jsonl  # Commented out - keep important datasets
 *.parquet
+
+# Large datasets (exclude generated training data)
+data/collected/*.jsonl
+data/synthetic/*.jsonl
+data/multimodal_synthetic/*.jsonl
+data/validated/*.jsonl
+# Keep: data/four_role/*.jsonl (important 4-role dataset)
 
 # Visualization outputs
 *.png
@@ -183,10 +192,12 @@ Thumbs.db
 *.gif
 *.svg
 
-# Audio files
-*.wav
+# Audio files (except notification sounds)
+# *.wav  # Keep notification sounds
 *.mp3
 *.ogg
+
+# Keep: .cursor/marisa_owattaze.wav (important notification)
 
 # Video files
 *.mp4
@@ -198,6 +209,18 @@ Thumbs.db
 *.tar.gz
 *.rar
 *.7z
+
+# Database files (exclude from repo, use schema only)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+database/*.db
+database/*.backup*
+
+# Archive directory (old models)
+archive/*.gguf
+archive/*.safetensors
 
 # Backup files
 *.bak
@@ -213,6 +236,15 @@ eval_results/
 outputs/
 inference_results/
 demonstration_results/
+
+# SO8T-MMLLM outputs
+so8t-mmllm/outputs/
+so8t-mmllm/logs/
+so8t-mmllm/data/collected/
+so8t-mmllm/data/synthetic/
+so8t-mmllm/data/multimodal_synthetic/
+so8t-mmllm/data/validated/
+# Keep: so8t-mmllm/data/four_role/ (important dataset)
 
 # Training outputs
 training_outputs/
@@ -264,9 +296,17 @@ modelfiles/*.bak
 _docs/backup/
 _docs/*.bak
 
-# Large model directories
+# Large model directories (downloaded from HuggingFace)
 Phi-3-vision-128k-instruct/
 Qwen3-4B-Thinking-2507-FP8/
+Phi-4-mini-instruct/
+Borea-Phi-3.5-mini-Instruct-Common/
+Llama-3.1-8B-EZO-1.1-it/
+so8t-mmllm/Llama-3.1-8B-EZO-1.1-it/
+so8t-mmllm/Borea-Phi-3.5-mini-Instruct-Common/
+
+# External libraries (llama.cpp - very large)
+external/llama.cpp-master/
 
 # Ollama models
 .ollama/
@@ -344,3 +384,17 @@ huggingface/
 # Custom caches
 custom_cache/
 user_cache/
+
+# SO8T-specific exclusions
+# Internal proofs (DO NOT commit to public repo)
+internal_proofs/
+*_so8t_proof.json
+so8t_rotation_params.pt
+
+# HF upload staging
+outputs/hf_upload_ready/
+
+# Temporary training files
+*.tmp.pt
+*.tmp.safetensors
+training_state_*.json
