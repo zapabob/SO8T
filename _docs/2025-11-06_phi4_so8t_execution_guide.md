@@ -257,3 +257,6 @@ py -3 scripts/integrate_phi4_so8t_lightweight.py \
 **音声通知**: 完了済み
 
 
+
+
+

@@ -33,6 +33,93 @@ if (Test-Path "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav") {
 - SQLite Audit: Complete decision logging
 - GGUF Conversion: llama.cpp inference
 
+## Model Checkpoint and Output Directory
+**MANDATORY**: All model checkpoints and outputs must be saved to `D:\webdataset`
+
+### Checkpoint Save Locations
+- **GGUF Conversion Output**: `D:\webdataset\gguf_models\`
+- **Training Checkpoints**: `D:\webdataset\checkpoints\training\`
+- **Fine-tuning Checkpoints**: `D:\webdataset\checkpoints\finetuning\`
+- **Model Weights**: `D:\webdataset\weights\`
+- **Final Models**: `D:\webdataset\models\final\`
+
+### Implementation Requirements
+1. **GGUF Conversion**: After GGUF conversion, save output files to `D:\webdataset\gguf_models\{model_name}\`
+2. **Training**: Save all training checkpoints to `D:\webdataset\checkpoints\training\{run_name}\`
+3. **Fine-tuning**: Save all fine-tuning checkpoints to `D:\webdataset\checkpoints\finetuning\{model_name}\`
+4. **Model Weights**: Save intermediate and final model weights to `D:\webdataset\weights\`
+5. **Final Models**: Save completed models to `D:\webdataset\models\final\{model_name}\`
+
+### Directory Structure
+```
+D:\webdataset\
+├── gguf_models\          # GGUF変換後のモデル
+│   └── {model_name}\
+│       ├── {model_name}_Q8_0.gguf
+│       └── {model_name}_Q4_K_M.gguf
+├── checkpoints\          # チェックポイント
+│   ├── training\         # 学習チェックポイント
+│   │   └── {run_name}\
+│   │       ├── checkpoint_epoch_{N}.pt
+│   │       └── checkpoint_final.pt
+│   └── finetuning\       # ファインチューニングチェックポイント
+│       └── {model_name}\
+│           ├── checkpoint_epoch_{N}.pt
+│           └── checkpoint_final.pt
+├── weights\              # モデル重み
+│   ├── {model_name}_epoch_{N}.pt
+│   └── {model_name}_final.pt
+└── models\               # 最終モデル
+    └── final\
+        └── {model_name}\
+            ├── model.pt
+            ├── config.json
+            └── tokenizer.json
+```
+
+### Code Examples
+
+#### GGUF Conversion
+```python
+# Save GGUF output to D:\webdataset
+output_dir = Path(r"D:\webdataset\gguf_models") / model_name
+output_dir.mkdir(parents=True, exist_ok=True)
+gguf_path = output_dir / f"{model_name}_{quantization}.gguf"
+```
+
+#### Training Checkpoint
+```python
+# Save training checkpoint to D:\webdataset
+checkpoint_dir = Path(r"D:\webdataset\checkpoints\training") / run_name
+checkpoint_dir.mkdir(parents=True, exist_ok=True)
+checkpoint_path = checkpoint_dir / f"checkpoint_epoch_{epoch}.pt"
+torch.save(checkpoint_data, checkpoint_path)
+```
+
+#### Fine-tuning Checkpoint
+```python
+# Save fine-tuning checkpoint to D:\webdataset
+checkpoint_dir = Path(r"D:\webdataset\checkpoints\finetuning") / model_name
+checkpoint_dir.mkdir(parents=True, exist_ok=True)
+checkpoint_path = checkpoint_dir / f"checkpoint_epoch_{epoch}.pt"
+torch.save(checkpoint_data, checkpoint_path)
+```
+
+#### Final Model Weights
+```python
+# Save final model weights to D:\webdataset
+weights_dir = Path(r"D:\webdataset\weights")
+weights_dir.mkdir(parents=True, exist_ok=True)
+weights_path = weights_dir / f"{model_name}_final.pt"
+torch.save(model.state_dict(), weights_path)
+```
+
+### Notes
+- Always create directories if they don't exist using `mkdir(parents=True, exist_ok=True)`
+- Use descriptive names for model directories (e.g., `so8t-phi4-ja-finetuned`)
+- Include model metadata (config, tokenizer, etc.) alongside weights
+- Log checkpoint save locations for easy retrieval
+
 ## Safety Guidelines
 - Always prioritize user safety and privacy
 - Process images locally without external sharing

@@ -391,6 +391,27 @@ internal_proofs/
 *_so8t_proof.json
 so8t_rotation_params.pt
 
+# webdataset directory (D: drive, managed via symlink)
+# Note: webdataset/ is a symlink to D:\webdataset
+# Large files in webdataset are excluded, but directory structure is tracked
+webdataset/*.pt
+webdataset/*.pth
+webdataset/*.safetensors
+webdataset/*.gguf
+webdataset/*.bin
+webdataset/*.jsonl
+webdataset/*.json
+webdataset/checkpoints/**/*.pt
+webdataset/weights/**/*.pt
+webdataset/models/**/*.pt
+webdataset/gguf_models/**/*.gguf
+# Keep: webdataset/ directory structure and metadata files
+!webdataset/.gitkeep
+!webdataset/**/.gitkeep
+!webdataset/**/*.md
+!webdataset/**/*.txt
+!webdataset/**/*.json
+
 # HF upload staging
 outputs/hf_upload_ready/
 

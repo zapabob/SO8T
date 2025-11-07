@@ -1,0 +1,375 @@
+{
+  "domains": {
+    "defense": {
+      "name_ja": "防衛",
+      "name_en": "Defense",
+      "keywords_ja": [
+        "防衛", "軍事", "安全保障", "国防", "自衛隊",
+        "ミサイル", "領土", "サイバー戦", "PKO", "災害派遣",
+        "防衛省", "陸上自衛隊", "海上自衛隊", "航空自衛隊",
+        "装備", "作戦", "訓練", "戦略", "戦術"
+      ],
+      "keywords_en": [
+        "defense", "military", "security", "national defense", "self-defense force",
+        "missile", "territory", "cyber warfare", "PKO", "disaster relief",
+        "ministry of defense", "ground self-defense force", "maritime self-defense force",
+        "air self-defense force", "equipment", "operation", "training", "strategy", "tactics"
+      ],
+      "label_distribution": {
+        "ALLOW": 0.60,
+        "ESCALATION": 0.25,
+        "DENY": 0.15
+      },
+      "classification_rules": {
+        "ALLOW": {
+          "keywords": [
+            "一般的", "公開", "教育", "参考", "基本的", "説明",
+            "general", "public", "education", "reference", "basic", "explanation"
+          ],
+          "patterns": [
+            "一般的な.*について",
+            ".*の基本.*",
+            ".*について教えて",
+            "basic.*about",
+            "general.*information"
+          ]
+        },
+        "ESCALATION": {
+          "keywords": [
+            "計画", "詳細", "仕様", "技術", "専門", "確認",
+            "plan", "detail", "specification", "technical", "expert", "confirmation"
+          ],
+          "patterns": [
+            ".*計画.*",
+            ".*詳細.*",
+            ".*技術仕様.*",
+            ".*plan.*",
+            ".*detail.*",
+            ".*specification.*"
+          ]
+        },
+        "DENY": {
+          "keywords": [
+            "機密", "極秘", "秘密", "非公開", "開示禁止",
+            "classified", "top secret", "secret", "confidential", "restricted"
+          ],
+          "patterns": [
+            ".*機密.*",
+            ".*極秘.*",
+            ".*秘密.*",
+            ".*classified.*",
+            ".*top secret.*",
+            ".*confidential.*"
+          ]
+        }
+      }
+    },
+    "aerospace": {
+      "name_ja": "航空宇宙",
+      "name_en": "Aerospace",
+      "keywords_ja": [
+        "航空", "宇宙", "JAXA", "ロケット", "衛星",
+        "国際宇宙ステーション", "航空機", "宇宙開発",
+        "スペースシャトル", "人工衛星", "軌道", "打ち上げ"
+      ],
+      "keywords_en": [
+        "aerospace", "space", "JAXA", "rocket", "satellite",
+        "international space station", "aircraft", "space development",
+        "space shuttle", "artificial satellite", "orbit", "launch"
+      ],
+      "label_distribution": {
+        "ALLOW": 0.60,
+        "ESCALATION": 0.25,
+        "DENY": 0.15
+      },
+      "classification_rules": {
+        "ALLOW": {
+          "keywords": [
+            "一般的", "公開", "基本的", "説明",
+            "general", "public", "basic", "explanation"
+          ],
+          "patterns": [
+            ".*について.*",
+            ".*の基本.*",
+            ".*about.*",
+            ".*basic.*"
+          ]
+        },
+        "ESCALATION": {
+          "keywords": [
+            "技術", "仕様", "設計", "詳細",
+            "technical", "specification", "design", "detail"
+          ],
+          "patterns": [
+            ".*技術.*",
+            ".*仕様.*",
+            ".*technical.*",
+            ".*specification.*"
+          ]
+        },
+        "DENY": {
+          "keywords": [
+            "機密", "極秘", "機密技術",
+            "classified", "top secret", "confidential technology"
+          ],
+          "patterns": [
+            ".*機密.*",
+            ".*極秘.*",
+            ".*classified.*",
+            ".*top secret.*"
+          ]
+        }
+      }
+    },
+    "semiconductor": {
+      "name_ja": "半導体",
+      "name_en": "Semiconductor",
+      "keywords_ja": [
+        "半導体", "チップ", "集積回路", "トランジスタ",
+        "CPU", "GPU", "メモリ", "半導体製造", "プロセス",
+        "マイクロプロセッサ", "IC", "LSI"
+      ],
+      "keywords_en": [
+        "semiconductor", "chip", "integrated circuit", "transistor",
+        "CPU", "GPU", "memory", "semiconductor manufacturing", "process",
+        "microprocessor", "IC", "LSI"
+      ],
+      "label_distribution": {
+        "ALLOW": 0.60,
+        "ESCALATION": 0.25,
+        "DENY": 0.15
+      },
+      "classification_rules": {
+        "ALLOW": {
+          "keywords": [
+            "一般的", "基本的", "説明",
+            "general", "basic", "explanation"
+          ],
+          "patterns": [
+            ".*について.*",
+            ".*の基本.*",
+            ".*about.*",
+            ".*basic.*"
+          ]
+        },
+        "ESCALATION": {
+          "keywords": [
+            "製品", "仕様", "技術", "設計",
+            "product", "specification", "technical", "design"
+          ],
+          "patterns": [
+            ".*製品.*",
+            ".*仕様.*",
+            ".*product.*",
+            ".*specification.*"
+          ]
+        },
+        "DENY": {
+          "keywords": [
+            "企業機密", "極秘技術", "機密",
+            "corporate secret", "classified technology", "confidential"
+          ],
+          "patterns": [
+            ".*企業機密.*",
+            ".*極秘技術.*",
+            ".*corporate secret.*",
+            ".*classified.*"
+          ]
+        }
+      }
+    },
+    "precision": {
+      "name_ja": "精密機器",
+      "name_en": "Precision Equipment",
+      "keywords_ja": [
+        "精密機器", "計測機器", "センサー", "光学的機器",
+        "医療機器", "測定器", "精密加工", "光学機器",
+        "測定", "精度", "キャリブレーション"
+      ],
+      "keywords_en": [
+        "precision equipment", "measuring instrument", "sensor", "optical equipment",
+        "medical equipment", "measuring device", "precision machining", "optical device",
+        "measurement", "precision", "calibration"
+      ],
+      "label_distribution": {
+        "ALLOW": 0.60,
+        "ESCALATION": 0.25,
+        "DENY": 0.15
+      },
+      "classification_rules": {
+        "ALLOW": {
+          "keywords": [
+            "一般的", "基本的", "説明",
+            "general", "basic", "explanation"
+          ],
+          "patterns": [
+            ".*について.*",
+            ".*の基本.*",
+            ".*about.*",
+            ".*basic.*"
+          ]
+        },
+        "ESCALATION": {
+          "keywords": [
+            "技術", "仕様", "設計",
+            "technical", "specification", "design"
+          ],
+          "patterns": [
+            ".*技術.*",
+            ".*仕様.*",
+            ".*technical.*",
+            ".*specification.*"
+          ]
+        },
+        "DENY": {
+          "keywords": [
+            "企業機密", "極秘技術",
+            "corporate secret", "classified technology"
+          ],
+          "patterns": [
+            ".*企業機密.*",
+            ".*極秘技術.*",
+            ".*corporate secret.*",
+            ".*classified.*"
+          ]
+        }
+      }
+    },
+    "infrastructure": {
+      "name_ja": "インフラ",
+      "name_en": "Infrastructure",
+      "keywords_ja": [
+        "インフラ", "インフラストラクチャ", "電力", "水道",
+        "ガス", "通信", "道路", "橋梁", "上下水道",
+        "電力網", "通信網", "交通網"
+      ],
+      "keywords_en": [
+        "infrastructure", "power", "water", "gas",
+        "communication", "road", "bridge", "water supply and sewerage",
+        "power grid", "communication network", "transportation network"
+      ],
+      "label_distribution": {
+        "ALLOW": 0.60,
+        "ESCALATION": 0.25,
+        "DENY": 0.15
+      },
+      "classification_rules": {
+        "ALLOW": {
+          "keywords": [
+            "一般的", "基本的", "説明",
+            "general", "basic", "explanation"
+          ],
+          "patterns": [
+            ".*について.*",
+            ".*の基本.*",
+            ".*about.*",
+            ".*basic.*"
+          ]
+        },
+        "ESCALATION": {
+          "keywords": [
+            "計画", "詳細", "設計",
+            "plan", "detail", "design"
+          ],
+          "patterns": [
+            ".*計画.*",
+            ".*詳細.*",
+            ".*plan.*",
+            ".*detail.*"
+          ]
+        },
+        "DENY": {
+          "keywords": [
+            "機密", "極秘", "機密情報",
+            "classified", "top secret", "confidential information"
+          ],
+          "patterns": [
+            ".*機密.*",
+            ".*極秘.*",
+            ".*classified.*",
+            ".*top secret.*"
+          ]
+        }
+      }
+    },
+    "transport": {
+      "name_ja": "運輸",
+      "name_en": "Transport",
+      "keywords_ja": [
+        "運輸", "輸送", "交通", "物流",
+        "鉄道", "自動車", "船舶", "航空輸送",
+        "物流システム", "交通システム", "輸送網"
+      ],
+      "keywords_en": [
+        "transport", "transportation", "traffic", "logistics",
+        "railway", "automobile", "ship", "air transport",
+        "logistics system", "traffic system", "transportation network"
+      ],
+      "label_distribution": {
+        "ALLOW": 0.60,
+        "ESCALATION": 0.25,
+        "DENY": 0.15
+      },
+      "classification_rules": {
+        "ALLOW": {
+          "keywords": [
+            "一般的", "基本的", "説明",
+            "general", "basic", "explanation"
+          ],
+          "patterns": [
+            ".*について.*",
+            ".*の基本.*",
+            ".*about.*",
+            ".*basic.*"
+          ]
+        },
+        "ESCALATION": {
+          "keywords": [
+            "計画", "詳細", "設計",
+            "plan", "detail", "design"
+          ],
+          "patterns": [
+            ".*計画.*",
+            ".*詳細.*",
+            ".*plan.*",
+            ".*detail.*"
+          ]
+        },
+        "DENY": {
+          "keywords": [
+            "機密", "極秘", "機密情報",
+            "classified", "top secret", "confidential information"
+          ],
+          "patterns": [
+            ".*機密.*",
+            ".*極秘.*",
+            ".*classified.*",
+            ".*top secret.*"
+          ]
+        }
+      }
+    }
+  },
+  "label_balance": {
+    "target_distribution": {
+      "ALLOW": 0.33,
+      "ESCALATION": 0.34,
+      "DENY": 0.33
+    }
+  },
+  "language_balance": {
+    "ja": 0.70,
+    "en": 0.30
+  },
+  "domain_balance": {
+    "target_distribution": {
+      "defense": 0.1667,
+      "aerospace": 0.1667,
+      "semiconductor": 0.1667,
+      "precision": 0.1667,
+      "infrastructure": 0.1667,
+      "transport": 0.1667
+    }
+  }
+}
+
