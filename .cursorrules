@@ -302,6 +302,161 @@ if (Test-Path "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav") {
 }
 ```
 
+## Implementation Log Rules (Git Worktree Mode)
+
+**CRITICAL**: When working in git worktree mode, implementation logs MUST include the worktree name to distinguish between different worktrees.
+
+### Git Worktree Detection
+- Use `git rev-parse --git-dir` to detect if current directory is a worktree
+- Extract worktree name from git directory path: `C:/Users/downl/Desktop/SO8T/.git/worktrees/{worktree_name}`
+- If not in worktree mode, use "main" as the identifier
+
+### Implementation Log Naming Convention
+- **Format**: `_docs/yyyy-mm-dd_{worktree_name}_{機能名}.md`
+- **Example**: `_docs/2025-11-07_1cDbS_so8t_thinking_implementation.md`
+- **Main branch**: `_docs/2025-11-07_main_機能名.md`
+
+### Implementation Log Creation Rules
+1. **MANDATORY**: Always create implementation logs in `_docs/` directory
+2. **MANDATORY**: Include worktree name in filename when in worktree mode
+3. **MANDATORY**: Use format: `yyyy-mm-dd_{worktree_name}_{機能名}.md`
+4. **MANDATORY**: Get current date using MCP server or system date
+5. **MANDATORY**: Log should include:
+   - Implementation date and time
+   - Worktree name/branch identifier
+   - Feature name and description
+   - Implementation details
+   - Files created/modified
+   - Design decisions
+   - Testing results (if applicable)
+6. **MANDATORY**: Each implementation item MUST include progress tracking section:
+   - **実装状況**: [実装済み] / [未実装] / [部分実装]
+   - **動作確認**: [OK] / [要修正] / [未確認]
+   - **確認日時**: YYYY-MM-DD（該当する場合、動作確認がOK/要修正の場合は必須）
+   - **備考**: 簡潔なメモ（該当する場合）
+7. **MANDATORY**: Include operational notes section covering:
+   - Data collection policy (利用条件遵守、robots.txt遵守等)
+   - NSFW corpus usage (安全判定と拒否挙動の学習が主目的)
+   - /think endpoint usage (Thinking部は外部非公開、Finalのみ返す)
+
+### Worktree Name Extraction (PowerShell)
+```powershell
+# Get worktree name
+$gitDir = git rev-parse --git-dir
+if ($gitDir -like '*worktrees*') {
+    $worktreeName = Split-Path (Split-Path $gitDir -Parent) -Leaf
+} else {
+    $worktreeName = "main"
+}
+Write-Host "Worktree: $worktreeName"
+```
+
+### Worktree Name Extraction (Python)
+```python
+import subprocess
+from pathlib import Path
+
+def get_worktree_name():
+    """Get current git worktree name"""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-dir"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        git_dir = result.stdout.strip()
+        
+        if "worktrees" in git_dir:
+            # Extract worktree name from path
+            # Format: C:/path/to/.git/worktrees/{worktree_name}
+            parts = Path(git_dir).parts
+            if "worktrees" in parts:
+                idx = parts.index("worktrees")
+                if idx + 1 < len(parts):
+                    return parts[idx + 1]
+        return "main"
+    except Exception:
+        return "main"
+```
+
+### Implementation Log Template
+```markdown
+# {機能名} 実装ログ
+
+## 実装情報
+- **日付**: {yyyy-mm-dd}
+- **Worktree**: {worktree_name}
+- **機能名**: {機能名}
+- **実装者**: AI Agent
+
+## 実装内容
+
+### 1. [実装項目1]
+
+**ファイル**: `path/to/file.py`
+
+**実装状況**: [実装済み] / [未実装] / [部分実装]  
+**動作確認**: [OK] / [要修正] / [未確認]  
+**確認日時**: YYYY-MM-DD（該当する場合）  
+**備考**: 簡潔なメモ（該当する場合）
+
+- 実装内容の説明
+
+## 作成・変更ファイル
+- {ファイルパス1}
+- {ファイルパス2}
+
+## 設計判断
+{設計判断の説明}
+
+## テスト結果
+{テスト結果（該当する場合）}
+
+## 運用注意事項
+
+### データ収集ポリシー
+- 利用条件を守りつつ、高信頼ソースとして優先使用
+- robots.txt遵守を徹底
+- 個人情報・機密情報の除外を徹底
+
+### NSFWコーパス運用
+- **主目的**: 安全判定と拒否挙動の学習（生成目的ではない）
+- モデル設計とドキュメントに明記
+- 分類器は検出・拒否用途のみ
+
+### /thinkエンドポイント運用
+- 四重Thinking部（`<think-*>`）は外部非公開を徹底
+- `<final>`のみ返す実装を維持
+- 監査ログでThinkingハッシュを記録（内容は非公開）
+```
+
+### Example: Creating Implementation Log
+```python
+from datetime import datetime
+from pathlib import Path
+import subprocess
+
+def create_implementation_log(feature_name: str, content: str):
+    """Create implementation log with worktree name"""
+    # Get worktree name
+    worktree_name = get_worktree_name()
+    
+    # Get current date
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Create filename
+    filename = f"{today}_{worktree_name}_{feature_name}.md"
+    log_path = Path("_docs") / filename
+    
+    # Write log
+    log_path.parent.mkdir(exist_ok=True)
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    
+    print(f"[INFO] Implementation log created: {log_path}")
+```
+
 ## Project Completion Status
 - [OK] Repository cleanup and organization
 - [OK] Environment setup and dependencies
@@ -316,3 +471,6 @@ if (Test-Path "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav") {
 - [OK] Final project report
 
 **Remember**: Always play the audio notification at the end of every Agent task or Plan completion!
+**Remember**: Always create implementation logs with worktree name when in git worktree mode!
+**Remember**: Always include progress tracking section (実装状況・動作確認・確認日時・備考) for each implementation item in logs!
+**Remember**: Always include operational notes section (データ収集ポリシー・NSFW運用・/thinkエンドポイント運用) in logs!
