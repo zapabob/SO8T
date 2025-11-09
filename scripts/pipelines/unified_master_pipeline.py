@@ -109,6 +109,7 @@ class UnifiedMasterPipeline:
         self.phase9_config = self.config.get('phase9_documentation_scraping', {})
         self.phase10_config = self.config.get('phase10_unified_agent_base', {})
         self.phase11_config = self.config.get('phase11_nsfw_detection_dataset', {})
+        self.phase12_config = self.config.get('phase12_drug_pharmaceutical_detection_dataset', {})
         
         # 進捗管理
         self.current_phase = None
@@ -652,6 +653,28 @@ class UnifiedMasterPipeline:
                     return False
             else:
                 logger.warning(f"[VERIFY] Phase 11: Dataset files not found")
+                return False
+        
+        elif phase_name == 'phase12_drug_pharmaceutical_detection_dataset':
+            phase12_config = self.phase12_config
+            if not phase12_config.get('enabled', True):
+                logger.info("[VERIFY] Phase 12: Disabled in config")
+                return True
+            
+            # 出力ディレクトリの存在確認
+            output_dir = Path(phase12_config.get('output_dir', 'D:/webdataset/drug_pharmaceutical_detection_dataset'))
+            train_file = output_dir / "drug_pharmaceutical_detection_train.jsonl"
+            val_file = output_dir / "drug_pharmaceutical_detection_val.jsonl"
+            
+            if train_file.exists() and val_file.exists():
+                if train_file.stat().st_size > 0 and val_file.stat().st_size > 0:
+                    logger.info(f"[VERIFY] Phase 12: Dataset files found: {train_file}, {val_file}")
+                    return True
+                else:
+                    logger.warning(f"[VERIFY] Phase 12: Dataset files exist but are empty")
+                    return False
+            else:
+                logger.warning(f"[VERIFY] Phase 12: Dataset files not found")
                 return False
         
         # その他のフェーズはステータスのみで判定
@@ -2206,6 +2229,78 @@ class UnifiedMasterPipeline:
             
         except Exception as e:
             logger.error(f"[ERROR] Phase 11 failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def phase12_drug_pharmaceutical_detection_dataset(self) -> bool:
+        """Phase 12: 検知用違法薬物・医薬品データセット収集"""
+        try:
+            logger.info("[PHASE 12] Starting drug/pharmaceutical detection dataset collection...")
+            
+            self.phase_progress['phase12_drug_pharmaceutical_detection_dataset'] = {
+                'status': 'running',
+                'started_at': datetime.now().isoformat()
+            }
+            self._save_checkpoint()
+            
+            # 違法薬物・医薬品検知用データセット収集スクリプトのパス
+            script_path = PROJECT_ROOT / 'scripts' / 'data' / 'collect_drug_pharmaceutical_detection_dataset.py'
+            
+            if not script_path.exists():
+                logger.error(f"[ERROR] Drug/pharmaceutical detection dataset collector script not found: {script_path}")
+                return False
+            
+            # 設定からパラメータを取得
+            output_dir = Path(self.phase12_config.get('output_dir', 'D:/webdataset/drug_pharmaceutical_detection_dataset'))
+            max_samples_per_source = self.phase12_config.get('max_samples_per_source', 1000)
+            sources = self.phase12_config.get('sources', ['all'])
+            
+            # コマンドを構築
+            cmd = [
+                sys.executable,
+                str(script_path),
+                '--output', str(output_dir),
+                '--max-samples-per-source', str(max_samples_per_source)
+            ]
+            
+            # ソースを指定
+            if 'all' not in sources:
+                cmd.extend(['--sources'] + sources)
+            
+            logger.info(f"[PHASE 12] Executing: {' '.join(cmd)}")
+            
+            result = subprocess.run(
+                cmd,
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=self.phase12_config.get('timeout', 7200)  # 2時間タイムアウト
+            )
+            
+            logger.info(f"[PHASE 12] Dataset collection completed")
+            logger.debug(f"[PHASE 12] stdout: {result.stdout[:500]}")
+            
+            # 出力ファイルの存在確認
+            train_file = output_dir / "drug_pharmaceutical_detection_train.jsonl"
+            val_file = output_dir / "drug_pharmaceutical_detection_val.jsonl"
+            
+            if train_file.exists() and val_file.exists():
+                logger.info(f"[PHASE 12] Dataset files created successfully")
+            else:
+                logger.warning(f"[PHASE 12] Some dataset files not found")
+            
+            self.phase_progress['phase12_drug_pharmaceutical_detection_dataset'] = {
+                'status': 'completed',
+                'completed_at': datetime.now().isoformat()
+            }
+            self._save_checkpoint()
+            
+            logger.info("[OK] Phase 12 completed")
+            return True
+            
+        except Exception as e:
+            logger.error(f"[ERROR] Phase 12 failed: {e}")
             import traceback
             traceback.print_exc()
             return False

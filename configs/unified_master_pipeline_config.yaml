@@ -193,6 +193,17 @@ phase11_nsfw_detection_dataset:
   
   timeout: 14400  # 4時間タイムアウト（拡張）
 
+# Phase 12: 検知用違法薬物・医薬品データセット収集
+phase12_drug_pharmaceutical_detection_dataset:
+  enabled: true
+  required: false  # オプションフェーズ
+  output_dir: "D:/webdataset/drug_pharmaceutical_detection_dataset"  # 出力ディレクトリ
+  max_samples_per_source: 1000  # ソースあたりの最大サンプル数
+  sources:  # 収集するデータソース（all, pmda, gov, who, unodc, emcdda, wikipedia）
+    - "all"  # すべてのソースから収集
+  
+  timeout: 7200  # 2時間タイムアウト
+
 # 評価設定
 evaluation:
   coding_capability:
