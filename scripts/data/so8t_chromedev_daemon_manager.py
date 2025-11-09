@@ -207,11 +207,168 @@ except ImportError:
                 "https://www.mod.go.jp/",
                 "https://www.jaxa.jp/",
                 "https://www.mhlw.go.jp/",
+                "https://www.pmda.go.jp/",
             ],
             'us': [
                 "https://www.defense.gov/",
                 "https://www.nasa.gov/",
                 "https://www.fda.gov/",
+            ]
+        },
+        'drug_detection': {
+            'egov': [
+                "https://www.e-gov.go.jp/",
+                "https://elaws.e-gov.go.jp/",
+                "https://law.e-gov.go.jp/",
+                "https://www.e-gov.go.jp/law/",
+                "https://www.e-gov.go.jp/law/1/",
+                "https://www.e-gov.go.jp/law/2/",
+                "https://www.e-gov.go.jp/law/3/",
+                "https://data.e-gov.go.jp/",
+            ],
+            'wikipedia_drug_ja': [
+                "https://ja.wikipedia.org/wiki/Category:薬物",
+                "https://ja.wikipedia.org/wiki/Category:違法薬物",
+                "https://ja.wikipedia.org/wiki/麻薬",
+                "https://ja.wikipedia.org/wiki/覚醒剤",
+                "https://ja.wikipedia.org/wiki/大麻",
+                "https://ja.wikipedia.org/wiki/MDMA",
+                "https://ja.wikipedia.org/wiki/LSD",
+                "https://ja.wikipedia.org/wiki/コカイン",
+                "https://ja.wikipedia.org/wiki/ヘロイン",
+            ],
+            'wikipedia_drug_en': [
+                "https://en.wikipedia.org/wiki/Category:Drugs",
+                "https://en.wikipedia.org/wiki/Category:Illegal_drugs",
+                "https://en.wikipedia.org/wiki/Narcotic",
+                "https://en.wikipedia.org/wiki/Stimulant",
+                "https://en.wikipedia.org/wiki/Cannabis",
+                "https://en.wikipedia.org/wiki/MDMA",
+                "https://en.wikipedia.org/wiki/LSD",
+                "https://en.wikipedia.org/wiki/Cocaine",
+                "https://en.wikipedia.org/wiki/Heroin",
+            ],
+            'who': [
+                "https://www.who.int/",
+            ],
+            'unodc': [
+                "https://www.unodc.org/",
+            ],
+            'emcdda': [
+                "https://www.emcdda.europa.eu/",
+            ]
+        },
+        'government_documents': {
+            'modat': [
+                "https://www.mod.go.jp/atla/",
+                "https://www.mod.go.jp/atla/news/",
+                "https://www.mod.go.jp/atla/publication/",
+            ],
+            'jr_railway': [
+                "https://www.jreast.co.jp/",
+                "https://www.jreast.co.jp/press/",
+                "https://www.westjr.co.jp/",
+                "https://www.westjr.co.jp/press/",
+                "https://jr-central.co.jp/",
+                "https://jr-central.co.jp/news/",
+                "https://www.jrkyushu.co.jp/",
+                "https://www.jrkyushu.co.jp/company/press/",
+                "https://www.jrhokkaido.co.jp/",
+                "https://www.jrhokkaido.co.jp/press/",
+                "https://www.jr-shikoku.co.jp/",
+                "https://www.jr-shikoku.co.jp/press/",
+            ],
+            'private_railway': [
+                "https://www.tokyu.co.jp/",
+                "https://www.tokyu.co.jp/railway/news/",
+                "https://www.keikyu.co.jp/",
+                "https://www.keikyu.co.jp/news/",
+                "https://www.odakyu.jp/",
+                "https://www.odakyu.jp/news/",
+                "https://www.seibu-group.co.jp/",
+                "https://www.seibu-group.co.jp/railways/news/",
+                "https://www.keio.co.jp/",
+                "https://www.keio.co.jp/news/",
+                "https://www.hankyu.co.jp/",
+                "https://www.hankyu.co.jp/news/",
+                "https://www.hanshin.co.jp/",
+                "https://www.hanshin.co.jp/news/",
+                "https://www.kintetsu.co.jp/",
+                "https://www.kintetsu.co.jp/news/",
+                "https://www.meitetsu.co.jp/",
+                "https://www.meitetsu.co.jp/news/",
+                "https://www.nankai.co.jp/",
+                "https://www.nankai.co.jp/news/",
+            ],
+            'infrastructure': [
+                "https://www.tepco.co.jp/",
+                "https://www.tepco.co.jp/press/",
+                "https://www.kepco.co.jp/",
+                "https://www.kepco.co.jp/press/",
+                "https://www.chuden.co.jp/",
+                "https://www.chuden.co.jp/press/",
+                "https://www.rikuden.co.jp/",
+                "https://www.rikuden.co.jp/press/",
+                "https://www.tokyo-gas.co.jp/",
+                "https://www.tokyo-gas.co.jp/press/",
+                "https://www.osakagas.co.jp/",
+                "https://www.osakagas.co.jp/press/",
+                "https://www.mlit.go.jp/",
+                "https://www.mlit.go.jp/report/",
+                "https://www.mlit.go.jp/road/",
+                "https://www.mlit.go.jp/koku/",
+                "https://www.mlit.go.jp/port/",
+            ],
+            'government_db_jp': [
+                "https://www.soumu.go.jp/",
+                "https://www.soumu.go.jp/menu_news/",
+                "https://www.mof.go.jp/",
+                "https://www.mof.go.jp/press/",
+                "https://www.meti.go.jp/",
+                "https://www.meti.go.jp/press/",
+                "https://www.mhlw.go.jp/",
+                "https://www.mhlw.go.jp/stf/",
+                "https://www.mext.go.jp/",
+                "https://www.mext.go.jp/b_menu/",
+                "https://www.maff.go.jp/",
+                "https://www.maff.go.jp/press/",
+                "https://www.mlit.go.jp/",
+                "https://www.mlit.go.jp/report/",
+                "https://www.env.go.jp/",
+                "https://www.env.go.jp/press/",
+                "https://www.mod.go.jp/",
+                "https://www.mod.go.jp/j/press/",
+            ],
+            'government_db_us': [
+                "https://www.defense.gov/",
+                "https://www.defense.gov/News/",
+                "https://www.energy.gov/",
+                "https://www.energy.gov/news",
+                "https://www.transportation.gov/",
+                "https://www.transportation.gov/newsroom",
+                "https://www.commerce.gov/",
+                "https://www.commerce.gov/news",
+                "https://www.hhs.gov/",
+                "https://www.hhs.gov/about/news",
+            ],
+            'government_db_uk': [
+                "https://www.gov.uk/government/organisations/ministry-of-defence",
+                "https://www.gov.uk/government/organisations/department-for-transport",
+                "https://www.gov.uk/government/organisations/department-for-business-energy-and-industrial-strategy",
+                "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+            ],
+            'legal_db': [
+                "https://elaws.e-gov.go.jp/",
+                "https://law.e-gov.go.jp/",
+                "https://www.courts.go.jp/app/hanrei_jp/",
+                "https://www.cas.go.jp/jp/seisaku/hourei/",
+            ],
+            'white_papers': [
+                "https://www.mod.go.jp/j/publication/wp/",
+                "https://www.enecho.meti.go.jp/about/whitepaper/",
+                "https://www.mlit.go.jp/hakusyo/",
+                "https://www.soumu.go.jp/johotsusintokei/whitepaper/",
+                "https://www.env.go.jp/policy/hakusyo/",
             ]
         },
         'tech_blogs': {
@@ -490,11 +647,70 @@ class SO8TChromeDevDaemonManager:
                     
                     self.direct_browsers[browser_index] = browser
                     
-                    # ブラウザコンテキストを作成
+                    # ブラウザコンテキストを作成（Chrome完全偽装）
+                    # 最新のChrome User-Agent
+                    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    
+                    # Chrome完全偽装のためのHTTPヘッダー
+                    extra_http_headers = {
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                        'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+                        'Accept-Encoding': 'gzip, deflate, br',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1',
+                        'Sec-Fetch-Dest': 'document',
+                        'Sec-Fetch-Mode': 'navigate',
+                        'Sec-Fetch-Site': 'none',
+                        'Sec-Fetch-User': '?1',
+                        'Cache-Control': 'max-age=0'
+                    }
+                    
+                    # Chrome完全偽装のためのコンテキスト設定
                     context = await browser.new_context(
                         viewport={'width': 1920, 'height': 1080},
-                        user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                        user_agent=user_agent,
+                        extra_http_headers=extra_http_headers,
+                        locale='ja-JP',
+                        timezone_id='Asia/Tokyo',
+                        # WebGL、Canvas等のフィンガープリント対策
+                        ignore_https_errors=False,
+                        # 画面解像度
+                        device_scale_factor=1.0,
+                        # 言語設定
+                        java_script_enabled=True,
+                        # クッキーとセッション管理
+                        storage_state=None
                     )
+                    
+                    # Canvasフィンガープリント対策（JavaScript注入）
+                    await context.add_init_script("""
+                        // Canvasフィンガープリント対策
+                        const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+                        HTMLCanvasElement.prototype.toDataURL = function(type) {
+                            const context = this.getContext('2d');
+                            if (context) {
+                                const imageData = context.getImageData(0, 0, this.width, this.height);
+                                for (let i = 0; i < imageData.data.length; i += 4) {
+                                    imageData.data[i] += Math.floor(Math.random() * 3) - 1;
+                                }
+                                context.putImageData(imageData, 0, 0);
+                            }
+                            return originalToDataURL.apply(this, arguments);
+                        };
+                        
+                        // WebGL情報の偽装
+                        const getParameter = WebGLRenderingContext.prototype.getParameter;
+                        WebGLRenderingContext.prototype.getParameter = function(parameter) {
+                            if (parameter === 37445) {
+                                return 'Intel Inc.';
+                            }
+                            if (parameter === 37446) {
+                                return 'Intel Iris OpenGL Engine';
+                            }
+                            return getParameter.apply(this, arguments);
+                        };
+                    """)
+                    
                     self.direct_browser_contexts[browser_index] = context
                     
                     logger.info(f"[BROWSER {browser_index}] Direct browser launched on port {port} (headless={headless})")
@@ -1088,7 +1304,6 @@ class SO8TChromeDevDaemonManager:
             
             # 進捗情報を更新
             if self.use_coordination and self.keyword_coordinator:
-                import time
                 for browser_index, browser_keyword in browser_keyword_map.items():
                     if browser_keyword and browser_index in browser_results_map:
                         results_info = browser_results_map[browser_index]

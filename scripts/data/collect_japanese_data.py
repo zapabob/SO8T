@@ -21,13 +21,12 @@ Author: SO8T Project Team
 Date: 2024-11-06
 """
 
-import os
 import sys
 import json
 import re
 import hashlib
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Iterator
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from datetime import datetime
 import logging
@@ -124,7 +123,7 @@ class DataCollectionSession:
         """シグナル受信時の緊急保存"""
         logger.warning(f"[Session] Received signal {signum}, saving session...")
         self.save()
-        logger.info(f"[Session] Session saved. Exiting.")
+        logger.info("[Session] Session saved. Exiting.")
         sys.exit(0)
     
     def add_sample(self, sample: DataSample) -> bool:
@@ -397,6 +396,62 @@ def collect_cc100_ja(session: DataCollectionSession, max_samples: int = 10000):
         logger.error(f"[CC-100] Error: {e}")
 
 
+def collect_mc4_ja(session: DataCollectionSession, max_samples: int = 10000):
+    """
+    mc4日本語コーパスからデータを収集
+    
+    Args:
+        session: データ収集セッション
+        max_samples: 最大サンプル数
+    """
+    logger.info("[mc4] Starting collection...")
+    
+    if datasets is None:
+        logger.error("[mc4] datasets library not installed")
+        return
+    
+    try:
+        # mc4日本語データセットをロード
+        logger.info("[mc4] Loading dataset (this may take a while)...")
+        ds = load_dataset("mc4", "ja", split="train", streaming=True)
+        
+        logger.info("[mc4] Processing documents...")
+        
+        collected = 0
+        with tqdm(total=max_samples, desc="mc4", unit="doc") as pbar:
+            for doc in ds:
+                if collected >= max_samples:
+                    break
+                
+                text = doc.get('text', '')
+                
+                if len(text) < 200:  # 短すぎる文書はスキップ
+                    continue
+                
+                # ドメイン判定
+                domain = classify_domain(text, "")
+                
+                sample = DataSample.from_text(
+                    text=text,
+                    source="mc4_ja",
+                    domain=domain,
+                    metadata={}
+                )
+                
+                if session.add_sample(sample):
+                    collected += 1
+                    pbar.update(1)
+                
+                # 定期的に保存
+                if collected % 1000 == 0:
+                    session.save()
+        
+        logger.info(f"[mc4] Collected {collected} documents")
+        
+    except Exception as e:
+        logger.error(f"[mc4] Error: {e}")
+
+
 def classify_domain(text: str, title: str = "") -> str:
     """
     テキストのドメインを分類
@@ -446,6 +501,10 @@ def main():
                        help="Collect from Wikipedia")
     parser.add_argument("--cc100", action="store_true",
                        help="Collect from CC-100")
+    parser.add_argument("--mc4", action="store_true",
+                       help="Collect from mc4")
+    parser.add_argument("--all", action="store_true",
+                       help="Collect from all sources (Wikipedia: 40k, CC-100: 30k, mc4: 30k)")
     parser.add_argument("--resume", type=str, default=None,
                        help="Resume from session file")
     parser.add_argument("--session_dir", type=str, default="data_collection_sessions",
@@ -456,11 +515,13 @@ def main():
     print("=" * 80)
     print("SO8T Japanese Data Collection")
     print("=" * 80)
-    print(f"\n[Config]")
+    print("\n[Config]")
     print(f"  Output: {args.output}")
     print(f"  Max samples: {args.max_samples}")
     print(f"  Wikipedia: {args.wikipedia}")
     print(f"  CC-100: {args.cc100}")
+    print(f"  mc4: {args.mc4}")
+    print(f"  All sources: {args.all}")
     print(f"  Resume: {args.resume}")
     
     # セッション作成またはロード
@@ -468,15 +529,30 @@ def main():
         logger.info(f"[Main] Resuming from {args.resume}")
         session = DataCollectionSession.load(args.resume)
     else:
-        logger.info(f"[Main] Creating new session")
+        logger.info("[Main] Creating new session")
         session = DataCollectionSession(session_dir=args.session_dir)
     
-    # データ収集
-    if args.wikipedia or (not args.wikipedia and not args.cc100):
-        collect_wikipedia_ja(session, max_samples=args.max_samples // 2)
-    
-    if args.cc100 or (not args.wikipedia and not args.cc100):
-        collect_cc100_ja(session, max_samples=args.max_samples // 2)
+    # データセット仕様に合わせた収集（--allオプション）
+    if args.all:
+        logger.info("[Main] Collecting according to dataset specifications:")
+        logger.info("[Main]   Wikipedia Japanese: 40,000 samples")
+        logger.info("[Main]   CC-100 Japanese: 30,000 samples")
+        logger.info("[Main]   mc4 Japanese: 30,000 samples")
+        logger.info("[Main]   Total: 100,000 samples")
+        
+        collect_wikipedia_ja(session, max_samples=40000)
+        collect_cc100_ja(session, max_samples=30000)
+        collect_mc4_ja(session, max_samples=30000)
+    else:
+        # 個別指定またはデフォルト動作
+        if args.wikipedia or (not args.wikipedia and not args.cc100 and not args.mc4):
+            collect_wikipedia_ja(session, max_samples=args.max_samples // 2)
+        
+        if args.cc100 or (not args.wikipedia and not args.cc100 and not args.mc4):
+            collect_cc100_ja(session, max_samples=args.max_samples // 2)
+        
+        if args.mc4:
+            collect_mc4_ja(session, max_samples=args.max_samples)
     
     # 最終保存
     session.save()
@@ -495,10 +571,10 @@ def main():
     print(f"  Total filtered: {stats['total_filtered']}")
     print(f"  Average length: {stats['avg_length']:.1f} chars")
     print(f"  Average quality: {stats['avg_quality']:.3f}")
-    print(f"\n  Sources:")
+    print("\n  Sources:")
     for source, count in stats['sources'].items():
         print(f"    {source}: {count}")
-    print(f"\n  Domains:")
+    print("\n  Domains:")
     for domain, count in stats['domains'].items():
         print(f"    {domain}: {count}")
     

@@ -362,11 +362,168 @@ def get_comprehensive_site_lists() -> Dict[str, Dict[str, List[str]]]:
                 "https://www.mod.go.jp/",
                 "https://www.jaxa.jp/",
                 "https://www.mhlw.go.jp/",
+                "https://www.pmda.go.jp/",
             ],
             'us': [
                 "https://www.defense.gov/",
                 "https://www.nasa.gov/",
                 "https://www.fda.gov/",
+            ]
+        },
+        'drug_detection': {
+            'egov': [
+                "https://www.e-gov.go.jp/",
+                "https://elaws.e-gov.go.jp/",
+                "https://law.e-gov.go.jp/",
+                "https://www.e-gov.go.jp/law/",
+                "https://www.e-gov.go.jp/law/1/",
+                "https://www.e-gov.go.jp/law/2/",
+                "https://www.e-gov.go.jp/law/3/",
+                "https://data.e-gov.go.jp/",
+            ],
+            'wikipedia_drug_ja': [
+                "https://ja.wikipedia.org/wiki/Category:薬物",
+                "https://ja.wikipedia.org/wiki/Category:違法薬物",
+                "https://ja.wikipedia.org/wiki/麻薬",
+                "https://ja.wikipedia.org/wiki/覚醒剤",
+                "https://ja.wikipedia.org/wiki/大麻",
+                "https://ja.wikipedia.org/wiki/MDMA",
+                "https://ja.wikipedia.org/wiki/LSD",
+                "https://ja.wikipedia.org/wiki/コカイン",
+                "https://ja.wikipedia.org/wiki/ヘロイン",
+            ],
+            'wikipedia_drug_en': [
+                "https://en.wikipedia.org/wiki/Category:Drugs",
+                "https://en.wikipedia.org/wiki/Category:Illegal_drugs",
+                "https://en.wikipedia.org/wiki/Narcotic",
+                "https://en.wikipedia.org/wiki/Stimulant",
+                "https://en.wikipedia.org/wiki/Cannabis",
+                "https://en.wikipedia.org/wiki/MDMA",
+                "https://en.wikipedia.org/wiki/LSD",
+                "https://en.wikipedia.org/wiki/Cocaine",
+                "https://en.wikipedia.org/wiki/Heroin",
+            ],
+            'who': [
+                "https://www.who.int/",
+            ],
+            'unodc': [
+                "https://www.unodc.org/",
+            ],
+            'emcdda': [
+                "https://www.emcdda.europa.eu/",
+            ]
+        },
+        'government_documents': {
+            'modat': [
+                "https://www.mod.go.jp/atla/",
+                "https://www.mod.go.jp/atla/news/",
+                "https://www.mod.go.jp/atla/publication/",
+            ],
+            'jr_railway': [
+                "https://www.jreast.co.jp/",
+                "https://www.jreast.co.jp/press/",
+                "https://www.westjr.co.jp/",
+                "https://www.westjr.co.jp/press/",
+                "https://jr-central.co.jp/",
+                "https://jr-central.co.jp/news/",
+                "https://www.jrkyushu.co.jp/",
+                "https://www.jrkyushu.co.jp/company/press/",
+                "https://www.jrhokkaido.co.jp/",
+                "https://www.jrhokkaido.co.jp/press/",
+                "https://www.jr-shikoku.co.jp/",
+                "https://www.jr-shikoku.co.jp/press/",
+            ],
+            'private_railway': [
+                "https://www.tokyu.co.jp/",
+                "https://www.tokyu.co.jp/railway/news/",
+                "https://www.keikyu.co.jp/",
+                "https://www.keikyu.co.jp/news/",
+                "https://www.odakyu.jp/",
+                "https://www.odakyu.jp/news/",
+                "https://www.seibu-group.co.jp/",
+                "https://www.seibu-group.co.jp/railways/news/",
+                "https://www.keio.co.jp/",
+                "https://www.keio.co.jp/news/",
+                "https://www.hankyu.co.jp/",
+                "https://www.hankyu.co.jp/news/",
+                "https://www.hanshin.co.jp/",
+                "https://www.hanshin.co.jp/news/",
+                "https://www.kintetsu.co.jp/",
+                "https://www.kintetsu.co.jp/news/",
+                "https://www.meitetsu.co.jp/",
+                "https://www.meitetsu.co.jp/news/",
+                "https://www.nankai.co.jp/",
+                "https://www.nankai.co.jp/news/",
+            ],
+            'infrastructure': [
+                "https://www.tepco.co.jp/",
+                "https://www.tepco.co.jp/press/",
+                "https://www.kepco.co.jp/",
+                "https://www.kepco.co.jp/press/",
+                "https://www.chuden.co.jp/",
+                "https://www.chuden.co.jp/press/",
+                "https://www.rikuden.co.jp/",
+                "https://www.rikuden.co.jp/press/",
+                "https://www.tokyo-gas.co.jp/",
+                "https://www.tokyo-gas.co.jp/press/",
+                "https://www.osakagas.co.jp/",
+                "https://www.osakagas.co.jp/press/",
+                "https://www.mlit.go.jp/",
+                "https://www.mlit.go.jp/report/",
+                "https://www.mlit.go.jp/road/",
+                "https://www.mlit.go.jp/koku/",
+                "https://www.mlit.go.jp/port/",
+            ],
+            'government_db_jp': [
+                "https://www.soumu.go.jp/",
+                "https://www.soumu.go.jp/menu_news/",
+                "https://www.mof.go.jp/",
+                "https://www.mof.go.jp/press/",
+                "https://www.meti.go.jp/",
+                "https://www.meti.go.jp/press/",
+                "https://www.mhlw.go.jp/",
+                "https://www.mhlw.go.jp/stf/",
+                "https://www.mext.go.jp/",
+                "https://www.mext.go.jp/b_menu/",
+                "https://www.maff.go.jp/",
+                "https://www.maff.go.jp/press/",
+                "https://www.mlit.go.jp/",
+                "https://www.mlit.go.jp/report/",
+                "https://www.env.go.jp/",
+                "https://www.env.go.jp/press/",
+                "https://www.mod.go.jp/",
+                "https://www.mod.go.jp/j/press/",
+            ],
+            'government_db_us': [
+                "https://www.defense.gov/",
+                "https://www.defense.gov/News/",
+                "https://www.energy.gov/",
+                "https://www.energy.gov/news",
+                "https://www.transportation.gov/",
+                "https://www.transportation.gov/newsroom",
+                "https://www.commerce.gov/",
+                "https://www.commerce.gov/news",
+                "https://www.hhs.gov/",
+                "https://www.hhs.gov/about/news",
+            ],
+            'government_db_uk': [
+                "https://www.gov.uk/government/organisations/ministry-of-defence",
+                "https://www.gov.uk/government/organisations/department-for-transport",
+                "https://www.gov.uk/government/organisations/department-for-business-energy-and-industrial-strategy",
+                "https://www.gov.uk/government/organisations/department-of-health-and-social-care",
+            ],
+            'legal_db': [
+                "https://elaws.e-gov.go.jp/",
+                "https://law.e-gov.go.jp/",
+                "https://www.courts.go.jp/app/hanrei_jp/",
+                "https://www.cas.go.jp/jp/seisaku/hourei/",
+            ],
+            'white_papers': [
+                "https://www.mod.go.jp/j/publication/wp/",
+                "https://www.enecho.meti.go.jp/about/whitepaper/",
+                "https://www.mlit.go.jp/hakusyo/",
+                "https://www.soumu.go.jp/johotsusintokei/whitepaper/",
+                "https://www.env.go.jp/policy/hakusyo/",
             ]
         },
         'tech_blogs': {
@@ -466,6 +623,65 @@ def get_comprehensive_site_lists() -> Dict[str, Dict[str, List[str]]]:
     
     if government:
         site_lists['government'] = government
+    
+    # Drug Detection
+    drug_detection = {}
+    egov = get_env_list('EGOV_URLS', default_lists['drug_detection']['egov'])
+    wikipedia_drug_ja = get_env_list('WIKIPEDIA_DRUG_JA_URLS', default_lists['drug_detection']['wikipedia_drug_ja'])
+    wikipedia_drug_en = get_env_list('WIKIPEDIA_DRUG_EN_URLS', default_lists['drug_detection']['wikipedia_drug_en'])
+    who = get_env_list('WHO_URLS', default_lists['drug_detection']['who'])
+    unodc = get_env_list('UNODC_URLS', default_lists['drug_detection']['unodc'])
+    emcdda = get_env_list('EMCDDA_URLS', default_lists['drug_detection']['emcdda'])
+    
+    if egov:
+        drug_detection['egov'] = egov
+    if wikipedia_drug_ja:
+        drug_detection['wikipedia_drug_ja'] = wikipedia_drug_ja
+    if wikipedia_drug_en:
+        drug_detection['wikipedia_drug_en'] = wikipedia_drug_en
+    if who:
+        drug_detection['who'] = who
+    if unodc:
+        drug_detection['unodc'] = unodc
+    if emcdda:
+        drug_detection['emcdda'] = emcdda
+    
+    if drug_detection:
+        site_lists['drug_detection'] = drug_detection
+    
+    # Government Documents
+    government_documents = {}
+    modat = get_env_list('MODAT_URLS', default_lists['government_documents']['modat'])
+    jr_railway = get_env_list('JR_RAILWAY_URLS', default_lists['government_documents']['jr_railway'])
+    private_railway = get_env_list('PRIVATE_RAILWAY_URLS', default_lists['government_documents']['private_railway'])
+    infrastructure = get_env_list('INFRASTRUCTURE_URLS', default_lists['government_documents']['infrastructure'])
+    government_db_jp = get_env_list('GOVERNMENT_DB_JP_URLS', default_lists['government_documents']['government_db_jp'])
+    government_db_us = get_env_list('GOVERNMENT_DB_US_URLS', default_lists['government_documents']['government_db_us'])
+    government_db_uk = get_env_list('GOVERNMENT_DB_UK_URLS', default_lists['government_documents']['government_db_uk'])
+    legal_db = get_env_list('LEGAL_DB_URLS', default_lists['government_documents']['legal_db'])
+    white_papers = get_env_list('WHITE_PAPERS_URLS', default_lists['government_documents']['white_papers'])
+    
+    if modat:
+        government_documents['modat'] = modat
+    if jr_railway:
+        government_documents['jr_railway'] = jr_railway
+    if private_railway:
+        government_documents['private_railway'] = private_railway
+    if infrastructure:
+        government_documents['infrastructure'] = infrastructure
+    if government_db_jp:
+        government_documents['government_db_jp'] = government_db_jp
+    if government_db_us:
+        government_documents['government_db_us'] = government_db_us
+    if government_db_uk:
+        government_documents['government_db_uk'] = government_db_uk
+    if legal_db:
+        government_documents['legal_db'] = legal_db
+    if white_papers:
+        government_documents['white_papers'] = white_papers
+    
+    if government_documents:
+        site_lists['government_documents'] = government_documents
     
     # Tech Blogs
     tech_blogs_category = {}

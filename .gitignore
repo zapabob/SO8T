@@ -426,3 +426,109 @@ outputs/hf_upload_ready/
 *.tmp.pt
 *.tmp.safetensors
 training_state_*.json
+
+# Web scraping and browser automation
+# Browser data and cache
+browser_data/
+browser_cache/
+*.browserdata
+*.browsercache
+playwright_cache/
+playwright/.cache/
+.cache/playwright/
+
+# Scraping session files
+data_collection_sessions/
+*.session
+*.session.pkl
+scraping_sessions/
+
+# Scraping checkpoints and progress
+scraping_checkpoints/
+scraping_progress/
+keyword_queue.json
+keyword_queue_*.json
+scraping_failures.json
+failure_report.json
+
+# Parallel scraping outputs
+parallel_scraping_outputs/
+tab_scraping_outputs/
+browser_coordination/
+
+# Chrome DevTools MCP data
+chrome_devtools_data/
+mcp_chrome_data/
+*.mcp_cache
+
+# DeepResearch outputs
+deep_research_outputs/
+deep_research_cache/
+deep_research_sessions/
+
+# Pipeline execution files
+pipeline_rerun_*.log
+pipeline_execution_*.log
+pipeline_state_*.json
+pipeline_state_*.pkl
+
+# Unified master pipeline checkpoints
+D:/webdataset/checkpoints/unified_master_pipeline/
+unified_master_pipeline_checkpoints/
+
+# SO8T ChromeDev Daemon Manager outputs
+so8t_chromedev_scraped_*.jsonl
+so8t_chromedev_outputs/
+chromedev_daemon_logs/
+
+# Browser process files
+browser_processes/
+browser_pids/
+*.browser.pid
+
+# Network capture files
+*.pcap
+*.cap
+network_captures/
+
+# Screenshot outputs (except test images)
+screenshots/
+page_screenshots/
+scraping_screenshots/
+!test_images/
+
+# HTML snapshots
+html_snapshots/
+page_snapshots/
+
+# Scraping metadata
+scraping_metadata/
+url_metadata/
+site_metadata/
+
+# Coordination files
+coordination_state/
+browser_coordination_state/
+keyword_coordination_state/
+
+# Retry and failure logs
+retry_logs/
+failure_logs/
+scraping_failures/
+failed_urls.json
+failed_urls_*.json
+
+# CUDA processing outputs
+cuda_outputs/
+cuda_cache/
+gpu_processing_logs/
+
+# Human-like behavior simulation data
+human_simulation_data/
+mouse_trajectories/
+typing_patterns/
+
+# Chrome fingerprinting test data
+fingerprint_test_data/
+canvas_fingerprints/
+webgl_fingerprints/

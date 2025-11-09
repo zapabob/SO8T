@@ -9,6 +9,7 @@ SO8T完全自動化マスターパイプライン サイバーパンク風監視
 import sys
 import json
 import yaml
+import logging
 from pathlib import Path
 from typing import Optional, Dict, List
 from datetime import datetime
@@ -21,6 +22,13 @@ from PIL import Image
 # プロジェクトルートをパスに追加
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# ロギング設定
+logging.basicConfig(
+    level=logging.WARNING,  # StreamlitではWARNING以上のみ表示
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # サイバーパンク風CSS
 CYBERPUNK_CSS = """

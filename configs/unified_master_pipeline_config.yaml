@@ -34,9 +34,9 @@ phase1_parallel_scraping:
   use_so8t_chromedev_daemon: true  # SO8T統制ChromeDev並列ブラウザCUDA分散処理を使用するか（デフォルト: false）
   so8t_chromedev_daemon:
     enabled: true  # SO8T統制ChromeDev並列ブラウザCUDA分散処理を有効にするか
-    total_parallel_tasks: 200  # 総並列処理数（デーモン+表示合計200タブ）
-    num_browsers: 20  # ブラウザ数（total_parallel_tasksから動的に計算される場合もある）
-    num_tabs: 10  # タブ数（各ブラウザ）
+    total_parallel_tasks: 100  # 総並列処理数（10ブラウザ×10タブ=100タブ）
+    num_browsers: 10  # ブラウザ数（10ブラウザ）
+    num_tabs: 10  # タブ数（各ブラウザ10タブ）
     base_port: 9222  # ベースリモートデバッグポート
     config_path: "configs/so8t_chromedev_daemon_config.yaml"  # SO8T ChromeDevデーモン設定ファイルパス
   # 百科事典ソース設定

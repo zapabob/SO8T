@@ -1973,6 +1973,9 @@ class UnifiedMasterPipeline:
             test_queries = self.phase10_config.get('test_queries', [])
             
             # テストクエリが指定されている場合、テストを実行
+            result = None
+            output_file = None
+            
             if test_queries:
                 logger.info(f"[PHASE 10] Running test queries: {len(test_queries)} queries")
                 
@@ -2015,37 +2018,102 @@ class UnifiedMasterPipeline:
                 
                 result = subprocess.run(
                     cmd,
-                    check=True,
+                    check=False,  # check=Falseにしてエラー時も続行
                     capture_output=True,
                     text=True,
+                    encoding='utf-8',
+                    errors='replace',
                     timeout=self.phase10_config.get('timeout', 3600)  # 1時間タイムアウト
                 )
                 
-                logger.info(f"[PHASE 10] Test execution completed")
-                logger.debug(f"[PHASE 10] stdout: {result.stdout[:500]}")
+                # エラー出力をログに記録
+                if result.returncode != 0:
+                    logger.warning(f"[PHASE 10] Script exited with non-zero code: {result.returncode}")
+                    if result.stderr:
+                        logger.error(f"[PHASE 10] stderr: {result.stderr[:2000]}")
+                    if result.stdout:
+                        logger.info(f"[PHASE 10] stdout: {result.stdout[:1000]}")
+                else:
+                    logger.info(f"[PHASE 10] Test execution completed successfully")
+                    if result.stdout:
+                        logger.debug(f"[PHASE 10] stdout: {result.stdout[:500]}")
                 
-                # 結果ファイルの存在確認
+                # 結果ファイルの存在確認（エラー時でも確認）
                 if output_file.exists():
                     logger.info(f"[PHASE 10] Results saved to: {output_file}")
+                    # 結果ファイルの内容を確認（エラー情報が含まれている可能性）
+                    try:
+                        with open(output_file, 'r', encoding='utf-8') as f:
+                            result_data = json.load(f)
+                            if isinstance(result_data, list) and len(result_data) > 0:
+                                if result_data[0].get('error') or result_data[0].get('processing_failed'):
+                                    logger.warning(f"[PHASE 10] Results contain errors, but file was created")
+                            elif isinstance(result_data, dict) and (result_data.get('error') or result_data.get('processing_failed')):
+                                logger.warning(f"[PHASE 10] Results contain errors, but file was created")
+                    except Exception as e:
+                        logger.warning(f"[PHASE 10] Failed to read result file: {e}")
                 else:
                     logger.warning(f"[PHASE 10] Results file not found: {output_file}")
+                    # エラー時でも空の結果ファイルを作成してパイプラインを続行
+                    if result and result.returncode != 0:
+                        logger.warning("[PHASE 10] Creating error result file to allow pipeline continuation")
+                        try:
+                            output_file.parent.mkdir(parents=True, exist_ok=True)
+                            error_result = {
+                                'error': f"Script exited with code {result.returncode}",
+                                'stderr': result.stderr[:500] if result.stderr else None,
+                                'timestamp': datetime.now().isoformat(),
+                                'queries': test_queries
+                            }
+                            with open(output_file, 'w', encoding='utf-8') as f:
+                                json.dump(error_result, f, ensure_ascii=False, indent=2)
+                            logger.info(f"[PHASE 10] Error result file created: {output_file}")
+                        except Exception as e:
+                            logger.error(f"[PHASE 10] Failed to create error result file: {e}")
             else:
                 logger.info("[PHASE 10] No test queries specified, skipping test execution")
             
-            self.phase_progress['phase10_unified_agent_base'] = {
-                'status': 'completed',
-                'completed_at': datetime.now().isoformat()
-            }
+            # Phase 10はオプションフェーズなので、エラーが発生しても続行可能
+            if result and result.returncode != 0:
+                logger.warning("[PHASE 10] Phase 10 completed with errors, but continuing pipeline (optional phase)")
+                self.phase_progress['phase10_unified_agent_base'] = {
+                    'status': 'completed_with_errors',
+                    'completed_at': datetime.now().isoformat(),
+                    'return_code': result.returncode,
+                    'error': result.stderr[:500] if result.stderr else 'Unknown error'
+                }
+            else:
+                self.phase_progress['phase10_unified_agent_base'] = {
+                    'status': 'completed',
+                    'completed_at': datetime.now().isoformat()
+                }
             self._save_checkpoint()
             
-            logger.info("[OK] Phase 10 completed")
-            return True
+            logger.info("[OK] Phase 10 completed (errors handled gracefully)")
+            return True  # オプションフェーズなので、エラーでもTrueを返す
             
+        except subprocess.TimeoutExpired:
+            logger.warning("[PHASE 10] Phase 10 timeout, but continuing pipeline (optional phase)")
+            self.phase_progress['phase10_unified_agent_base'] = {
+                'status': 'timeout',
+                'error': 'Timeout',
+                'timestamp': datetime.now().isoformat()
+            }
+            self._save_checkpoint()
+            return True  # オプションフェーズなので、タイムアウトでもTrueを返す
         except Exception as e:
             logger.error(f"[ERROR] Phase 10 failed: {e}")
             import traceback
-            traceback.print_exc()
-            return False
+            logger.error(traceback.format_exc())
+            # オプションフェーズなので、エラーでも続行可能
+            self.phase_progress['phase10_unified_agent_base'] = {
+                'status': 'failed',
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+            self._save_checkpoint()
+            logger.warning("[PHASE 10] Phase 10 is optional, continuing pipeline...")
+            return True  # オプションフェーズなので、エラーでもTrueを返す
     
     def phase11_nsfw_detection_dataset(self) -> bool:
         """Phase 11: 検知用NSFWデータセット収集"""

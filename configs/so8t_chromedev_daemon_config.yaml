@@ -63,6 +63,8 @@ deep_research:
     nsfw_detection: true  # NSFW検知用サイト
     government: true  # 政府・公共サイト
     tech_blogs: true  # テックブログ
+    drug_detection: true  # 違法薬物検知用サイト
+    government_documents: true  # 政府文書・インフラ関連サイト
   # 優先度設定
   priority:
     site_lists: "high"  # サイトリストの優先度（high/medium/low）
