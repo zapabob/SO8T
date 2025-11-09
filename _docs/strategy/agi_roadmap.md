@@ -37,7 +37,9 @@ Escalation層: 不確実性検知→人間介入要求
 # レベル3: 環境適応型エージェント
 class AdaptiveAgent:
     def __init__(self):
+        # SO8Tは同じAPI（Task/Safety/Validation/Escalation）で使う
         self.task_model = SO8TModel(4_roles=True)
+        # 外側にPlanner/WorldModel/ContinualLearnerを足す
         self.world_model = DynamicKnowledgeGraph()
         self.planner = MultiStepPlanner()
         self.learner = ContinualLearner()
@@ -49,7 +51,8 @@ class AdaptiveAgent:
         # 計画生成（複数候補）
         plans = self.planner.generate(context, n=5)
         
-        # Validation（一貫性・安全性・実行可能性）
+        # SO8T Validation（一貫性・安全性・実行可能性）
+        # レベルが上がってもインタフェースは変えない
         validated_plans = self.task_model.validate(plans)
         
         # 最良計画選択
@@ -61,6 +64,13 @@ class AdaptiveAgent:
         
         return result
 ```
+
+**重要な設計原則**: レベルが上がってもインタフェースは変えない
+- Level1-2: SO8Tモデルは単体推論＋4ロール判定
+- Level3-4: 外側にPlanner/WorldModel/ContinualLearnerを足すが、SO8Tは同じAPI（Task/Safety/Validation/Escalation）で使う
+- Level5+: マルチモーダル化しても「ロール構造＋焼き込み」という中核は不変
+
+これは運用チーム向けに重要で、「AGIを目指しても既存Ops基盤を捨てなくてよい」というメッセージになる。
 
 ### 1.3 中期展望：協調型AGI（レベル5-6）
 **定義**: 複数ドメイン統合、人間協調、社会的文脈理解
@@ -107,7 +117,56 @@ class AdaptiveAgent:
 安定性: 等長写像→長期学習収束
 ```
 
-### 2.2 Self-Consistency Validation
+### 2.2 4ロールからSO(8)拡張へのブリッジ
+**拡張可能な多ロール設計**:
+
+現在の4ロール（Task/Safety/Validation/Escalation）は、SO(8)群の8次元表現空間に自然に拡張可能：
+
+```
+8ロール候補:
+1. Task: タスク実行
+2. Safety: 安全判定
+3. Validation: 一貫性検証
+4. Escalation: エスカレーション判定
+5. Domain: ドメイン知識統合
+6. Memory: エピソード記憶管理
+7. Meta-Reasoning: メタ推論・計画
+8. Policy: 方策・意思決定
+```
+
+**SO(8)-aware multi-role representation**:
+
+- 埋め込み空間を8分割し、各ロール用の線形結合（直交制約付き）を導入
+- 等長写像（直交変換）により、8ロール間を情報損失なく回転・結合可能
+- ノルム保存により長期学習時の数値安定性と情報保持を保証
+- 学習後は「焼き込み」で通常線形層へ変換（推論時は標準演算のみ）
+
+**実装設計**:
+```python
+# SO(8)多ロール表現空間
+class SO8MultiRoleRepresentation:
+    def __init__(self, dim=8):
+        # 8次元埋め込み空間
+        self.embedding_dim = dim
+        # 各ロール用の直交変換行列（SO(8)群要素）
+        self.role_transforms = [
+            self._create_orthogonal_matrix() for _ in range(8)
+        ]
+    
+    def _create_orthogonal_matrix(self):
+        # SO(8)群の要素（直交行列、det=1）
+        # 学習時: 直交制約付き最適化
+        # 焼き込み後: 通常線形層に変換
+        pass
+    
+    def apply_role_transform(self, x, role_id):
+        # ロール固有の等長変換
+        return self.role_transforms[role_id] @ x
+```
+
+この設計により、「数学的言及」が単なる比喩でなく、実装可能な設計要件となる。
+
+### 2.3 Self-Consistency Validation
 **人間の熟考（Deliberation）機構のモデル化**:
 
 ```python
@@ -134,7 +193,7 @@ def deliberate(query, n_candidates=5):
     return best_thought
 ```
 
-### 2.3 焼き込み（Burn-in）の意義
+### 2.4 焼き込み（Burn-in）の意義
 **学習と推論の分離 = AGIのスケーラビリティ**
 
 従来のAGI研究の問題点:
@@ -159,7 +218,25 @@ SO8Tソリューション:
 
 ## 3. 日本語特化AGIの戦略的重要性
 
-### 3.1 言語と文化の不可分性
+### 3.1 既存日本語LLM研究との関係
+**先行研究との位置づけ**:
+
+- **Swallow系**（継続事前学習）: Llama系英語モデルに日本語継続事前学習を行い性能を引き上げた事例 [1]
+- **LLM-jpプロジェクト**: 日本語オープンLLMエコシステム構築 [2]
+
+**SO8Tの差別化**:
+これらの研究は「単一ロール（タスク実行）」に焦点を当てているが、SO8Tは「多ロール安全アーキテクチャ」で差別化する：
+
+```
+従来: 1本のモデルがタスクと安全判断を混ぜて行う（中で何が起きているか見えにくい）
+SO8T: Task/Safety/Validation/Escalationを構造分離し、それぞれにロールとロスを割り当て、
+      かつEscalationで人間介入を設計時に保証する（Scalable Oversightの実装）
+```
+
+**延長線上の位置づけ**:
+SO8T構想（焼き込み＋ロール分離＋ローカル運用）は、Swallow/LLM-jpの延長線上に自然に位置づけられ、多ロール安全設計により実運用での信頼性を向上させる。
+
+### 3.2 言語と文化の不可分性
 AGIは言語に依存しないという通説は誤りである。言語は文化・価値観・社会規範を内包する。
 
 **日本語の特殊性**:
@@ -167,6 +244,12 @@ AGIは言語に依存しないという通説は誤りである。言語は文�
 - 敬語体系: 社会関係の微妙な表現
 - 曖昧性許容: はっきり言わない文化
 - 和の精神: 対立回避・調和重視
+
+**日本文化知識・常識推論の評価系研究**:
+- 日本文化知識DBやRAGで文化適合性を高める試み [3]
+- 妖怪など日本固有文化でLLM知識を評価する研究 [4]
+
+これら先行研究が示すように、日本文化コンテキストは専用評価と専用知識統合を要する。SO8Tは4ロール/8ロール構造と焼き込みにより、この文化特化強化を安全に反復適用できる。
 
 **英語AGIの限界**:
 ```
@@ -178,7 +261,7 @@ AGIは言語に依存しないという通説は誤りである。言語は文�
 → Escalation判定: 上司・関係者への確認推奨
 ```
 
-### 3.2 防衛・機密領域での必須性
+### 3.3 防衛・機密領域での必須性
 **なぜ日本語特化が必須か**:
 
 1. **機密性**: 英語モデル→米国企業依存→情報漏洩リスク
@@ -197,7 +280,7 @@ AGIは言語に依存しないという通説は誤りである。言語は文�
 → Escalation: 指揮官への定期報告設定
 ```
 
-### 3.3 市場優位性
+### 3.4 市場優位性
 **グローバルAI市場の盲点**:
 
 | 領域 | 英語モデル対応 | 日本語特化需要 | SO8T優位性 |
@@ -210,11 +293,17 @@ AGIは言語に依存しないという通説は誤りである。言語は文�
 
 ## 4. AGI安全性とSO8T
 
-### 4.1 AI Safety問題
+### 4.1 AI Safety問題とScalable Oversight
 **従来の懸念**:
 1. Value Alignment（価値整合性）
 2. Corrigibility（修正可能性）
 3. Scalable Oversight（監督のスケーラビリティ）
+
+**なぜ従来より安全か**:
+- **従来**: 1本のモデルがタスクと安全判断を混ぜて行う（中で何が起きているか見えにくい）
+- **SO8T**: Task/Safety/Validation/Escalationを構造分離し、それぞれにロールとロスを割り当て、かつEscalationで人間介入を設計時に保証する
+
+これは**Scalable Oversightの実装**であり、国際議論（AI規制・標準化）にも乗せやすい設計である。
 
 **SO8T 4ロールによる対応**:
 
@@ -282,11 +371,24 @@ class ConstitutionalSO8T:
 ## 5. 実装ロードマップ
 
 ### Year 1: LLMOps確立（レベル1-2）
-- [x] SO8T基本実装
-- [x] 4ロールアーキテクチャ
-- [ ] 焼き込みパイプライン完成
-- [ ] 日本語150kデータセット
-- [ ] 防衛・金融POC
+**直近1年で「AGIパスを信じさせる具体アウトプット」**:
+
+1. **日本語SO8T基盤モデル（2-8B）の安定版公開（または限定提供）**
+   - [x] SO8T基本実装
+   - [x] 4ロールアーキテクチャ
+   - [ ] 日本語・英語バイリンガル対応
+   - [ ] 4ロール出力（Task/Safety/Validation/Escalation）
+   - [ ] 完全ローカル推論対応（llama.cpp等）
+   - [ ] 焼き込みパイプライン完成
+
+2. **LLMOps基盤＋SO8TのPoC事例**
+   - [ ] 日本語150kデータセット
+   - [ ] 防衛/金融/医療のうち1〜2ドメインで、「エスカレーションまで含めた安全導入」の実証
+
+3. **理論＋実装の論文化**
+   - [ ] SO8Tアーキテクチャと焼き込み手法をarXivで公開
+   - [ ] 日本語特化AGI戦略との接続を明示
+   - [ ] Swallow/LLM-jp等との関係を整理し、「日本発コンソーシアム戦略」に繋げる
 
 ### Year 2-3: 自律エージェント（レベル3-4）
 - [ ] 動的知識グラフ統合
@@ -350,11 +452,36 @@ LLMOpsの確立は、AGI実現への第一歩である。我々は、技術的�
 ---
 
 **次のステップ**: 
-1. arXiv論文での理論公開
-2. 防衛・金融POCでの実証
-3. 国際標準化への貢献
+1. arXiv論文での理論公開（SO8Tアーキテクチャ、焼き込み手法、日本語特化AGI戦略）
+2. 防衛・金融POCでの実証（エスカレーションまで含めた安全導入）
+3. 国際標準化への貢献（Scalable Oversight実装として）
 4. 計算資源のスケールアップ
 5. 継続的改善サイクル確立
 
 **最終目標**: 日本発、世界標準のAGI実装基盤
+
+---
+
+## 8. ドキュメント版の使い分け
+
+### 社内版
+- 現状の内容＋具体実装リンク（`_docs/..`, リポジトリ構成）を追記
+- 実装タスク: 既存SO8T実装ログ（`1cDbS`など）とこのロードマップを紐づけて、Year 1のToDoをIssue/Project化
+
+### 対外/論文ドラフト版
+- 数学的基盤（SO(8)多ロール）、日本語文化適合、安全アーキテクチャ、焼き込み手法
+- 関連研究（Swallow, LLM-jp, 日本文化評価系）への言及を加える
+- arXiv用8ページ論文フォーマットに落とした骨子
+
+---
+
+## 参考文献
+
+[1] Swallow: Continual Pre-training for Cross-lingual LLM. https://huggingface.co/papers/2404.17790, https://paperswithcode.com/paper/continual-pre-training-for-cross-lingual-llm
+
+[2] LLM-jp: Building an Open Japanese LLM Ecosystem. https://arxiv.org/abs/2407.03963
+
+[3] 日本文化知識DBやRAGで文化適合性を高める試み. https://www.anlp.jp/proceedings/annual_meeting/2025/pdf_dir/P6-18.pdf
+
+[4] 妖怪など日本固有文化でLLM知識を評価する研究. https://www.anlp.jp/proceedings/annual_meeting/2025/pdf_dir/Q2-23.pdf
 

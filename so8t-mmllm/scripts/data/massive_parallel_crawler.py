@@ -18,7 +18,7 @@ import pickle
 import hashlib
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 from dataclasses import dataclass, asdict
 from collections import deque
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -31,6 +31,17 @@ from urllib.robotparser import RobotFileParser
 import re
 from tqdm import tqdm
 import numpy as np
+from queue import PriorityQueue
+import psutil
+
+# エラーハンドリングとリトライ機構のインポート
+try:
+    from scripts.data.crawler_error_handler import CrawlerErrorHandler, ErrorType, classify_exception
+    from scripts.data.retry_handler import RetryHandler
+    ERROR_HANDLING_AVAILABLE = True
+except ImportError:
+    ERROR_HANDLING_AVAILABLE = False
+    logger.warning("Error handling modules not available. Using basic error handling.")
 
 # ロギング設定
 logging.basicConfig(
@@ -54,6 +65,18 @@ MASSIVE_CRAWL_CONFIG = {
     "max_pages_per_site": 1000,  # サイトあたり最大ページ数
     "checkpoint_interval": 180,  # 3分
     "max_checkpoints": 5,  # チェックポイント数（最大5個ローテーション）
+    
+    # リトライ設定
+    "max_retries": 3,  # 最大リトライ回数
+    "retry_initial_delay": 1.0,  # 初期遅延（秒）
+    "retry_backoff_factor": 2.0,  # バックオフ倍率
+    "retry_max_delay": 10.0,  # 最大遅延（秒）
+    
+    # 動的ワーカー調整設定
+    "dynamic_workers": True,  # 動的ワーカー調整を有効化
+    "min_workers": 2,  # 最小ワーカー数
+    "cpu_threshold": 0.8,  # CPU使用率閾値（80%）
+    "memory_threshold": 0.85,  # メモリ使用率閾値（85%）
     
     # 言語別重み（日本語優先）
     "language_weights": {
@@ -82,7 +105,8 @@ COMPREHENSIVE_SOURCES = {
         "urls": ["https://ja.wikipedia.org/wiki/"],
         "domain": "encyclopedia",
         "language": "ja",
-        "priority": "high"
+        "priority": "high",
+        "crawler_type": "wikipedia"
     },
     "wikipedia_en": {
         "urls": ["https://en.wikipedia.org/wiki/"],
@@ -156,9 +180,39 @@ COMPREHENSIVE_SOURCES = {
             "https://www.e-gov.go.jp/",  # e-Gov
             "https://elaws.e-gov.go.jp/",  # 法令データベース
         ],
-        "domain": "legal",
+        "domain": "government",
         "language": "ja",
-        "priority": "high"
+        "priority": "high",
+        "crawler_type": "egov"
+    },
+    
+    # 4web版官報
+    "kanpou_4web": {
+        "urls": ["https://kanpou.4web.jp/"],
+        "domain": "official_gazette",
+        "language": "ja",
+        "priority": "high",
+        "crawler_type": "kanpou_4web"
+    },
+    
+    # zenn
+    "zenn": {
+        "urls": ["https://zenn.dev/"],
+        "domain": "tech_blog",
+        "language": "ja",
+        "priority": "medium",
+        "crawler_type": "zenn",
+        "api_enabled": True
+    },
+    
+    # Qiita
+    "qiita": {
+        "urls": ["https://qiita.com/"],
+        "domain": "tech_blog",
+        "language": "ja",
+        "priority": "medium",
+        "crawler_type": "qiita",
+        "api_enabled": True
     },
     
     # 宇宙・航空
@@ -251,15 +305,52 @@ class ParallelWebCrawler:
         self.last_checkpoint_time = time.time()
         self.checkpoint_counter = 0
         
+        # エラーハンドリングとリトライ機構の初期化
+        if ERROR_HANDLING_AVAILABLE:
+            error_log_dir = self.checkpoint_dir / "error_logs"
+            self.error_handler = CrawlerErrorHandler(log_dir=error_log_dir)
+            self.retry_handler = RetryHandler(
+                max_retries=self.config.get('max_retries', 3),
+                initial_delay=self.config.get('retry_initial_delay', 1.0),
+                backoff_factor=self.config.get('retry_backoff_factor', 2.0),
+                max_delay=self.config.get('retry_max_delay', 10.0)
+            )
+        else:
+            self.error_handler = None
+            self.retry_handler = None
+        
+        # 動的ワーカー調整用の設定
+        self.dynamic_workers = self.config.get('dynamic_workers', True)
+        self.min_workers = self.config.get('min_workers', 2)
+        self.max_workers = self.config['max_workers']
+        self.current_workers = self.max_workers
+        self.cpu_threshold = self.config.get('cpu_threshold', 0.8)
+        self.memory_threshold = self.config.get('memory_threshold', 0.85)
+        
+        # URLキュー管理（優先度付きキュー）
+        self.url_priority_queue = PriorityQueue()
+        self.url_duplicate_check = set()  # 重複チェック用セット
+        
         # 日経225企業読み込み
         self._load_nikkei225_companies()
     
     def _load_nikkei225_companies(self):
         """日経225企業をCOMPREHENSIVE_SOURCESに追加"""
-        nikkei_file = Path("scripts/data/nikkei225_sources.json")
+        # 複数のパスを試行
+        possible_paths = [
+            Path(__file__).parent / "nikkei225_sources.json",  # 同じディレクトリ
+            Path("so8t-mmllm/scripts/data/nikkei225_sources.json"),  # プロジェクトルートからの相対パス
+            Path("scripts/data/nikkei225_sources.json"),  # 旧パス（後方互換性）
+        ]
         
-        if not nikkei_file.exists():
-            logger.warning(f"Nikkei225 file not found: {nikkei_file}")
+        nikkei_file = None
+        for path in possible_paths:
+            if path.exists():
+                nikkei_file = path
+                break
+        
+        if not nikkei_file:
+            logger.warning(f"Nikkei225 file not found. Tried: {[str(p) for p in possible_paths]}")
             return
         
         try:
@@ -281,25 +372,26 @@ class ParallelWebCrawler:
         except Exception as e:
             logger.error(f"Failed to load Nikkei225: {e}")
     
-    def _crawl_single_url(self, url: str, domain: str, language: str) -> Dict:
+    def _crawl_single_url(self, url: str, domain: str, language: str, visited_urls: Set[str]) -> Optional[Dict]:
         """
-        単一URL クロール（ワーカープロセス用）
+        単一URL クロール（ワーカープロセス用、リトライ機構統合）
         
         Args:
             url: クロール対象URL
             domain: ドメイン分類
             language: 言語
+            visited_urls: 訪問済みURLセット（ワーカープロセスローカル）
         
         Returns:
-            sample: 収集サンプル
+            sample: 収集サンプル（失敗時はNone）
         """
-        # 訪問済みチェック
-        with self.progress_lock:
-            if url in self.visited_urls:
-                return None
-            self.visited_urls[url] = True
+        # 訪問済みチェック（ワーカープロセスローカル）
+        if url in visited_urls:
+            return None
+        visited_urls.add(url)
         
-        try:
+        def _fetch_and_parse():
+            """HTTPリクエストとHTML解析の内部関数（リトライ用）"""
             # レート制限
             time.sleep(self.config['delay_per_domain'])
             
@@ -342,13 +434,57 @@ class ParallelWebCrawler:
                 "text_length": len(text)
             }
             
-            # カウンタ更新
-            with self.progress_lock:
-                self.collected_count.value += 1
-            
             return sample
         
+        try:
+            # リトライ機構を使用（ネットワークエラー・タイムアウトエラーはリトライ可能）
+            if self.retry_handler:
+                retryable_exceptions = (
+                    requests.exceptions.RequestException,
+                    requests.exceptions.Timeout,
+                    requests.exceptions.ConnectionError,
+                    requests.exceptions.HTTPError
+                )
+                
+                try:
+                    sample = self.retry_handler.retry_sync(
+                        _fetch_and_parse,
+                        operation_name=f"crawl_{url[:50]}",
+                        retryable_exceptions=retryable_exceptions
+                    )
+                    return sample
+                except Exception as e:
+                    # リトライ失敗時はエラーハンドリング
+                    if self.error_handler:
+                        error_type = classify_exception(e)
+                        should_continue = self.error_handler.handle_error(
+                            error_type,
+                            url,
+                            e,
+                            context={"domain": domain, "language": language},
+                            log_traceback=False
+                        )
+                        if not should_continue:
+                            return None
+                    logger.debug(f"Crawl failed after retries {url}: {e}")
+                    return None
+            else:
+                # リトライ機構なしの場合は直接実行
+                return _fetch_and_parse()
+        
         except Exception as e:
+            # パースエラーなど、リトライ不可なエラー
+            if self.error_handler:
+                error_type = classify_exception(e)
+                should_continue = self.error_handler.handle_error(
+                    error_type,
+                    url,
+                    e,
+                    context={"domain": domain, "language": language},
+                    log_traceback=False
+                )
+                if not should_continue:
+                    return None
             logger.debug(f"Crawl failed {url}: {e}")
             return None
     
@@ -378,12 +514,13 @@ class ParallelWebCrawler:
         else:
             return True
     
-    def _crawl_task(self, task: CrawlTask) -> List[Dict]:
+    def _crawl_task(self, task: CrawlTask, config: Dict) -> List[Dict]:
         """
         タスク実行（プロセスプール用）
         
         Args:
             task: クロールタスク
+            config: クロール設定（Pickling可能な辞書）
         
         Returns:
             samples: 収集サンプル
@@ -393,24 +530,25 @@ class ParallelWebCrawler:
         samples = []
         queue = deque(task.urls)
         depth_map = {url: 0 for url in task.urls}
+        visited_urls = set()  # ワーカープロセスローカルの訪問済みURLセット
         
         while queue and len(samples) < task.max_pages:
             url = queue.popleft()
             current_depth = depth_map.get(url, 0)
             
-            if current_depth >= self.config['max_depth']:
+            if current_depth >= config['max_depth']:
                 continue
             
             # クロール
-            sample = self._crawl_single_url(url, task.domain, task.language)
+            sample = self._crawl_single_url(url, task.domain, task.language, visited_urls)
             
             if sample:
                 samples.append(sample)
                 
                 # 新規リンク抽出（深度制限内）
-                if current_depth < self.config['max_depth'] - 1:
+                if current_depth < config['max_depth'] - 1:
                     try:
-                        response = requests.get(url, timeout=self.config['timeout'])
+                        response = requests.get(url, timeout=config['timeout'])
                         soup = BeautifulSoup(response.content, 'lxml')
                         
                         for a_tag in soup.find_all('a', href=True):
@@ -489,7 +627,10 @@ class ParallelWebCrawler:
             "visited_urls": dict(self.visited_urls),
             "collected_count": self.collected_count.value,
             "checkpoint_time": datetime.now().isoformat(),
-            "checkpoint_id": self.checkpoint_counter
+            "checkpoint_id": self.checkpoint_counter,
+            "config": self.config,  # 設定も保存（復旧時に使用）
+            "error_stats": self.error_handler.get_error_stats() if self.error_handler else {},
+            "retry_stats": self.retry_handler.get_retry_summary() if self.retry_handler else {}
         }
         
         with open(checkpoint_file, 'wb') as f:
@@ -511,13 +652,122 @@ class ParallelWebCrawler:
         logger.info(f"[OK] Checkpoint saved: {checkpoint_file.name}")
         logger.info(f"[INFO] Active checkpoints: {len(self.checkpoint_deque)}/{self.config['max_checkpoints']}")
     
+    def _load_latest_checkpoint(self) -> Optional[Dict]:
+        """
+        最新のチェックポイントを読み込み（自動復旧用）
+        
+        Returns:
+            checkpoint_data: チェックポイントデータ（存在しない場合はNone）
+        """
+        # チェックポイントディレクトリから最新のチェックポイントを検索
+        checkpoint_files = sorted(
+            self.checkpoint_dir.glob("checkpoint_*.pkl"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True
+        )
+        
+        if not checkpoint_files:
+            logger.info("[CHECKPOINT] No checkpoint found")
+            return None
+        
+        latest_checkpoint = checkpoint_files[0]
+        logger.info(f"[CHECKPOINT] Loading latest checkpoint: {latest_checkpoint.name}")
+        
+        try:
+            with open(latest_checkpoint, 'rb') as f:
+                checkpoint_data = pickle.load(f)
+            
+            logger.info(f"[OK] Checkpoint loaded: {checkpoint_data.get('collected_count', 0)} samples")
+            logger.info(f"[OK] Checkpoint time: {checkpoint_data.get('checkpoint_time', 'unknown')}")
+            
+            return checkpoint_data
+        
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to load checkpoint: {e}")
+            return None
+    
+    def _recover_from_checkpoint(self, checkpoint_data: Dict) -> List[Dict]:
+        """
+        チェックポイントから復旧
+        
+        Args:
+            checkpoint_data: チェックポイントデータ
+        
+        Returns:
+            recovered_samples: 復旧されたサンプル
+        """
+        logger.info("[RECOVERY] Recovering from checkpoint...")
+        
+        recovered_samples = checkpoint_data.get('samples', [])
+        visited_urls_dict = checkpoint_data.get('visited_urls', {})
+        
+        # 訪問済みURLを復元
+        for url in visited_urls_dict.keys():
+            self.visited_urls[url] = True
+        
+        # 収集カウンタを復元
+        self.collected_count.value = checkpoint_data.get('collected_count', 0)
+        
+        # エラー統計を復元
+        if self.error_handler and 'error_stats' in checkpoint_data:
+            self.error_handler.error_stats.update(checkpoint_data['error_stats'])
+        
+        logger.info(f"[OK] Recovered {len(recovered_samples):,} samples")
+        logger.info(f"[OK] Recovered {len(visited_urls_dict):,} visited URLs")
+        
+        return recovered_samples
+    
     def _check_and_save_checkpoint(self, samples: List[Dict]):
         """チェックポイント時間チェック&保存"""
         if time.time() - self.last_checkpoint_time >= self.config['checkpoint_interval']:
             self._save_checkpoint(samples)
     
-    def run_parallel_crawl(self):
-        """並列クロール実行（チェックポイント対応）"""
+    def _get_optimal_worker_count(self) -> int:
+        """
+        CPU/メモリ使用率に基づいて最適なワーカー数を計算
+        
+        Returns:
+            optimal_workers: 最適なワーカー数
+        """
+        if not self.dynamic_workers:
+            return self.current_workers
+        
+        try:
+            # CPU使用率取得
+            cpu_percent = psutil.cpu_percent(interval=1.0)
+            # メモリ使用率取得
+            memory = psutil.virtual_memory()
+            memory_percent = memory.percent / 100.0
+            
+            # CPU/メモリの高い方に基づいて調整
+            max_usage = max(cpu_percent / 100.0, memory_percent)
+            
+            if max_usage > self.cpu_threshold or max_usage > self.memory_threshold:
+                # リソース使用率が高い場合はワーカー数を減らす
+                new_workers = max(self.min_workers, int(self.current_workers * 0.75))
+                if new_workers != self.current_workers:
+                    logger.info(f"[WORKER_ADJUST] Reducing workers: {self.current_workers} -> {new_workers} (CPU: {cpu_percent:.1f}%, Memory: {memory_percent:.1%})")
+                    self.current_workers = new_workers
+            elif max_usage < self.cpu_threshold * 0.7 and max_usage < self.memory_threshold * 0.7:
+                # リソース使用率が低い場合はワーカー数を増やす
+                new_workers = min(self.max_workers, int(self.current_workers * 1.25))
+                if new_workers != self.current_workers:
+                    logger.info(f"[WORKER_ADJUST] Increasing workers: {self.current_workers} -> {new_workers} (CPU: {cpu_percent:.1f}%, Memory: {memory_percent:.1%})")
+                    self.current_workers = new_workers
+            
+            return self.current_workers
+        
+        except Exception as e:
+            logger.warning(f"[WORKER_ADJUST] Failed to get resource metrics: {e}")
+            return self.current_workers
+    
+    def run_parallel_crawl(self, auto_recover: bool = True):
+        """
+        並列クロール実行（チェックポイント対応、自動復旧機能付き）
+        
+        Args:
+            auto_recover: チェックポイントから自動復旧するか
+        """
         logger.info("="*80)
         logger.info("MASSIVE PARALLEL WEB CRAWLER (with 3-min checkpoints)")
         logger.info(f"Target: {self.config['target_samples']:,} samples")
@@ -530,16 +780,41 @@ class ParallelWebCrawler:
                    f"ZH={self.config['language_weights']['zh']:.0%}")
         logger.info("="*80)
         
+        # チェックポイントからの自動復旧
+        all_samples = []
+        global_visited_urls = set()  # メインプロセスでの重複チェック用
+        
+        if auto_recover:
+            checkpoint_data = self._load_latest_checkpoint()
+            if checkpoint_data:
+                logger.info("[RECOVERY] Attempting to recover from checkpoint...")
+                recovered_samples = self._recover_from_checkpoint(checkpoint_data)
+                all_samples.extend(recovered_samples)
+                # 復旧されたURLをglobal_visited_urlsに追加
+                for sample in recovered_samples:
+                    url = sample.get('url', '')
+                    if url:
+                        global_visited_urls.add(url)
+                logger.info(f"[RECOVERY] Resuming from {len(recovered_samples):,} recovered samples")
+        
         # タスク作成
         tasks = self.create_tasks()
         
-        # 並列実行
-        all_samples = []
+        # configをPickling可能な辞書に変換
+        config_dict = {
+            'max_depth': self.config['max_depth'],
+            'delay_per_domain': self.config['delay_per_domain'],
+            'timeout': self.config['timeout']
+        }
         
-        with ProcessPoolExecutor(max_workers=self.config['max_workers']) as executor:
-            # タスク投入
+        # 動的ワーカー調整: 初期ワーカー数を計算
+        initial_workers = self._get_optimal_worker_count()
+        logger.info(f"[WORKERS] Initial worker count: {initial_workers}")
+        
+        with ProcessPoolExecutor(max_workers=initial_workers) as executor:
+            # タスク投入（configを引数として渡す）
             future_to_task = {
-                executor.submit(self._crawl_task, task): task
+                executor.submit(self._crawl_task, task, config_dict): task
                 for task in tasks
             }
             
@@ -549,18 +824,72 @@ class ParallelWebCrawler:
                     task = future_to_task[future]
                     try:
                         samples = future.result()
-                        all_samples.extend(samples)
+                        
+                        # 重複チェック（メインプロセスレベル）
+                        for sample in samples:
+                            url = sample.get('url', '')
+                            if url not in global_visited_urls:
+                                global_visited_urls.add(url)
+                                all_samples.append(sample)
+                        
                         pbar.update(1)
                         pbar.set_postfix({'total_samples': len(all_samples)})
+                        
+                        # カウンタ更新
+                        with self.progress_lock:
+                            self.collected_count.value = len(all_samples)
                         
                         # チェックポイントチェック
                         self._check_and_save_checkpoint(all_samples)
                         
+                        # 動的ワーカー調整（定期的にチェック）
+                        if len(all_samples) % 100 == 0:
+                            optimal_workers = self._get_optimal_worker_count()
+                            if optimal_workers != initial_workers:
+                                logger.info(f"[WORKER_ADJUST] Optimal workers changed: {initial_workers} -> {optimal_workers}")
+                                # 注意: ProcessPoolExecutorのワーカー数は実行中に変更できないため、
+                                # 次回実行時に反映される
+                        
                     except Exception as e:
-                        logger.error(f"Task {task.source_id} failed: {e}")
+                        # 並列処理でのエラー伝播とログ記録の改善
+                        if self.error_handler:
+                            error_type = classify_exception(e)
+                            should_continue = self.error_handler.handle_error(
+                                error_type,
+                                f"task_{task.source_id}",
+                                e,
+                                context={
+                                    "source_id": task.source_id,
+                                    "domain": task.domain,
+                                    "language": task.language,
+                                    "priority": task.priority
+                                },
+                                log_traceback=True
+                            )
+                            if not should_continue:
+                                logger.error(f"Task {task.source_id} failed critically: {e}")
+                                continue
+                        else:
+                            logger.error(f"Task {task.source_id} failed: {e}")
         
         # 最終チェックポイント
         self._save_checkpoint(all_samples)
+        
+        # エラーレポート保存
+        if self.error_handler:
+            error_report_path = self.checkpoint_dir / f"error_report_{self.checkpoint_counter:04d}.json"
+            self.error_handler.save_error_report(error_report_path)
+            error_summary = self.error_handler.get_error_summary()
+            logger.info(f"[ERROR_STATS] Total errors: {error_summary.get('total_errors', 0)}")
+            logger.info(f"[ERROR_STATS] Error types: {error_summary.get('error_types', {})}")
+        
+        # リトライ統計保存
+        if self.retry_handler:
+            retry_report_path = self.checkpoint_dir / f"retry_report_{self.checkpoint_counter:04d}.json"
+            self.retry_handler.save_retry_report(retry_report_path)
+            retry_summary = self.retry_handler.get_retry_summary()
+            logger.info(f"[RETRY_STATS] Total operations: {retry_summary.get('total_operations', 0)}")
+            logger.info(f"[RETRY_STATS] Success rate: {retry_summary.get('success_rate', 0):.2f}%")
         
         # 保存
         self._save_results(all_samples)

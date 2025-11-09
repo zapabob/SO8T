@@ -1,0 +1,10 @@
+{
+  "total_chunks": 0,
+  "by_language": {},
+  "by_domain": {},
+  "chunk_size": 512,
+  "overlap": 128,
+  "created_at": "2025-11-08T01:41:23.918603",
+  "ready_for_vectorization": true,
+  "recommended_embedding_model": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+}

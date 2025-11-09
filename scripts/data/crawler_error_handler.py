@@ -266,3 +266,23 @@ def classify_exception(exception: Exception) -> ErrorType:
     # 未知のエラー
     return ErrorType.UNKNOWN_ERROR
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

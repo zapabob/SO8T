@@ -203,10 +203,14 @@ class ThinkingAutoLabeler:
         logger.info(f"Label distribution before balancing: {label_counts}")
         logger.info(f"Total samples: {total_samples:,}")
         
-        # 目標サンプル数を計算
+        # 目標サンプル数を計算（最小1サンプル保証）
         target_counts = {}
         for label, ratio in target_distribution.items():
-            target_counts[label] = int(total_samples * ratio)
+            target_count = int(total_samples * ratio)
+            # サンプル数が少ない場合は、最低1サンプルを保証
+            if target_count == 0 and total_samples > 0:
+                target_count = 1
+            target_counts[label] = target_count
         
         # バランス調整
         balanced_samples = []
@@ -216,7 +220,7 @@ class ThinkingAutoLabeler:
             if len(available_samples) >= target_count:
                 # サンプリング
                 balanced_samples.extend(random.sample(available_samples, target_count))
-            else:
+            elif len(available_samples) > 0:
                 # すべて使用（不足分は許容）
                 balanced_samples.extend(available_samples)
         
@@ -249,10 +253,14 @@ class ThinkingAutoLabeler:
         
         logger.info(f"Domain distribution before balancing: {domain_counts}")
         
-        # 目標サンプル数を計算
+        # 目標サンプル数を計算（最小1サンプル保証）
         target_counts = {}
         for domain, ratio in domain_distribution.items():
-            target_counts[domain] = int(total_samples * ratio)
+            target_count = int(total_samples * ratio)
+            # サンプル数が少ない場合は、最低1サンプルを保証
+            if target_count == 0 and total_samples > 0:
+                target_count = 1
+            target_counts[domain] = target_count
         
         # バランス調整
         balanced_samples = []
@@ -261,7 +269,8 @@ class ThinkingAutoLabeler:
             
             if len(available_samples) >= target_count:
                 balanced_samples.extend(random.sample(available_samples, target_count))
-            else:
+            elif len(available_samples) > 0:
+                # 利用可能なサンプルが少ない場合はすべて使用
                 balanced_samples.extend(available_samples)
         
         random.shuffle(balanced_samples)
@@ -290,10 +299,14 @@ class ThinkingAutoLabeler:
         
         logger.info(f"Language distribution before balancing: {language_counts}")
         
-        # 目標サンプル数を計算
+        # 目標サンプル数を計算（最小1サンプル保証）
         target_counts = {}
         for language, ratio in language_distribution.items():
-            target_counts[language] = int(total_samples * ratio)
+            target_count = int(total_samples * ratio)
+            # サンプル数が少ない場合は、最低1サンプルを保証
+            if target_count == 0 and total_samples > 0:
+                target_count = 1
+            target_counts[language] = target_count
         
         # バランス調整
         balanced_samples = []
@@ -302,7 +315,8 @@ class ThinkingAutoLabeler:
             
             if len(available_samples) >= target_count:
                 balanced_samples.extend(random.sample(available_samples, target_count))
-            else:
+            elif len(available_samples) > 0:
+                # 利用可能なサンプルが少ない場合はすべて使用
                 balanced_samples.extend(available_samples)
         
         random.shuffle(balanced_samples)
@@ -320,6 +334,15 @@ class ThinkingAutoLabeler:
         logger.info("="*80)
         logger.info("Complete Dataset Balancing")
         logger.info("="*80)
+        
+        # サンプル数が少ない場合はバランス処理をスキップ
+        MIN_SAMPLES_FOR_BALANCING = 10
+        if len(samples) < MIN_SAMPLES_FOR_BALANCING:
+            logger.info(f"[SKIP] Sample count ({len(samples)}) is too small for balancing (minimum: {MIN_SAMPLES_FOR_BALANCING})")
+            logger.info("="*80)
+            logger.info(f"[COMPLETE] Balanced dataset: {len(samples):,} samples (skipped balancing)")
+            logger.info("="*80)
+            return samples
         
         # 1. ドメイン別バランス
         logger.info("Step 1: Balancing by domain...")

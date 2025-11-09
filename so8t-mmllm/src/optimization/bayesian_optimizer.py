@@ -292,3 +292,23 @@ class BayesianHyperparameterOptimizer:
         fig.write_html(str(output_dir / "parallel_coordinate.html"))
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

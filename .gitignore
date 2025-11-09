@@ -232,6 +232,10 @@ test_outputs/
 test_results/
 eval_results/
 
+# MLflow runs (experiment tracking)
+mlruns/
+wandb/
+
 # Model outputs
 outputs/
 inference_results/
@@ -399,9 +403,10 @@ webdataset/*.pth
 webdataset/*.safetensors
 webdataset/*.gguf
 webdataset/*.bin
-webdataset/*.jsonl
-webdataset/*.json
+webdataset/datasets/**/*.jsonl
+webdataset/processed/**/*.jsonl
 webdataset/checkpoints/**/*.pt
+webdataset/checkpoints/**/*.pkl
 webdataset/weights/**/*.pt
 webdataset/models/**/*.pt
 webdataset/gguf_models/**/*.gguf
@@ -411,6 +416,8 @@ webdataset/gguf_models/**/*.gguf
 !webdataset/**/*.md
 !webdataset/**/*.txt
 !webdataset/**/*.json
+!webdataset/datasets/**/metadata.json
+!webdataset/processed/**/metadata.json
 
 # HF upload staging
 outputs/hf_upload_ready/

@@ -279,3 +279,23 @@ class WikipediaTextExtractor:
         
         return metadata
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

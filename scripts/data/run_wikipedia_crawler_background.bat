@@ -74,3 +74,23 @@ echo.
 REM 音声通知
 powershell -ExecutionPolicy Bypass -File .cursor\play_audio_enhanced.ps1
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

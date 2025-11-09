@@ -251,3 +251,23 @@ py scripts/so8t_burnin_pipeline_rtx3060.py \
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

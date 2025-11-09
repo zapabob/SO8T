@@ -11,10 +11,18 @@ import json
 import hashlib
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 from collections import Counter
 import numpy as np
 from tqdm import tqdm
+
+# 類似度計算用（オプション）
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
 
 
 class DataQualityValidator:
@@ -53,51 +61,215 @@ class DataQualityValidator:
         normalized = text.lower().replace(" ", "").replace("\n", "")
         return hashlib.md5(normalized.encode()).hexdigest()
     
-    def remove_duplicates(self):
-        """重複除去"""
+    def _compute_similarity_batch(self, texts: List[str], similarity_threshold: float = 0.9) -> Set[int]:
+        """
+        類似度ベースの重複検出（バッチ処理）
+        
+        Args:
+            texts: テキストリスト
+            similarity_threshold: 類似度閾値
+        
+        Returns:
+            duplicate_indices: 重複と判定されたインデックスのセット
+        """
+        if not SKLEARN_AVAILABLE or len(texts) < 2:
+            return set()
+        
+        duplicate_indices = set()
+        
+        try:
+            # TF-IDFベクトル化
+            vectorizer = TfidfVectorizer(max_features=1000, ngram_range=(1, 2))
+            vectors = vectorizer.fit_transform(texts)
+            
+            # コサイン類似度計算（バッチ処理）
+            similarity_matrix = cosine_similarity(vectors)
+            
+            # 重複検出（上三角行列のみチェック）
+            for i in range(len(texts)):
+                if i in duplicate_indices:
+                    continue
+                
+                for j in range(i + 1, len(texts)):
+                    if j in duplicate_indices:
+                        continue
+                    
+                    if similarity_matrix[i][j] >= similarity_threshold:
+                        duplicate_indices.add(j)  # 後続の方を重複としてマーク
+            
+            return duplicate_indices
+        
+        except Exception as e:
+            print(f"[WARNING] Similarity-based deduplication failed: {e}")
+            return set()
+    
+    def remove_duplicates(self, use_similarity: bool = True, similarity_threshold: float = 0.9):
+        """
+        重複除去（ハッシュベース + 類似度ベース）
+        
+        Args:
+            use_similarity: 類似度ベースの重複検出を使用するか
+            similarity_threshold: 類似度閾値
+        """
         print(f"\n[DEDUP] Removing duplicates...")
         
         seen_hashes: Set[str] = set()
         unique_samples = []
+        unique_texts = []  # 類似度計算用
         
         all_samples = self.collected_samples + self.synthetic_samples
         
-        for sample in tqdm(all_samples, desc="Deduplication"):
-            # テキスト取得
+        # 第1段階: ハッシュベースの重複除去
+        hash_unique_samples = []
+        for sample in tqdm(all_samples, desc="Hash-based deduplication"):
             text = sample.get("text") or sample.get("query", "")
             if not text:
                 continue
             
-            # ハッシュ計算
             text_hash = self._compute_text_hash(text)
             
             if text_hash not in seen_hashes:
                 seen_hashes.add(text_hash)
-                unique_samples.append(sample)
+                hash_unique_samples.append(sample)
+                unique_texts.append(text)
             else:
                 self.duplicates_removed += 1
         
+        print(f"[OK] Hash-based deduplication: {len(hash_unique_samples):,} unique samples")
+        
+        # 第2段階: 類似度ベースの重複除去（オプション）
+        if use_similarity and SKLEARN_AVAILABLE and len(hash_unique_samples) > 1:
+            print(f"[DEDUP] Applying similarity-based deduplication (threshold: {similarity_threshold})...")
+            
+            # バッチ処理で類似度計算
+            duplicate_indices = self._compute_similarity_batch(unique_texts, similarity_threshold)
+            
+            # 重複でないサンプルのみ保持
+            for i, sample in enumerate(hash_unique_samples):
+                if i not in duplicate_indices:
+                    unique_samples.append(sample)
+                else:
+                    self.duplicates_removed += 1
+            
+            print(f"[OK] Similarity-based deduplication: Removed {len(duplicate_indices):,} similar samples")
+        else:
+            unique_samples = hash_unique_samples
+        
         self.merged_samples = unique_samples
-        print(f"[OK] Removed {self.duplicates_removed:,} duplicates")
+        print(f"[OK] Total duplicates removed: {self.duplicates_removed:,}")
         print(f"[OK] Unique samples: {len(self.merged_samples):,}")
     
-    def apply_quality_filter(self, min_quality: float = 0.7):
-        """品質フィルタリング"""
-        print(f"\n[FILTER] Applying quality filter (threshold: {min_quality})...")
+    def _calculate_enhanced_quality_score(self, sample: Dict) -> float:
+        """
+        強化された品質スコア計算
+        
+        Args:
+            sample: サンプル
+        
+        Returns:
+            quality_score: 品質スコア（0.0-1.0）
+        """
+        text = sample.get("text") or sample.get("query", "")
+        if not text:
+            return 0.0
+        
+        score = 0.0
+        length = len(text)
+        
+        # 1. テキスト長スコア（30%）
+        if 200 <= length <= 5000:
+            score += 0.3
+        elif 100 <= length < 200 or 5000 < length <= 10000:
+            score += 0.15
+        else:
+            score += 0.05
+        
+        # 2. 言語検出スコア（25%）
+        language = sample.get("language", "ja")
+        if language == "ja":
+            ja_chars = sum(1 for c in text if '\u3040' <= c <= '\u30ff' or '\u4e00' <= c <= '\u9faf')
+            ja_ratio = ja_chars / length if length > 0 else 0
+            score += min(ja_ratio * 0.25, 0.25)
+        elif language == "en":
+            en_chars = sum(1 for c in text if c.isascii() and c.isalpha())
+            en_ratio = en_chars / length if length > 0 else 0
+            score += min(en_ratio * 0.25, 0.25)
+        elif language == "zh":
+            zh_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+            zh_ratio = zh_chars / length if length > 0 else 0
+            score += min(zh_ratio * 0.25, 0.25)
+        
+        # 3. ドメイン関連性スコア（20%）
+        domain = sample.get("domain", "")
+        domain_keywords = {
+            "defense": ["防衛", "軍事", "安全保障", "国防", "自衛隊"],
+            "aerospace": ["航空", "宇宙", "ロケット", "衛星", "飛行"],
+            "transport": ["運輸", "交通", "鉄道", "輸送", "物流"],
+            "finance": ["金融", "銀行", "投資", "経済", "財務"],
+            "medical": ["医療", "健康", "診断", "治療", "病院"],
+            "business": ["企業", "経営", "ビジネス", "市場", "事業"]
+        }
+        
+        if domain in domain_keywords:
+            keywords = domain_keywords[domain]
+            keyword_count = sum(1 for kw in keywords if kw in text)
+            score += min(keyword_count / len(keywords) * 0.20, 0.20)
+        else:
+            score += 0.10  # ドメイン不明の場合は基本スコア
+        
+        # 4. ノイズ除去スコア（15%）
+        # 連続する空白・改行のチェック
+        if not (text.count("  ") > length / 50 or text.count("\n\n\n") > 0):
+            score += 0.15
+        
+        # 5. 多様性スコア（10%）
+        if length > 0:
+            unique_chars = len(set(text))
+            diversity_ratio = unique_chars / min(length, 1000)  # 最大1000文字で正規化
+            score += min(diversity_ratio * 0.10, 0.10)
+        
+        # 既存の品質スコアがあれば統合（重み付き平均）
+        if "quality_score" in sample:
+            existing_score = sample["quality_score"]
+            score = (score * 0.7 + existing_score * 0.3)
+        
+        return min(score, 1.0)
+    
+    def apply_quality_filter(self, min_quality: float = 0.7, domain_specialized: bool = True):
+        """
+        品質フィルタリング（強化版）
+        
+        Args:
+            min_quality: 最小品質スコア
+            domain_specialized: ドメイン特化フィルタリングを有効化
+        """
+        print(f"\n[FILTER] Applying enhanced quality filter (threshold: {min_quality})...")
         
         filtered_samples = []
         removed_count = 0
         
         for sample in tqdm(self.merged_samples, desc="Quality filtering"):
-            # 収集データの品質スコア
-            if "quality_score" in sample:
-                if sample["quality_score"] >= min_quality:
-                    filtered_samples.append(sample)
-                else:
-                    removed_count += 1
-            else:
-                # 合成データは全て通過
+            # 強化された品質スコア計算
+            quality_score = self._calculate_enhanced_quality_score(sample)
+            sample["quality_score"] = quality_score
+            
+            # 品質フィルタリング
+            if quality_score >= min_quality:
+                # ドメイン特化フィルタリング（オプション）
+                if domain_specialized:
+                    domain = sample.get("domain", "")
+                    # ドメインが不明な場合はスキップ（オプション）
+                    if domain == "unknown" or not domain:
+                        # ドメイン不明でも品質スコアが高い場合は通過
+                        if quality_score >= min_quality * 1.2:
+                            filtered_samples.append(sample)
+                        else:
+                            removed_count += 1
+                            continue
+                
                 filtered_samples.append(sample)
+            else:
+                removed_count += 1
         
         self.merged_samples = filtered_samples
         print(f"[OK] Removed {removed_count:,} low-quality samples")

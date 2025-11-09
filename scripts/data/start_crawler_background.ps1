@@ -91,3 +91,23 @@ $processInfo | Out-File -FilePath $processInfoFile -Encoding UTF8
 
 Write-Host "[OK] Process info saved to: $processInfoFile" -ForegroundColor Green
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

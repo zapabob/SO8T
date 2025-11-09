@@ -9,12 +9,14 @@
 import os
 import json
 import random
+import re
 import hashlib
 import logging
 from pathlib import Path
 from typing import Dict, List, Tuple
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 import numpy as np
 from tqdm import tqdm
 
@@ -356,13 +358,15 @@ class DataPipeline:
         self,
         input_dir: Path,
         output_dir: Path,
-        target_size_gb: float = 300.0
+        target_size_gb: float = 300.0,
+        config: Dict = None
     ):
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
         self.target_size_gb = target_size_gb
-        self.cleanser = DataCleanser()
-        self.sampler = StatisticalSampler()
+        self.config = config or ML_BEST_PRACTICES
+        self.cleanser = DataCleanser(self.config)
+        self.sampler = StatisticalSampler(self.config)
     
     def load_raw_data(self) -> List[Dict]:
         """
