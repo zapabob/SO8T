@@ -451,6 +451,7 @@ keyword_queue_*.json
 scraping_failures.json
 failure_report.json
 
+
 # Parallel scraping outputs
 parallel_scraping_outputs/
 tab_scraping_outputs/
