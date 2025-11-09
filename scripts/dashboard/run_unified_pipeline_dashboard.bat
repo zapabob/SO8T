@@ -80,9 +80,9 @@ echo.
 
 REM Streamlitアプリを起動
 if "!PYTHON_CMD:~0,2!"=="py" (
-    !PYTHON_CMD! -m streamlit run "%DASHBOARD_SCRIPT%" --server.port 8501
+    !PYTHON_CMD! -m streamlit run "%DASHBOARD_SCRIPT%" --server.port 8501 --server.address 0.0.0.0
 ) else (
-    "!PYTHON_CMD!" -m streamlit run "%DASHBOARD_SCRIPT%" --server.port 8501
+    "!PYTHON_CMD!" -m streamlit run "%DASHBOARD_SCRIPT%" --server.port 8501 --server.address 0.0.0.0
 )
 
 if errorlevel 1 (

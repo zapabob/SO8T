@@ -54,8 +54,20 @@ class CodingFocusedRetrainingPipeline:
         with open(self.config_path, 'r', encoding='utf-8') as f:
             self.config = yaml.safe_load(f)
         
-        # パスを解決
-        self.base_model_path = Path(self.config['model']['base_model_path'])
+        # パスを解決（相対パスを絶対パスに変換）
+        base_model_path_str = self.config['model']['base_model_path']
+        if not Path(base_model_path_str).is_absolute():
+            # 相対パスの場合、PROJECT_ROOTからの相対パスとして解決
+            self.base_model_path = PROJECT_ROOT / base_model_path_str
+        else:
+            self.base_model_path = Path(base_model_path_str)
+        
+        # モデルパスの存在確認
+        if not self.base_model_path.exists():
+            logger.error(f"[ERROR] Model path does not exist: {self.base_model_path}")
+            logger.error(f"[ERROR] Please check the model path in config file: {self.config_path}")
+            raise FileNotFoundError(f"Model path not found: {self.base_model_path}")
+        
         self.coding_dataset_path = Path(self.config['data']['coding_dataset_path'])
         self.output_dir = Path(self.config['output']['output_dir'])
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -105,16 +117,44 @@ class CodingFocusedRetrainingPipeline:
         
         try:
             # 既存の学習スクリプトを呼び出し
-            from train_so8t_phi3_qlora import main as train_main
-            import argparse as arg_parser
+            import sys
+            import os
+            from pathlib import Path
             
-            # 学習スクリプト用の引数を作成
-            train_args = arg_parser.Namespace()
-            train_args.config = str(self.config_path)
-            train_args.resume = None
+            # 学習スクリプトのパスを取得
+            script_dir = Path(__file__).parent.parent / "training"
+            script_path = script_dir / "train_so8t_phi3_qlora.py"
             
-            # 学習を実行
-            train_main(train_args)
+            if not script_path.exists():
+                logger.error(f"[ERROR] Training script not found: {script_path}")
+                return False
+            
+            # sys.argvを一時的に変更してmain()を呼び出す
+            original_argv = sys.argv.copy()
+            try:
+                sys.argv = [
+                    str(script_path),
+                    '--config', str(self.config_path)
+                ]
+                # resume_checkpointが設定されている場合のみ追加
+                if hasattr(self, 'resume_checkpoint') and self.resume_checkpoint:
+                    sys.argv.extend(['--resume', str(self.resume_checkpoint)])
+                
+                # スクリプトのディレクトリに移動
+                original_cwd = os.getcwd()
+                os.chdir(script_dir)
+                
+                # 学習スクリプトを実行
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("train_so8t_phi3_qlora", script_path)
+                train_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(train_module)
+                train_module.main()
+                
+            finally:
+                # sys.argvとcwdを復元
+                sys.argv = original_argv
+                os.chdir(original_cwd)
             
             logger.info("[TRAIN] Training completed successfully")
             return True

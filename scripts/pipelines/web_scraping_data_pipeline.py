@@ -367,20 +367,54 @@ class QuadrupleClassifier:
     def _initialize_so8t_model(self, model_path: Optional[str] = None):
         """SO8Tモデルを初期化"""
         try:
+            # SO8Tモデルローダーを使用
+            try:
+                from scripts.utils.so8t_model_loader import load_so8t_model, find_so8t_model_paths
+                SO8T_LOADER_AVAILABLE = True
+            except ImportError:
+                SO8T_LOADER_AVAILABLE = False
+            
+            if SO8T_LOADER_AVAILABLE:
+                # SO8Tモデルローダーを使用してモデルをロード
+                model, tokenizer, success = load_so8t_model(
+                    model_path=model_path,
+                    device="auto",
+                    use_quadruple_thinking=True,
+                    use_redacted_tokens=False,
+                    fallback_to_default=True
+                )
+                
+                if success and model is not None and tokenizer is not None:
+                    self.so8t_model = model
+                    self.so8t_tokenizer = tokenizer
+                    logger.info("[QUADRUPLE] Model loaded successfully using model loader")
+                    return
+                else:
+                    logger.warning("[QUADRUPLE] SO8T model loader failed, falling back to manual initialization")
+            
+            # フォールバック: 手動初期化
             if model_path is None:
                 # デフォルトモデルパスを探す
-                default_paths = [
-                    "D:/webdataset/models/so8t-phi4-so8t-ja-finetuned",
-                    "models/so8t-phi4-so8t-ja-finetuned",
-                    "so8t-mmllm/models/so8t-phi4-so8t-ja-finetuned"
-                ]
-                for path in default_paths:
-                    if Path(path).exists():
-                        model_path = path
-                        break
-                
-                if model_path is None:
-                    raise FileNotFoundError("SO8T model not found")
+                if SO8T_LOADER_AVAILABLE:
+                    found_paths = find_so8t_model_paths()
+                    if found_paths:
+                        model_path = str(found_paths[0])
+                        logger.info(f"[QUADRUPLE] Auto-detected SO8T model path: {model_path}")
+                    else:
+                        raise FileNotFoundError("SO8T model not found")
+                else:
+                    default_paths = [
+                        "D:/webdataset/models/so8t-phi4-so8t-ja-finetuned",
+                        "models/so8t-phi4-so8t-ja-finetuned",
+                        "so8t-mmllm/models/so8t-phi4-so8t-ja-finetuned"
+                    ]
+                    for path in default_paths:
+                        if Path(path).exists():
+                            model_path = path
+                            break
+                    
+                    if model_path is None:
+                        raise FileNotFoundError("SO8T model not found")
             
             logger.info(f"[QUADRUPLE] Loading model from: {model_path}")
             
@@ -418,6 +452,8 @@ class QuadrupleClassifier:
             
         except Exception as e:
             logger.error(f"[QUADRUPLE] Failed to initialize model: {e}")
+            import traceback
+            traceback.print_exc()
             raise
     
     def classify_quadruple(self, sample: Dict) -> Dict:

@@ -1,5 +1,6 @@
 # Audio Notification Script
 # BASIC PRINCIPLE: Play marisa_owattaze.wav first, fallback to beep if it fails
+# STANDARD: This is the standard audio notification script for SO8T project
 
 $audioFile = "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav"
 $audioPlayed = $false
@@ -28,10 +29,3 @@ if (-not $audioPlayed) {
         Write-Host "[ERROR] All audio methods failed" -ForegroundColor Red
     }
 }
-
-
-
-
-
-
-

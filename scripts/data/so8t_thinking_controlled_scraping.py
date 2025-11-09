@@ -111,7 +111,10 @@ class SO8TThinkingControlledScraper(ParallelDeepResearchScraper):
         use_so8t_control: bool = True,
         so8t_model_path: Optional[str] = None,
         checkpoint_dir: Optional[Path] = None,
-        resume: bool = True
+        resume: bool = True,
+        target_samples: Optional[int] = None,
+        min_samples_per_keyword: int = 10,
+        max_samples_per_keyword: int = 100
     ):
         """
         初期化
@@ -130,6 +133,9 @@ class SO8TThinkingControlledScraper(ParallelDeepResearchScraper):
             so8t_model_path: SO8Tモデルのパス
             checkpoint_dir: チェックポイントディレクトリ
             resume: チェックポイントから再開するか
+            target_samples: 目標サンプル数（Noneの場合は無制限）
+            min_samples_per_keyword: キーワードあたりの最小サンプル数
+            max_samples_per_keyword: キーワードあたりの最大サンプル数
         """
         # 親クラスの初期化
         super().__init__(
@@ -191,12 +197,23 @@ class SO8TThinkingControlledScraper(ParallelDeepResearchScraper):
             except Exception as e:
                 logger.warning(f"[POWER] Failed to initialize power recovery: {e}")
         
+        # データ量拡大設定
+        self.target_samples = target_samples
+        self.min_samples_per_keyword = min_samples_per_keyword
+        self.max_samples_per_keyword = max_samples_per_keyword
+        self.current_sample_count = 0
+        self.keyword_sample_counts: Dict[str, int] = {}
+        
         logger.info("="*80)
         logger.info("SO8T Thinking Controlled Scraper Initialized")
         logger.info("="*80)
         logger.info(f"Audit logger: {self.audit_logger is not None}")
         logger.info(f"Reasoning agent: {self.reasoning_agent is not None}")
         logger.info(f"Power recovery: {self.power_recovery is not None}")
+        if self.target_samples:
+            logger.info(f"Target samples: {self.target_samples}")
+            logger.info(f"Min samples per keyword: {self.min_samples_per_keyword}")
+            logger.info(f"Max samples per keyword: {self.max_samples_per_keyword}")
     
     async def scrape_keyword_with_browser(
         self,
@@ -271,8 +288,30 @@ class SO8TThinkingControlledScraper(ParallelDeepResearchScraper):
             # 検索結果からURLを抽出
             search_results = await self.extract_search_results(page, keyword)
             
+            # キーワードあたりのサンプル数チェック
+            keyword_count = self.keyword_sample_counts.get(keyword, 0)
+            if keyword_count >= self.max_samples_per_keyword:
+                logger.info(f"[SAMPLES] Keyword '{keyword}' reached max samples ({self.max_samples_per_keyword}), skipping")
+                return samples
+            
+            # 目標サンプル数チェック
+            if self.target_samples and self.current_sample_count >= self.target_samples:
+                logger.info(f"[SAMPLES] Target samples reached ({self.target_samples}), stopping")
+                return samples
+            
             # URLごとにスクレイピング
             for url_info in search_results[:self.max_pages_per_keyword]:
+                # 目標サンプル数チェック（ループ内）
+                if self.target_samples and self.current_sample_count >= self.target_samples:
+                    logger.info(f"[SAMPLES] Target samples reached ({self.target_samples}), stopping")
+                    break
+                
+                # キーワードあたりのサンプル数チェック（ループ内）
+                keyword_count = self.keyword_sample_counts.get(keyword, 0)
+                if keyword_count >= self.max_samples_per_keyword:
+                    logger.info(f"[SAMPLES] Keyword '{keyword}' reached max samples ({self.max_samples_per_keyword}), skipping")
+                    break
+                
                 url = url_info.get('url', '')
                 if not url:
                     continue
@@ -313,6 +352,16 @@ class SO8TThinkingControlledScraper(ParallelDeepResearchScraper):
                             self.power_recovery.register_duplicate(url, keyword, session_id)
                         
                         samples.append(sample)
+                        
+                        # サンプル数カウント更新
+                        self.current_sample_count += 1
+                        self.keyword_sample_counts[keyword] = self.keyword_sample_counts.get(keyword, 0) + 1
+                        
+                        # 進捗レポート（100サンプルごと）
+                        if self.target_samples and self.current_sample_count % 100 == 0:
+                            progress = (self.current_sample_count / self.target_samples * 100) if self.target_samples else 0
+                            logger.info(f"[PROGRESS] Collected {self.current_sample_count} samples (target: {self.target_samples}, progress: {progress:.1f}%)")
+                            logger.info(f"[PROGRESS] Keyword '{keyword}': {self.keyword_sample_counts[keyword]} samples")
                         
                         # セッション更新
                         if self.power_recovery and session:
@@ -516,6 +565,9 @@ async def main():
     parser.add_argument('--checkpoint-dir', type=Path, help='Checkpoint directory')
     parser.add_argument('--resume', action='store_true', default=True, help='Resume from checkpoint')
     parser.add_argument('--daemon', action='store_true', help='Run in daemon mode (background)')
+    parser.add_argument('--target-samples', type=int, default=None, help='Target number of samples to collect')
+    parser.add_argument('--min-samples-per-keyword', type=int, default=10, help='Minimum samples per keyword')
+    parser.add_argument('--max-samples-per-keyword', type=int, default=100, help='Maximum samples per keyword')
     
     args = parser.parse_args()
     
@@ -533,7 +585,10 @@ async def main():
         use_so8t_control=True,
         so8t_model_path=args.so8t_model_path,
         checkpoint_dir=args.checkpoint_dir,
-        resume=args.resume
+        resume=args.resume,
+        target_samples=args.target_samples,
+        min_samples_per_keyword=args.min_samples_per_keyword,
+        max_samples_per_keyword=args.max_samples_per_keyword
     )
     
     # シグナルハンドラー設定

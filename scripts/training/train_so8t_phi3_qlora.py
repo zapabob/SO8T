@@ -237,7 +237,38 @@ def main():
     
     # モデル設定
     model_config = config['model']
-    model_path = model_config.get('base_model', 'models/Borea-Phi-3.5-mini-Instruct-Jp')
+    # base_model_pathまたはbase_modelをチェック（後方互換性のため）
+    model_path = model_config.get('base_model_path') or model_config.get('base_model', 'models/Borea-Phi-3.5-mini-Instruct-Jp')
+    
+    # パスを解決（相対パスを絶対パスに変換）
+    model_path = Path(model_path)
+    if not model_path.is_absolute():
+        # 相対パスの場合、PROJECT_ROOTからの相対パスとして解決
+        PROJECT_ROOT = Path(__file__).parent.parent.parent
+        model_path = PROJECT_ROOT / model_path
+    else:
+        model_path = Path(model_path)
+    
+    # モデルパスの存在確認を強化
+    model_path_obj = Path(model_path)
+    if not model_path_obj.exists():
+        logger.error(f"[ERROR] Model path does not exist: {model_path_obj}")
+        logger.error(f"[ERROR] Absolute path: {model_path_obj.resolve()}")
+        logger.error(f"[ERROR] Please check the model path in config file: {config_path}")
+        sys.exit(1)
+    
+    # トークナイザーファイルの存在確認
+    tokenizer_config_file = model_path_obj / "tokenizer_config.json"
+    tokenizer_file = model_path_obj / "tokenizer.json"
+    if not tokenizer_config_file.exists() and not tokenizer_file.exists():
+        logger.warning(f"[WARNING] Tokenizer config files not found in {model_path_obj}")
+        logger.warning(f"[WARNING] tokenizer_config.json: {tokenizer_config_file.exists()}")
+        logger.warning(f"[WARNING] tokenizer.json: {tokenizer_file.exists()}")
+        logger.warning("[WARNING] Attempting to load tokenizer anyway...")
+    
+    # 文字列に変換（transformersライブラリ用）
+    model_path = str(model_path_obj)
+    
     torch_dtype = model_config.get('torch_dtype', 'bfloat16')
     device = config.get('device', 'cuda')
     
@@ -267,8 +298,21 @@ def main():
     load_in_8bit = quantization_config.get('load_in_8bit', True)
     load_in_4bit = quantization_config.get('load_in_4bit', False)
     
-    logger.info("[STEP 1] Loading tokenizer")
-    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    logger.info(f"[STEP 1] Loading tokenizer from local path: {model_path}")
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path, 
+            trust_remote_code=True,
+            local_files_only=True  # ローカルファイルのみを使用
+        )
+    except Exception as e:
+        logger.error(f"[ERROR] Failed to load tokenizer from {model_path}")
+        logger.error(f"[ERROR] Error: {e}")
+        logger.error(f"[ERROR] Model path (absolute): {model_path_obj.resolve()}")
+        logger.error(f"[ERROR] Please ensure the model directory exists and contains tokenizer files")
+        import traceback
+        logger.error(traceback.format_exc())
+        sys.exit(1)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     

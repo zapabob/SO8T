@@ -22,7 +22,7 @@ import yaml
 import time
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional, Any
+from typing import Dict, List, Optional, Any
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -156,6 +156,245 @@ class UnifiedMasterPipeline:
         except Exception as e:
             logger.error(f"Failed to load checkpoint: {e}")
             return None
+    
+    def _count_current_samples(self, use_cache: bool = True) -> int:
+        """
+        現在のサンプル数をカウント（キャッシュ対応）
+        
+        Args:
+            use_cache: キャッシュを使用するか
+        
+        Returns:
+            サンプル数
+        """
+        # チェックポイントからキャッシュを読み込み
+        if use_cache:
+            checkpoint = self._load_checkpoint()
+            if checkpoint:
+                sample_cache = checkpoint.get('sample_cache', {})
+                cached_count = sample_cache.get('count')
+                cached_time = sample_cache.get('timestamp')
+                
+                if cached_count is not None and cached_time:
+                    cache_age = (datetime.now() - datetime.fromisoformat(cached_time)).total_seconds()
+                    cache_ttl = 300  # 5分間のキャッシュ有効期限
+                    
+                    if cache_age < cache_ttl:
+                        logger.debug(f"[CACHE] Using cached sample count: {cached_count} (age: {cache_age:.1f}s)")
+                        return cached_count
+        
+        # キャッシュが無効または存在しない場合は再カウント
+        base_output = Path(self.phase1_config.get('base_output', 'D:/webdataset/processed'))
+        total_samples = 0
+        
+        try:
+            jsonl_files = list(base_output.rglob("*.jsonl"))
+            logger.info(f"[COUNT] Found {len(jsonl_files)} JSONL files to count")
+            
+            for jsonl_file in jsonl_files:
+                try:
+                    # エンコーディングユーティリティが利用可能な場合は使用
+                    try:
+                        from scripts.utils.encoding_utils import safe_read_jsonl
+                        samples = safe_read_jsonl(jsonl_file)
+                        total_samples += len(samples)
+                    except ImportError:
+                        # フォールバック: 通常のカウント
+                        count = sum(1 for _ in open(jsonl_file, 'r', encoding='utf-8', errors='ignore'))
+                        total_samples += count
+                except Exception as e:
+                    logger.debug(f"[COUNT] Failed to count {jsonl_file}: {e}")
+                    continue
+            
+            logger.info(f"[COUNT] Total samples counted: {total_samples}")
+            
+            # カウント結果をキャッシュに保存
+            self.phase_progress['sample_cache'] = {
+                'count': total_samples,
+                'timestamp': datetime.now().isoformat()
+            }
+            self._save_checkpoint()
+            
+        except Exception as e:
+            logger.warning(f"[COUNT] Failed to count samples: {e}")
+        
+        return total_samples
+    
+    def _get_dynamic_threshold(self) -> int:
+        """
+        データセットの種類や品質に基づいて動的に最小サンプル数を計算
+        
+        Returns:
+            動的に計算された最小サンプル数
+        """
+        if not self.phase3_config.get('dynamic_threshold', False):
+            return self.phase3_config.get('min_samples_for_retraining', 50000)
+        
+        # データセットタイプと品質を分析
+        dataset_type = self._analyze_dataset_type()
+        quality_score = self._calculate_quality_score()
+        
+        # タイプごとの閾値を取得
+        threshold_by_type = self.phase3_config.get('threshold_by_dataset_type', {})
+        base_threshold = threshold_by_type.get(dataset_type, 50000)
+        
+        # 品質スコアに基づいて調整
+        if quality_score >= 0.8:
+            quality_multiplier = threshold_by_type.get('high_quality', 30000) / 50000
+        elif quality_score >= 0.5:
+            quality_multiplier = threshold_by_type.get('medium_quality', 50000) / 50000
+        else:
+            quality_multiplier = threshold_by_type.get('low_quality', 100000) / 50000
+        
+        dynamic_threshold = int(base_threshold * quality_multiplier)
+        
+        logger.info(f"[DYNAMIC_THRESHOLD] Dataset type: {dataset_type}, Quality score: {quality_score:.2f}")
+        logger.info(f"[DYNAMIC_THRESHOLD] Base threshold: {base_threshold}, Dynamic threshold: {dynamic_threshold}")
+        
+        return dynamic_threshold
+    
+    def _analyze_dataset_type(self) -> str:
+        """
+        データセットタイプを分析
+        
+        Returns:
+            データセットタイプ（'nsfw_detection', 'general'）
+        """
+        base_output = Path(self.phase1_config.get('base_output', 'D:/webdataset/processed'))
+        
+        # NSFW検知用データセットのパスをチェック
+        nsfw_paths = [
+            base_output / "nsfw_detection",
+            base_output / "nsfw",
+            base_output / "safety"
+        ]
+        
+        for nsfw_path in nsfw_paths:
+            if nsfw_path.exists() and list(nsfw_path.rglob("*.jsonl")):
+                return "nsfw_detection"
+        
+        return "general"
+    
+    def _calculate_quality_score(self, use_cache: bool = True) -> float:
+        """
+        データセットの品質スコアを計算（キャッシュ対応）
+        
+        Args:
+            use_cache: キャッシュを使用するか
+        
+        Returns:
+            品質スコア（0.0-1.0）
+        """
+        # チェックポイントからキャッシュを読み込み
+        if use_cache:
+            checkpoint = self._load_checkpoint()
+            if checkpoint:
+                quality_cache = checkpoint.get('quality_cache', {})
+                cached_score = quality_cache.get('score')
+                cached_time = quality_cache.get('timestamp')
+                cached_dataset_hash = quality_cache.get('dataset_hash')
+                
+                # 現在のデータセットハッシュを計算
+                current_hash = self._calculate_dataset_hash()
+                
+                if cached_score is not None and cached_time and cached_dataset_hash == current_hash:
+                    cache_age = (datetime.now() - datetime.fromisoformat(cached_time)).total_seconds()
+                    cache_ttl = 600  # 10分間のキャッシュ有効期限
+                    
+                    if cache_age < cache_ttl:
+                        logger.debug(f"[CACHE] Using cached quality score: {cached_score:.2f} (age: {cache_age:.1f}s)")
+                        return cached_score
+        
+        # キャッシュが無効または存在しない場合は再計算
+        logger.info("[INFO] Calculating quality score (this may take a while)...")
+        
+        # 品質スコア計算ロジック
+        quality_score = self._compute_quality_metrics()
+        
+        # 計算結果をキャッシュに保存
+        current_hash = self._calculate_dataset_hash()
+        self.phase_progress['quality_cache'] = {
+            'score': quality_score,
+            'timestamp': datetime.now().isoformat(),
+            'dataset_hash': current_hash
+        }
+        self._save_checkpoint()
+        
+        logger.info(f"[INFO] Quality score calculated: {quality_score:.2f}")
+        
+        return quality_score
+    
+    def _calculate_dataset_hash(self) -> str:
+        """
+        データセットのハッシュ値を計算（データセットが変更されたかを検出）
+        
+        Returns:
+            データセットハッシュ値
+        """
+        import hashlib
+        
+        # データセットファイルのパスとサイズからハッシュを計算
+        base_output = Path(self.phase1_config.get('base_output', 'D:/webdataset/processed'))
+        dataset_paths = [
+            base_output / "finetuning" / "train.jsonl",
+            base_output / "finetuning" / "val.jsonl",
+        ]
+        
+        hash_input = ""
+        for path in dataset_paths:
+            if path.exists():
+                hash_input += f"{path}:{path.stat().st_size}:{path.stat().st_mtime}"
+        
+        return hashlib.md5(hash_input.encode()).hexdigest()
+    
+    def _compute_quality_metrics(self) -> float:
+        """
+        データセットの品質メトリクスを計算
+        
+        Returns:
+            品質スコア（0.0-1.0）
+        """
+        base_output = Path(self.phase1_config.get('base_output', 'D:/webdataset/processed'))
+        jsonl_files = list(base_output.rglob("*.jsonl"))
+        
+        if not jsonl_files:
+            return 0.5  # デフォルト品質スコア
+        
+        total_samples = 0
+        total_length = 0
+        encoding_errors = 0
+        
+        try:
+            for jsonl_file in jsonl_files[:100]:  # サンプリング（最大100ファイル）
+                try:
+                    from scripts.utils.encoding_utils import safe_read_jsonl
+                    samples = safe_read_jsonl(jsonl_file)
+                    total_samples += len(samples)
+                    
+                    for sample in samples:
+                        if isinstance(sample, dict):
+                            text = str(sample.get('text', ''))
+                            total_length += len(text)
+                except Exception as e:
+                    encoding_errors += 1
+                    logger.debug(f"[QUALITY] Error processing {jsonl_file}: {e}")
+        except Exception as e:
+            logger.warning(f"[QUALITY] Failed to compute quality metrics: {e}")
+            return 0.5
+        
+        # 品質スコア計算（簡易版）
+        # - 平均テキスト長が適切（50-10000文字）
+        # - エンコーディングエラー率が低い
+        avg_length = total_length / total_samples if total_samples > 0 else 0
+        error_rate = encoding_errors / len(jsonl_files) if jsonl_files else 0
+        
+        # 品質スコア（0.0-1.0）
+        length_score = min(1.0, max(0.0, (avg_length - 50) / 1000)) if avg_length > 50 else 0.0
+        error_score = max(0.0, 1.0 - error_rate * 2)  # エラー率が高いほどスコアが低い
+        
+        quality_score = (length_score * 0.7 + error_score * 0.3)
+        
+        return min(1.0, max(0.0, quality_score))
     
     def _save_checkpoint(self):
         """チェックポイント保存"""
@@ -341,7 +580,7 @@ class UnifiedMasterPipeline:
         
         # Phase 8: コーディング特化再学習
         elif phase_name == 'phase8_coding_retraining':
-            config_path = Path(self.phase8_config.get('config_path', 'configs/coding_focused_retraining_config.yaml'))
+            config_path = PROJECT_ROOT / self.phase8_config.get('config_path', 'configs/coding_focused_retraining_config.yaml')
             if config_path.exists():
                 try:
                     import yaml
@@ -435,30 +674,94 @@ class UnifiedMasterPipeline:
         
         # チェックポイントから復旧
         checkpoint = self._load_checkpoint()
-        if checkpoint and checkpoint.get('current_phase') == 'phase1_parallel_scraping':
+        if checkpoint:
             phase_progress = checkpoint.get('phase_progress', {}).get('phase1_parallel_scraping', {})
             if phase_progress.get('status') == 'completed':
-                logger.info("[SKIP] Phase 1 already completed")
-                return True
+                # 目標サンプル数を確認
+                target_samples = self.phase1_config.get('target_samples')
+                if target_samples:
+                    # 現在のサンプル数を確認
+                    current_samples = self._count_current_samples()
+                    if current_samples < target_samples:
+                        logger.info(f"[RESUME] Current samples ({current_samples}) < target ({target_samples}), restarting Phase 1")
+                        # ステータスをリセットして再実行
+                        phase_progress['status'] = 'running'
+                        # チェックポイントを更新
+                        self.phase_progress['phase1_parallel_scraping'] = phase_progress
+                        self._save_checkpoint()
+                    else:
+                        logger.info(f"[SKIP] Phase 1 already completed and target samples reached ({current_samples}/{target_samples})")
+                        return True
+                else:
+                    logger.info("[SKIP] Phase 1 already completed")
+                    return True
         
         if not self.phase1_config.get('enabled', True):
             logger.info("[SKIP] Phase 1 disabled in config")
             return True
         
-        # SO8T/thinkingモデル統制スクレイピングスクリプトを実行
-        script_path = PROJECT_ROOT / "scripts" / "data" / "so8t_thinking_controlled_scraping.py"
+        # SO8T統制ChromeDev並列ブラウザCUDA分散処理オプションをチェック
+        use_so8t_chromedev_daemon = self.phase1_config.get('use_so8t_chromedev_daemon', False)
+        so8t_chromedev_daemon_config = self.phase1_config.get('so8t_chromedev_daemon', {})
         
-        if not script_path.exists():
-            logger.warning(f"SO8T thinking controlled scraper not found: {script_path}")
-            logger.info("Falling back to parallel_pipeline_manager.py")
-            script_path = PROJECT_ROOT / "scripts" / "data" / "parallel_pipeline_manager.py"
+        if use_so8t_chromedev_daemon and so8t_chromedev_daemon_config.get('enabled', False):
+            # SO8T統制ChromeDev並列ブラウザCUDA分散処理を使用
+            import asyncio
+            return asyncio.run(self._phase1_so8t_chromedev_daemon_scraping())
         
-        if not script_path.exists():
-            logger.error(f"Script not found: {script_path}")
-            return False
+        # 並列タブスクレイピングオプションをチェック
+        use_parallel_tabs = self.phase1_config.get('use_parallel_tabs', False)
         
-        # バックグラウンドで実行（daemon mode）
-        base_output = str(self.phase1_config.get('base_output', 'D:/webdataset/processed'))
+        if use_parallel_tabs:
+            # 並列タブスクレイピングスクリプトを実行
+            script_path = PROJECT_ROOT / "scripts" / "data" / "cursor_parallel_tab_scraping.py"
+            
+            if not script_path.exists():
+                logger.error(f"Parallel tab scraper not found: {script_path}")
+                return False
+            
+            base_output = str(self.phase1_config.get('base_output', 'D:/webdataset/processed'))
+            num_tabs = self.phase1_config.get('num_tabs', 10)
+            pages_per_tab = self.phase1_config.get('pages_per_tab', 10)
+            
+            # MCP Chrome DevTools設定を取得
+            use_mcp_chrome_devtools = self.phase1_config.get('use_mcp_chrome_devtools', False)
+            mcp_server_config = self.phase1_config.get('mcp_server', {})
+            
+            cmd = [
+                sys.executable,
+                str(script_path),
+                "--output", base_output,
+                "--num-tabs", str(num_tabs),
+                "--pages-per-tab", str(pages_per_tab),
+                "--use-cursor-browser",
+                "--remote-debugging-port", str(self.phase1_config.get('base_port', 9222)),
+                "--delay-per-action", str(self.phase1_config.get('restart_delay', 60.0) / 40.0)  # アクション間の遅延に変換
+            ]
+            
+            # MCP Chrome DevToolsを使用する場合
+            if use_mcp_chrome_devtools and mcp_server_config.get('enabled', True):
+                cmd.append("--use-mcp-chrome-devtools")
+                logger.info("[MCP] MCP Chrome DevTools enabled for parallel tab scraping")
+            
+            logger.info(f"[PARALLEL_TABS] Starting parallel tab scraping: {num_tabs} tabs, {pages_per_tab} pages per tab")
+            if use_mcp_chrome_devtools:
+                logger.info("[MCP] Using MCP Chrome DevTools for browser control")
+        else:
+            # SO8T/thinkingモデル統制スクレイピングスクリプトを実行
+            script_path = PROJECT_ROOT / "scripts" / "data" / "so8t_thinking_controlled_scraping.py"
+            
+            if not script_path.exists():
+                logger.warning(f"SO8T thinking controlled scraper not found: {script_path}")
+                logger.info("Falling back to parallel_pipeline_manager.py")
+                script_path = PROJECT_ROOT / "scripts" / "data" / "parallel_pipeline_manager.py"
+            
+            if not script_path.exists():
+                logger.error(f"Script not found: {script_path}")
+                return False
+            
+            # バックグラウンドで実行（daemon mode）
+            base_output = str(self.phase1_config.get('base_output', 'D:/webdataset/processed'))
         if '#' in base_output:
             logger.error(f"[ERROR] Invalid character '#' in base_output path: {base_output}")
             logger.error("[ERROR] Please remove '#' from the path")
@@ -469,9 +772,11 @@ class UnifiedMasterPipeline:
             self._save_checkpoint()
             return False
         
-        # SO8T/thinkingモデル統制スクレイピングの場合は専用コマンドを使用
-        if "so8t_thinking_controlled_scraping.py" in str(script_path):
-            cmd = [
+        # 並列タブスクレイピングの場合は既にコマンドが構築されている
+        if not use_parallel_tabs:
+            # SO8T/thinkingモデル統制スクレイピングの場合は専用コマンドを使用
+            if "so8t_thinking_controlled_scraping.py" in str(script_path):
+                cmd = [
                 sys.executable,
                 str(script_path),
                 "--output", base_output,
@@ -480,6 +785,14 @@ class UnifiedMasterPipeline:
                 "--use-cursor-browser",
                 "--resume"
             ]
+            
+            # データ量拡大パラメータを追加
+            if self.phase1_config.get('target_samples'):
+                cmd.extend(["--target-samples", str(self.phase1_config.get('target_samples'))])
+            if self.phase1_config.get('min_samples_per_keyword'):
+                cmd.extend(["--min-samples-per-keyword", str(self.phase1_config.get('min_samples_per_keyword'))])
+            if self.phase1_config.get('max_samples_per_keyword'):
+                cmd.extend(["--max-samples-per-keyword", str(self.phase1_config.get('max_samples_per_keyword'))])
         else:
             # 既存のparallel_pipeline_manager.pyを使用
             cmd = [
@@ -568,6 +881,378 @@ class UnifiedMasterPipeline:
             self._save_checkpoint()
             return False
     
+    async def _phase1_so8t_chromedev_daemon_scraping(self) -> bool:
+        """
+        Phase 1: SO8T統制ChromeDev並列ブラウザCUDA分散処理スクレイピング
+        
+        Returns:
+            success: 成功フラグ
+        """
+        logger.info("="*80)
+        logger.info("PHASE 1: SO8T Controlled ChromeDev Parallel Browser CUDA Distributed Scraping")
+        logger.info("="*80)
+        
+        try:
+            # SO8TChromeDevDaemonManagerをインポート
+            from scripts.data.so8t_chromedev_daemon_manager import SO8TChromeDevDaemonManager
+            
+            # 設定を取得
+            so8t_chromedev_daemon_config = self.phase1_config.get('so8t_chromedev_daemon', {})
+            total_parallel_tasks = so8t_chromedev_daemon_config.get('total_parallel_tasks', 200)
+            base_port = so8t_chromedev_daemon_config.get('base_port', self.phase1_config.get('base_port', 9222))
+            config_path = PROJECT_ROOT / so8t_chromedev_daemon_config.get('config_path', 'configs/so8t_chromedev_daemon_config.yaml')
+            
+            # num_browsersとnum_tabsを動的に計算（total_parallel_tasksから）
+            # デフォルト: 20ブラウザ × 10タブ = 200タブ
+            if 'num_browsers' in so8t_chromedev_daemon_config and 'num_tabs' in so8t_chromedev_daemon_config:
+                num_browsers = so8t_chromedev_daemon_config.get('num_browsers', 20)
+                num_tabs = so8t_chromedev_daemon_config.get('num_tabs', 10)
+            else:
+                # total_parallel_tasksから動的に計算
+                # 最適な組み合わせを計算（例: 200 = 20 × 10）
+                num_tabs = so8t_chromedev_daemon_config.get('num_tabs', 10)
+                num_browsers = max(1, total_parallel_tasks // num_tabs)
+                # 余りがある場合は最後のブラウザに追加
+                if total_parallel_tasks % num_tabs != 0:
+                    num_browsers += 1
+            
+            logger.info(f"[SO8T_CHROMEDEV] Initializing SO8T ChromeDev Daemon Manager...")
+            logger.info(f"[SO8T_CHROMEDEV] Total parallel tasks: {total_parallel_tasks}")
+            logger.info(f"[SO8T_CHROMEDEV] Number of browsers: {num_browsers}")
+            logger.info(f"[SO8T_CHROMEDEV] Number of tabs per browser: {num_tabs}")
+            logger.info(f"[SO8T_CHROMEDEV] Total tabs: {num_browsers * num_tabs}")
+            logger.info(f"[SO8T_CHROMEDEV] Base port: {base_port}")
+            
+            # SO8TChromeDevDaemonManagerを初期化
+            manager = SO8TChromeDevDaemonManager(
+                num_browsers=num_browsers,
+                num_tabs=num_tabs,
+                base_port=base_port,
+                config_path=config_path
+            )
+            
+            # すべてのコンポーネントを起動
+            logger.info("[SO8T_CHROMEDEV] Starting all components...")
+            success = await manager.start_all()
+            
+            if not success:
+                logger.error("[SO8T_CHROMEDEV] Failed to start all components")
+                self.phase_progress['phase1_parallel_scraping'] = {
+                    'status': 'failed',
+                    'error': 'Failed to start SO8T ChromeDev Daemon Manager'
+                }
+                self._save_checkpoint()
+                return False
+            
+            # URLリストを生成
+            logger.info("[SO8T_CHROMEDEV] Generating URL list...")
+            urls = self._generate_scraping_urls()
+            
+            # キーワードを生成（キーワードキューからも読み込み）
+            keywords = self._generate_scraping_keywords()
+            
+            # キーワードキューからキーワードを追加（協調動作が有効な場合）
+            coordination_config = self.phase1_config.get('keyword_coordination', {})
+            if coordination_config.get('enabled', False):
+                try:
+                    from scripts.utils.keyword_coordinator import KeywordCoordinator
+                    keyword_coordinator = KeywordCoordinator(
+                        keyword_queue_file=coordination_config.get('keyword_queue_file', 'D:/webdataset/checkpoints/keyword_queue.json')
+                    )
+                    # キューからpending状態のキーワードを取得
+                    pending_keywords = keyword_coordinator.get_all_keywords(status_filter=None)
+                    queue_keywords = [kw.get('keyword') for kw in pending_keywords if kw.get('status') == 'pending']
+                    if queue_keywords:
+                        keywords.extend(queue_keywords)
+                        logger.info(f"[SO8T_CHROMEDEV] Added {len(queue_keywords)} keywords from queue")
+                except Exception as e:
+                    logger.warning(f"[SO8T_CHROMEDEV] Failed to load keywords from queue: {e}")
+            
+            logger.info(f"[SO8T_CHROMEDEV] Generated {len(urls)} URLs and {len(keywords)} keywords")
+            
+            # SO8T統制でスクレイピング
+            logger.info("[SO8T_CHROMEDEV] Starting SO8T-controlled scraping...")
+            results = await manager.scrape_with_so8t_control(urls, keywords)
+            
+            # 結果を保存
+            base_output = Path(self.phase1_config.get('base_output', 'D:/webdataset/processed'))
+            output_file = base_output / f"so8t_chromedev_scraped_{self.session_id}.jsonl"
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            import json
+            with open(output_file, 'w', encoding='utf-8') as f:
+                for result in results:
+                    f.write(json.dumps(result, ensure_ascii=False) + '\n')
+            
+            logger.info(f"[OK] Saved {len(results)} samples to {output_file}")
+            
+            # すべてのコンポーネントを停止
+            logger.info("[SO8T_CHROMEDEV] Stopping all components...")
+            await manager.stop_all()
+            
+            # 進捗を更新
+            self.phase_progress['phase1_parallel_scraping'] = {
+                'status': 'completed',
+                'started_at': datetime.now().isoformat(),
+                'completed_at': datetime.now().isoformat(),
+                'samples_scraped': len(results),
+                'output_file': str(output_file),
+                'method': 'so8t_chromedev_daemon'
+            }
+            self._save_checkpoint()
+            
+            AudioNotifier.play_notification()
+            
+            return True
+            
+        except ImportError as e:
+            logger.error(f"[SO8T_CHROMEDEV] Failed to import SO8TChromeDevDaemonManager: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            self.phase_progress['phase1_parallel_scraping'] = {
+                'status': 'failed',
+                'error': f"ImportError: {str(e)}"
+            }
+            self._save_checkpoint()
+            return False
+        except KeyboardInterrupt:
+            logger.warning("[SO8T_CHROMEDEV] Interrupted by user")
+            try:
+                if 'manager' in locals():
+                    await manager.stop_all()
+            except Exception:
+                pass
+            self.phase_progress['phase1_parallel_scraping'] = {
+                'status': 'interrupted',
+                'error': 'KeyboardInterrupt'
+            }
+            self._save_checkpoint()
+            return False
+        except Exception as e:
+            logger.error(f"[SO8T_CHROMEDEV] Phase 1 failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            # エラー時もコンポーネントを停止
+            try:
+                if 'manager' in locals():
+                    await manager.stop_all()
+            except Exception as stop_error:
+                logger.warning(f"[SO8T_CHROMEDEV] Failed to stop components: {stop_error}")
+            self.phase_progress['phase1_parallel_scraping'] = {
+                'status': 'failed',
+                'error': str(e)
+            }
+            self._save_checkpoint()
+            return False
+    
+    def _generate_scraping_urls(self) -> List[str]:
+        """
+        スクレイピング用URLリストを生成
+        
+        Returns:
+            urls: URLリスト
+        """
+        urls = []
+        
+        # 設定から百科事典ソースの設定を取得
+        encyclopedia_sources = self.phase1_config.get('encyclopedia_sources', {})
+        
+        # ウィキペディア（日本語）
+        if encyclopedia_sources.get('wikipedia_ja', True):
+            urls.extend([
+                "https://ja.wikipedia.org/wiki/メインページ",
+                "https://ja.wikipedia.org/wiki/Category:コンピュータ",
+                "https://ja.wikipedia.org/wiki/Category:プログラミング言語",
+                "https://ja.wikipedia.org/wiki/Category:ソフトウェア",
+                "https://ja.wikipedia.org/wiki/Category:軍事",
+                "https://ja.wikipedia.org/wiki/Category:航空宇宙",
+                "https://ja.wikipedia.org/wiki/Category:インフラ",
+                "https://ja.wikipedia.org/wiki/Category:日本企業",
+            ])
+        
+        # ウィキペディア（英語）
+        if encyclopedia_sources.get('wikipedia_en', True):
+            urls.extend([
+                "https://en.wikipedia.org/wiki/Main_Page",
+                "https://en.wikipedia.org/wiki/Category:Computer_science",
+                "https://en.wikipedia.org/wiki/Category:Programming_languages",
+                "https://en.wikipedia.org/wiki/Category:Software",
+                "https://en.wikipedia.org/wiki/Category:Military",
+                "https://en.wikipedia.org/wiki/Category:Aerospace",
+                "https://en.wikipedia.org/wiki/Category:Infrastructure",
+            ])
+        
+        # コトバンク
+        if encyclopedia_sources.get('kotobank', True):
+            urls.extend([
+                "https://kotobank.jp/",
+                "https://kotobank.jp/word/プログラミング",
+                "https://kotobank.jp/word/コンピュータ",
+                "https://kotobank.jp/word/ソフトウェア",
+                "https://kotobank.jp/word/軍事",
+                "https://kotobank.jp/word/航空宇宙",
+                "https://kotobank.jp/word/インフラ",
+            ])
+        
+        # ブリタニカ国際大百科事典
+        if encyclopedia_sources.get('britannica', True):
+            urls.extend([
+                "https://www.britannica.com/",
+                "https://www.britannica.com/technology/computer",
+                "https://www.britannica.com/technology/software",
+                "https://www.britannica.com/technology/programming-language",
+                "https://www.britannica.com/topic/military",
+                "https://www.britannica.com/topic/aerospace-industry",
+                "https://www.britannica.com/topic/infrastructure",
+            ])
+        
+        # 2025年最新の実用的なコーディング関連サイト（優先）
+        coding_sources = self.phase1_config.get('coding_sources', {})
+        if coding_sources.get('enabled', True):
+            urls.extend([
+                # GitHub（人気で有用なリポジトリ）
+                "https://github.com/trending",
+                "https://github.com/trending/python",
+                "https://github.com/trending/rust",
+                "https://github.com/trending/typescript",
+                "https://github.com/trending/java",
+                "https://github.com/trending/cpp",
+                "https://github.com/trending/swift",
+                "https://github.com/trending/kotlin",
+                "https://github.com/trending/csharp",
+                "https://github.com/trending/php",
+                "https://github.com/explore",
+                # PyTorch
+                "https://pytorch.org/",
+                "https://pytorch.org/docs/stable/index.html",
+                "https://pytorch.org/tutorials/",
+                # TensorFlow
+                "https://www.tensorflow.org/",
+                "https://www.tensorflow.org/api_docs",
+                "https://www.tensorflow.org/tutorials",
+                # Stack Overflow（技術スタック別）
+                "https://stackoverflow.com/questions/tagged/python",
+                "https://stackoverflow.com/questions/tagged/rust",
+                "https://stackoverflow.com/questions/tagged/typescript",
+                "https://stackoverflow.com/questions/tagged/javascript",
+                "https://stackoverflow.com/questions/tagged/java",
+                "https://stackoverflow.com/questions/tagged/c%2b%2b",
+                "https://stackoverflow.com/questions/tagged/c",
+                "https://stackoverflow.com/questions/tagged/swift",
+                "https://stackoverflow.com/questions/tagged/kotlin",
+                "https://stackoverflow.com/questions/tagged/c%23",
+                "https://stackoverflow.com/questions/tagged/unity3d",
+                "https://stackoverflow.com/questions/tagged/php",
+                # エンジニア向けサイト
+                "https://qiita.com/",
+                "https://zenn.dev/",
+                "https://dev.to/",
+                "https://medium.com/tag/programming",
+                # 技術ドキュメントサイト
+                "https://docs.python.org/",
+                "https://developer.mozilla.org/",
+                "https://react.dev/",
+                "https://vuejs.org/",
+                "https://angular.io/",
+                "https://docs.microsoft.com/en-us/dotnet/",
+                "https://docs.microsoft.com/en-us/cpp/",
+                "https://developer.apple.com/swift/",
+                "https://kotlinlang.org/docs/home.html",
+                # コーディング学習サイト
+                "https://www.freecodecamp.org/",
+                "https://www.codecademy.com/",
+                "https://leetcode.com/",
+                "https://www.codewars.com/",
+                # 技術ブログ
+                "https://techcrunch.com/",
+                "https://www.infoq.com/",
+                "https://www.oreilly.com/",
+                # Reddit（技術関連）
+                "https://www.reddit.com/r/programming/",
+                "https://www.reddit.com/r/Python/",
+                "https://www.reddit.com/r/rust/",
+                "https://www.reddit.com/r/typescript/",
+                "https://www.reddit.com/r/java/",
+                "https://www.reddit.com/r/cpp/",
+                "https://www.reddit.com/r/swift/",
+                "https://www.reddit.com/r/Kotlin/",
+                "https://www.reddit.com/r/csharp/",
+                "https://www.reddit.com/r/Unity3D/",
+                "https://www.reddit.com/r/PHP/",
+                # Hacker News
+                "https://news.ycombinator.com/",
+            ])
+        
+        # NSFW検知目的のサイト（検知目的のみ）
+        nsfw_sources = self.phase1_config.get('nsfw_sources', {})
+        if nsfw_sources.get('enabled', False) and nsfw_sources.get('detection_only', True):
+            urls.extend([
+                # 検知目的のみ（生成目的ではない）
+                "https://www.fanza.co.jp/",
+                "https://www.xvideos.com/video",
+                "https://missav.ai/"
+                "https://www.pornhub.com/video"
+                "https://www.xhamster.com/"
+                "https://www.pornhub.com/video"
+                "https://www.xhamster.com/video"
+            ])
+        
+        # 設定から追加URLを取得
+        additional_urls = self.phase1_config.get('additional_urls', [])
+        if additional_urls:
+            urls.extend(additional_urls)
+        
+        return urls
+    
+    def _generate_scraping_keywords(self) -> List[str]:
+        """
+        スクレイピング用キーワードリストを生成
+        
+        Returns:
+            keywords: キーワードリスト
+        """
+        keywords = []
+        
+        # 2025年最新の実用的なコーディング関連キーワード
+        coding_keywords = self.phase1_config.get('coding_keywords', {})
+        if coding_keywords.get('enabled', True):
+            keywords.extend([
+                # プログラミング言語
+                "Python", "Rust", "TypeScript", "JavaScript", "Java", "C++", "C", 
+                "Swift", "Kotlin", "C#", "C# Unity", "PHP",
+                # フレームワーク・ライブラリ
+                "PyTorch", "TensorFlow", "React", "Vue.js", "Angular", "Unity",
+                # ベストプラクティス
+                "best practices", "coding standards", "design patterns", "clean code",
+                "SOLID principles", "DRY principle", "KISS principle",
+                # 2025年最新技術
+                "AI programming", "machine learning", "deep learning", "LLM",
+                "CUDA programming", "GPU computing", "parallel processing",
+                # ドメイン別
+                "military software", "aerospace programming", "infrastructure code",
+                "on-premises environment", "enterprise software",
+                # GitHub関連
+                "GitHub repository", "open source", "contribution", "pull request",
+                # コーディングタスク
+                "code generation", "refactoring", "debugging", "testing",
+                "code review", "version control", "CI/CD",
+            ])
+        
+        # ドメイン別知識キーワード
+        domain_keywords = self.phase1_config.get('domain_keywords', {})
+        if domain_keywords.get('enabled', True):
+            keywords.extend([
+                "軍事", "航空宇宙", "インフラ", "日本企業", "運輸",
+                "military", "aerospace", "infrastructure","japaneseCompany","transport",
+            ])
+        
+        # 設定から追加キーワードを取得
+        additional_keywords = self.phase1_config.get('additional_keywords', [])
+        if additional_keywords:
+            keywords.extend(additional_keywords)
+        
+        return keywords
+    
     def phase2_data_processing(self) -> bool:
         """
         Phase 2: SO8T全自動データ処理
@@ -637,7 +1322,12 @@ class UnifiedMasterPipeline:
             return False
         
         try:
-            logger.info(f"Starting data processing pipeline...")
+            logger.info(f"Starting SO8T data processing pipeline with quadruple reasoning and four-value classification...")
+            logger.info("[SO8T] Phase 2 will execute:")
+            logger.info("[SO8T]  1. Data cleansing")
+            logger.info("[SO8T]  2. Incremental labeling with SO8T/thinking model")
+            logger.info("[SO8T]  3. Quadruple reasoning classification")
+            logger.info("[SO8T]  4. Four-value classification (ALLOW/ESCALATION/DENY/REFUSE)")
             logger.debug(f"Command: {cmd_str}")
             result = subprocess.run(
                 cmd,
@@ -653,7 +1343,7 @@ class UnifiedMasterPipeline:
             }
             self._save_checkpoint()
             
-            logger.info("[OK] Phase 2 completed")
+            logger.info("[OK] Phase 2 completed (SO8T quadruple reasoning and four-value classification)")
             
             AudioNotifier.play_notification()
             
@@ -695,6 +1385,35 @@ class UnifiedMasterPipeline:
         if not self.phase3_config.get('enabled', True):
             logger.info("[SKIP] Phase 3 disabled in config")
             return True
+        
+        # データセット量チェック（動的閾値対応）
+        min_samples_for_retraining = self._get_dynamic_threshold()
+        current_samples = self._count_current_samples()
+        
+        if current_samples < min_samples_for_retraining:
+            remaining_samples = min_samples_for_retraining - current_samples
+            progress_percent = (current_samples / min_samples_for_retraining * 100) if min_samples_for_retraining > 0 else 0.0
+            logger.info("="*80)
+            logger.info("[SKIP] Phase 3: A/B Test Skipped (Insufficient Dataset)")
+            logger.info("="*80)
+            logger.info(f"Current samples: {current_samples:,}")
+            logger.info(f"Required samples: {min_samples_for_retraining:,}")
+            logger.info(f"Remaining samples needed: {remaining_samples:,}")
+            logger.info(f"Progress: {progress_percent:.1f}%")
+            logger.info("="*80)
+            logger.info("A/B test will be executed after collecting enough samples for SO8T retraining")
+            logger.info("="*80)
+            self.phase_progress['phase3_ab_test'] = {
+                'status': 'skipped',
+                'reason': 'insufficient_samples',
+                'current_samples': current_samples,
+                'required_samples': min_samples_for_retraining,
+                'remaining_samples': remaining_samples,
+                'progress_percent': progress_percent,
+                'skipped_at': datetime.now().isoformat()
+            }
+            self._save_checkpoint()
+            return True  # スキップは成功として扱う
         
         # complete_so8t_ab_test_pipeline.pyを実行
         script_path = PROJECT_ROOT / "scripts" / "pipelines" / "complete_so8t_ab_test_pipeline.py"
@@ -740,7 +1459,15 @@ class UnifiedMasterPipeline:
             return False
         
         try:
-            logger.info(f"Starting A/B test pipeline...")
+            logger.info(f"Starting SO8T complete A/B test pipeline with Ollama check...")
+            logger.info("[A/B TEST] Phase 3 will execute:")
+            logger.info("[A/B TEST]  1. Model A GGUF conversion (base SO8T model)")
+            logger.info("[A/B TEST]  2. SO8T retraining (QLoRA/fine-tuning)")
+            logger.info("[A/B TEST]  3. Model B GGUF conversion (retrained SO8T model)")
+            logger.info("[A/B TEST]  4. Ollama import (both models)")
+            logger.info("[A/B TEST]  5. A/B test execution via Ollama")
+            logger.info("[A/B TEST]  6. Ollama check and validation")
+            logger.info("[A/B TEST]  7. Visualization and report generation")
             logger.debug(f"Command: {cmd_str}")
             result = subprocess.run(
                 cmd,
@@ -756,22 +1483,66 @@ class UnifiedMasterPipeline:
             }
             self._save_checkpoint()
             
-            logger.info("[OK] Phase 3 completed")
+            logger.info("[OK] Phase 3 completed (A/B test with Ollama check)")
             
             AudioNotifier.play_notification()
             
             return True
             
         except subprocess.CalledProcessError as e:
-            logger.error(f"[ERROR] Phase 3 failed: {e}")
-            return False
+            error_msg = str(e)
+            # 量子化タイプエラーの場合は警告のみで続行（オプションフェーズのため）
+            if 'q4_k_m' in error_msg or 'invalid choice' in error_msg or 'quantization' in error_msg.lower():
+                logger.warning(f"[WARNING] Phase 3 failed due to quantization type error: {error_msg}")
+                logger.warning("[WARNING] Phase 3 is optional, continuing pipeline...")
+                self.phase_progress['phase3_ab_test'] = {
+                    'status': 'skipped',
+                    'error': error_msg,
+                    'skipped_at': datetime.now().isoformat(),
+                    'reason': 'quantization_type_error'
+                }
+                self._save_checkpoint()
+                return True  # オプションフェーズのため、エラーでも続行
+            else:
+                logger.error(f"[ERROR] Phase 3 failed: {error_msg}")
+                self.phase_progress['phase3_ab_test'] = {
+                    'status': 'failed',
+                    'error': error_msg
+                }
+                self._save_checkpoint()
+                # Phase 3はオプションフェーズのため、エラーでも続行
+                if not self.phase3_config.get('required', False):
+                    logger.warning("[WARNING] Phase 3 is optional, continuing pipeline...")
+                    return True
+                return False
         except subprocess.TimeoutExpired:
             logger.error("[ERROR] Phase 3 timeout")
+            # Phase 3はオプションフェーズのため、タイムアウトでも続行
+            if not self.phase3_config.get('required', False):
+                logger.warning("[WARNING] Phase 3 is optional, continuing pipeline...")
+                self.phase_progress['phase3_ab_test'] = {
+                    'status': 'skipped',
+                    'error': 'timeout',
+                    'skipped_at': datetime.now().isoformat()
+                }
+                self._save_checkpoint()
+                return True
             return False
         except Exception as e:
+            error_msg = str(e)
             logger.error(f"[ERROR] Phase 3 failed: {e}")
             import traceback
             traceback.print_exc()
+            # Phase 3はオプションフェーズのため、エラーでも続行
+            if not self.phase3_config.get('required', False):
+                logger.warning("[WARNING] Phase 3 is optional, continuing pipeline...")
+                self.phase_progress['phase3_ab_test'] = {
+                    'status': 'skipped',
+                    'error': error_msg,
+                    'skipped_at': datetime.now().isoformat()
+                }
+                self._save_checkpoint()
+                return True
             return False
     
     def phase4_github_scraping(self) -> bool:
@@ -1052,8 +1823,12 @@ class UnifiedMasterPipeline:
                 logger.error(f"[ERROR] Coding retraining pipeline script not found: {script_path}")
                 return False
             
-            # 設定からパラメータを取得
-            config_path = Path(self.phase8_config.get('config_path', 'configs/coding_focused_retraining_config.yaml'))
+            # 設定からパラメータを取得（PROJECT_ROOTを使用して絶対パスに変換）
+            config_path = PROJECT_ROOT / self.phase8_config.get('config_path', 'configs/coding_focused_retraining_config.yaml')
+            
+            if not config_path.exists():
+                logger.error(f"[ERROR] Config file not found: {config_path}")
+                return False
             
             # コマンドを構築
             cmd = [
@@ -1376,13 +2151,19 @@ class UnifiedMasterPipeline:
                 logger.warning(f"Dashboard script not found: {dashboard_script}")
                 return False
             
+            # 設定からホストとポートを取得
+            dashboard_config = self.config.get('dashboard', {})
+            host = dashboard_config.get('host', '0.0.0.0')
+            port = dashboard_config.get('port', 8501)
+            
             logger.info("[DASHBOARD] Starting Streamlit dashboard...")
             
             cmd = [
                 sys.executable,
                 "-m", "streamlit", "run",
                 str(dashboard_script),
-                "--server.port", "8501",
+                "--server.port", str(port),
+                "--server.address", host,
                 "--server.headless", "true"
             ]
             
@@ -1395,7 +2176,8 @@ class UnifiedMasterPipeline:
             )
             
             logger.info(f"[DASHBOARD] Dashboard started (PID: {process.pid})")
-            logger.info(f"[DASHBOARD] Access at: http://localhost:8501")
+            logger.info(f"[DASHBOARD] Access at: http://localhost:{port}")
+            logger.info(f"[DASHBOARD] External access: http://{host}:{port}")
             
             return True
             

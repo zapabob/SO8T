@@ -17,3 +17,4 @@ if %ERRORLEVEL% EQU 0 (
 echo [AUDIO] Playing completion notification...
 powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
 
+

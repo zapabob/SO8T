@@ -26,6 +26,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "agents"))
 sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "audit"))
+sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "utils"))
 
 # 統合エージェントインポート
 try:
@@ -36,6 +37,14 @@ except ImportError as e:
     AGENT_AVAILABLE = False
     logger = logging.getLogger(__name__)
     logger.warning(f"Agent modules not available: {e}")
+
+# SO8Tモデルローダーインポート
+try:
+    from scripts.utils.so8t_model_loader import load_so8t_model, find_so8t_model_paths, get_so8t_model_info
+    SO8T_LOADER_AVAILABLE = True
+except ImportError:
+    SO8T_LOADER_AVAILABLE = False
+    logger.warning("SO8T model loader not available")
 
 # 監査ログインポート
 try:

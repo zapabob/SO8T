@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+r"""
 ドキュメンテーション収集スクリプト
 
 APIドキュメント（OpenAPI/Swagger、REST API）、技術ドキュメント（README、Wiki、技術ブログ）、

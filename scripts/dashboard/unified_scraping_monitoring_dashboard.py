@@ -178,6 +178,197 @@ class UnifiedScrapingMonitoringDashboard:
         st.title("🔍 SO8T統制Webスクレイピング統合監視ダッシュボード")
         st.markdown("---")
         
+        # キーワード入力セクション
+        st.subheader("🔍 キーワード検索")
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            keyword_input = st.text_input(
+                "キーワードを入力（カンマ区切りで複数入力可能）",
+                placeholder="例: Python, Rust, TypeScript, JavaScript",
+                help="複数のキーワードをカンマ区切りで入力できます"
+            )
+        
+        # 優先度選択
+        priority = st.selectbox(
+            "優先度",
+            ["low", "medium", "high", "urgent"],
+            index=1,  # デフォルト: medium
+            help="キーワードの優先度を選択してください"
+        )
+        
+        with col2:
+            st.write("")  # スペーサー
+            st.write("")  # スペーサー
+            if st.button("📤 キーワード送信", type="primary"):
+                if keyword_input:
+                    keywords = [k.strip() for k in keyword_input.split(',') if k.strip()]
+                    if keywords:
+                        try:
+                            from scripts.utils.keyword_coordinator import KeywordCoordinator
+                            coordinator = KeywordCoordinator()
+                            added_count = coordinator.add_keywords(keywords, source="streamlit", priority=priority)
+                            st.success(f"✅ {added_count}個のキーワードを追加しました（優先度: {priority}）: {', '.join(keywords[:5])}{'...' if len(keywords) > 5 else ''}")
+                            st.session_state.last_update = datetime.now()
+                        except Exception as e:
+                            st.error(f"❌ キーワード追加に失敗しました: {e}")
+                    else:
+                        st.warning("⚠️ 有効なキーワードが入力されていません")
+                else:
+                    st.warning("⚠️ キーワードを入力してください")
+        
+        # キーワード状態表示
+        try:
+            from scripts.utils.keyword_coordinator import KeywordCoordinator
+            coordinator = KeywordCoordinator()
+            stats = coordinator.get_statistics()
+            
+            col1, col2, col3, col4, col5 = st.columns(5)
+            with col1:
+                st.metric("総キーワード数", stats.get('total', 0))
+            with col2:
+                st.metric("待機中", stats.get('pending', 0))
+            with col3:
+                st.metric("処理中", stats.get('processing', 0))
+            with col4:
+                st.metric("完了", stats.get('completed', 0))
+            with col5:
+                st.metric("失敗", stats.get('failed', 0))
+            
+            # 優先度別統計
+            priority_stats = stats.get('by_priority', {})
+            if priority_stats:
+                st.markdown("**優先度別キーワード数**")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("低", priority_stats.get('low', 0))
+                with col2:
+                    st.metric("中", priority_stats.get('medium', 0))
+                with col3:
+                    st.metric("高", priority_stats.get('high', 0))
+                with col4:
+                    st.metric("緊急", priority_stats.get('urgent', 0))
+            
+            # 優先度フィルタ
+            priority_filter = st.selectbox(
+                "優先度でフィルタ",
+                ["すべて", "low", "medium", "high", "urgent"],
+                index=0
+            )
+            
+            # 処理中のキーワード一覧
+            filter_priority = None if priority_filter == "すべて" else priority_filter
+            processing_keywords = coordinator.get_all_keywords(status_filter=None, priority_filter=filter_priority)
+            if processing_keywords:
+                st.markdown("**キーワード一覧**")
+                keyword_df_data = []
+                for kw_data in processing_keywords[-20:]:  # 最新20件
+                    keyword_df_data.append({
+                        'キーワード': kw_data.get('keyword', ''),
+                        '優先度': kw_data.get('priority', 'medium'),
+                        '状態': kw_data.get('status', 'unknown'),
+                        'ブラウザID': kw_data.get('browser_id', 'なし'),
+                        '追加時刻': kw_data.get('added_at', '')[:19] if kw_data.get('added_at') else '',
+                        '割り当て時刻': kw_data.get('assigned_at', '')[:19] if kw_data.get('assigned_at') else '',
+                    })
+                
+                if keyword_df_data:
+                    keyword_df = pd.DataFrame(keyword_df_data)
+                    st.dataframe(keyword_df, use_container_width=True)
+            
+            # 詳細統計セクション
+            st.markdown("---")
+            st.subheader("📊 キーワード詳細統計")
+            
+            progress_stats = stats.get('progress_stats', {})
+            if progress_stats:
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("総サンプル数", f"{progress_stats.get('total_samples', 0):,}")
+                with col2:
+                    st.metric("総URL処理数", f"{progress_stats.get('total_urls_processed', 0):,}")
+                with col3:
+                    st.metric("平均処理時間", f"{progress_stats.get('avg_processing_time', 0.0):.2f}秒")
+                with col4:
+                    st.metric("成功率", f"{progress_stats.get('success_rate', 0.0)*100:.1f}%")
+            
+            # 時間別の処理状況（時系列グラフ）
+            by_time = stats.get('by_time', {})
+            if by_time:
+                st.markdown("**時間別の処理状況**")
+                time_df = pd.DataFrame(list(by_time.items()), columns=['時刻', '処理数'])
+                time_df = time_df.sort_values('時刻')
+                st.line_chart(time_df.set_index('時刻'))
+            
+            # ブラウザ別の処理状況（棒グラフ）
+            by_browser = stats.get('by_browser', {})
+            if by_browser:
+                st.markdown("**ブラウザ別の処理状況**")
+                browser_df = pd.DataFrame(list(by_browser.items()), columns=['ブラウザID', 'キーワード数'])
+                browser_df = browser_df.sort_values('ブラウザID')
+                st.bar_chart(browser_df.set_index('ブラウザID'))
+            
+            # 優先度別の処理状況（積み上げ棒グラフ）
+            by_priority = stats.get('by_priority', {})
+            if by_priority:
+                st.markdown("**優先度別の処理状況**")
+                priority_df = pd.DataFrame(list(by_priority.items()), columns=['優先度', 'キーワード数'])
+                st.bar_chart(priority_df.set_index('優先度'))
+            
+            # 統計情報のエクスポート
+            st.markdown("---")
+            st.markdown("**統計情報のエクスポート**")
+            col_exp1, col_exp2 = st.columns(2)
+            with col_exp1:
+                if st.button("📥 CSV形式でエクスポート"):
+                    try:
+                        # すべてのキーワードデータを取得
+                        all_keywords = coordinator.get_all_keywords()
+                        export_data = []
+                        for kw_data in all_keywords:
+                            progress = kw_data.get('progress', {})
+                            export_data.append({
+                                'キーワード': kw_data.get('keyword', ''),
+                                '優先度': kw_data.get('priority', 'medium'),
+                                '状態': kw_data.get('status', 'unknown'),
+                                'ブラウザID': kw_data.get('browser_id', ''),
+                                'サンプル数': progress.get('samples_collected', 0),
+                                'URL処理数': progress.get('urls_processed', 0),
+                                'URL失敗数': progress.get('urls_failed', 0),
+                                '成功率': progress.get('success_rate', 0.0),
+                                '追加時刻': kw_data.get('added_at', ''),
+                                '完了時刻': kw_data.get('completed_at', '')
+                            })
+                        
+                        export_df = pd.DataFrame(export_data)
+                        csv = export_df.to_csv(index=False, encoding='utf-8-sig')
+                        st.download_button(
+                            label="📥 CSVダウンロード",
+                            data=csv,
+                            file_name=f"keyword_statistics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv"
+                        )
+                    except Exception as e:
+                        st.error(f"❌ エクスポートに失敗しました: {e}")
+            
+            with col_exp2:
+                if st.button("📥 JSON形式でエクスポート"):
+                    try:
+                        import json
+                        export_json = json.dumps(stats, ensure_ascii=False, indent=2)
+                        st.download_button(
+                            label="📥 JSONダウンロード",
+                            data=export_json,
+                            file_name=f"keyword_statistics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                            mime="application/json"
+                        )
+                    except Exception as e:
+                        st.error(f"❌ エクスポートに失敗しました: {e}")
+        except Exception as e:
+            st.warning(f"⚠️ キーワード状態の読み込みに失敗しました: {e}")
+        
+        st.markdown("---")
+        
         # 自動更新設定
         col1, col2, col3 = st.columns(3)
         with col1:

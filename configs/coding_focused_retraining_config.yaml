@@ -1,7 +1,7 @@
 # コーディング特化再学習設定ファイル
 
 model:
-  base_model_path: "models/Borea-Phi-3.5-mini-Instruct-Jp"
+  base_model_path: "C:/Users/downl/Desktop/SO8T/models/Borea-Phi-3.5-mini-Instruct-Jp"  # 絶対パスに変更
   model_type: "phi3"
   use_so8t: true
 

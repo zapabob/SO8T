@@ -40,6 +40,14 @@ except ImportError:
     logger = logging.getLogger(__name__)
     logger.warning("Data cleaner not available")
 
+# エンコーディングユーティリティインポート
+try:
+    from scripts.utils.encoding_utils import safe_read_jsonl, safe_write_jsonl
+    ENCODING_UTILS_AVAILABLE = True
+except ImportError:
+    ENCODING_UTILS_AVAILABLE = False
+    logger.warning("Encoding utils not available, using default UTF-8")
+
 # 監査ログインポート
 try:
     from scripts.audit.scraping_audit_logger import ScrapingAuditLogger, DataCleaningEvent, DatasetCreationEvent
@@ -286,25 +294,36 @@ class ParallelDataProcessingPipeline:
         total_samples = 0
         for input_file in tqdm(input_files, desc="Loading files"):
             try:
-                with open(input_file, 'r', encoding='utf-8') as f:
-                    batch = []
-                    for line in f:
-                        if line.strip():
-                            try:
-                                sample = json.loads(line)
-                                batch.append(sample)
-                                total_samples += 1
-                                
-                                # バッチサイズに達したらキューに追加
-                                if len(batch) >= self.batch_size:
-                                    self.input_queue.put(batch)
-                                    batch = []
-                            except json.JSONDecodeError:
-                                continue
+                # エンコーディングユーティリティが利用可能な場合は使用
+                if ENCODING_UTILS_AVAILABLE:
+                    samples = safe_read_jsonl(input_file)
+                    total_samples += len(samples)
                     
-                    # 残りのバッチを追加
-                    if batch:
+                    # バッチに分割してキューに追加
+                    for i in range(0, len(samples), self.batch_size):
+                        batch = samples[i:i + self.batch_size]
                         self.input_queue.put(batch)
+                else:
+                    # フォールバック: 通常のUTF-8読み込み
+                    with open(input_file, 'r', encoding='utf-8', errors='replace') as f:
+                        batch = []
+                        for line in f:
+                            if line.strip():
+                                try:
+                                    sample = json.loads(line)
+                                    batch.append(sample)
+                                    total_samples += 1
+                                    
+                                    # バッチサイズに達したらキューに追加
+                                    if len(batch) >= self.batch_size:
+                                        self.input_queue.put(batch)
+                                        batch = []
+                                except json.JSONDecodeError:
+                                    continue
+                        
+                        # 残りのバッチを追加
+                        if batch:
+                            self.input_queue.put(batch)
             
             except Exception as e:
                 logger.error(f"[LOAD] Failed to load {input_file}: {e}")

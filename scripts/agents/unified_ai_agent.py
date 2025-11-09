@@ -135,21 +135,57 @@ class UnifiedAIAgent:
     def _initialize_so8t_model(self):
         """SO8Tモデルを初期化"""
         try:
+            # SO8Tモデルローダーを使用
+            try:
+                from scripts.utils.so8t_model_loader import load_so8t_model, find_so8t_model_paths
+                SO8T_LOADER_AVAILABLE = True
+            except ImportError:
+                SO8T_LOADER_AVAILABLE = False
+            
+            if SO8T_LOADER_AVAILABLE:
+                # SO8Tモデルローダーを使用してモデルをロード
+                model_path_str = str(self.model_path) if self.model_path else None
+                model, tokenizer, success = load_so8t_model(
+                    model_path=model_path_str,
+                    device=self.device,
+                    use_quadruple_thinking=True,
+                    use_redacted_tokens=False,
+                    fallback_to_default=True
+                )
+                
+                if success and model is not None and tokenizer is not None:
+                    self.so8t_model = model
+                    self.tokenizer = tokenizer
+                    logger.info("[AGENT] SO8T model loaded successfully using model loader")
+                    return
+                else:
+                    logger.warning("[AGENT] SO8T model loader failed, falling back to manual initialization")
+            
+            # フォールバック: 手動初期化
             if self.model_path is None:
                 # デフォルトモデルパスを探す
-                default_paths = [
-                    "D:/webdataset/models/so8t-phi4-so8t-ja-finetuned",
-                    "models/so8t-phi4-so8t-ja-finetuned",
-                    "so8t-mmllm/models/so8t-phi4-so8t-ja-finetuned"
-                ]
-                for path in default_paths:
-                    if Path(path).exists():
-                        self.model_path = path
-                        break
-                
-                if self.model_path is None:
-                    logger.warning("[AGENT] SO8T model not found, using default")
-                    self.model_path = "microsoft/Phi-3-mini-4k-instruct"
+                if SO8T_LOADER_AVAILABLE:
+                    found_paths = find_so8t_model_paths()
+                    if found_paths:
+                        self.model_path = str(found_paths[0])
+                        logger.info(f"[AGENT] Auto-detected SO8T model path: {self.model_path}")
+                    else:
+                        logger.warning("[AGENT] SO8T model not found, using default")
+                        self.model_path = "microsoft/Phi-3-mini-4k-instruct"
+                else:
+                    default_paths = [
+                        "D:/webdataset/models/so8t-phi4-so8t-ja-finetuned",
+                        "models/so8t-phi4-so8t-ja-finetuned",
+                        "so8t-mmllm/models/so8t-phi4-so8t-ja-finetuned"
+                    ]
+                    for path in default_paths:
+                        if Path(path).exists():
+                            self.model_path = path
+                            break
+                    
+                    if self.model_path is None:
+                        logger.warning("[AGENT] SO8T model not found, using default")
+                        self.model_path = "microsoft/Phi-3-mini-4k-instruct"
             
             logger.info(f"[AGENT] Loading SO8T model from: {self.model_path}")
             
@@ -189,6 +225,8 @@ class UnifiedAIAgent:
             
         except Exception as e:
             logger.error(f"[AGENT] Failed to initialize SO8T model: {e}")
+            import traceback
+            traceback.print_exc()
             self.so8t_model = None
     
     def _initialize_quadruple_classifier(self):

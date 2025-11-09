@@ -53,13 +53,21 @@ class GitHubRepositoryScraper:
         
         Args:
             output_dir: 出力ディレクトリ
-            github_token: GitHub APIトークン（Noneの場合は認証なし）
+            github_token: GitHub APIトークン（Noneの場合は環境変数から読み込み、それもない場合は認証なし）
             max_repos_per_query: クエリあたりの最大リポジトリ数
             min_stars: 最小スター数
             rate_limit_delay: レート制限対策の遅延（秒）
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # GitHub APIトークンを環境変数から読み込む（引数で指定されていない場合）
+        if github_token is None:
+            try:
+                from scripts.utils.env_loader import get_env
+                github_token = get_env('GITHUB_API_TOKEN')
+            except ImportError:
+                logger.warning("[ENV] Failed to import env_loader, using provided token or None")
         
         self.github_token = github_token
         self.max_repos_per_query = max_repos_per_query
@@ -294,8 +302,10 @@ class GitHubRepositoryScraper:
                     content = self.get_repository_content(repo)
                     
                     # サンプルを作成
+                    readme = content.get('readme') or ''
+                    description = content.get('description') or ''
                     sample = {
-                        'text': content.get('readme', '') + '\n\n' + content.get('description', ''),
+                        'text': readme + '\n\n' + description,
                         'url': content.get('repo_url', ''),
                         'domain': 'github.com',
                         'category': 'programming',

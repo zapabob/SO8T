@@ -34,7 +34,7 @@ echo [INFO] ブラウザが自動的に開きます
 echo.
 
 REM Streamlitダッシュボードを起動
-"%PYTHON%" -m streamlit run scripts\dashboard\so8t_scraping_dashboard.py --server.port 8501 --server.address localhost
+"%PYTHON%" -m streamlit run scripts\dashboard\so8t_scraping_dashboard.py --server.port 8501 --server.address 0.0.0.0
 
 exit /b 0
 

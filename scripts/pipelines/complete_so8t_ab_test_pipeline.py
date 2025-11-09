@@ -348,6 +348,22 @@ class CompleteSO8TABTestPipeline:
             logger.info(f"[VERIFY] Phase 6: Report file verified: {report_file}")
             return True
         
+        # Phase 7: Ollamaチェック
+        elif phase_name == 'phase7_ollama_check':
+            phase_progress = self.phase_progress.get('phase7_ollama_check', {})
+            status = phase_progress.get('status', '')
+            if status == 'completed':
+                check_results_file = self.ab_test_output_dir / "ollama_check_results.json"
+                if check_results_file.exists():
+                    logger.info("[VERIFY] Phase 7: Ollama check results file exists")
+                    return True
+                else:
+                    logger.warning("[VERIFY] Phase 7: No check results file in checkpoint")
+                    return False
+            else:
+                logger.debug(f"[VERIFY] Phase 7: Status check only (status: {status})")
+                return False
+        
         # その他のフェーズはステータスのみで判定
         else:
             logger.debug(f"[VERIFY] Phase {phase_name}: Status check only (status: {status})")
@@ -876,6 +892,8 @@ PARAMETER num_ctx 4096
             latency = time.time() - start_time
             
             return {
+                'model': model_name,
+                'prompt': prompt,
                 'response': result.stdout.strip(),
                 'latency': latency,
                 'success': True
@@ -883,15 +901,21 @@ PARAMETER num_ctx 4096
         except subprocess.CalledProcessError as e:
             logger.warning(f"Ollama inference failed: {e}")
             return {
+                'model': model_name,
+                'prompt': prompt,
                 'response': '',
                 'latency': time.time() - start_time,
-                'success': False
+                'success': False,
+                'error': str(e)
             }
         except subprocess.TimeoutExpired:
             return {
+                'model': model_name,
+                'prompt': prompt,
                 'response': '',
                 'latency': 60.0,
-                'success': False
+                'success': False,
+                'error': 'timeout'
             }
     
     def _calculate_metrics(self, results: List[Dict], test_samples: List[Dict]) -> Dict:
@@ -1119,6 +1143,50 @@ See `visualizations/metrics_comparison.png` for detailed charts.
                 self.phase6_visualize_and_report(ab_test_results)
             else:
                 logger.info("[SKIP] Phase 6 already completed and verified")
+            
+            # Phase 7: Ollamaチェック
+            if not self._is_phase_completed('phase7_ollama_check'):
+                logger.info("[EXECUTE] Phase 7: Running Ollama check and validation")
+                ollama_check_results = self.phase7_ollama_check(ab_test_results)
+                
+                # レポートにOllamaチェック結果を追加
+                report_path = self.ab_test_output_dir / "report.md"
+                if report_path.exists():
+                    with open(report_path, 'r', encoding='utf-8') as f:
+                        report_content = f.read()
+                    
+                    ollama_check_section = f"""
+
+## Ollama Check Results
+
+- **Model A Available**: {ollama_check_results.get('model_a_available', False)}
+- **Model B Available**: {ollama_check_results.get('model_b_available', False)}
+- **Model A Test Passed**: {ollama_check_results.get('model_a_test_passed', False)}
+- **Model B Test Passed**: {ollama_check_results.get('model_b_test_passed', False)}
+- **Comparison Test Passed**: {ollama_check_results.get('comparison_test_passed', False)}
+- **Check Timestamp**: {ollama_check_results.get('check_timestamp', 'N/A')}
+
+### Model A Test Results
+"""
+                    for i, result in enumerate(ollama_check_results.get('model_a_test_results', []), 1):
+                        ollama_check_section += f"\n**Test {i}**: {'PASSED' if result.get('success') else 'FAILED'}\n"
+                        if result.get('error'):
+                            ollama_check_section += f"- Error: {result.get('error')}\n"
+                    
+                    ollama_check_section += "\n### Model B Test Results\n"
+                    for i, result in enumerate(ollama_check_results.get('model_b_test_results', []), 1):
+                        ollama_check_section += f"\n**Test {i}**: {'PASSED' if result.get('success') else 'FAILED'}\n"
+                        if result.get('error'):
+                            ollama_check_section += f"- Error: {result.get('error')}\n"
+                    
+                    report_content += ollama_check_section
+                    
+                    with open(report_path, 'w', encoding='utf-8') as f:
+                        f.write(report_content)
+                    
+                    logger.info("[OK] Ollama check results added to report")
+            else:
+                logger.info("[SKIP] Phase 7 already completed and verified")
             
             total_time = (datetime.now() - start_time).total_seconds()
             

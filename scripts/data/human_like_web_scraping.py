@@ -21,9 +21,10 @@ import asyncio
 import argparse
 import random
 import time
+import math
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 from urllib.parse import urlparse, urljoin
 
 # プロジェクトルートをパスに追加
@@ -137,87 +138,257 @@ class HumanLikeScraper:
             logger.info("[OK] New browser launched")
             return browser
     
-    async def human_like_mouse_move(self, page: Page):
-        """人間のようなマウス移動"""
+    def _bezier_curve_point(self, p0: Tuple[float, float], p1: Tuple[float, float], 
+                            p2: Tuple[float, float], p3: Tuple[float, float], t: float) -> Tuple[float, float]:
+        """ベジェ曲線の点を計算（3次ベジェ曲線）"""
+        mt = 1 - t
+        mt2 = mt * mt
+        mt3 = mt2 * mt
+        t2 = t * t
+        t3 = t2 * t
+        
+        x = mt3 * p0[0] + 3 * mt2 * t * p1[0] + 3 * mt * t2 * p2[0] + t3 * p3[0]
+        y = mt3 * p0[1] + 3 * mt2 * t * p1[1] + 3 * mt * t2 * p2[1] + t3 * p3[1]
+        
+        return (x, y)
+    
+    async def human_like_mouse_move(self, page: Page, use_bezier: bool = True):
+        """人間のようなマウス移動（ベジェ曲線対応）"""
         try:
-            # ランダムな位置にマウスを移動
+            # 現在のマウス位置を取得（推測）
             viewport_size = page.viewport_size
-            if viewport_size:
-                x = random.randint(100, viewport_size['width'] - 100)
-                y = random.randint(100, viewport_size['height'] - 100)
+            if not viewport_size:
+                return
+            
+            # 開始位置（ランダムまたは現在位置の推定）
+            start_x = random.randint(100, viewport_size['width'] - 100)
+            start_y = random.randint(100, viewport_size['height'] - 100)
+            
+            # 終了位置
+            end_x = random.randint(100, viewport_size['width'] - 100)
+            end_y = random.randint(100, viewport_size['height'] - 100)
+            
+            if use_bezier:
+                # ベジェ曲線による滑らかな移動
+                # 制御点をランダムに生成
+                cp1_x = random.randint(0, viewport_size['width'])
+                cp1_y = random.randint(0, viewport_size['height'])
+                cp2_x = random.randint(0, viewport_size['width'])
+                cp2_y = random.randint(0, viewport_size['height'])
                 
-                # 滑らかな移動（複数ステップ）
+                # ベジェ曲線のステップ数（10-20ステップ）
+                num_steps = random.randint(10, 20)
+                
+                # ベジェ曲線に沿って移動
+                for i in range(num_steps + 1):
+                    t = i / num_steps
+                    # イージング関数（ease-in-out）を適用してより自然に
+                    eased_t = t * t * (3 - 2 * t)  # smoothstep
+                    
+                    point = self._bezier_curve_point(
+                        (start_x, start_y),
+                        (cp1_x, cp1_y),
+                        (cp2_x, cp2_y),
+                        (end_x, end_y),
+                        eased_t
+                    )
+                    
+                    await page.mouse.move(int(point[0]), int(point[1]))
+                    # 速度変化（開始と終了で遅く、中間で速く）
+                    if i < num_steps:
+                        delay = random.uniform(0.01, 0.03) * (1 + abs(t - 0.5) * 2)
+                        await asyncio.sleep(delay)
+            else:
+                # 従来の方法（後方互換性のため）
                 steps = random.randint(3, 8)
                 for i in range(steps):
                     await page.mouse.move(
-                        x + random.randint(-50, 50),
-                        y + random.randint(-50, 50),
+                        end_x + random.randint(-50, 50),
+                        end_y + random.randint(-50, 50),
                         steps=random.randint(5, 15)
                     )
                     await asyncio.sleep(random.uniform(0.05, 0.15))
-                
-                logger.debug("[MOUSE] Human-like mouse movement completed")
+            
+            logger.debug("[MOUSE] Enhanced human-like mouse movement completed")
         except Exception as e:
             logger.debug(f"[MOUSE] Mouse movement failed: {e}")
     
-    async def human_like_scroll(self, page: Page):
-        """人間のようなスクロール動作"""
+    async def human_like_scroll(self, page: Page, gradual: bool = True):
+        """人間のようなスクロール動作（段階的スクロール対応）"""
         try:
             # ページの高さを取得
             page_height = await page.evaluate("document.body.scrollHeight")
             viewport_height = page.viewport_size['height'] if page.viewport_size else 800
             
-            # ランダムなスクロール位置
-            scroll_positions = []
-            current_pos = 0
-            
-            while current_pos < page_height - viewport_height:
-                # ランダムなスクロール量（人間は一度に全部スクロールしない）
-                scroll_amount = random.randint(200, 600)
-                current_pos += scroll_amount
+            if gradual:
+                # 段階的スクロール（10-20回に分けて）
+                num_scrolls = random.randint(10, 20)
+                total_scroll = page_height - viewport_height
                 
-                if current_pos > page_height - viewport_height:
-                    current_pos = page_height - viewport_height
+                if total_scroll <= 0:
+                    return
                 
-                scroll_positions.append(current_pos)
-            
-            # スクロール実行（ランダムな速度で）
-            for pos in scroll_positions:
-                await page.evaluate(f"window.scrollTo({{top: {pos}, behavior: 'smooth'}})")
-                await asyncio.sleep(random.uniform(0.5, 1.5))  # スクロール後の待機
+                # 各スクロールの量を計算（ランダムな速度変化）
+                scroll_amounts = []
+                remaining = total_scroll
+                
+                for i in range(num_scrolls):
+                    if remaining <= 0:
+                        break
+                    
+                    # スクロール量（残りの量に基づいてランダムに決定）
+                    max_scroll = min(remaining, random.randint(100, 400))
+                    scroll_amount = random.randint(50, max_scroll)
+                    scroll_amounts.append(scroll_amount)
+                    remaining -= scroll_amount
+                
+                # 現在位置を追跡
+                current_pos = 0
+                
+                # 段階的にスクロール
+                for scroll_amount in scroll_amounts:
+                    current_pos += scroll_amount
+                    
+                    # スクロール実行（ランダムな速度で）
+                    await page.evaluate(f"window.scrollBy({{top: {scroll_amount}, behavior: 'smooth'}})")
+                    
+                    # スクロール後の待機（ランダムな時間、人間は読みながらスクロールする）
+                    wait_time = random.uniform(0.3, 1.5)
+                    await asyncio.sleep(wait_time)
+                    
+                    # 時々逆方向に少しスクロール（人間はよくやる）
+                    if random.random() < 0.2:  # 20%の確率
+                        back_scroll = random.randint(20, 100)
+                        await page.evaluate(f"window.scrollBy({{top: -{back_scroll}, behavior: 'smooth'}})")
+                        await asyncio.sleep(random.uniform(0.2, 0.5))
+                        await page.evaluate(f"window.scrollBy({{top: {back_scroll}, behavior: 'smooth'}})")
+                        await asyncio.sleep(random.uniform(0.2, 0.5))
+            else:
+                # 従来の方法（後方互換性のため）
+                scroll_positions = []
+                current_pos = 0
+                
+                while current_pos < page_height - viewport_height:
+                    scroll_amount = random.randint(200, 600)
+                    current_pos += scroll_amount
+                    
+                    if current_pos > page_height - viewport_height:
+                        current_pos = page_height - viewport_height
+                    
+                    scroll_positions.append(current_pos)
+                
+                for pos in scroll_positions:
+                    await page.evaluate(f"window.scrollTo({{top: {pos}, behavior: 'smooth'}})")
+                    await asyncio.sleep(random.uniform(0.5, 1.5))
             
             # 最後にトップに戻る（人間はよくやる）
             if random.random() > 0.5:
                 await page.evaluate("window.scrollTo({top: 0, behavior: 'smooth'})")
                 await asyncio.sleep(random.uniform(0.3, 0.8))
             
-            logger.debug("[SCROLL] Human-like scrolling completed")
+            logger.debug("[SCROLL] Enhanced human-like scrolling completed")
         except Exception as e:
             logger.debug(f"[SCROLL] Scrolling failed: {e}")
     
-    async def human_like_wait(self, min_seconds: float = 1.0, max_seconds: float = 3.0):
-        """人間のような待機（ランダムな時間）"""
-        wait_time = random.uniform(min_seconds, max_seconds)
+    async def human_like_wait(self, min_seconds: float = 1.0, max_seconds: float = 3.0, longer: bool = False):
+        """人間のような待機（ランダムな時間、より長い待機時間対応）"""
+        if longer:
+            # より長い待機時間（3-10秒）
+            wait_time = random.uniform(3.0, 10.0)
+        else:
+            wait_time = random.uniform(min_seconds, max_seconds)
+        
         await asyncio.sleep(wait_time)
     
-    async def human_like_hover(self, page: Page):
-        """ページ要素へのホバー（人間のような動作）"""
+    async def human_like_type(self, page: Page, element, text: str, speed_variation: bool = True):
+        """人間のようなタイピング（タイピング速度の変化対応）"""
+        try:
+            # 要素にフォーカス
+            await element.focus()
+            await asyncio.sleep(random.uniform(0.1, 0.3))
+            
+            # テキストを1文字ずつ入力
+            for char in text:
+                await element.type(char, delay=random.uniform(0.1, 0.3) if speed_variation else 0.1)
+                
+                # 時々誤入力の模倣（バックスペース）
+                if speed_variation and random.random() < 0.05:  # 5%の確率
+                    await element.press('Backspace')
+                    await asyncio.sleep(random.uniform(0.1, 0.2))
+                    await element.type(char, delay=random.uniform(0.1, 0.3))
+            
+            logger.debug("[TYPE] Human-like typing completed")
+        except Exception as e:
+            logger.debug(f"[TYPE] Typing failed: {e}")
+    
+    async def human_like_hover(self, page: Page, multiple_elements: bool = True):
+        """ページ要素へのホバー（人間のような動作、複数要素への連続ホバー対応）"""
         try:
             # リンクやボタンなどのインタラクティブ要素を探す
-            elements = await page.query_selector_all('a, button, [role="button"]')
+            elements = await page.query_selector_all('a, button, [role="button"], [onclick], input[type="button"], input[type="submit"]')
             
             if elements:
-                # ランダムに1-3個の要素にホバー
-                num_hovers = random.randint(1, min(3, len(elements)))
-                selected_elements = random.sample(elements, num_hovers)
-                
-                for element in selected_elements:
-                    try:
-                        await element.hover(timeout=2000)
-                        await asyncio.sleep(random.uniform(0.3, 0.8))
-                        logger.debug("[HOVER] Hovered over element")
-                    except Exception:
-                        pass  # ホバー失敗は無視
+                if multiple_elements:
+                    # 複数要素への連続ホバー（1-5個）
+                    num_hovers = random.randint(1, min(5, len(elements)))
+                    selected_elements = random.sample(elements, num_hovers)
+                    
+                    for i, element in enumerate(selected_elements):
+                        try:
+                            # マウスを要素に移動（ベジェ曲線を使用）
+                            box = await element.bounding_box()
+                            if box:
+                                # 要素の中心に移動
+                                center_x = box['x'] + box['width'] / 2
+                                center_y = box['y'] + box['height'] / 2
+                                
+                                # ベジェ曲線で移動
+                                viewport_size = page.viewport_size
+                                if viewport_size:
+                                    current_x = random.randint(0, viewport_size['width'])
+                                    current_y = random.randint(0, viewport_size['height'])
+                                    
+                                    cp1_x = random.randint(0, viewport_size['width'])
+                                    cp1_y = random.randint(0, viewport_size['height'])
+                                    cp2_x = random.randint(0, viewport_size['width'])
+                                    cp2_y = random.randint(0, viewport_size['height'])
+                                    
+                                    num_steps = random.randint(5, 10)
+                                    for j in range(num_steps + 1):
+                                        t = j / num_steps
+                                        eased_t = t * t * (3 - 2 * t)
+                                        point = self._bezier_curve_point(
+                                            (current_x, current_y),
+                                            (cp1_x, cp1_y),
+                                            (cp2_x, cp2_y),
+                                            (center_x, center_y),
+                                            eased_t
+                                        )
+                                        await page.mouse.move(int(point[0]), int(point[1]))
+                                        if j < num_steps:
+                                            await asyncio.sleep(random.uniform(0.01, 0.02))
+                            
+                            await element.hover(timeout=2000)
+                            
+                            # ホバー時間のランダム化（0.5-2.0秒）
+                            hover_time = random.uniform(0.5, 2.0)
+                            await asyncio.sleep(hover_time)
+                            
+                            logger.debug(f"[HOVER] Hovered over element {i+1}/{num_hovers}")
+                        except Exception:
+                            pass  # ホバー失敗は無視
+                else:
+                    # 従来の方法（後方互換性のため）
+                    num_hovers = random.randint(1, min(3, len(elements)))
+                    selected_elements = random.sample(elements, num_hovers)
+                    
+                    for element in selected_elements:
+                        try:
+                            await element.hover(timeout=2000)
+                            await asyncio.sleep(random.uniform(0.3, 0.8))
+                            logger.debug("[HOVER] Hovered over element")
+                        except Exception:
+                            pass
             
         except Exception as e:
             logger.debug(f"[HOVER] Hover failed: {e}")
@@ -287,19 +458,19 @@ class HumanLikeScraper:
             # ページに移動
             await page.goto(url, timeout=self.timeout, wait_until="networkidle")
             
-            # 人間のような待機（ページ読み込み後）
-            await self.human_like_wait(1.0, 2.5)
+            # 人間のような待機（ページ読み込み後、より長い待機時間）
+            await self.human_like_wait(1.0, 2.5, longer=True)
             
-            # 人間のようなマウス移動
-            await self.human_like_mouse_move(page)
+            # 人間のようなマウス移動（ベジェ曲線使用）
+            await self.human_like_mouse_move(page, use_bezier=True)
             await self.human_like_wait(0.5, 1.0)
             
-            # 人間のようなスクロール
-            await self.human_like_scroll(page)
+            # 人間のようなスクロール（段階的スクロール）
+            await self.human_like_scroll(page, gradual=True)
             await self.human_like_wait(0.5, 1.0)
             
-            # 人間のようなホバー
-            await self.human_like_hover(page)
+            # 人間のようなホバー（複数要素への連続ホバー）
+            await self.human_like_hover(page, multiple_elements=True)
             await self.human_like_wait(0.5, 1.0)
             
             # タイトル取得
