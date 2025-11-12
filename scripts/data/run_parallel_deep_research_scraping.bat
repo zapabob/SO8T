@@ -45,7 +45,13 @@ echo [INFO] 動的リソース管理を行い、10個のブラウザを並列で
 echo [INFO] すべて異なるキーワード検索を人間を模倣した動作で実行します
 echo.
 
+REM Gemini APIキーの設定（オプション）
+REM 環境変数GEMINI_API_KEYが設定されていない場合は、以下の行のコメントを外して設定してください
+REM set "GEMINI_API_KEY=your_gemini_api_key_here"
+
 REM スクレイピング実行
+REM Geminiを使用する場合は --use-gemini オプションを追加してください
+REM 例: "%PYTHON%" -3 scripts\data\parallel_deep_research_scraping.py --output "%OUTPUT_DIR%" --num-browsers 10 --use-cursor-browser --max-memory-gb 8.0 --max-cpu-percent 80.0 --use-gemini --gemini-model gemini-2.0-flash-exp
 "%PYTHON%" -3 scripts\data\parallel_deep_research_scraping.py --output "%OUTPUT_DIR%" --num-browsers 10 --use-cursor-browser --max-memory-gb 8.0 --max-cpu-percent 80.0
 set "SCRAPE_RESULT=%errorlevel%"
 

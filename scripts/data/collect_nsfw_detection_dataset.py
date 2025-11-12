@@ -55,6 +55,23 @@ except ImportError:
     PLAYWRIGHT_AVAILABLE = False
     logger.warning("Playwright not available")
 
+# requestsインポート
+try:
+    import requests
+    from bs4 import BeautifulSoup
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+    logger.warning("requests/BeautifulSoup not available")
+
+# Wikipedia APIインポート
+try:
+    import wikipediaapi
+    WIKIPEDIA_API_AVAILABLE = True
+except ImportError:
+    WIKIPEDIA_API_AVAILABLE = False
+    logger.warning("wikipediaapi not available")
+
 
 class NSFWDetectionDatasetCollector:
     """検知用NSFWデータセット収集クラス"""
@@ -588,6 +605,433 @@ class NSFWDetectionDatasetCollector:
         logger.info(f"[SYNTHETIC] Generated {len(synthetic_samples)} synthetic samples")
         return synthetic_samples
     
+    async def collect_from_wikipedia(self, max_samples: int = 1000) -> List[Dict]:
+        """WikipediaからNSFW検知用データを収集"""
+        logger.info("[Wikipedia] Starting collection from Wikipedia for NSFW detection...")
+        
+        samples = []
+        
+        # Wikipedia記事のリスト（NSFW関連、検知目的のみ）
+        # 主要なNSFW関連記事を収集（ウィキペディアには多数のNSFW関連記事が存在）
+        wikipedia_articles = {
+            'ja': [
+                'ポルノグラフィ',
+                'わいせつ',
+                '検閲',
+                '性的コンテンツ',
+                '暴力',
+                'ヘイトスピーチ',
+                '人種差別',
+                '性差別',
+                '自殺',
+                '自傷行為',
+                '武器',
+                'テロリズム',
+                '児童ポルノ',
+                '児童虐待',
+                'ドメスティックバイオレンス',
+                'ストーカー',
+                'いじめ',
+                'ネットいじめ',
+                'サイバー犯罪',
+                '詐欺',
+                '薬物乱用',
+                'アルコール依存症',
+                'ギャンブル依存症',
+                '性的暴行',
+                '強姦',
+                '性的ハラスメント',
+                'パワーハラスメント',
+                'モラルハラスメント',
+                'アダルトゲーム',
+                'エロゲー',
+                'アダルトビデオ',
+                '風俗',
+                '売春',
+                '人身売買',
+                '児童労働',
+                '強制労働',
+                '搾取',
+                '虐待',
+                '暴力団',
+                '組織犯罪',
+                'マフィア',
+                'テロ組織',
+                '過激派',
+                '極右',
+                '極左',
+                'ネオナチ',
+                'クー・クラックス・クラン',
+                'ISIL',
+                'アルカイダ',
+                'カルト',
+                'オウム真理教',
+                '統一教会',
+                'サイエントロジー',
+                '自殺サイト',
+                'プロアナ',
+                'サイコパス',
+                '反社会性パーソナリティ障害',
+                'サイコパシー',
+                'サディズム',
+                'マゾヒズム',
+                'BDSM',
+                'フェティシズム',
+                'パラフィリア',
+                '性倒錯',
+                '性的指向',
+                'LGBT',
+                '同性愛',
+                '両性愛',
+                'トランスジェンダー',
+                '性同一性障害',
+                '性転換',
+                '性別適合手術',
+                '性教育',
+                '避妊',
+                '人工妊娠中絶',
+                '性感染症',
+                'エイズ',
+                'HIV',
+                '梅毒',
+                '淋病',
+                'クラミジア',
+                '性器ヘルペス',
+                '尖圭コンジローマ',
+                '性器カンジダ',
+                'トリコモナス',
+                '性病',
+                '性感染症予防',
+                'コンドーム',
+                'ピル',
+                '緊急避妊薬',
+                '性行為',
+                '性交',
+                'オーガズム',
+                '射精',
+                '勃起',
+                '性欲',
+                '性衝動',
+                '性機能障害',
+                '勃起不全',
+                '早漏',
+                '不感症',
+                '性欲減退',
+                '性欲亢進',
+                '性依存症',
+                '性犯罪',
+                '強制わいせつ',
+                '強制性交等罪',
+                '準強制わいせつ',
+                '準強制性交等罪',
+                'わいせつ物頒布等罪',
+                'わいせつ物陳列罪',
+                '児童買春',
+                '児童ポルノ禁止法',
+                '児童虐待防止法',
+                'DV防止法',
+                'ストーカー規制法',
+                '迷惑防止条例',
+                '風営法',
+                '売春防止法',
+                '児童福祉法',
+                '青少年保護育成条例',
+                'インターネット異性紹介事業',
+                '出会い系サイト',
+                '援助交際',
+                'JKビジネス',
+                '水商売',
+                'キャバクラ',
+                'ソープランド',
+                'デリヘル',
+                '風俗店',
+                'ラブホテル',
+                '性風俗',
+                '性産業',
+                'アダルト産業',
+                'ポルノ産業',
+                'エンターテインメント産業',
+                'アダルトエンターテインメント',
+                'アダルトコンテンツ',
+                'アダルトサイト',
+                'アダルト動画',
+                'アダルト画像',
+                'アダルト小説',
+                'エロ漫画',
+                'アダルト漫画',
+                '成人向け漫画',
+                '成人向けアニメ',
+                'エロアニメ',
+                'アダルトアニメ',
+                '成人向けゲーム',
+                'アダルトゲーム',
+                '美少女ゲーム',
+                'ギャルゲー',
+                '18禁ゲーム',
+                'R18ゲーム',
+            ],
+            'en': [
+                'Pornography',
+                'Obscenity',
+                'Censorship',
+                'Sexual content',
+                'Violence',
+                'Hate speech',
+                'Racism',
+                'Sexism',
+                'Suicide',
+                'Self-harm',
+                'Weapons',
+                'Terrorism',
+                'Child pornography',
+                'Child abuse',
+                'Domestic violence',
+                'Stalking',
+                'Bullying',
+                'Cyberbullying',
+                'Cybercrime',
+                'Fraud',
+                'Drug abuse',
+                'Alcoholism',
+                'Gambling addiction',
+                'Sexual assault',
+                'Rape',
+                'Sexual harassment',
+                'Workplace harassment',
+                'Moral harassment',
+                'Adult game',
+                'Eroge',
+                'Adult video',
+                'Prostitution',
+                'Human trafficking',
+                'Child labor',
+                'Forced labor',
+                'Exploitation',
+                'Abuse',
+                'Organized crime',
+                'Mafia',
+                'Terrorist organization',
+                'Extremist',
+                'Far-right',
+                'Far-left',
+                'Neo-Nazi',
+                'Ku Klux Klan',
+                'ISIL',
+                'Al-Qaeda',
+                'Cult',
+                'Aum Shinrikyo',
+                'Unification Church',
+                'Scientology',
+                'Suicide website',
+                'Pro-ana',
+                'Psychopath',
+                'Antisocial personality disorder',
+                'Psychopathy',
+                'Sadism',
+                'Masochism',
+                'BDSM',
+                'Fetishism',
+                'Paraphilia',
+                'Sexual orientation',
+                'LGBT',
+                'Homosexuality',
+                'Bisexuality',
+                'Transgender',
+                'Gender identity disorder',
+                'Sex reassignment surgery',
+                'Sex education',
+                'Contraception',
+                'Abortion',
+                'Sexually transmitted infection',
+                'AIDS',
+                'HIV',
+                'Syphilis',
+                'Gonorrhea',
+                'Chlamydia',
+                'Genital herpes',
+                'Genital warts',
+                'Genital candidiasis',
+                'Trichomoniasis',
+                'Venereal disease',
+                'STI prevention',
+                'Condom',
+                'Birth control pill',
+                'Emergency contraception',
+                'Sexual intercourse',
+                'Orgasm',
+                'Ejaculation',
+                'Erection',
+                'Sexual desire',
+                'Sexual impulse',
+                'Sexual dysfunction',
+                'Erectile dysfunction',
+                'Premature ejaculation',
+                'Anorgasmia',
+                'Hypoactive sexual desire disorder',
+                'Hypersexuality',
+                'Sexual addiction',
+                'Sexual crime',
+                'Obscenity law',
+                'Child prostitution',
+                'Child pornography law',
+                'Child abuse prevention law',
+                'DV prevention law',
+                'Stalker regulation law',
+                'Prostitution prevention law',
+                'Child welfare law',
+                'Youth protection ordinance',
+                'Internet dating service',
+                'Dating site',
+                'Compensated dating',
+                'JK business',
+                'Adult entertainment',
+                'Adult industry',
+                'Pornography industry',
+                'Adult content',
+                'Adult site',
+                'Adult video',
+                'Adult image',
+                'Adult novel',
+                'Erotic manga',
+                'Adult manga',
+                'Adult anime',
+                'Eroge',
+                'Adult game',
+                'Bishoujo game',
+                'Gal game',
+                '18+ game',
+                'R18 game',
+            ]
+        }
+        
+        if WIKIPEDIA_API_AVAILABLE:
+            # Wikipedia APIを使用
+            try:
+                wiki_ja = wikipediaapi.Wikipedia('ja', user_agent='SO8T-NSFW-Collector/1.0')
+                wiki_en = wikipediaapi.Wikipedia('en', user_agent='SO8T-NSFW-Collector/1.0')
+                
+                for lang, articles in wikipedia_articles.items():
+                    if len(samples) >= max_samples:
+                        break
+                    
+                    wiki = wiki_ja if lang == 'ja' else wiki_en
+                    
+                    for article_title in articles:
+                        if len(samples) >= max_samples:
+                            break
+                        
+                        try:
+                            page = wiki.page(article_title)
+                            if page.exists():
+                                text = page.text
+                                
+                                # NSFW検知を実行
+                                nsfw_result = self.detect_nsfw(text=text)
+                                
+                                if nsfw_result['label'] != 'SAFE' or nsfw_result.get('category') != 'none':
+                                    sample = {
+                                        'text': text[:5000],
+                                        'url': page.fullurl,
+                                        'source': 'wikipedia',
+                                        'source_name': 'Wikipedia',
+                                        'language': lang,
+                                        'category': nsfw_result.get('category', 'none'),
+                                        'detailed_category': nsfw_result.get('detailed_category', 'none'),
+                                        'article_title': article_title,
+                                        'nsfw_detection': nsfw_result,
+                                        'nsfw_label': nsfw_result['label'],
+                                        'nsfw_confidence': nsfw_result['confidence'],
+                                        'nsfw_severity': nsfw_result.get('severity', 'none'),
+                                        'nsfw_legal_status': nsfw_result.get('legal_status', 'safe'),
+                                        'reasoning': nsfw_result.get('reasoning', ''),
+                                        'collected_at': datetime.now().isoformat(),
+                                        'detection_purpose': 'safety_training'
+                                    }
+                                    samples.append(sample)
+                                    logger.info(f"[Wikipedia] Collected article: {article_title} (NSFW: {nsfw_result['label']})")
+                        
+                        except Exception as e:
+                            logger.warning(f"[Wikipedia] Failed to fetch article {article_title}: {e}")
+                            continue
+            
+            except Exception as e:
+                logger.warning(f"[Wikipedia] Wikipedia API error: {e}, falling back to web scraping")
+        
+        # Webスクレイピングフォールバック
+        if not WIKIPEDIA_API_AVAILABLE or len(samples) < max_samples:
+            if REQUESTS_AVAILABLE:
+                try:
+                    for lang, articles in wikipedia_articles.items():
+                        if len(samples) >= max_samples:
+                            break
+                        
+                        base_url = 'https://ja.wikipedia.org' if lang == 'ja' else 'https://en.wikipedia.org'
+                        
+                        for article_title in articles:
+                            if len(samples) >= max_samples:
+                                break
+                            
+                            try:
+                                # URLエンコード
+                                from urllib.parse import quote
+                                encoded_title = quote(article_title.replace(' ', '_'))
+                                url = f"{base_url}/wiki/{encoded_title}"
+                                
+                                response = requests.get(url, timeout=30, headers={
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                                })
+                                response.raise_for_status()
+                                
+                                soup = BeautifulSoup(response.content, 'html.parser')
+                                
+                                # 本文を抽出
+                                content_div = soup.find('div', {'id': 'mw-content-text'})
+                                if content_div:
+                                    # スクリプト・スタイル・ナビゲーション要素を削除
+                                    for elem in content_div.find_all(['script', 'style', 'nav', 'table', 'div', 'span']):
+                                        if 'navbox' in elem.get('class', []) or 'infobox' in elem.get('class', []):
+                                            elem.decompose()
+                                    
+                                    text = content_div.get_text(separator='\n', strip=True)
+                                    
+                                    if len(text) > 200:
+                                        # NSFW検知を実行
+                                        nsfw_result = self.detect_nsfw(text=text)
+                                        
+                                        if nsfw_result['label'] != 'SAFE' or nsfw_result.get('category') != 'none':
+                                            sample = {
+                                                'text': text[:5000],
+                                                'url': url,
+                                                'source': 'wikipedia',
+                                                'source_name': 'Wikipedia',
+                                                'language': lang,
+                                                'category': nsfw_result.get('category', 'none'),
+                                                'detailed_category': nsfw_result.get('detailed_category', 'none'),
+                                                'article_title': article_title,
+                                                'nsfw_detection': nsfw_result,
+                                                'nsfw_label': nsfw_result['label'],
+                                                'nsfw_confidence': nsfw_result['confidence'],
+                                                'nsfw_severity': nsfw_result.get('severity', 'none'),
+                                                'nsfw_legal_status': nsfw_result.get('legal_status', 'safe'),
+                                                'reasoning': nsfw_result.get('reasoning', ''),
+                                                'collected_at': datetime.now().isoformat(),
+                                                'detection_purpose': 'safety_training'
+                                            }
+                                            samples.append(sample)
+                                            logger.info(f"[Wikipedia] Collected article: {article_title} (NSFW: {nsfw_result['label']})")
+                                
+                                await asyncio.sleep(1.0)  # レート制限
+                            
+                            except Exception as e:
+                                logger.warning(f"[Wikipedia] Failed to fetch article {article_title}: {e}")
+                                continue
+                
+                except Exception as e:
+                    logger.error(f"[Wikipedia] Web scraping error: {e}")
+        
+        logger.info(f"[Wikipedia] Collected {len(samples)} NSFW detection samples from Wikipedia")
+        return samples
+    
     def collect_from_existing_data(
         self,
         input_dir: Path,
@@ -773,6 +1217,16 @@ def main():
     )
     
     all_samples = []
+    
+    # Wikipediaから収集
+    try:
+        wikipedia_samples = asyncio.run(collector.collect_from_wikipedia(max_samples=min(5000, args.max_samples)))
+        all_samples.extend(wikipedia_samples)
+        logger.info(f"[MAIN] Collected {len(wikipedia_samples)} samples from Wikipedia")
+    except Exception as e:
+        logger.error(f"[MAIN] Failed to collect from Wikipedia: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
     
     # 既存データから収集
     if args.input:

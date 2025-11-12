@@ -25,6 +25,8 @@ import platform
 import hashlib
 import re
 from difflib import SequenceMatcher
+import aiohttp
+from urllib.parse import urlencode, quote
 
 # 統計計算用ライブラリ
 try:
@@ -125,6 +127,17 @@ except ImportError:
     QUADRUPLE_CLASSIFIER_AVAILABLE = False
     logger = logging.getLogger(__name__)
     logger.warning("[WARNING] ParallelTabProcessor not available")
+
+# Gemini APIインポート（Computer Use Preview統合用）
+try:
+    from google import genai
+    from google.genai import types
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    genai = None
+    types = None
+    logger.warning("[WARNING] Gemini API not available. Install with: pip install google-genai")
 
 # ロギング設定
 logging.basicConfig(
@@ -354,6 +367,92 @@ NSFW_DETECTION_SITES = {
     }
 }
 
+# 違法薬物検知用サイトURLリスト（検知目的のみ、生成目的ではない）
+DRUG_DETECTION_SITES = {
+    'ja': {
+        'pmda': [
+            'https://www.pmda.go.jp/',
+            'https://www.pmda.go.jp/safety/info-services/drugs/',
+            'https://www.pmda.go.jp/safety/info-services/drugs/calling-attention/',
+        ],
+        'mhlw': [
+            'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/iyakuhin/',
+            'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/iyakuhin/yakubuturanyou/',
+        ],
+        'unodc': [
+            'https://www.unodc.org/unodc/en/drug-prevention-and-treatment/index.html',
+        ],
+        'who': [
+            'https://www.who.int/health-topics/substance-abuse',
+        ]
+    },
+    'en': {
+        'fda': [
+            'https://www.fda.gov/drugs',
+            'https://www.fda.gov/drugs/drug-safety-and-availability',
+        ],
+        'dea': [
+            'https://www.dea.gov/',
+            'https://www.dea.gov/drug-information',
+        ],
+        'unodc': [
+            'https://www.unodc.org/unodc/en/drug-prevention-and-treatment/index.html',
+        ],
+        'who': [
+            'https://www.who.int/health-topics/substance-abuse',
+        ]
+    }
+}
+
+# ウィキペディアカテゴリマッピング（既存のCATEGORY_KEYWORDSに基づく）
+CATEGORY_WIKIPEDIA_MAPPING = {
+    'technology': {
+        'ja': 'Category:技術',
+        'en': 'Category:Technology'
+    },
+    'programming_languages': {
+        'ja': 'Category:プログラミング言語',
+        'en': 'Category:Programming_languages'
+    },
+    'algorithms': {
+        'ja': 'Category:アルゴリズム',
+        'en': 'Category:Algorithms'
+    },
+    'hardware': {
+        'ja': 'Category:コンピュータハードウェア',
+        'en': 'Category:Computer_hardware'
+    },
+    'coding_best_practices': {
+        'ja': 'Category:ソフトウェア工学',
+        'en': 'Category:Software_engineering'
+    },
+    'engineering_sites': {
+        'ja': 'Category:ウェブサイト',
+        'en': 'Category:Websites'
+    },
+    'science': {
+        'ja': 'Category:科学',
+        'en': 'Category:Science'
+    },
+    'medicine': {
+        'ja': 'Category:医学',
+        'en': 'Category:Medicine'
+    },
+    'history': {
+        'ja': 'Category:歴史',
+        'en': 'Category:History'
+    },
+    'culture': {
+        'ja': 'Category:文化',
+        'en': 'Category:Culture'
+    },
+    'business': {
+        'ja': 'Category:ビジネス',
+        'en': 'Category:Business'
+    }
+    # NSFW検知用カテゴリは除外（学習データとして使用しない）
+}
+
 
 @dataclass
 class KeywordTask:
@@ -368,6 +467,590 @@ class KeywordTask:
     company_code: str = None  # 日経225企業コード
     company_domain: str = None  # 企業ドメイン（heavy_industry, airline, transport等）
     data_type: str = None  # データタイプ（financial_reports, press_releases, product_info, nikkei_company_info）
+    task_type: str = 'search'  # タスクタイプ: 'search', 'wikipedia_api_task', 'nikkei225'
+    wikipedia_category_name: str = None  # ウィキペディアカテゴリ名（wikipedia_api_task用）
+
+
+class GeminiBrowserAgent:
+    """Gemini APIを使用したブラウザ操作エージェント（Computer Use Preview方式）"""
+    
+    def __init__(
+        self,
+        page: Page,
+        api_key: Optional[str] = None,
+        model_name: str = "gemini-2.0-flash-exp",
+        verbose: bool = True
+    ):
+        """
+        初期化
+        
+        Args:
+            page: PlaywrightのPageオブジェクト
+            api_key: Gemini APIキー（Noneの場合は環境変数GEMINI_API_KEYを使用）
+            model_name: 使用するGeminiモデル名
+            verbose: 詳細ログを出力するか
+        """
+        self.page = page
+        self.model_name = model_name
+        self.verbose = verbose
+        
+        # APIキーの取得
+        if api_key is None:
+            api_key = os.environ.get("GEMINI_API_KEY")
+        
+        if not api_key:
+            raise ValueError("Gemini API key is required. Set GEMINI_API_KEY environment variable or pass api_key parameter.")
+        
+        if not GEMINI_AVAILABLE:
+            raise ImportError("google-genai is not installed. Install with: pip install google-genai")
+        
+        # Gemini APIクライアントの初期化
+        self.client = genai.Client(api_key=api_key)
+        
+        # コンテンツ履歴
+        self.contents: List[types.Content] = []
+        
+        # 生成設定
+        self.generate_content_config = types.GenerateContentConfig(
+            temperature=1,
+            top_p=0.95,
+            top_k=40,
+            max_output_tokens=8192,
+            tools=[
+                types.Tool(
+                    computer_use=types.ComputerUse(
+                        environment=types.Environment.ENVIRONMENT_BROWSER,
+                        excluded_predefined_functions=[],
+                    ),
+                ),
+            ],
+        )
+        
+        logger.info(f"[GEMINI] Initialized GeminiBrowserAgent with model: {model_name}")
+    
+    async def execute_natural_language_query(self, query: str) -> Dict:
+        """
+        自然言語指示を実行
+        
+        Args:
+            query: 自然言語指示（例：「Googleで人工知能について検索して、関連記事をスクレイピングして」）
+        
+        Returns:
+            実行結果の辞書
+        """
+        try:
+            # 初期クエリを追加
+            if not self.contents:
+                self.contents.append(
+                    types.Content(
+                        role="user",
+                        parts=[types.Part(text=query)],
+                    )
+                )
+            else:
+                # 既存のコンテンツに追加
+                self.contents.append(
+                    types.Content(
+                        role="user",
+                        parts=[types.Part(text=query)],
+                    )
+                )
+            
+            # 最大試行回数
+            max_iterations = 20
+            iteration = 0
+            
+            while iteration < max_iterations:
+                iteration += 1
+                
+                # Gemini APIを呼び出し
+                response = await self._get_model_response()
+                
+                if not response:
+                    logger.error("[GEMINI] Failed to get response from Gemini API")
+                    break
+                
+                # レスポンスから候補を取得
+                if not response.candidates:
+                    logger.warning("[GEMINI] No candidates in response")
+                    break
+                
+                candidate = response.candidates[0]
+                
+                # テキストを取得
+                text = self._get_text(candidate)
+                if text:
+                    logger.info(f"[GEMINI] Model reasoning: {text[:200]}...")
+                
+                # 関数呼び出しを取得
+                function_calls = self._extract_function_calls(candidate)
+                
+                if not function_calls:
+                    # 関数呼び出しがない場合は完了
+                    logger.info("[GEMINI] Task completed (no more function calls)")
+                    break
+                
+                # 各関数呼び出しを実行
+                for function_call in function_calls:
+                    try:
+                        env_state = await self._handle_action(function_call)
+                        
+                        # 環境状態をコンテンツに追加
+                        if env_state:
+                            self.contents.append(
+                                types.Content(
+                                    role="model",
+                                    parts=[
+                                        types.Part(function_response=types.FunctionResponse(
+                                            name=function_call.name,
+                                            response=env_state
+                                        ))
+                                    ],
+                                )
+                            )
+                    except Exception as e:
+                        logger.error(f"[GEMINI] Failed to handle action {function_call.name}: {e}")
+                        import traceback
+                        logger.debug(traceback.format_exc())
+                        break
+                
+                # 少し待機
+                await asyncio.sleep(0.5)
+            
+            return {
+                'success': True,
+                'iterations': iteration,
+                'final_text': text if 'text' in locals() else None
+            }
+            
+        except Exception as e:
+            logger.error(f"[GEMINI] Failed to execute natural language query: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    async def _get_model_response(self, max_retries: int = 5, base_delay_s: float = 1.0) -> Optional[types.GenerateContentResponse]:
+        """Gemini APIからレスポンスを取得（リトライ付き）"""
+        for attempt in range(max_retries):
+            try:
+                # Gemini APIは同期メソッドなので、asyncio.to_threadで非同期化
+                response = await asyncio.to_thread(
+                    self.client.models.generate_content,
+                    model=self.model_name,
+                    contents=self.contents,
+                    config=self.generate_content_config,
+                )
+                return response
+            except Exception as e:
+                logger.warning(f"[GEMINI] API call failed (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    delay = base_delay_s * (2 ** attempt)
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"[GEMINI] API call failed after {max_retries} attempts")
+                    raise
+    
+    def _get_text(self, candidate: types.Candidate) -> Optional[str]:
+        """候補からテキストを抽出"""
+        if not candidate.content or not candidate.content.parts:
+            return None
+        text_parts = []
+        for part in candidate.content.parts:
+            if part.text:
+                text_parts.append(part.text)
+        return " ".join(text_parts) if text_parts else None
+    
+    def _extract_function_calls(self, candidate: types.Candidate) -> List[types.FunctionCall]:
+        """候補から関数呼び出しを抽出"""
+        if not candidate.content or not candidate.content.parts:
+            return []
+        function_calls = []
+        for part in candidate.content.parts:
+            if part.function_call:
+                function_calls.append(part.function_call)
+        return function_calls
+    
+    async def _handle_action(self, action: types.FunctionCall) -> Optional[Dict]:
+        """ブラウザ操作を処理"""
+        try:
+            action_name = action.name
+            action_args = action.args
+            
+            if action_name == "open_web_browser":
+                # ブラウザを開く（既に開いている場合は何もしない）
+                return {'status': 'browser_opened', 'url': self.page.url}
+            
+            elif action_name == "click_at":
+                x = action_args.get("x", 0)
+                y = action_args.get("y", 0)
+                await self.page.mouse.click(x, y)
+                return {'status': 'clicked', 'x': x, 'y': y}
+            
+            elif action_name == "hover_at":
+                x = action_args.get("x", 0)
+                y = action_args.get("y", 0)
+                await self.page.mouse.move(x, y)
+                return {'status': 'hovered', 'x': x, 'y': y}
+            
+            elif action_name == "type_text_at":
+                x = action_args.get("x", 0)
+                y = action_args.get("y", 0)
+                text = action_args.get("text", "")
+                press_enter = action_args.get("press_enter", False)
+                clear_before_typing = action_args.get("clear_before_typing", True)
+                
+                # クリックしてからタイプ
+                await self.page.mouse.click(x, y)
+                await asyncio.sleep(0.1)
+                
+                if clear_before_typing:
+                    await self.page.keyboard.press("Control+A")
+                    await asyncio.sleep(0.1)
+                
+                await self.page.keyboard.type(text, delay=random.uniform(50, 150))
+                
+                if press_enter:
+                    await asyncio.sleep(0.1)
+                    await self.page.keyboard.press("Enter")
+                
+                return {'status': 'typed', 'text': text, 'x': x, 'y': y}
+            
+            elif action_name == "scroll_document":
+                direction = action_args.get("direction", "down")
+                if direction == "down":
+                    await self.page.mouse.wheel(0, 800)
+                elif direction == "up":
+                    await self.page.mouse.wheel(0, -800)
+                return {'status': 'scrolled', 'direction': direction}
+            
+            elif action_name == "scroll_at":
+                x = action_args.get("x", 0)
+                y = action_args.get("y", 0)
+                direction = action_args.get("direction", "down")
+                magnitude = action_args.get("magnitude", 800)
+                
+                await self.page.mouse.move(x, y)
+                if direction == "down":
+                    await self.page.mouse.wheel(0, magnitude)
+                elif direction == "up":
+                    await self.page.mouse.wheel(0, -magnitude)
+                elif direction == "right":
+                    await self.page.mouse.wheel(magnitude, 0)
+                elif direction == "left":
+                    await self.page.mouse.wheel(-magnitude, 0)
+                
+                return {'status': 'scrolled', 'x': x, 'y': y, 'direction': direction}
+            
+            elif action_name == "wait_5_seconds":
+                await asyncio.sleep(5.0)
+                return {'status': 'waited', 'seconds': 5}
+            
+            elif action_name == "go_back":
+                await self.page.go_back()
+                return {'status': 'navigated_back', 'url': self.page.url}
+            
+            elif action_name == "go_forward":
+                await self.page.go_forward()
+                return {'status': 'navigated_forward', 'url': self.page.url}
+            
+            elif action_name == "search":
+                # 検索エンジンで検索（現在のページが検索エンジンの場合）
+                return {'status': 'search_initiated', 'url': self.page.url}
+            
+            elif action_name == "navigate":
+                url = action_args.get("url", "")
+                await self.page.goto(url, timeout=30000, wait_until="networkidle")
+                return {'status': 'navigated', 'url': self.page.url}
+            
+            elif action_name == "key_combination":
+                keys = action_args.get("keys", "").split("+")
+                # キーコンビネーションを実行
+                for i, key in enumerate(keys):
+                    if i > 0:
+                        await self.page.keyboard.down(key)
+                    else:
+                        await self.page.keyboard.press(key)
+                for key in reversed(keys[1:]):
+                    await self.page.keyboard.up(key)
+                return {'status': 'key_combination', 'keys': keys}
+            
+            elif action_name == "drag_and_drop":
+                x = action_args.get("x", 0)
+                y = action_args.get("y", 0)
+                destination_x = action_args.get("destination_x", 0)
+                destination_y = action_args.get("destination_y", 0)
+                await self.page.mouse.move(x, y)
+                await self.page.mouse.down()
+                await self.page.mouse.move(destination_x, destination_y)
+                await self.page.mouse.up()
+                return {'status': 'dragged', 'from': (x, y), 'to': (destination_x, destination_y)}
+            
+            else:
+                logger.warning(f"[GEMINI] Unsupported action: {action_name}")
+                return {'status': 'unsupported', 'action': action_name}
+                
+        except Exception as e:
+            logger.error(f"[GEMINI] Failed to handle action {action.name}: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return {'status': 'error', 'error': str(e)}
+
+
+class WikipediaMediaWikiAPIClient:
+    """ウィキペディアMediaWiki APIクライアント"""
+    
+    def __init__(self, request_delay: float = 0.2, max_retries: int = 3):
+        """
+        初期化
+        
+        Args:
+            request_delay: リクエスト間隔（秒、MediaWiki API推奨: 200ms以上）
+            max_retries: 最大リトライ回数
+        """
+        self.request_delay = request_delay
+        self.max_retries = max_retries
+        self.session: Optional[aiohttp.ClientSession] = None
+    
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """aiohttpセッションを取得（必要に応じて作成）"""
+        if self.session is None or self.session.closed:
+            timeout = aiohttp.ClientTimeout(total=30)
+            self.session = aiohttp.ClientSession(timeout=timeout)
+        return self.session
+    
+    async def close(self):
+        """セッションを閉じる"""
+        if self.session and not self.session.closed:
+            await self.session.close()
+    
+    def _get_api_endpoint(self, language: str) -> str:
+        """APIエンドポイントを取得"""
+        return f"https://{language}.wikipedia.org/w/api.php"
+    
+    async def _make_request(
+        self,
+        url: str,
+        params: Dict[str, any],
+        retry_count: int = 0
+    ) -> Optional[Dict]:
+        """
+        MediaWiki APIリクエストを実行
+        
+        Args:
+            url: APIエンドポイントURL
+            params: リクエストパラメータ
+            retry_count: 現在のリトライ回数
+        
+        Returns:
+            APIレスポンス（JSON）またはNone
+        """
+        try:
+            session = await self._get_session()
+            
+            # レート制限対応: リクエスト間隔を確保
+            await asyncio.sleep(self.request_delay)
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 429:  # Too Many Requests
+                    if retry_count < self.max_retries:
+                        # 指数バックオフ
+                        wait_time = (2 ** retry_count) * self.request_delay
+                        logger.warning(f"[WIKIPEDIA-API] Rate limited, waiting {wait_time:.2f}s before retry {retry_count + 1}/{self.max_retries}")
+                        await asyncio.sleep(wait_time)
+                        return await self._make_request(url, params, retry_count + 1)
+                    else:
+                        logger.error(f"[WIKIPEDIA-API] Rate limit exceeded after {self.max_retries} retries")
+                        return None
+                
+                elif response.status == 503:  # Service Unavailable
+                    if retry_count < self.max_retries:
+                        wait_time = (2 ** retry_count) * self.request_delay
+                        logger.warning(f"[WIKIPEDIA-API] Service unavailable, waiting {wait_time:.2f}s before retry {retry_count + 1}/{self.max_retries}")
+                        await asyncio.sleep(wait_time)
+                        return await self._make_request(url, params, retry_count + 1)
+                    else:
+                        logger.error(f"[WIKIPEDIA-API] Service unavailable after {self.max_retries} retries")
+                        return None
+                
+                elif response.status == 200:
+                    data = await response.json()
+                    return data
+                else:
+                    logger.error(f"[WIKIPEDIA-API] Request failed with status {response.status}")
+                    return None
+                    
+        except asyncio.TimeoutError:
+            logger.error(f"[WIKIPEDIA-API] Request timeout")
+            return None
+        except Exception as e:
+            logger.error(f"[WIKIPEDIA-API] Request error: {e}")
+            return None
+    
+    async def get_category_members(
+        self,
+        category: str,
+        language: str,
+        limit: int = 500
+    ) -> List[Dict]:
+        """
+        カテゴリメンバー（記事）を取得
+        
+        Args:
+            category: カテゴリ名（例: "Category:技術"）
+            language: 言語コード（"ja" または "en"）
+            limit: 取得上限（デフォルト: 500）
+        
+        Returns:
+            カテゴリメンバーのリスト（各要素は{'title': str, 'pageid': int}）
+        """
+        endpoint = self._get_api_endpoint(language)
+        members = []
+        cmcontinue = None
+        
+        while len(members) < limit:
+            params = {
+                'action': 'query',
+                'list': 'categorymembers',
+                'cmtitle': category,
+                'cmlimit': min(500, limit - len(members)),  # MediaWiki APIの最大値は500
+                'format': 'json',
+                'cmnamespace': 0  # 通常の記事のみ（カテゴリページを除外）
+            }
+            
+            if cmcontinue:
+                params['cmcontinue'] = cmcontinue
+            
+            data = await self._make_request(endpoint, params)
+            
+            if not data or 'query' not in data:
+                break
+            
+            query = data.get('query', {})
+            categorymembers = query.get('categorymembers', [])
+            
+            for member in categorymembers:
+                members.append({
+                    'title': member.get('title', ''),
+                    'pageid': member.get('pageid', 0)
+                })
+            
+            # 続きがあるかチェック
+            if 'continue' in data and len(members) < limit:
+                cmcontinue = data['continue'].get('cmcontinue')
+            else:
+                break
+        
+        logger.info(f"[WIKIPEDIA-API] Retrieved {len(members)} category members from {category} ({language})")
+        return members[:limit]
+    
+    async def get_page_content(
+        self,
+        page_title: str,
+        language: str
+    ) -> Optional[Dict]:
+        """
+        ページの本文を取得
+        
+        Args:
+            page_title: ページタイトル
+            language: 言語コード
+        
+        Returns:
+            ページ情報（{'title': str, 'text': str, 'pageid': int, 'url': str}）またはNone
+        """
+        endpoint = self._get_api_endpoint(language)
+        
+        params = {
+            'action': 'query',
+            'prop': 'extracts|info',
+            'titles': page_title,
+            'exintro': 'false',  # 全文を取得
+            'explaintext': 'true',  # プレーンテキスト形式
+            'inprop': 'url',
+            'format': 'json'
+        }
+        
+        data = await self._make_request(endpoint, params)
+        
+        if not data or 'query' not in data:
+            return None
+        
+        query = data.get('query', {})
+        pages = query.get('pages', {})
+        
+        if not pages:
+            return None
+        
+        # ページIDを取得（通常は1つ）
+        page_id = list(pages.keys())[0]
+        page_data = pages[page_id]
+        
+        if page_id == '-1' or 'missing' in page_data:
+            logger.warning(f"[WIKIPEDIA-API] Page not found: {page_title}")
+            return None
+        
+        extract = page_data.get('extract', '')
+        fullurl = page_data.get('fullurl', '')
+        title = page_data.get('title', page_title)
+        
+        return {
+            'title': title,
+            'text': extract,
+            'pageid': int(page_id),
+            'url': fullurl
+        }
+    
+    async def get_page_categories(
+        self,
+        page_title: str,
+        language: str,
+        limit: int = 20
+    ) -> List[str]:
+        """
+        ページのカテゴリ情報を取得
+        
+        Args:
+            page_title: ページタイトル
+            language: 言語コード
+            limit: 取得上限
+        
+        Returns:
+            カテゴリ名のリスト
+        """
+        endpoint = self._get_api_endpoint(language)
+        
+        params = {
+            'action': 'query',
+            'prop': 'categories',
+            'titles': page_title,
+            'cllimit': limit,
+            'format': 'json'
+        }
+        
+        data = await self._make_request(endpoint, params)
+        
+        if not data or 'query' not in data:
+            return []
+        
+        query = data.get('query', {})
+        pages = query.get('pages', {})
+        
+        if not pages:
+            return []
+        
+        page_id = list(pages.keys())[0]
+        page_data = pages[page_id]
+        
+        if page_id == '-1' or 'missing' in page_data:
+            return []
+        
+        categories = page_data.get('categories', [])
+        category_names = [cat.get('title', '').replace('Category:', '') for cat in categories]
+        
+        return category_names
 
 
 class ResourceManager:
@@ -431,7 +1114,14 @@ class ParallelDeepResearchScraper:
         max_memory_gb: float = 8.0,
         max_cpu_percent: float = 90.0,
         use_so8t_control: bool = True,
-        so8t_model_path: Optional[str] = None
+        so8t_model_path: Optional[str] = None,
+        use_gemini: bool = False,
+        gemini_api_key: Optional[str] = None,
+        gemini_model: str = "gemini-2.0-flash-exp",
+        natural_language_query: Optional[str] = None,
+        fallback_to_playwright: bool = True,
+        use_chromedevtools: bool = False,
+        chromedevtools_config: Optional[Dict] = None
     ):
         """
         初期化
@@ -448,19 +1138,87 @@ class ParallelDeepResearchScraper:
             max_cpu_percent: 最大CPU使用率（%）
             use_so8t_control: SO8Tモデルで統制するか
             so8t_model_path: SO8Tモデルのパス（Noneの場合はデフォルト）
+            use_gemini: Geminiを使用するか
+            gemini_api_key: Gemini APIキー（Noneの場合は環境変数GEMINI_API_KEYを使用）
+            gemini_model: 使用するGeminiモデル名
+            natural_language_query: 自然言語指示（Gemini使用時）
+            fallback_to_playwright: Gemini失敗時にPlaywrightにフォールバックするか
+            use_chromedevtools: Chrome DevTools MCPを使用するか
+            chromedevtools_config: Chrome DevTools設定（Noneの場合はデフォルト設定を使用）
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         self.num_browsers = num_browsers
+        self.num_tabs_per_browser = 10  # 各ブラウザに10タブ
         self.use_cursor_browser = use_cursor_browser
         self.remote_debugging_port = remote_debugging_port
         self.delay_per_action = delay_per_action
         self.timeout = timeout
         self.max_pages_per_keyword = max_pages_per_keyword
         self.use_so8t_control = use_so8t_control
+        self.use_gemini = use_gemini
+        self.gemini_api_key = gemini_api_key
+        self.gemini_model = gemini_model
+        self.natural_language_query = natural_language_query
+        self.fallback_to_playwright = fallback_to_playwright
+        self.use_chromedevtools = use_chromedevtools
+        self.chromedevtools_config = chromedevtools_config
         
         self.resource_manager = ResourceManager(max_memory_gb, max_cpu_percent)
+        
+        # Chrome DevTools MCP初期化
+        self.mcp_chromedevtools: Optional[Any] = None
+        if self.use_chromedevtools:
+            try:
+                from scripts.utils.mcp_chrome_devtools_wrapper import MCPChromeDevTools
+                import yaml
+                
+                # 設定ファイルから設定を読み込む
+                if self.chromedevtools_config is None:
+                    config_path = PROJECT_ROOT / "configs" / "unified_master_pipeline_config.yaml"
+                    if config_path.exists():
+                        with open(config_path, 'r', encoding='utf-8') as f:
+                            config = yaml.safe_load(f)
+                            mcp_config = config.get('mcp_server', {})
+                    else:
+                        mcp_config = {}
+                else:
+                    mcp_config = self.chromedevtools_config
+                
+                # MCPサーバーが有効な場合のみ初期化
+                if mcp_config.get('enabled', True):
+                    self.mcp_chromedevtools = MCPChromeDevTools(
+                        transport=mcp_config.get('transport', 'stdio'),
+                        command=mcp_config.get('command', 'npx'),
+                        args=mcp_config.get('args', ['-y', '@modelcontextprotocol/server-chrome-devtools']),
+                        url=mcp_config.get('url'),
+                        timeout=mcp_config.get('timeout', 30000)
+                    )
+                    # 接続は後で非同期で行う（初期化時はラッパーのみ作成）
+                    logger.info("[CHROMEDEVTOOLS] Chrome DevTools MCP wrapper initialized (connection will be established later)")
+                else:
+                    logger.info("[CHROMEDEVTOOLS] MCP server disabled in config, skipping initialization")
+                    self.use_chromedevtools = False
+            except ImportError as e:
+                logger.warning(f"[CHROMEDEVTOOLS] Failed to import MCP Chrome DevTools wrapper: {e}")
+                logger.warning("[CHROMEDEVTOOLS] Falling back to Playwright")
+                self.use_chromedevtools = False
+            except Exception as e:
+                logger.warning(f"[CHROMEDEVTOOLS] Failed to initialize Chrome DevTools MCP: {e}")
+                logger.warning("[CHROMEDEVTOOLS] Falling back to Playwright")
+                self.use_chromedevtools = False
+                self.mcp_chromedevtools = None
+        
+        # Gemini初期化
+        self.gemini_agent: Optional[GeminiBrowserAgent] = None
+        if self.use_gemini:
+            if not GEMINI_AVAILABLE:
+                logger.warning("[GEMINI] Gemini API not available. Install with: pip install google-genai")
+                logger.warning("[GEMINI] Falling back to Playwright-based implementation")
+                self.use_gemini = False
+            else:
+                logger.info("[GEMINI] Gemini integration enabled")
         
         # SO8Tモデル初期化
         self.so8t_model = None
@@ -486,10 +1244,18 @@ class ParallelDeepResearchScraper:
         self.nikkei225_companies: List[Dict] = []
         self.nikkei225_enabled: bool = True  # デフォルトで有効
         
+        # ウィキペディアMediaWiki APIクライアント
+        self.wikipedia_api_client: Optional[WikipediaMediaWikiAPIClient] = None
+        self.wikipedia_api_enabled: bool = True  # デフォルトで有効
+        
         # ブラウザ管理
         self.browsers: List[Browser] = []
         self.contexts: List[BrowserContext] = []
         self.pages: List[Page] = []
+        
+        # タブ管理（10ブラウザ×10タブ = 100タブ）
+        self.tab_processors: Dict[int, Optional[Any]] = {}  # ブラウザインデックス -> ParallelTabProcessor
+        self.all_tabs: Dict[int, List[Page]] = {}  # ブラウザインデックス -> タブリスト
         
         # 日経225企業サンプル（カテゴリ別）
         self.nikkei225_samples: Dict[str, List[Dict]] = {
@@ -509,6 +1275,27 @@ class ParallelDeepResearchScraper:
         self.so8t_decisions: List[Dict] = []
         self.screenshots_dir = self.output_dir / "screenshots"
         self.screenshots_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 統合スクレイピング用のメトリクス追跡
+        self.integrated_scraping_metrics: Dict[str, Any] = {
+            'method_usage': {
+                'gemini': 0,
+                'chromedevtools': 0,
+                'playwright': 0
+            },
+            'fallback_events': [],
+            'so8t_decisions': [],
+            'success_count': {
+                'gemini': 0,
+                'chromedevtools': 0,
+                'playwright': 0
+            },
+            'failure_count': {
+                'gemini': 0,
+                'chromedevtools': 0,
+                'playwright': 0
+            }
+        }
         
         # NSFW分類器初期化
         self.nsfw_classifier = None
@@ -571,6 +1358,8 @@ class ParallelDeepResearchScraper:
         logger.info(f"Max CPU: {max_cpu_percent}%")
         logger.info(f"SO8T control: {self.use_so8t_control}")
         logger.info(f"Auto labeling: {self.auto_labeling_enabled}")
+        logger.info(f"Chrome DevTools MCP: {self.use_chromedevtools}")
+        logger.info(f"Gemini Browser Use: {self.use_gemini}")
     
     def _initialize_so8t_model(self, model_path: Optional[str] = None):
         """SO8Tモデルを初期化"""
@@ -959,8 +1748,8 @@ URL: {url}
                     )
                     self.keyword_queue.append(task)
         
-        # NSFW検知用サイトURLをキューに追加
-        logger.info("[QUEUE] Adding NSFW detection sites (detection purpose only)...")
+        # NSFW検知用サイトURLをキューに追加（DeepResearch Webスクレイピング）
+        logger.info("[QUEUE] Adding NSFW detection sites with DeepResearch (detection purpose only)...")
         for language in ['ja', 'en']:
             if language in NSFW_DETECTION_SITES:
                 for site_category, urls in NSFW_DETECTION_SITES[language].items():
@@ -980,11 +1769,36 @@ URL: {url}
                         task.url = url
                         self.keyword_queue.append(task)
         
-        logger.info(f"[QUEUE] Initialized {len(self.keyword_queue)} keywords (including NSFW detection sites)")
+        # 違法薬物検知用サイトURLをキューに追加（DeepResearch Webスクレイピング）
+        logger.info("[QUEUE] Adding drug detection sites with DeepResearch (detection purpose only)...")
+        for language in ['ja', 'en']:
+            if language in DRUG_DETECTION_SITES:
+                for site_category, urls in DRUG_DETECTION_SITES[language].items():
+                    for url in urls:
+                        # URLからキーワードを抽出
+                        parsed = urlparse(url)
+                        domain_keyword = parsed.netloc.replace('www.', '').split('.')[0]
+                        
+                        related_keywords = self.generate_related_keywords(domain_keyword, language, f'drug_detection_{site_category}')
+                        task = KeywordTask(
+                            keyword=domain_keyword,
+                            category=f'drug_detection_{site_category}',
+                            language=language,
+                            related_keywords=related_keywords
+                        )
+                        # URLをキーワードとして保存（後で使用）
+                        task.url = url
+                        self.keyword_queue.append(task)
+        
+        logger.info(f"[QUEUE] Initialized {len(self.keyword_queue)} keywords (including NSFW and drug detection sites)")
         
         # 日経225企業タスクを追加
         if self.nikkei225_enabled:
             self._initialize_nikkei225_queue()
+        
+        # ウィキペディアAPIタスクを追加
+        if self.wikipedia_api_enabled:
+            self._initialize_wikipedia_api_queue()
     
     def _load_nikkei225_companies(self) -> List[Dict]:
         """日経225企業リストを読み込む"""
@@ -1105,6 +1919,102 @@ URL: {url}
                 self.keyword_queue.append(task)
         
         logger.info(f"[NIKKEI225] Added {len(target_companies)} companies × 4 data types = {len([t for t in self.keyword_queue if t.category == 'nikkei225'])} tasks")
+    
+    def _initialize_wikipedia_api_queue(self):
+        """ウィキペディアAPIタスクキューを初期化"""
+        logger.info("[WIKIPEDIA-API] Initializing Wikipedia API task queue...")
+        
+        # ウィキペディアAPIクライアントを初期化
+        if self.wikipedia_api_client is None:
+            self.wikipedia_api_client = WikipediaMediaWikiAPIClient(request_delay=0.2, max_retries=3)
+        
+        # カテゴリマッピングに基づいてタスクを生成
+        # NSFW検知用カテゴリは除外
+        excluded_categories = ['nsfw_detection_fanza', 'nsfw_detection_fc2', 'nsfw_detection_missav']
+        
+        for category_key in CATEGORY_WIKIPEDIA_MAPPING.keys():
+            if category_key in excluded_categories:
+                continue
+            
+            # 日本語版と英語版の両方のタスクを作成
+            for language in ['ja', 'en']:
+                if language in CATEGORY_WIKIPEDIA_MAPPING[category_key]:
+                    wikipedia_category = CATEGORY_WIKIPEDIA_MAPPING[category_key][language]
+                    
+                    task = KeywordTask(
+                        keyword=wikipedia_category,  # カテゴリ名をキーワードとして使用
+                        category=category_key,
+                        language=language,
+                        task_type='wikipedia_api_task',
+                        wikipedia_category_name=wikipedia_category
+                    )
+                    self.keyword_queue.append(task)
+        
+        logger.info(f"[WIKIPEDIA-API] Added {len([t for t in self.keyword_queue if t.task_type == 'wikipedia_api_task'])} Wikipedia API tasks")
+    
+    async def scrape_wikipedia_api_article(
+        self,
+        page_title: str,
+        category: str,
+        language: str,
+        wikipedia_category_name: str
+    ) -> Optional[Dict]:
+        """
+        ウィキペディアAPIから記事を取得してサンプル形式に変換
+        
+        Args:
+            page_title: ページタイトル
+            category: カテゴリ（既存のCATEGORY_KEYWORDSのキー）
+            language: 言語コード
+            wikipedia_category_name: ウィキペディアカテゴリ名
+        
+        Returns:
+            サンプル辞書またはNone
+        """
+        try:
+            if self.wikipedia_api_client is None:
+                self.wikipedia_api_client = WikipediaMediaWikiAPIClient(request_delay=0.2, max_retries=3)
+            
+            # ページ本文を取得
+            page_content = await self.wikipedia_api_client.get_page_content(page_title, language)
+            if not page_content:
+                logger.warning(f"[WIKIPEDIA-API] Failed to get content for page: {page_title}")
+                return None
+            
+            # カテゴリ情報を取得
+            page_categories = await self.wikipedia_api_client.get_page_categories(page_title, language)
+            
+            # サンプルを作成
+            sample = {
+                'text': page_content.get('text', ''),
+                'title': page_content.get('title', page_title),
+                'url': page_content.get('url', ''),
+                'keyword': page_title,
+                'category': category,
+                'language': language,
+                'domain': f'{language}.wikipedia.org',
+                'wikipedia_category': wikipedia_category_name,
+                'wikipedia_categories': page_categories,
+                'wikipedia_pageid': page_content.get('pageid', 0),
+                'source': 'wikipedia_mediawiki_api',
+                'deep_research': True,
+                'crawled_at': datetime.now().isoformat(),
+                'wikipedia_related': False  # API経由なので関連記事ではない
+            }
+            
+            # テキストが空の場合は除外
+            if not sample['text'] or len(sample['text']) < 50:
+                logger.warning(f"[WIKIPEDIA-API] Page {page_title} has insufficient text, skipping")
+                return None
+            
+            logger.info(f"[WIKIPEDIA-API] Successfully scraped article: {page_title} ({language})")
+            return sample
+            
+        except Exception as e:
+            logger.error(f"[WIKIPEDIA-API] Failed to scrape article {page_title}: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return None
     
     async def scrape_company_page(self, page: Page, task: KeywordTask) -> Optional[Dict]:
         """企業ページをスクレイピング（人間を模倣した動作付き）"""
@@ -1966,6 +2876,125 @@ URL: {url}
             logger.debug(f"[BUTTON] Failed to perform button operations: {e}")
             return False
     
+    async def is_public_information_page(self, page: Page, url: str) -> bool:
+        """公開情報ページかどうかを判定"""
+        try:
+            # robots.txtをチェック
+            parsed_url = urlparse(url)
+            robots_url = f"{parsed_url.scheme}://{parsed_url.netloc}/robots.txt"
+            
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(robots_url, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                        if response.status == 200:
+                            robots_content = await response.text()
+                            # robots.txtで許可されているかチェック
+                            if 'Disallow: /' in robots_content and url != f"{parsed_url.scheme}://{parsed_url.netloc}/":
+                                return False
+            except:
+                pass  # robots.txtが取得できない場合は続行
+            
+            # メタタグをチェック
+            try:
+                meta_tags = await page.query_selector_all('meta[name="robots"], meta[name="googlebot"]')
+                for meta in meta_tags:
+                    content = await meta.get_attribute('content')
+                    if content and ('noindex' in content.lower() or 'nofollow' in content.lower()):
+                        return False
+            except:
+                pass
+            
+            # 公開ポリシーページのURLパターンをチェック
+            public_info_patterns = [
+                '/public/', '/publication/', '/open/', '/open-data/', '/disclosure/',
+                '/press/', '/news/', '/announcement/', '/release/', '/information/',
+                '/data/', '/dataset/', '/archive/', '/library/', '/document/',
+                '/report/', '/whitepaper/', '/policy/', '/guideline/', '/manual/'
+            ]
+            
+            url_lower = url.lower()
+            if any(pattern in url_lower for pattern in public_info_patterns):
+                return True
+            
+            # 政府・公共機関のドメインをチェック
+            public_domains = [
+                '.go.jp', '.gov.jp', '.ac.jp',  # 日本の政府・公共機関
+                '.gov', '.edu', '.org',  # 国際的な公共機関
+                'wikipedia.org', 'wikimedia.org',  # ウィキメディア
+                'archive.org', 'archive.is'  # アーカイブ
+            ]
+            
+            if any(domain in parsed_url.netloc.lower() for domain in public_domains):
+                return True
+            
+            # ページタイトルやコンテンツから公開情報を判定
+            try:
+                title = await page.title()
+                if title:
+                    title_lower = title.lower()
+                    public_keywords = ['public', 'open', 'disclosure', 'information', 'data', 'report', 'document']
+                    if any(keyword in title_lower for keyword in public_keywords):
+                        return True
+            except:
+                pass
+            
+            return False
+            
+        except Exception as e:
+            logger.debug(f"[PUBLIC-INFO] Failed to check public information status: {e}")
+            return False
+    
+    async def scrape_public_information_pages(self, page: Page, base_url: str, keyword: str, category: str, language: str) -> List[Dict]:
+        """公開情報ページを選択的に収集"""
+        samples = []
+        
+        try:
+            logger.info(f"[PUBLIC-INFO] Scraping public information pages from: {base_url}")
+            
+            # Topページにアクセス
+            await page.goto(base_url, timeout=self.timeout, wait_until="networkidle")
+            await asyncio.sleep(random.uniform(2.0, 4.0))
+            
+            # ページ内のリンクを取得
+            links = await page.query_selector_all('a[href]')
+            public_info_urls = []
+            
+            for link in links:
+                try:
+                    href = await link.get_attribute('href')
+                    if href:
+                        absolute_url = urljoin(base_url, href)
+                        
+                        # 公開情報ページかどうかを判定
+                        if await self.is_public_information_page(page, absolute_url):
+                            public_info_urls.append(absolute_url)
+                except:
+                    continue
+            
+            logger.info(f"[PUBLIC-INFO] Found {len(public_info_urls)} public information pages")
+            
+            # 公開情報ページをスクレイピング（最大10ページ）
+            for public_url in public_info_urls[:10]:
+                try:
+                    await page.goto(public_url, timeout=self.timeout, wait_until="networkidle")
+                    await asyncio.sleep(random.uniform(1.5, 3.0))
+                    
+                    # ページコンテンツを抽出
+                    sample = await self.extract_page_content(page, keyword, category, language, [keyword])
+                    if sample:
+                        sample['public_information'] = True
+                        sample['source_type'] = 'public_information'
+                        samples.append(sample)
+                        logger.info(f"[PUBLIC-INFO] Collected public information from: {public_url}")
+                except Exception as e:
+                    logger.debug(f"[PUBLIC-INFO] Failed to scrape {public_url}: {e}")
+                    continue
+            
+        except Exception as e:
+            logger.error(f"[PUBLIC-INFO] Failed to scrape public information pages: {e}")
+        
+        return samples
+    
     async def scrape_nsfw_site(self, page: Page, url: str, keyword: str, category: str, language: str) -> List[Dict]:
         """NSFW検知用サイトをスクレイピング（検知目的のみ）"""
         samples = []
@@ -2048,6 +3077,64 @@ URL: {url}
                 logger.warning(f"[BROWSER {browser_index}] Resource limit reached, skipping")
                 return samples
             
+            # ウィキペディアAPIタスクの処理
+            if task.task_type == 'wikipedia_api_task':
+                logger.info(f"[BROWSER {browser_index}] Processing Wikipedia API task: {task.wikipedia_category_name} ({task.language})")
+                
+                if self.wikipedia_api_client is None:
+                    self.wikipedia_api_client = WikipediaMediaWikiAPIClient(request_delay=0.2, max_retries=3)
+                
+                try:
+                    # カテゴリメンバー（記事）を取得
+                    category_members = await self.wikipedia_api_client.get_category_members(
+                        task.wikipedia_category_name,
+                        task.language,
+                        limit=500
+                    )
+                    
+                    logger.info(f"[WIKIPEDIA-API] Retrieved {len(category_members)} articles from category: {task.wikipedia_category_name}")
+                    
+                    # 各記事をスクレイピング
+                    for member in category_members:
+                        page_title = member.get('title', '')
+                        if not page_title:
+                            continue
+                        
+                        # 記事をスクレイピング
+                        article_sample = await self.scrape_wikipedia_api_article(
+                            page_title,
+                            task.category,
+                            task.language,
+                            task.wikipedia_category_name
+                        )
+                        
+                        if article_sample:
+                            samples.append(article_sample)
+                            self.all_samples.append(article_sample)
+                            
+                            # ブラウザ状態を更新
+                            if browser_index not in self.browser_status:
+                                self.browser_status[browser_index] = {
+                                    'status': 'active',
+                                    'current_keyword': None,
+                                    'samples_collected': 0,
+                                    'last_activity': None
+                                }
+                            self.browser_status[browser_index]['samples_collected'] += 1
+                            self.browser_status[browser_index]['last_activity'] = datetime.now().isoformat()
+                            
+                            # レート制限対応: 記事間の待機
+                            await asyncio.sleep(0.2)  # MediaWiki API推奨の200ms
+                    
+                    logger.info(f"[WIKIPEDIA-API] Successfully scraped {len(samples)} articles from category: {task.wikipedia_category_name}")
+                    
+                except Exception as e:
+                    logger.error(f"[WIKIPEDIA-API] Failed to process Wikipedia API task: {e}")
+                    import traceback
+                    logger.debug(traceback.format_exc())
+                
+                return samples
+            
             # 日経225企業の場合は直接スクレイピング
             if task.category == 'nikkei225' and task.url:
                 logger.info(f"[BROWSER {browser_index}] Processing Nikkei225 company: {task.company_name} ({task.data_type})")
@@ -2057,9 +3144,9 @@ URL: {url}
                     self.all_samples.append(company_sample)
                 return samples
             
-            # NSFW検知用サイトの場合は直接アクセス
+            # NSFW検知用サイトの場合は直接アクセス（DeepResearch Webスクレイピング）
             if task.url and task.category.startswith('nsfw_detection'):
-                logger.info(f"[BROWSER {browser_index}] Processing NSFW detection site: {task.keyword} (detection purpose only)")
+                logger.info(f"[BROWSER {browser_index}] Processing NSFW detection site with DeepResearch: {task.keyword} (detection purpose only)")
                 
                 # SO8T統制: NSFW検知用サイトのアクセスを評価
                 if self.use_so8t_control:
@@ -2068,7 +3155,8 @@ URL: {url}
                         'keyword': task.keyword,
                         'category': task.category,
                         'language': task.language,
-                        'purpose': 'nsfw_detection'
+                        'purpose': 'nsfw_detection',
+                        'method': 'deepresearch'
                     }
                     control_result = await self.so8t_control_scraping_action('scrape', nsfw_context)
                     
@@ -2077,12 +3165,359 @@ URL: {url}
                         logger.warning(f"[SO8T] Reasoning: {control_result.get('final_reasoning', 'No reasoning')}")
                         return samples
                 
+                # DeepResearch Webスクレイピングを実行
                 site_samples = await self.scrape_nsfw_site(page, task.url, task.keyword, task.category, task.language)
+                
+                # 公開情報ページも収集
+                public_info_samples = await self.scrape_public_information_pages(page, task.url, task.keyword, task.category, task.language)
+                if public_info_samples:
+                    site_samples.extend(public_info_samples)
+                
                 samples.extend(site_samples)
                 self.nsfw_samples.extend(site_samples)
                 return samples
             
-            # メインキーワードで検索
+            # 違法薬物検知用サイトの場合は直接アクセス（DeepResearch Webスクレイピング）
+            if task.url and task.category.startswith('drug_detection'):
+                logger.info(f"[BROWSER {browser_index}] Processing drug detection site with DeepResearch: {task.keyword} (detection purpose only)")
+                
+                # SO8T統制: 違法薬物検知用サイトのアクセスを評価
+                if self.use_so8t_control:
+                    drug_context = {
+                        'url': task.url,
+                        'keyword': task.keyword,
+                        'category': task.category,
+                        'language': task.language,
+                        'purpose': 'drug_detection',
+                        'method': 'deepresearch'
+                    }
+                    control_result = await self.so8t_control_scraping_action('scrape', drug_context)
+                    
+                    if control_result['decision'] == 'deny':
+                        logger.warning(f"[SO8T] Drug detection site access denied: {task.url}")
+                        logger.warning(f"[SO8T] Reasoning: {control_result.get('final_reasoning', 'No reasoning')}")
+                        return samples
+                
+                # DeepResearch Webスクレイピングを実行
+                try:
+                    await page.goto(task.url, timeout=self.timeout, wait_until="networkidle")
+                    await asyncio.sleep(random.uniform(2.0, 4.0))
+                    
+                    # 人間らしいページ閲覧
+                    await self.human_like_page_view(page)
+                    
+                    # バックグラウンドチェックを検出・突破
+                    checks = await self.detect_background_checks(page)
+                    if any(checks.values()):
+                        logger.warning(f"[DRUG DETECTION] Background checks detected on {task.url}, bypassing...")
+                        await self.bypass_background_checks(page, checks)
+                        await self.enhanced_human_behavior(page)
+                    
+                    # ページをスクレイピング
+                    keyword_list = [task.keyword]
+                    sample = await self.extract_page_content(page, task.keyword, task.category, task.language, keyword_list)
+                    if sample:
+                        sample['drug_detection_purpose'] = 'safety_training'
+                        sample['source_site'] = task.url
+                        sample['deep_research'] = True
+                        samples.append(sample)
+                    
+                    # 公開情報ページも収集
+                    public_info_samples = await self.scrape_public_information_pages(page, task.url, task.keyword, task.category, task.language)
+                    if public_info_samples:
+                        samples.extend(public_info_samples)
+                    
+                    # 関連ページをDeepResearch Webスクレイピング
+                    links = await page.query_selector_all('a[href]')
+                    if links:
+                        num_clicks = min(3, len(links))
+                        selected_links = random.sample(links, num_clicks)
+                        
+                        for link in selected_links:
+                            try:
+                                href = await link.get_attribute('href')
+                                if href and not href.startswith('javascript:'):
+                                    absolute_url = urljoin(task.url, href)
+                                    
+                                    if urlparse(absolute_url).netloc == urlparse(task.url).netloc:
+                                        await link.click()
+                                        await asyncio.sleep(random.uniform(2.0, 4.0))
+                                        
+                                        link_sample = await self.extract_page_content(page, task.keyword, task.category, task.language, keyword_list)
+                                        if link_sample:
+                                            link_sample['drug_detection_purpose'] = 'safety_training'
+                                            link_sample['source_site'] = absolute_url
+                                            link_sample['deep_research'] = True
+                                            samples.append(link_sample)
+                            except Exception as e:
+                                logger.debug(f"[DRUG DETECTION] Failed to click link: {e}")
+                                continue
+                    
+                    logger.info(f"[DRUG DETECTION] Collected {len(samples)} samples from {task.url} (detection purpose only)")
+                    
+                except Exception as e:
+                    logger.error(f"[DRUG DETECTION] Failed to scrape site {task.url}: {e}")
+                
+                return samples
+            
+            # 統合スクレイピング: Gemini → Chrome DevTools → Playwright の階層的フォールバック戦略
+            # すべてのアクション前にSO8T判断を実行
+            
+            # SO8T統制: スクレイピング動作を評価
+            scrape_context = {
+                'url': None,  # 検索URLは後で構築
+                'keyword': task.keyword,
+                'category': task.category,
+                'language': task.language,
+                'browser_index': browser_index
+            }
+            
+            if self.use_so8t_control:
+                control_result = await self.so8t_control_scraping_action('scrape', scrape_context)
+                
+                # SO8T判断結果を記録
+                self.so8t_decisions.append({
+                    'timestamp': datetime.now().isoformat(),
+                    'action': 'scrape',
+                    'keyword': task.keyword,
+                    'decision': control_result.get('decision', 'unknown'),
+                    'reasoning': control_result.get('final_reasoning', 'No reasoning'),
+                    'browser_index': browser_index
+                })
+                
+                if control_result['decision'] == 'deny':
+                    logger.warning(f"[SO8T] Scraping denied for keyword: {task.keyword}")
+                    logger.warning(f"[SO8T] Reasoning: {control_result.get('final_reasoning', 'No reasoning')}")
+                    return samples
+                elif control_result['decision'] == 'modify':
+                    logger.info(f"[SO8T] Scraping modified for keyword: {task.keyword}")
+                    logger.info(f"[SO8T] Modification: {control_result.get('modification', 'No modification details')}")
+            
+            # Step 1: Gemini Browser Useを優先的に試行
+            if self.use_gemini:
+                try:
+                    logger.info(f"[INTEGRATED] [BROWSER {browser_index}] Attempting Gemini Browser Use: {task.keyword}")
+                    
+                    # SO8T統制: Gemini使用を評価
+                    if self.use_so8t_control:
+                        gemini_context = {
+                            'url': None,
+                            'keyword': task.keyword,
+                            'method': 'gemini',
+                            'category': task.category
+                        }
+                        gemini_control = await self.so8t_control_scraping_action('scrape', gemini_context)
+                        if gemini_control['decision'] == 'deny':
+                            logger.warning(f"[SO8T] Gemini usage denied for keyword: {task.keyword}")
+                            logger.info("[INTEGRATED] Falling back to Chrome DevTools")
+                        else:
+                            # Geminiエージェントを初期化（まだ初期化されていない場合）
+                            if self.gemini_agent is None:
+                                self.gemini_agent = GeminiBrowserAgent(
+                                    page=page,
+                                    api_key=self.gemini_api_key,
+                                    model_name=self.gemini_model,
+                                    verbose=True
+                                )
+                            
+                            # 自然言語指示を構築
+                            if self.natural_language_query:
+                                query = self.natural_language_query
+                            else:
+                                # キーワードから自然言語指示を生成
+                                query = f"Googleで「{task.keyword}」について検索して、関連記事をスクレイピングして。検索結果から関連するリンクをクリックして、各ページの内容を取得してください。"
+                            
+                            # Geminiで自然言語指示を実行
+                            result = await self.gemini_agent.execute_natural_language_query(query)
+                            
+                            if result.get('success'):
+                                logger.info(f"[INTEGRATED] [GEMINI] Successfully executed natural language query: {query[:100]}...")
+                                
+                                # 現在のページからコンテンツを抽出
+                                try:
+                                    html = await page.content()
+                                    if BS4_AVAILABLE:
+                                        soup = BeautifulSoup(html, 'html.parser')
+                                        text = soup.get_text(separator=' ', strip=True)
+                                        title = soup.title.string if soup.title else ""
+                                    else:
+                                        text = html
+                                        title = ""
+                                    
+                                    sample = {
+                                        'text': text[:50000],
+                                        'url': page.url,
+                                        'title': title,
+                                        'keyword': task.keyword,
+                                        'category': task.category,
+                                        'language': task.language,
+                                        'source': 'gemini_natural_language',
+                                        'deep_research': True,
+                                        'crawled_at': datetime.now().isoformat(),
+                                        'gemini_query': query,
+                                        'gemini_result': result,
+                                        'method': 'gemini',
+                                        'so8t_decision': control_result.get('decision', 'allow')
+                                    }
+                                    
+                                    samples.append(sample)
+                                    self.all_samples.append(sample)
+                                    
+                                    # ブラウザ状態を更新
+                                    if browser_index not in self.browser_status:
+                                        self.browser_status[browser_index] = {
+                                            'status': 'active',
+                                            'current_keyword': None,
+                                            'samples_collected': 0,
+                                            'last_activity': None
+                                        }
+                                    self.browser_status[browser_index]['samples_collected'] += 1
+                                    self.browser_status[browser_index]['last_activity'] = datetime.now().isoformat()
+                                    
+                                    logger.info(f"[INTEGRATED] [GEMINI] Collected {len(samples)} samples via Gemini")
+                                    
+                                    # メトリクスを更新
+                                    self.integrated_scraping_metrics['method_usage']['gemini'] += 1
+                                    self.integrated_scraping_metrics['success_count']['gemini'] += 1
+                                    self.integrated_scraping_metrics['method_usage']['gemini'] += len(samples)
+                                    
+                                    return samples
+                                    
+                                except Exception as e:
+                                    logger.error(f"[INTEGRATED] [GEMINI] Failed to extract content after Gemini execution: {e}")
+                                    self.integrated_scraping_metrics['failure_count']['gemini'] += 1
+                                    self.integrated_scraping_metrics['fallback_events'].append({
+                                        'timestamp': datetime.now().isoformat(),
+                                        'from': 'gemini',
+                                        'to': 'chromedevtools',
+                                        'reason': f'Failed to extract content: {e}',
+                                        'keyword': task.keyword
+                                    })
+                                    logger.info("[INTEGRATED] Falling back to Chrome DevTools")
+                            else:
+                                logger.warning(f"[INTEGRATED] [GEMINI] Natural language query failed: {result.get('error', 'Unknown error')}")
+                                self.integrated_scraping_metrics['failure_count']['gemini'] += 1
+                                self.integrated_scraping_metrics['fallback_events'].append({
+                                    'timestamp': datetime.now().isoformat(),
+                                    'from': 'gemini',
+                                    'to': 'chromedevtools',
+                                    'reason': f'Natural language query failed: {result.get("error", "Unknown error")}',
+                                    'keyword': task.keyword
+                                })
+                                logger.info("[INTEGRATED] Falling back to Chrome DevTools")
+                    
+                except Exception as e:
+                    logger.error(f"[INTEGRATED] [GEMINI] Failed to execute Gemini natural language query: {e}")
+                    self.integrated_scraping_metrics['failure_count']['gemini'] += 1
+                    self.integrated_scraping_metrics['fallback_events'].append({
+                        'timestamp': datetime.now().isoformat(),
+                        'from': 'gemini',
+                        'to': 'chromedevtools',
+                        'reason': f'Exception: {e}',
+                        'keyword': task.keyword
+                    })
+                    import traceback
+                    logger.debug(traceback.format_exc())
+                    logger.info("[INTEGRATED] Falling back to Chrome DevTools")
+            
+            # Step 2: Chrome DevTools MCPで補助操作
+            if self.use_chromedevtools:
+                try:
+                    logger.info(f"[INTEGRATED] [BROWSER {browser_index}] Attempting Chrome DevTools MCP: {task.keyword}")
+                    
+                    # SO8T統制: Chrome DevTools使用を評価
+                    if self.use_so8t_control:
+                        chromedevtools_context = {
+                            'url': None,
+                            'keyword': task.keyword,
+                            'method': 'chromedevtools',
+                            'category': task.category
+                        }
+                        chromedevtools_control = await self.so8t_control_scraping_action('scrape', chromedevtools_context)
+                        if chromedevtools_control['decision'] == 'deny':
+                            logger.warning(f"[SO8T] Chrome DevTools usage denied for keyword: {task.keyword}")
+                            logger.info("[INTEGRATED] Falling back to Playwright")
+                        else:
+                            chromedevtools_samples = await self._scrape_with_chromedevtools(page, browser_index, task)
+                            if chromedevtools_samples:
+                                # SO8T判断結果をサンプルに追加
+                                for sample in chromedevtools_samples:
+                                    sample['so8t_decision'] = chromedevtools_control.get('decision', 'allow')
+                                samples.extend(chromedevtools_samples)
+                                logger.info(f"[INTEGRATED] [CHROMEDEVTOOLS] Collected {len(chromedevtools_samples)} samples via Chrome DevTools")
+                                
+                                # メトリクスを更新
+                                self.integrated_scraping_metrics['method_usage']['chromedevtools'] += 1
+                                self.integrated_scraping_metrics['success_count']['chromedevtools'] += 1
+                                
+                                return samples
+                            else:
+                                self.integrated_scraping_metrics['failure_count']['chromedevtools'] += 1
+                                self.integrated_scraping_metrics['fallback_events'].append({
+                                    'timestamp': datetime.now().isoformat(),
+                                    'from': 'chromedevtools',
+                                    'to': 'playwright',
+                                    'reason': 'No samples returned',
+                                    'keyword': task.keyword
+                                })
+                                logger.info("[INTEGRATED] Chrome DevTools returned no samples, falling back to Playwright")
+                    else:
+                        chromedevtools_samples = await self._scrape_with_chromedevtools(page, browser_index, task)
+                        if chromedevtools_samples:
+                            samples.extend(chromedevtools_samples)
+                            logger.info(f"[INTEGRATED] [CHROMEDEVTOOLS] Collected {len(chromedevtools_samples)} samples via Chrome DevTools")
+                            
+                            # メトリクスを更新
+                            self.integrated_scraping_metrics['method_usage']['chromedevtools'] += 1
+                            self.integrated_scraping_metrics['success_count']['chromedevtools'] += 1
+                            
+                            return samples
+                        else:
+                            self.integrated_scraping_metrics['failure_count']['chromedevtools'] += 1
+                            self.integrated_scraping_metrics['fallback_events'].append({
+                                'timestamp': datetime.now().isoformat(),
+                                'from': 'chromedevtools',
+                                'to': 'playwright',
+                                'reason': 'No samples returned',
+                                'keyword': task.keyword
+                            })
+                            logger.info("[INTEGRATED] Chrome DevTools returned no samples, falling back to Playwright")
+                    
+                except Exception as e:
+                    logger.error(f"[INTEGRATED] [CHROMEDEVTOOLS] Failed to scrape with Chrome DevTools: {e}")
+                    self.integrated_scraping_metrics['failure_count']['chromedevtools'] += 1
+                    self.integrated_scraping_metrics['fallback_events'].append({
+                        'timestamp': datetime.now().isoformat(),
+                        'from': 'chromedevtools',
+                        'to': 'playwright',
+                        'reason': f'Exception: {e}',
+                        'keyword': task.keyword
+                    })
+                    import traceback
+                    logger.debug(traceback.format_exc())
+                    logger.info("[INTEGRATED] Falling back to Playwright")
+            
+            # Step 3: Playwrightでフォールバック（基本操作）
+            logger.info(f"[INTEGRATED] [BROWSER {browser_index}] Using Playwright fallback: {task.keyword}")
+            
+            # メトリクスを更新
+            self.integrated_scraping_metrics['method_usage']['playwright'] += 1
+            
+            # SO8T統制: Playwright使用を評価
+            if self.use_so8t_control:
+                playwright_context = {
+                    'url': None,
+                    'keyword': task.keyword,
+                    'method': 'playwright',
+                    'category': task.category
+                }
+                playwright_control = await self.so8t_control_scraping_action('scrape', playwright_context)
+                if playwright_control['decision'] == 'deny':
+                    logger.warning(f"[SO8T] Playwright usage denied for keyword: {task.keyword}")
+                    self.integrated_scraping_metrics['failure_count']['playwright'] += 1
+                    return samples
+            
+            # メインキーワードで検索（Playwrightベースの実装）
             logger.info(f"[BROWSER {browser_index}] Processing keyword: {task.keyword}")
             
             # ブラウザ状態を更新
@@ -2156,6 +3591,12 @@ URL: {url}
                             
                             # リンク先をDeepResearch Webスクレイピング
                             await asyncio.sleep(random.uniform(1.0, 2.0))  # 人間らしい待機
+                            
+                            # 公開情報ページも収集
+                            public_info_samples = await self.scrape_public_information_pages(page, link_url, task.keyword, task.category, task.language)
+                            if public_info_samples:
+                                samples.extend(public_info_samples)
+                            
                             sample = await self.scrape_deep_research_url(page, link_url, task.keyword, task.category, task.language, task.related_keywords)
                             
                             if sample:
@@ -2508,6 +3949,13 @@ URL: {url}
                 if is_wikipedia and related_articles:
                     sample['wikipedia_related_articles'] = related_articles[:10]  # 最大10個
                     sample['wikipedia_related_articles_count'] = len(related_articles)
+                
+                # 公開情報ページかどうかを判定
+                is_public = await self.is_public_information_page(page, url)
+                if is_public:
+                    sample['public_information'] = True
+                    sample['source_type'] = 'public_information'
+                
                 logger.info(f"[DEEPRESEARCH] Successfully scraped: {url}")
             
             return sample
@@ -2628,12 +4076,26 @@ URL: {url}
             
             self.contexts.append(context)
             
-            # ページ作成
-            page = await context.new_page()
-            self.pages.append(page)
+            # ParallelTabProcessorを使用して10タブを初期化
+            if PARALLEL_TAB_PROCESSOR_AVAILABLE:
+                tab_processor = ParallelTabProcessor(
+                    browser_context=context,
+                    num_tabs=self.num_tabs_per_browser,
+                    delay_per_action=self.delay_per_action,
+                    timeout=self.timeout
+                )
+                await tab_processor.initialize_tabs()
+                self.tab_processors[browser_index] = tab_processor
+                self.all_tabs[browser_index] = tab_processor.tabs
+                logger.info(f"[WORKER {browser_index}] Initialized {self.num_tabs_per_browser} tabs via ParallelTabProcessor")
+            else:
+                # フォールバック: 単一ページを作成
+                page = await context.new_page()
+                self.pages.append(page)
+                logger.warning(f"[WORKER {browser_index}] ParallelTabProcessor not available, using single page")
             
-            # ボット検知回避: navigator.webdriverを削除し、Chromeに偽装
-            await page.add_init_script("""
+            # タブごとにボット検知回避スクリプトを追加
+            init_script = """
                 // navigator.webdriverを削除
                 Object.defineProperty(navigator, 'webdriver', {
                     get: () => undefined
@@ -2689,56 +4151,107 @@ URL: {url}
                 Object.defineProperty(navigator, 'deviceMemory', {
                     get: () => 8
                 });
-            """)
+            """
             
-            # ブラウザウィンドウサイズをランダムに設定（人間らしさ）
-            viewport_sizes = [
-                {'width': 1920, 'height': 1080},
-                {'width': 1366, 'height': 768},
-                {'width': 1536, 'height': 864},
-                {'width': 1440, 'height': 900},
-            ]
-            viewport = random.choice(viewport_sizes)
-            await page.set_viewport_size(viewport)
-            
-            # 時々、ウィンドウをリサイズ（人間の行動）
-            if random.random() < 0.3:  # 30%の確率
-                await asyncio.sleep(random.uniform(2.0, 5.0))
-                new_viewport = random.choice(viewport_sizes)
-                await page.set_viewport_size(new_viewport)
-                await asyncio.sleep(random.uniform(0.5, 1.5))
-            
-            # キーワード処理ループ
-            while True:
-                # キーワードキューから取得
-                if not self.keyword_queue:
-                    logger.info(f"[WORKER {browser_index}] No more keywords, exiting...")
-                    break
+            # 10タブで並列処理する場合
+            if PARALLEL_TAB_PROCESSOR_AVAILABLE and browser_index in self.tab_processors:
+                tab_processor = self.tab_processors[browser_index]
+                tabs = self.all_tabs[browser_index]
                 
-                task = self.keyword_queue.popleft()
+                # 各タブにボット検知回避スクリプトを追加
+                for tab in tabs:
+                    await tab.add_init_script(init_script)
                 
-                # 重複チェック
-                if task.keyword in self.completed_keywords:
-                    continue
+                logger.info(f"[WORKER {browser_index}] Starting parallel tab processing with {len(tabs)} tabs")
                 
-                self.completed_keywords.add(task.keyword)
+                # タブごとに非同期でキーワードを処理
+                async def process_tab_async(tab_index: int, tab: Page):
+                    """タブでキーワードを処理"""
+                    while True:
+                        if not self.keyword_queue:
+                            logger.info(f"[WORKER {browser_index}] [TAB {tab_index}] No more keywords, exiting...")
+                            break
+                        
+                        task = self.keyword_queue.popleft()
+                        
+                        # 重複チェック
+                        if task.keyword in self.completed_keywords:
+                            continue
+                        
+                        self.completed_keywords.add(task.keyword)
+                        
+                        # スクレイピング実行
+                        try:
+                            samples = await self.scrape_keyword_with_browser(
+                                page=tab,
+                                browser_index=browser_index,
+                                task=task
+                            )
+                            
+                            # サンプルを追加
+                            self.all_samples.extend(samples)
+                            
+                            # アクション間の遅延
+                            await asyncio.sleep(self.delay_per_action)
+                            
+                        except Exception as e:
+                            logger.error(f"[WORKER {browser_index}] [TAB {tab_index}] Failed to scrape keyword '{task.keyword}': {e}")
+                            continue
                 
-                # スクレイピング実行（リトライ付き）
-                try:
-                    samples = await self.retry_with_backoff(
-                        self.scrape_keyword_with_browser,
-                        max_retries=2,
-                        base_delay=2.0,
-                        max_delay=30.0,
-                        page=page,
-                        browser_index=browser_index,
-                        task=task
-                    )
+                # すべてのタブで並列処理
+                tab_tasks = [
+                    process_tab_async(tab_index, tab)
+                    for tab_index, tab in enumerate(tabs)
+                ]
+                await asyncio.gather(*tab_tasks)
+                
+            else:
+                # フォールバック: 単一ページで処理
+                page = await context.new_page()
+                self.pages.append(page)
+                await page.add_init_script(init_script)
+                
+                # ブラウザウィンドウサイズをランダムに設定（人間らしさ）
+                viewport_sizes = [
+                    {'width': 1920, 'height': 1080},
+                    {'width': 1366, 'height': 768},
+                    {'width': 1536, 'height': 864},
+                    {'width': 1440, 'height': 900},
+                ]
+                viewport = random.choice(viewport_sizes)
+                await page.set_viewport_size(viewport)
+                
+                # キーワード処理ループ
+                while True:
+                    # キーワードキューから取得
+                    if not self.keyword_queue:
+                        logger.info(f"[WORKER {browser_index}] No more keywords, exiting...")
+                        break
                     
-                    # サンプルを追加
-                    self.all_samples.extend(samples)
-                except Exception as e:
-                    logger.error(f"[WORKER {browser_index}] Failed to scrape keyword '{task.keyword}' after retries: {e}")
+                    task = self.keyword_queue.popleft()
+                    
+                    # 重複チェック
+                    if task.keyword in self.completed_keywords:
+                        continue
+                    
+                    self.completed_keywords.add(task.keyword)
+                    
+                    # スクレイピング実行（リトライ付き）
+                    try:
+                        samples = await self.retry_with_backoff(
+                            self.scrape_keyword_with_browser,
+                            max_retries=2,
+                            base_delay=2.0,
+                            max_delay=30.0,
+                            page=page,
+                            browser_index=browser_index,
+                            task=task
+                        )
+                        
+                        # サンプルを追加
+                        self.all_samples.extend(samples)
+                    except Exception as e:
+                        logger.error(f"[WORKER {browser_index}] Failed to scrape keyword '{task.keyword}' after retries: {e}")
                     # ブラウザがクラッシュした可能性がある場合は再接続を試みる
                     if 'closed' in str(e).lower() or 'crashed' in str(e).lower() or 'disconnected' in str(e).lower():
                         logger.warning(f"[WORKER {browser_index}] Browser may have crashed, attempting to reconnect...")
@@ -2849,11 +4362,158 @@ URL: {url}
         
         logger.info(f"[WORKER {browser_index}] Browser worker finished")
     
+    async def _connect_chromedevtools(self):
+        """Chrome DevTools MCPに接続"""
+        if self.use_chromedevtools and self.mcp_chromedevtools:
+            try:
+                connected = await self.mcp_chromedevtools.connect()
+                if connected:
+                    logger.info("[CHROMEDEVTOOLS] Successfully connected to Chrome DevTools MCP server")
+                    return True
+                else:
+                    logger.warning("[CHROMEDEVTOOLS] Failed to connect to Chrome DevTools MCP server")
+                    return False
+            except Exception as e:
+                logger.warning(f"[CHROMEDEVTOOLS] Error connecting to Chrome DevTools MCP: {e}")
+                return False
+        return False
+    
+    async def _disconnect_chromedevtools(self):
+        """Chrome DevTools MCPから切断"""
+        if self.use_chromedevtools and self.mcp_chromedevtools:
+            try:
+                await self.mcp_chromedevtools.disconnect()
+                logger.info("[CHROMEDEVTOOLS] Disconnected from Chrome DevTools MCP server")
+            except Exception as e:
+                logger.warning(f"[CHROMEDEVTOOLS] Error disconnecting from Chrome DevTools MCP: {e}")
+    
+    async def _scrape_with_chromedevtools(
+        self,
+        page: Page,
+        browser_index: int,
+        task: KeywordTask
+    ) -> List[Dict]:
+        """Chrome DevTools経由でスクレイピング"""
+        samples = []
+        
+        if not self.use_chromedevtools or not self.mcp_chromedevtools:
+            return samples
+        
+        try:
+            logger.info(f"[CHROMEDEVTOOLS] Attempting to scrape with Chrome DevTools: {task.keyword}")
+            
+            # ページのスナップショットを取得
+            snapshot = await self.mcp_chromedevtools.take_snapshot(verbose=True)
+            if not snapshot:
+                logger.warning("[CHROMEDEVTOOLS] Failed to take snapshot")
+                return samples
+            
+            # 検索URLを構築
+            search_url = self.get_search_engine_url(task.keyword, task.language)
+            
+            # Chrome DevToolsでページ遷移
+            page_idx = await self.mcp_chromedevtools.new_page(search_url, timeout=self.timeout)
+            if page_idx is None:
+                logger.warning("[CHROMEDEVTOOLS] Failed to create new page")
+                return samples
+            
+            # ページが読み込まれるまで待機
+            await asyncio.sleep(2.0)
+            
+            # スナップショットを取得してコンテンツを抽出
+            snapshot = await self.mcp_chromedevtools.take_snapshot(page_idx=page_idx, verbose=True)
+            if snapshot:
+                # スナップショットからテキストを抽出
+                text_content = ""
+                if 'nodes' in snapshot:
+                    for node in snapshot['nodes']:
+                        if 'text' in node:
+                            text_content += node['text'] + " "
+                
+                # リンクを検出してクリック
+                if 'nodes' in snapshot:
+                    links = [node for node in snapshot['nodes'] if node.get('role') == 'link' or 'href' in str(node)]
+                    if links:
+                        # 最初の3つのリンクをクリック
+                        for i, link in enumerate(links[:3]):
+                            try:
+                                uid = link.get('uid')
+                                if uid:
+                                    # リンクをクリック
+                                    clicked = await self.mcp_chromedevtools.click(uid, page_idx=page_idx)
+                                    if clicked:
+                                        await asyncio.sleep(2.0)
+                                        
+                                        # 遷移先ページのスナップショットを取得
+                                        new_snapshot = await self.mcp_chromedevtools.take_snapshot(page_idx=page_idx, verbose=True)
+                                        if new_snapshot:
+                                            # コンテンツを抽出
+                                            link_text = ""
+                                            if 'nodes' in new_snapshot:
+                                                for node in new_snapshot['nodes']:
+                                                    if 'text' in node:
+                                                        link_text += node['text'] + " "
+                                            
+                                            sample = {
+                                                'text': link_text[:50000],
+                                                'url': page.url if hasattr(page, 'url') else search_url,
+                                                'title': task.keyword,
+                                                'keyword': task.keyword,
+                                                'category': task.category,
+                                                'language': task.language,
+                                                'source': 'chromedevtools',
+                                                'deep_research': True,
+                                                'crawled_at': datetime.now().isoformat(),
+                                                'method': 'chromedevtools'
+                                            }
+                                            
+                                            samples.append(sample)
+                                            self.all_samples.append(sample)
+                                            
+                                            logger.info(f"[CHROMEDEVTOOLS] Successfully scraped page via Chrome DevTools: {task.keyword}")
+                            except Exception as e:
+                                logger.debug(f"[CHROMEDEVTOOLS] Failed to click link: {e}")
+                                continue
+                
+                # メインページのコンテンツも追加
+                if text_content:
+                    sample = {
+                        'text': text_content[:50000],
+                        'url': search_url,
+                        'title': task.keyword,
+                        'keyword': task.keyword,
+                        'category': task.category,
+                        'language': task.language,
+                        'source': 'chromedevtools',
+                        'deep_research': True,
+                        'crawled_at': datetime.now().isoformat(),
+                        'method': 'chromedevtools'
+                    }
+                    
+                    samples.append(sample)
+                    self.all_samples.append(sample)
+            
+            # ページを閉じる
+            await self.mcp_chromedevtools.close_page(page_idx)
+            
+            logger.info(f"[CHROMEDEVTOOLS] Collected {len(samples)} samples via Chrome DevTools")
+            
+        except Exception as e:
+            logger.error(f"[CHROMEDEVTOOLS] Failed to scrape with Chrome DevTools: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+        
+        return samples
+    
     async def run_parallel_scraping(self):
         """並列スクレイピング実行"""
         logger.info("="*80)
         logger.info("Starting Parallel DeepResearch Scraping")
         logger.info("="*80)
+        
+        # Chrome DevTools MCPに接続
+        if self.use_chromedevtools:
+            await self._connect_chromedevtools()
         
         # キーワードキュー初期化
         self.initialize_keyword_queue()
@@ -2903,6 +4563,51 @@ URL: {url}
             logger.info("Starting Automatic Labeling, 4-Class Classification, and Quadruple Thinking")
             logger.info("="*80)
             self.process_samples_for_training_dataset()
+        
+        # 統合スクレイピングメトリクスのログ出力
+        logger.info("="*80)
+        logger.info("Integrated Scraping Metrics Summary")
+        logger.info("="*80)
+        logger.info(f"Method Usage:")
+        logger.info(f"  - Gemini: {self.integrated_scraping_metrics['method_usage']['gemini']} times")
+        logger.info(f"  - Chrome DevTools: {self.integrated_scraping_metrics['method_usage']['chromedevtools']} times")
+        logger.info(f"  - Playwright: {self.integrated_scraping_metrics['method_usage']['playwright']} times")
+        logger.info(f"Success Count:")
+        logger.info(f"  - Gemini: {self.integrated_scraping_metrics['success_count']['gemini']} times")
+        logger.info(f"  - Chrome DevTools: {self.integrated_scraping_metrics['success_count']['chromedevtools']} times")
+        logger.info(f"  - Playwright: {self.integrated_scraping_metrics['success_count']['playwright']} times")
+        logger.info(f"Failure Count:")
+        logger.info(f"  - Gemini: {self.integrated_scraping_metrics['failure_count']['gemini']} times")
+        logger.info(f"  - Chrome DevTools: {self.integrated_scraping_metrics['failure_count']['chromedevtools']} times")
+        logger.info(f"  - Playwright: {self.integrated_scraping_metrics['failure_count']['playwright']} times")
+        logger.info(f"Fallback Events: {len(self.integrated_scraping_metrics['fallback_events'])} events")
+        logger.info(f"SO8T Decisions: {len(self.so8t_decisions)} decisions")
+        logger.info("="*80)
+        
+        # メトリクスをファイルに保存
+        metrics_file = self.output_dir / f"integrated_scraping_metrics_{self.session_id}.json"
+        with open(metrics_file, 'w', encoding='utf-8') as f:
+            json.dump(self.integrated_scraping_metrics, f, ensure_ascii=False, indent=2)
+        logger.info(f"[METRICS] Saved integrated scraping metrics to {metrics_file}")
+        
+        # SO8T判断結果をファイルに保存
+        if self.so8t_decisions:
+            so8t_decisions_file = self.output_dir / f"so8t_decisions_{self.session_id}.json"
+            with open(so8t_decisions_file, 'w', encoding='utf-8') as f:
+                json.dump(self.so8t_decisions, f, ensure_ascii=False, indent=2)
+            logger.info(f"[SO8T] Saved {len(self.so8t_decisions)} SO8T decisions to {so8t_decisions_file}")
+        
+        # Chrome DevTools MCPから切断
+        if self.use_chromedevtools:
+            await self._disconnect_chromedevtools()
+        
+        # ウィキペディアAPIクライアントのクリーンアップ
+        if self.wikipedia_api_client:
+            try:
+                await self.wikipedia_api_client.close()
+                logger.info("[WIKIPEDIA-API] Wikipedia API client closed")
+            except Exception as e:
+                logger.warning(f"[WIKIPEDIA-API] Failed to close API client: {e}")
     
     def save_nikkei225_samples_by_category(self):
         """日経225企業サンプルをカテゴリ別に保存"""
@@ -3657,6 +5362,42 @@ async def main():
         default=None,
         help='Path to SO8T model (default: auto-detect)'
     )
+    parser.add_argument(
+        '--use-gemini',
+        action='store_true',
+        default=False,
+        help='Use Gemini for natural language scraping'
+    )
+    parser.add_argument(
+        '--gemini-api-key',
+        type=str,
+        default=None,
+        help='Gemini API key (or set GEMINI_API_KEY env var)'
+    )
+    parser.add_argument(
+        '--gemini-model',
+        type=str,
+        default='gemini-2.0-flash-exp',
+        help='Gemini model name (default: gemini-2.0-flash-exp)'
+    )
+    parser.add_argument(
+        '--natural-language-query',
+        type=str,
+        default=None,
+        help='Natural language query for Gemini'
+    )
+    parser.add_argument(
+        '--fallback-to-playwright',
+        action='store_true',
+        default=True,
+        help='Fallback to Playwright if Gemini fails (default: True)'
+    )
+    parser.add_argument(
+        '--use-chromedevtools',
+        action='store_true',
+        default=False,
+        help='Use Chrome DevTools MCP for advanced browser control'
+    )
     
     args = parser.parse_args()
     
@@ -3672,7 +5413,13 @@ async def main():
         max_memory_gb=args.max_memory_gb,
         max_cpu_percent=args.max_cpu_percent,
         use_so8t_control=args.use_so8t_control,
-        so8t_model_path=args.so8t_model_path
+        so8t_model_path=args.so8t_model_path,
+        use_gemini=args.use_gemini,
+        gemini_api_key=args.gemini_api_key,
+        gemini_model=args.gemini_model,
+        natural_language_query=args.natural_language_query,
+        fallback_to_playwright=args.fallback_to_playwright,
+        use_chromedevtools=args.use_chromedevtools
     )
     
     # 並列スクレイピング実行

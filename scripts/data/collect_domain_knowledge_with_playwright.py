@@ -236,6 +236,11 @@ class DomainKnowledgeCollector:
         self.max_depth = max_depth
         self.quality_threshold = quality_threshold
         
+        # ボタンクリック関連の設定
+        self.enable_button_click = True  # ボタンクリックを有効化
+        self.max_button_clicks_per_page = 3  # ページあたりの最大ボタンクリック数
+        self.button_click_delay = (1.5, 3.0)  # ボタンクリック後の待機時間（秒）
+        
         self.visited_urls: Set[str] = set()
         self.collected_samples: List[Dict] = []
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -372,6 +377,12 @@ class DomainKnowledgeCollector:
                 # 基本的な待機
                 await asyncio.sleep(self.delay_per_request)
             
+            # ボタンクリック機能（有効な場合）
+            navigated_urls = []
+            if self.enable_button_click and depth < self.max_depth:
+                navigated_urls = await self._click_buttons_and_navigate(page, url, domain_config)
+                logger.info(f"[BUTTON-CLICK] Found {len(navigated_urls)} navigated pages from button clicks")
+            
             # HTML取得
             html = await page.content()
             
@@ -406,6 +417,12 @@ class DomainKnowledgeCollector:
             }
             
             self.visited_urls.add(url)
+            
+            # ボタンクリックで遷移したページの情報も含める
+            if navigated_urls:
+                sample['navigated_urls'] = navigated_urls
+                sample['button_click_count'] = len(navigated_urls)
+            
             return sample
             
         except PlaywrightTimeoutError:
@@ -414,6 +431,191 @@ class DomainKnowledgeCollector:
         except Exception as e:
             logger.error(f"[ERROR] Failed to scrape {url}: {e}")
             return None
+    
+    async def _click_buttons_and_navigate(self, page: Page, current_url: str, domain_config: Dict) -> List[str]:
+        """
+        ボタンをクリックしてページ遷移を検出し、遷移先URLを返す
+        
+        Args:
+            page: Playwright Pageオブジェクト
+            current_url: 現在のURL
+            domain_config: ドメイン設定
+            
+        Returns:
+            遷移先URLのリスト
+        """
+        navigated_urls = []
+        
+        try:
+            # ページ内のボタンやリンクを検出
+            buttons = await page.query_selector_all(
+                'button, a[href], [role="button"], [onclick], input[type="button"], input[type="submit"], .btn, .button'
+            )
+            
+            if not buttons:
+                return navigated_urls
+            
+            # ランダムに1-max_button_clicks_per_page個のボタンを選択
+            num_clicks = random.randint(1, min(self.max_button_clicks_per_page, len(buttons)))
+            selected_buttons = random.sample(buttons, num_clicks)
+            
+            base_url = domain_config.get("base_url", "")
+            
+            for button in selected_buttons:
+                try:
+                    # ボタンの位置を取得
+                    box = await button.bounding_box()
+                    if not box:
+                        continue
+                    
+                    # ボタンが表示されているか確認
+                    is_visible = await button.is_visible()
+                    if not is_visible:
+                        continue
+                    
+                    center_x = box['x'] + box['width'] / 2
+                    center_y = box['y'] + box['height'] / 2
+                    
+                    # 現在のURLを記録
+                    before_url = page.url
+                    
+                    # マウスをボタンに移動（ベジェ曲線を使用）
+                    if self.human_scraper:
+                        # マウスをボタンの位置に直接移動
+                        await page.mouse.move(int(center_x), int(center_y))
+                        await asyncio.sleep(random.uniform(0.1, 0.3))
+                    
+                    # ホバー（人間がボタンを確認している様子）
+                    await button.hover()
+                    await asyncio.sleep(random.uniform(0.5, 1.2))
+                    
+                    # 時々、ホバーしただけでクリックしない（人間の行動）
+                    if random.random() < 0.2:  # 20%の確率
+                        await asyncio.sleep(random.uniform(0.3, 0.8))
+                        continue
+                    
+                    # クリック前の微細な動き（人間の手の震えをシミュレート）
+                    await page.mouse.move(
+                        int(center_x + random.randint(-2, 2)), 
+                        int(center_y + random.randint(-2, 2))
+                    )
+                    await asyncio.sleep(random.uniform(0.1, 0.3))
+                    
+                    # クリック
+                    await button.click(timeout=5000)
+                    
+                    # ページ遷移を待つ
+                    try:
+                        await page.wait_for_load_state("networkidle", timeout=5000)
+                        await asyncio.sleep(random.uniform(self.button_click_delay[0], self.button_click_delay[1]))
+                    except Exception:
+                        # タイムアウトしても続行
+                        await asyncio.sleep(1.0)
+                    
+                    # 遷移後のURLを取得
+                    after_url = page.url
+                    
+                    # URLが変更された場合、遷移先として記録
+                    if after_url != before_url and after_url != current_url:
+                        # 同じドメイン内のURLのみを対象
+                        if base_url and base_url in after_url:
+                            if after_url not in self.visited_urls:
+                                navigated_urls.append(after_url)
+                                logger.info(f"[BUTTON-CLICK] Navigated to: {after_url}")
+                                
+                                # 遷移先ページの情報を収集
+                                await self._scrape_navigated_page(page, after_url, domain_config, depth + 1)
+                        
+                        # 元のページに戻る（可能な場合）
+                        try:
+                            await page.go_back(timeout=3000)
+                            await page.wait_for_load_state("networkidle", timeout=3000)
+                            await asyncio.sleep(random.uniform(0.5, 1.0))
+                        except Exception:
+                            # 戻れない場合は現在のページから続行
+                            pass
+                    
+                except Exception as e:
+                    logger.debug(f"[BUTTON-CLICK] Failed to click button: {e}")
+                    continue
+            
+            return navigated_urls
+            
+        except Exception as e:
+            logger.debug(f"[BUTTON-CLICK] Failed to perform button operations: {e}")
+            return navigated_urls
+    
+    async def _scrape_navigated_page(self, page: Page, url: str, domain_config: Dict, depth: int):
+        """
+        ボタンクリックで遷移したページをスクレイピング
+        
+        Args:
+            page: Playwright Pageオブジェクト
+            url: 遷移先URL
+            domain_config: ドメイン設定
+            depth: 現在の深度
+        """
+        try:
+            if url in self.visited_urls:
+                return
+            
+            if depth > self.max_depth:
+                return
+            
+            logger.info(f"[NAVIGATED-PAGE] [{depth}] Scraping navigated page: {url}")
+            
+            # ページが既に遷移先にいる場合はそのまま使用
+            if page.url != url:
+                await page.goto(url, timeout=self.timeout, wait_until="networkidle")
+            
+            # 人間を模倣した動作
+            if self.human_scraper:
+                await self.human_scraper.human_like_wait(0.5, 1.5)
+                await self.human_scraper.human_like_scroll(page, gradual=True)
+                await self.human_scraper.human_like_wait(0.3, 0.8)
+            
+            # HTML取得
+            html = await page.content()
+            
+            # テキスト抽出
+            extracted = self.extract_text_from_html(html, domain_config["selectors"])
+            
+            if not extracted.get("content"):
+                return
+            
+            content = extracted["content"]
+            min_length = domain_config.get("min_text_length", 200)
+            max_length = domain_config.get("max_text_length", 10000)
+            
+            if len(content) < min_length:
+                return
+            
+            if len(content) > max_length:
+                content = content[:max_length]
+            
+            # サンプル作成
+            sample = {
+                "instruction": f"以下の{extracted.get('title', 'コンテンツ')}について説明してください。",
+                "output": content,
+                "title": extracted.get("title", ""),
+                "url": url,
+                "domain": domain_config.get("name", "unknown"),
+                "source": domain_config.get("base_url", "unknown"),
+                "depth": depth,
+                "navigated_from_button": True,  # ボタンクリックで遷移したことを示す
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # SO8Tラベル付け
+            labeled_sample = self.label_with_so8t(sample)
+            
+            self.visited_urls.add(url)
+            self.collected_samples.append(labeled_sample)
+            
+            logger.info(f"[NAVIGATED-PAGE] Collected sample from navigated page: {url}")
+            
+        except Exception as e:
+            logger.debug(f"[NAVIGATED-PAGE] Failed to scrape navigated page {url}: {e}")
     
     def label_with_so8t(self, sample: Dict) -> Dict:
         """
@@ -586,7 +788,7 @@ class DomainKnowledgeCollector:
                 if not url.startswith("http"):
                     url = urljoin(domain_config["base_url"], url)
                 
-                # ページスクレイピング
+                # ページスクレイピング（ボタンクリック機能を含む）
                 sample = await self.scrape_page(page, url, domain_config, depth=0)
                 
                 if sample:
@@ -594,6 +796,13 @@ class DomainKnowledgeCollector:
                     labeled_sample = self.label_with_so8t(sample)
                     samples.append(labeled_sample)
                     visited_count += 1
+                    
+                    # ボタンクリックで遷移したページのURLをキューに追加
+                    if 'navigated_urls' in sample:
+                        for nav_url in sample['navigated_urls']:
+                            if nav_url not in self.visited_urls and nav_url not in urls_to_visit:
+                                urls_to_visit.append(nav_url)
+                                logger.info(f"[QUEUE] Added navigated URL to queue: {nav_url}")
                     
                     # リンクを追加（深度制限内）
                     if "links" in sample and sample.get("depth", 0) < self.max_depth:
@@ -667,8 +876,12 @@ class DomainKnowledgeCollector:
                 logger.warning(f"[BROWSER] Failed to connect to Cursor browser: {e}")
                 logger.info("[BROWSER] Launching new browser...")
         
-        browser = await playwright.chromium.launch(headless=False)
-        logger.info("[BROWSER] Browser launched")
+        # 新しいブラウザを起動（headless=Falseで表示）
+        browser = await playwright.chromium.launch(
+            headless=False,
+            args=['--start-maximized']  # 最大化して起動
+        )
+        logger.info("[BROWSER] Browser launched (headless=False, visible)")
         return browser
     
     def save_samples(self, samples: List[Dict], suffix: str = ""):
@@ -729,6 +942,12 @@ async def main():
                        help="Maximum crawl depth")
     parser.add_argument("--quality_threshold", type=float, default=0.7,
                        help="Quality score threshold for filtering")
+    parser.add_argument("--enable_button_click", action="store_true", default=True,
+                       help="Enable button click navigation")
+    parser.add_argument("--max_button_clicks_per_page", type=int, default=3,
+                       help="Maximum button clicks per page")
+    parser.add_argument("--button_click_delay", type=float, nargs=2, default=[1.5, 3.0],
+                       help="Button click delay range (min, max) in seconds")
     
     args = parser.parse_args()
     
@@ -751,6 +970,11 @@ async def main():
         quality_threshold=args.quality_threshold
     )
     
+    # ボタンクリック設定を適用
+    collector.enable_button_click = args.enable_button_click
+    collector.max_button_clicks_per_page = args.max_button_clicks_per_page
+    collector.button_click_delay = tuple(args.button_click_delay)
+    
     # データ収集実行
     samples = await collector.collect_all()
     
@@ -766,6 +990,9 @@ async def main():
 
 if __name__ == "__main__":
     sys.exit(asyncio.run(main()))
+
+
+
 
 
 

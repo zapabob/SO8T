@@ -1,110 +1,81 @@
-# Scripts Directory
+# scripts/ ディレクトリ
 
-This directory contains organized scripts for the SO8T project.
+## 概要
 
-## Directory Structure
+このディレクトリには、SO8Tプロジェクトの各種スクリプトが機能別に整理されています。
+
+## ディレクトリ構造
+
+### agents/
+AIエージェント実装
+- `unified_ai_agent.py`: 統合AIエージェント
+- `scraping_reasoning_agent.py`: スクレイピング推論エージェント
+- `domain_knowledge_integrator.py`: ドメイン知識統合エージェント
 
 ### api/
-API server scripts
-- `serve_fastapi.py`: FastAPI service for SO8T inference
-- `serve_think_api.py`: SO8T /think endpoint implementation
+APIサーバースクリプト
+- `serve_fastapi.py`: FastAPIサーバー
+- `serve_think_api.py`: 思考APIサーバー
+- `unified_agent_api.py`: 統合エージェントAPI
 
-### utils/
-Utility scripts for setup, debugging, and maintenance
-- `check_memory.py`: Memory usage checker
-- `debug_*.py`: Debugging scripts
-- `setup_*.py`, `setup_*.bat`, `setup_*.ps1`: Setup scripts
-- `fix_*.ps1`: Fix scripts
-
-### data/
-Data processing scripts
-- `clean_*.py`: Data cleaning scripts
-- `split_*.py`: Dataset splitting scripts
-- `label_*.py`: Data labeling scripts
-- `collect_*.py`: Data collection scripts
-
-### pipelines/
-Complete pipeline scripts
-- `complete_*.py`: Complete pipeline implementations
-- `run_*_pipeline.py`: Pipeline execution scripts
-- `so8t_*_pipeline.py`: SO8T-specific pipelines
-
-### training/
-Training scripts
-- `train_*.py`: Training scripts
-- `finetune_*.py`: Fine-tuning scripts
-- `burnin_*.py`, `burn_in_*.py`: Burn-in scripts
+### audit/
+監査ログスクリプト
+- `scraping_audit_logger.py`: スクレイピング監査ロガー
 
 ### conversion/
-Model conversion scripts
-- `convert_*.py`: Model conversion scripts
-- `integrate_*.py`: Integration scripts
+モデル変換スクリプト
+- `convert_*.py`: 各種モデル変換スクリプト
+- `integrate_*.py`: モデル統合スクリプト
+- `quantize_*.py`: 量子化スクリプト
+
+### dashboard/
+ダッシュボードスクリプト
+- `so8t_scraping_dashboard.py`: スクレイピングダッシュボード
+- `so8t_training_dashboard.py`: 訓練ダッシュボード
+- `unified_pipeline_dashboard.py`: 統合パイプラインダッシュボード
+
+### data/
+データ収集・スクレイピング・データ処理スクリプト
+詳細は `data/README.md` を参照
 
 ### evaluation/
-Evaluation scripts
-- `evaluate_*.py`: Evaluation scripts
-- `ab_test_*.py`: A/B testing scripts
-- `compare_*.py`: Comparison scripts
+評価スクリプト
+- `evaluate_*.py`: 各種評価スクリプト
+- `ab_test_*.py`: A/Bテストスクリプト
+- `reports/`: レポート生成スクリプト
+- `visualization/`: 可視化スクリプト
 
 ### inference/
-Inference and demo scripts
-- `demo_*.py`: Demo scripts
-- `test_*.py`: Test scripts
-- `infer_*.py`: Inference scripts
+推論スクリプト
+- `infer.py`: 推論スクリプト
+- `demo_*.py`: デモスクリプト
+- `ollama/`: Ollama統合スクリプト
+- `tests/`: テストスクリプト
 
-## Usage
+### pipelines/
+パイプラインスクリプト
+- `complete_*.py`: 完全パイプラインスクリプト
+- `run_*_pipeline.py`: パイプライン実行スクリプト
 
-Scripts can be run from the project root:
+### training/
+訓練スクリプト
+- `train_*.py`: 各種訓練スクリプト
+- `finetune_*.py`: ファインチューニングスクリプト
+- `burnin_*.py`: バーンインスクリプト
 
-```bash
-# API server
-python scripts/api/serve_think_api.py
+### testing/
+テストスクリプト
+- `test_*.py`: 各種テストスクリプト
+- `run_*_test.bat`: テスト実行バッチスクリプト
 
-# Training
-python scripts/training/train_so8t_transformer.py
+### utils/
+ユーティリティスクリプト
+- `audio/`: 音声通知スクリプト
+- `setup/`: セットアップスクリプト（Flash Attention等）
+- `notebooks/`: Jupyter Notebookファイル
 
-# Evaluation
-python scripts/evaluation/evaluate_comprehensive.py
+## 整理方針
 
-# Data processing
-python scripts/data/clean_japanese_dataset.py
-```
-
-## Import Paths
-
-When importing modules from scripts, use the full path:
-
-```python
-from scripts.api.serve_think_api import app
-from scripts.training.train_so8t_transformer import train
-from scripts.data.clean_japanese_dataset import clean_data
-```
-
-Or add the scripts directory to the Python path:
-
-```python
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- 機能別にディレクトリを整理
+- 各スクリプトは特定の目的で使用されるため、削除せずに維持
+- 重複スクリプトも、それぞれ異なる用途があるため統合は慎重に実施

@@ -86,6 +86,53 @@ phase1_parallel_scraping:
       press_releases: true  # プレスリリース・ニュース
       product_info: true  # 製品・サービス情報
       nikkei_company_info: true  # 日経の企業情報ページ
+  # ウィキペディアMediaWiki APIスクレイピング設定
+  wikipedia_mediawiki_api:
+    enabled: true  # ウィキペディアMediaWiki APIスクレイピングを有効にするか
+    output_dir: "D:/webdataset/wikipedia_mediawiki_api"  # 出力ディレクトリ
+    articles_per_category: 500  # カテゴリあたりの取得上限（デフォルト: 500件）
+    request_delay: 0.2  # リクエスト間隔（秒、MediaWiki API推奨: 200ms以上）
+    max_retries: 3  # 最大リトライ回数
+    # 対象言語設定
+    languages:
+      ja: true  # 日本語版（ja.wikipedia.org）
+      en: true  # 英語版（en.wikipedia.org）
+  # 統合スクレイピング設定（Playwright + Chrome DevTools + Gemini + SO8T）
+  integrated_scraping:
+    enabled: true  # 統合スクレイピングを有効にするか
+    # 優先順位設定（1が最優先）
+    priority_order:
+      gemini: 1  # Gemini Browser Use（最優先）
+      chromedevtools: 2  # Chrome DevTools MCP（2番目）
+      playwright: 3  # Playwright（フォールバック）
+    # フォールバック戦略
+    fallback_strategy:
+      gemini_to_chromedevtools: true  # Gemini失敗時にChrome DevToolsにフォールバック
+      chromedevtools_to_playwright: true  # Chrome DevTools失敗時にPlaywrightにフォールバック
+      gemini_to_playwright: true  # Gemini失敗時に直接Playwrightにフォールバック（Chrome DevToolsをスキップ）
+    # SO8T統制設定
+    so8t_control:
+      enabled: true  # SO8T統制を有効にするか
+      check_before_all_actions: true  # すべてのアクション前にSO8T判断を実行
+      log_all_decisions: true  # すべてのSO8T判断結果をログに記録
+    # ログ記録設定
+    logging:
+      log_method_usage: true  # 使用した技術（Gemini/Chrome DevTools/Playwright）をログに記録
+      log_fallback_events: true  # フォールバック発生をログに記録
+      log_so8t_decisions: true  # SO8T判断結果をログに記録
+      log_detailed_metrics: true  # 詳細なメトリクスをログに記録
+  
+  # Gemini統合設定（Computer Use Preview方式）
+  gemini_integration:
+    enabled: false  # Gemini統合を有効にするか（デフォルト: false）
+    api_key_env: "GEMINI_API_KEY"  # 環境変数名（デフォルト: GEMINI_API_KEY）
+    model_name: "gemini-2.0-flash-exp"  # 使用するGeminiモデル（無料枠対応: gemini-2.0-flash-exp または gemini-1.5-flash）
+    use_natural_language: true  # 自然言語指示を使用するか
+    fallback_to_playwright: true  # Gemini失敗時にPlaywrightにフォールバックするか
+    # レート制限設定（無料枠）
+    rate_limit:
+      requests_per_minute: 15  # 1分あたりのリクエスト数
+      requests_per_day: 1500  # 1日あたりのリクエスト数
   # 違法薬物検知目的DeepResearch Webスクレイピング設定
   use_drug_detection_deepresearch: false  # 違法薬物検知目的DeepResearch Webスクレイピングを使用するか（デフォルト: false）
   drug_detection_deepresearch:
