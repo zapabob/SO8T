@@ -97,3 +97,4 @@ echo "  1. Run calibration: python scripts/training/calibrate_aed.py --model $QU
 echo "  2. Test inference: ./llama.cpp/main -m $QUANTIZED_GGUF -n 1024 -t 8 --temp 0.7"
 
 
+

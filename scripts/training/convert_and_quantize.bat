@@ -105,3 +105,4 @@ echo   1. Run calibration: py -3 scripts/training/calibrate_aed.py --model !QUAN
 echo   2. Test inference: llama.cpp/main.exe -m !QUANTIZED_GGUF! -n 1024 -t 8 --temp 0.7
 
 
+
