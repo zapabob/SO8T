@@ -62,6 +62,81 @@ phase1_parallel_scraping:
   keyword_coordination:
     enabled: true  # キーワード協調動作を有効にするか
     keyword_queue_file: "D:/webdataset/checkpoints/keyword_queue.json"  # キーワードキューファイル
+  # 日経225企業DeepResearch Webスクレイピング設定
+  nikkei225_scraping:
+    enabled: true  # 日経225企業スクレイピングを有効にするか
+    output_dir: "D:/webdataset/nikkei225_deepresearch"  # 出力ディレクトリ
+    num_browsers: 10  # ブラウザ数（10ブラウザ）
+    num_tabs: 10  # タブ数（各ブラウザ10タブ）
+    total_parallel_tasks: 100  # 総並列処理数（10×10=100タブ）
+    base_port: 9222  # ベースリモートデバッグポート
+    delay_per_action: 1.5  # アクション間の遅延（秒）
+    timeout: 30000  # ページ読み込みタイムアウト（ミリ秒）
+    max_memory_gb: 8.0  # 最大メモリ使用量（GB）
+    max_cpu_percent: 80.0  # 最大CPU使用率（%）
+    # 対象企業カテゴリ設定
+    target_companies:
+      all_companies: true  # 全企業を対象とする
+      defense: true  # 防衛企業（heavy_industry等）
+      aerospace: true  # 航空宇宙企業（airline等）
+      infrastructure: true  # インフラ企業（transport, utility等）
+    # データタイプ設定
+    data_types:
+      financial_reports: true  # 財務報告・決算情報（IRページ）
+      press_releases: true  # プレスリリース・ニュース
+      product_info: true  # 製品・サービス情報
+      nikkei_company_info: true  # 日経の企業情報ページ
+  # 違法薬物検知目的DeepResearch Webスクレイピング設定
+  use_drug_detection_deepresearch: false  # 違法薬物検知目的DeepResearch Webスクレイピングを使用するか（デフォルト: false）
+  drug_detection_deepresearch:
+    enabled: false  # 違法薬物検知目的DeepResearch Webスクレイピングを有効にするか
+    output_dir: "D:/webdataset/drug_detection_deepresearch"  # 出力ディレクトリ
+    num_browsers: 10  # ブラウザ数（10ブラウザ）
+    num_tabs: 10  # タブ数（各ブラウザ10タブ）
+    total_parallel_tasks: 100  # 総並列処理数（10×10=100タブ）
+    base_port: 9222  # ベースリモートデバッグポート
+    delay_per_action: 1.5  # アクション間の遅延（秒）
+    timeout: 30000  # ページ読み込みタイムアウト（ミリ秒）
+    max_memory_gb: 8.0  # 最大メモリ使用量（GB）
+    max_cpu_percent: 80.0  # 最大CPU使用率（%）
+    # データソース設定
+    data_sources:
+      pmda: true  # PMDA (医薬品医療機器総合機構)
+      fda: true  # FDA (Food and Drug Administration)
+      egov: true  # e-Gov (日本の法令データベース)
+      who: true  # WHO (World Health Organization)
+      unodc: true  # UNODC (United Nations Office on Drugs and Crime)
+      emcdda: true  # EMCDDA (European Monitoring Centre for Drugs and Drug Addiction)
+      wikipedia: true  # Wikipedia
+      github: true  # GitHub
+      stackoverflow: true  # Stack Overflow
+      qiita: true  # Qiita
+      zenn: true  # Zenn
+      devto: true  # Dev.to
+      freecodecamp: true  # freeCodeCamp
+      codecademy: true  # Codecademy
+    # キーワードカテゴリ設定
+    keyword_categories:
+      illegal_drugs: true  # 違法薬物
+      prescription_drugs_abuse: true  # 処方薬乱用
+      controlled_substances: true  # 規制薬物
+      drug_trafficking: true  # 薬物密輸
+      drug_manufacturing: true  # 薬物製造
+      domain_knowledge: true  # ドメイン別知識（技術、プログラミング言語、アルゴリズム、ハードウェア、コーディングベストプラクティス）
+      coding_ability: true  # コーディング能力（コード例、チュートリアル、ドキュメント）
+      nsfw_detection: true  # 検知目的のNSFWデータ（検知目的のみ、生成目的ではない）
+    # ドメイン別知識カテゴリ設定
+    domain_knowledge_categories:
+      technology: true  # 技術
+      programming_languages: true  # プログラミング言語
+      algorithms: true  # アルゴリズム
+      hardware: true  # ハードウェア
+      coding_best_practices: true  # コーディングベストプラクティス
+    # NSFW検知設定（検知目的のみ、生成目的ではない）
+    nsfw_detection:
+      enabled: true  # NSFW検知を有効にするか
+      detection_only: true  # 検知目的のみ（生成目的ではない）
+      purpose: "safety_training"  # 目的: 安全判定と拒否挙動の学習
 
 # Phase 2: SO8T全自動データ処理
 phase2_data_processing:

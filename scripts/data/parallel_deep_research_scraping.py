@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+r"""
 並列DeepResearch Webスクレイピングスクリプト
 
 動的リソース管理を行い、DeepResearchとPlaywrightでCursorブラウザを10個起動して、
@@ -19,10 +19,35 @@ import argparse
 import random
 import time
 import psutil
-import torch
 import os
 import subprocess
 import platform
+import hashlib
+import re
+from difflib import SequenceMatcher
+
+# 統計計算用ライブラリ
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    np = None
+
+try:
+    from scipy import stats
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    stats = None
+
+# PyTorchインポート（オプショナル）
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    torch = None
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Set, Tuple
@@ -71,7 +96,9 @@ except ImportError:
 # BeautifulSoupインポート
 try:
     from bs4 import BeautifulSoup
+    BS4_AVAILABLE = True
 except ImportError:
+    BS4_AVAILABLE = False
     print("[ERROR] BeautifulSoup not installed. Install with: pip install beautifulsoup4")
     sys.exit(1)
 
@@ -81,6 +108,23 @@ try:
     NSFW_CLASSIFIER_AVAILABLE = True
 except ImportError:
     NSFW_CLASSIFIER_AVAILABLE = False
+
+# ParallelTabProcessorインポート
+try:
+    from scripts.data.parallel_tab_processor import ParallelTabProcessor
+    PARALLEL_TAB_PROCESSOR_AVAILABLE = True
+except ImportError:
+    PARALLEL_TAB_PROCESSOR_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+
+# QuadrupleClassifierインポート（全自動ラベル付け・4値分類・四重推論用）
+try:
+    from scripts.pipelines.web_scraping_data_pipeline import QuadrupleClassifier
+    QUADRUPLE_CLASSIFIER_AVAILABLE = True
+except ImportError:
+    QUADRUPLE_CLASSIFIER_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("[WARNING] ParallelTabProcessor not available")
 
 # ロギング設定
 logging.basicConfig(
@@ -320,6 +364,10 @@ class KeywordTask:
     related_keywords: List[str] = None
     url: str = None  # NSFW検知用サイトの場合はURLを指定
     coding_related: bool = False  # コーディング関連フラグ
+    company_name: str = None  # 日経225企業名
+    company_code: str = None  # 日経225企業コード
+    company_domain: str = None  # 企業ドメイン（heavy_industry, airline, transport等）
+    data_type: str = None  # データタイプ（financial_reports, press_releases, product_info, nikkei_company_info）
 
 
 class ResourceManager:
@@ -381,7 +429,7 @@ class ParallelDeepResearchScraper:
         timeout: int = 30000,
         max_pages_per_keyword: int = 5,
         max_memory_gb: float = 8.0,
-        max_cpu_percent: float = 80.0,
+        max_cpu_percent: float = 90.0,
         use_so8t_control: bool = True,
         so8t_model_path: Optional[str] = None
     ):
@@ -434,10 +482,22 @@ class ParallelDeepResearchScraper:
         self.keyword_queue: deque = deque()
         self.completed_keywords: Set[str] = set()
         
+        # 日経225企業データ
+        self.nikkei225_companies: List[Dict] = []
+        self.nikkei225_enabled: bool = True  # デフォルトで有効
+        
         # ブラウザ管理
         self.browsers: List[Browser] = []
         self.contexts: List[BrowserContext] = []
         self.pages: List[Page] = []
+        
+        # 日経225企業サンプル（カテゴリ別）
+        self.nikkei225_samples: Dict[str, List[Dict]] = {
+            'financial_reports': [],
+            'press_releases': [],
+            'product_info': [],
+            'nikkei_company_info': []
+        }
         
         # ブラウザ状態の保存と復元
         self.browser_state_file = self.output_dir / "browser_state.json"
@@ -461,6 +521,47 @@ class ParallelDeepResearchScraper:
             except Exception as e:
                 logger.warning(f"[NSFW] Failed to load NSFW classifier: {e}")
         
+        # 全自動ラベル付け・4値分類・四重推論の初期化
+        self.quadruple_classifier: Optional[QuadrupleClassifier] = None
+        self.auto_labeling_enabled: bool = True  # デフォルトで有効
+        self.training_dataset_samples: List[Dict] = []  # 学習用データセット形式のサンプル
+        
+        if self.auto_labeling_enabled and QUADRUPLE_CLASSIFIER_AVAILABLE:
+            try:
+                # モデルパスが指定されていない場合は自動検出を試みる
+                model_path_to_use = so8t_model_path
+                if model_path_to_use is None:
+                    default_paths = [
+                        "D:/webdataset/models/so8t-phi4-so8t-ja-finetuned",
+                        "models/so8t-phi4-so8t-ja-finetuned",
+                        "so8t-mmllm/models/so8t-phi4-so8t-ja-finetuned",
+                        Path(PROJECT_ROOT) / "models" / "so8t-phi4-so8t-ja-finetuned",
+                        Path(PROJECT_ROOT) / "so8t-mmllm" / "models" / "so8t-phi4-so8t-ja-finetuned"
+                    ]
+                    for path in default_paths:
+                        path_obj = Path(path)
+                        if path_obj.exists() and (path_obj / "config.json").exists():
+                            model_path_to_use = str(path_obj)
+                            logger.info(f"[AUTO-LABELING] Auto-detected SO8T model path: {model_path_to_use}")
+                            break
+                
+                if model_path_to_use:
+                    self.quadruple_classifier = QuadrupleClassifier(so8t_model_path=model_path_to_use)
+                    logger.info("[AUTO-LABELING] QuadrupleClassifier initialized for automatic labeling and classification")
+                else:
+                    logger.warning("[AUTO-LABELING] SO8T model path not found, skipping automatic labeling")
+                    logger.warning("[AUTO-LABELING] To enable automatic labeling, specify --so8t-model-path or place model in default location")
+                    self.quadruple_classifier = None
+            except Exception as e:
+                logger.warning(f"[AUTO-LABELING] Failed to initialize QuadrupleClassifier: {e}")
+                logger.warning("[AUTO-LABELING] Continuing without automatic labeling")
+                import traceback
+                logger.debug(traceback.format_exc())
+                self.quadruple_classifier = None
+        elif not QUADRUPLE_CLASSIFIER_AVAILABLE:
+            logger.warning("[AUTO-LABELING] QuadrupleClassifier not available (import failed)")
+            logger.warning("[AUTO-LABELING] Continuing without automatic labeling")
+        
         logger.info("="*80)
         logger.info("Parallel DeepResearch Scraper Initialized")
         logger.info("="*80)
@@ -469,6 +570,7 @@ class ParallelDeepResearchScraper:
         logger.info(f"Max memory: {max_memory_gb}GB")
         logger.info(f"Max CPU: {max_cpu_percent}%")
         logger.info(f"SO8T control: {self.use_so8t_control}")
+        logger.info(f"Auto labeling: {self.auto_labeling_enabled}")
     
     def _initialize_so8t_model(self, model_path: Optional[str] = None):
         """SO8Tモデルを初期化"""
@@ -558,7 +660,7 @@ class ParallelDeepResearchScraper:
                 temperature=0.5,
                 top_p=0.9,
                 do_sample=True,
-                device="cuda" if torch.cuda.is_available() else "cpu"
+                device="cuda" if (TORCH_AVAILABLE and torch and torch.cuda.is_available()) else "cpu"
             )
             
             # 四重推論を抽出
@@ -879,6 +981,200 @@ URL: {url}
                         self.keyword_queue.append(task)
         
         logger.info(f"[QUEUE] Initialized {len(self.keyword_queue)} keywords (including NSFW detection sites)")
+        
+        # 日経225企業タスクを追加
+        if self.nikkei225_enabled:
+            self._initialize_nikkei225_queue()
+    
+    def _load_nikkei225_companies(self) -> List[Dict]:
+        """日経225企業リストを読み込む"""
+        possible_paths = [
+            PROJECT_ROOT / "so8t-mmllm" / "scripts" / "data" / "nikkei225_sources.json",
+            PROJECT_ROOT / "scripts" / "data" / "nikkei225_sources.json",
+            Path("so8t-mmllm/scripts/data/nikkei225_sources.json"),
+            Path("scripts/data/nikkei225_sources.json"),
+        ]
+        
+        nikkei_file = None
+        for path in possible_paths:
+            if Path(path).exists():
+                nikkei_file = Path(path)
+                break
+        
+        if not nikkei_file:
+            logger.warning(f"[NIKKEI225] Nikkei225 file not found. Tried: {[str(p) for p in possible_paths]}")
+            return []
+        
+        try:
+            with open(nikkei_file, 'r', encoding='utf-8') as f:
+                nikkei_data = json.load(f)
+            
+            companies = nikkei_data.get('nikkei225_companies', [])
+            logger.info(f"[NIKKEI225] Loaded {len(companies)} companies from {nikkei_file}")
+            return companies
+        
+        except Exception as e:
+            logger.error(f"[NIKKEI225] Failed to load Nikkei225: {e}")
+            return []
+    
+    def _filter_target_companies(self, companies: List[Dict]) -> List[Dict]:
+        """防衛・航空宇宙・インフラ企業をフィルタリング"""
+        target_domains = [
+            'heavy_industry',  # 重工業（三菱重工、川崎重工、IHI等）
+            'airline',  # 航空会社（ANA、JAL等）
+            'transport',  # 運輸（JR各社等）
+            'defense',  # 防衛
+            'aerospace',  # 航空宇宙
+            'infrastructure',  # インフラ
+            'shipping',  # 海運（日本郵船、商船三井等）
+            'utility',  # 電力・ガス（インフラ関連）
+        ]
+        
+        filtered = []
+        for company in companies:
+            domain = company.get('domain', '')
+            if domain in target_domains:
+                filtered.append(company)
+        
+        logger.info(f"[NIKKEI225] Filtered {len(filtered)} target companies (defense/aerospace/infrastructure) from {len(companies)} total")
+        return filtered
+    
+    def _generate_company_urls(self, company: Dict) -> Dict[str, str]:
+        """企業の各種URLを生成"""
+        base_url = company.get('url', '').rstrip('/')
+        company_code = company.get('code', '')
+        
+        urls = {}
+        
+        # IRページ（財務報告・決算情報）
+        # 一般的なパターンを試す（実際のスクレイピング時に404の場合は別パターンを試す）
+        urls['financial_reports'] = base_url + '/ir/'
+        
+        # プレスリリースページ
+        urls['press_releases'] = base_url + '/news/'
+        
+        # 製品・サービス情報（企業のメインページまたは製品ページ）
+        urls['product_info'] = base_url
+        
+        # 日経企業情報ページ
+        if company_code:
+            urls['nikkei_company_info'] = f"https://www.nikkei.com/nkd/company/?scode={company_code}"
+        else:
+            urls['nikkei_company_info'] = None
+        
+        return urls
+    
+    def _initialize_nikkei225_queue(self):
+        """日経225企業キューを初期化"""
+        logger.info("[NIKKEI225] Initializing Nikkei225 company queue...")
+        
+        # 企業リストを読み込む
+        all_companies = self._load_nikkei225_companies()
+        if not all_companies:
+            logger.warning("[NIKKEI225] No companies loaded, skipping Nikkei225 scraping")
+            return
+        
+        # 防衛・航空宇宙・インフラ企業をフィルタリング（全企業も含める）
+        target_companies = all_companies  # 全企業を対象とする
+        
+        # 企業ごとにタスクを作成
+        for company in target_companies:
+            company_name = company.get('name', '')
+            company_code = company.get('code', '')
+            company_domain = company.get('domain', '')
+            base_url = company.get('url', '')
+            
+            # 各種URLを生成
+            urls = self._generate_company_urls(company)
+            
+            # 各データタイプごとにタスクを作成
+            for data_type, url in urls.items():
+                if url is None:
+                    continue
+                
+                task = KeywordTask(
+                    keyword=f"{company_name}_{data_type}",
+                    category='nikkei225',
+                    language='ja',
+                    url=url,
+                    company_name=company_name,
+                    company_code=company_code,
+                    company_domain=company_domain,
+                    data_type=data_type
+                )
+                self.keyword_queue.append(task)
+        
+        logger.info(f"[NIKKEI225] Added {len(target_companies)} companies × 4 data types = {len([t for t in self.keyword_queue if t.category == 'nikkei225'])} tasks")
+    
+    async def scrape_company_page(self, page: Page, task: KeywordTask) -> Optional[Dict]:
+        """企業ページをスクレイピング（人間を模倣した動作付き）"""
+        try:
+            url = task.url
+            if not url:
+                logger.warning(f"[COMPANY] No URL for task: {task.keyword}")
+                return None
+            
+            logger.info(f"[COMPANY] Scraping {task.data_type} for {task.company_name}: {url}")
+            
+            # ページに移動
+            await page.goto(url, timeout=self.timeout, wait_until='networkidle')
+            
+            # 人間を模倣した待機
+            await asyncio.sleep(random.uniform(2.0, 4.0))
+            
+            # 人間を模倣したページ閲覧動作
+            await self.human_like_page_view(page)
+            
+            # バックグラウンドチェックを検出・突破
+            checks = await self.detect_background_checks(page)
+            if any(checks.values()):
+                logger.info(f"[COMPANY] Background checks detected for {url}, attempting bypass...")
+                await self.bypass_background_checks(page, checks)
+                await asyncio.sleep(random.uniform(2.0, 3.0))
+            
+            # HTMLを取得
+            html = await page.content()
+            
+            # BeautifulSoupでパース
+            if BS4_AVAILABLE:
+                soup = BeautifulSoup(html, 'html.parser')
+                text = soup.get_text(separator=' ', strip=True)
+                title = soup.title.string if soup.title else ""
+            else:
+                text = html
+                title = ""
+            
+            # サンプルを作成
+            sample = {
+                'text': text[:50000],  # 最大50000文字
+                'url': url,
+                'title': title,
+                'keyword': task.keyword,
+                'category': task.category,
+                'language': task.language,
+                'company_name': task.company_name,
+                'company_code': task.company_code,
+                'company_domain': task.company_domain,
+                'data_type': task.data_type,
+                'source': 'nikkei225_company',
+                'crawled_at': datetime.now().isoformat(),
+                'text_length': len(text)
+            }
+            
+            # カテゴリ別に分類
+            if task.data_type in self.nikkei225_samples:
+                self.nikkei225_samples[task.data_type].append(sample)
+            
+            return sample
+            
+        except PlaywrightTimeoutError:
+            logger.warning(f"[COMPANY] Timeout while scraping {url}")
+            return None
+        except Exception as e:
+            logger.error(f"[COMPANY] Failed to scrape {url}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
     
     async def check_cursor_browser_running(self, port: int) -> bool:
         """Cursorブラウザが起動しているかチェック"""
@@ -913,7 +1209,7 @@ URL: {url}
                 logger.warning(f"[BROWSER] Cursor executable not found in standard locations")
                 return False
             
-            # リモートデバッグポートを指定してCursorブラウザを起動
+            # リモートデバッグポートを指定してCursorブラウザを起動（ボット検知回避設定付き）
             cmd = [
                 cursor_exe,
                 f"--remote-debugging-port={port}",
@@ -921,7 +1217,13 @@ URL: {url}
                 "--no-default-browser-check",
                 "--disable-background-timer-throttling",
                 "--disable-backgrounding-occluded-windows",
-                "--disable-renderer-backgrounding"
+                "--disable-renderer-backgrounding",
+                "--disable-blink-features=AutomationControlled",  # AutomationControlledを無効化
+                "--disable-dev-shm-usage",
+                "--disable-infobars",
+                "--disable-notifications",
+                "--disable-popup-blocking",
+                "--start-maximized",
             ]
             
             logger.info(f"[BROWSER] Launching Cursor browser in background on port {port}...")
@@ -957,9 +1259,28 @@ URL: {url}
     async def connect_to_cursor_browser(self, playwright, browser_index: int) -> Optional[Browser]:
         """Cursorのブラウザに接続（バックグラウンド起動と自動再開機能付き）"""
         if not self.use_cursor_browser:
-            logger.info(f"[BROWSER {browser_index}] Launching new browser...")
-            browser = await playwright.chromium.launch(headless=False)
-            logger.info(f"[OK] Browser {browser_index} launched")
+            logger.info(f"[BROWSER {browser_index}] Launching new browser with anti-detection settings...")
+            # ボット検知回避のためのChrome起動オプション
+            browser = await playwright.chromium.launch(
+                headless=False,
+                args=[
+                    '--disable-blink-features=AutomationControlled',  # AutomationControlledを無効化
+                    '--disable-dev-shm-usage',
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-web-security',
+                    '--disable-features=IsolateOrigins,site-per-process',
+                    '--disable-site-isolation-trials',
+                    '--disable-infobars',
+                    '--disable-notifications',
+                    '--disable-popup-blocking',
+                    '--start-maximized',
+                    '--window-size=1920,1080',
+                ],
+                ignore_default_args=['--enable-automation'],  # --enable-automationを削除
+                channel='chrome' if platform.system() == 'Windows' else None  # WindowsではChromeを使用
+            )
+            logger.info(f"[OK] Browser {browser_index} launched with anti-detection settings")
             return browser
         
         # 複数のブラウザインスタンスに対応するため、ポートを分散
@@ -1011,9 +1332,27 @@ URL: {url}
                         logger.warning(f"[BROWSER {browser_index}] Failed to connect after background launch: {reconnect_error}")
             
             # すべての試行が失敗した場合は、新しいブラウザを起動
-            logger.info(f"[BROWSER {browser_index}] Falling back to launching new browser...")
-            browser = await playwright.chromium.launch(headless=False)
-            logger.info(f"[OK] Browser {browser_index} launched")
+            logger.info(f"[BROWSER {browser_index}] Falling back to launching new browser with anti-detection settings...")
+            browser = await playwright.chromium.launch(
+                headless=False,
+                args=[
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-dev-shm-usage',
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-web-security',
+                    '--disable-features=IsolateOrigins,site-per-process',
+                    '--disable-site-isolation-trials',
+                    '--disable-infobars',
+                    '--disable-notifications',
+                    '--disable-popup-blocking',
+                    '--start-maximized',
+                    '--window-size=1920,1080',
+                ],
+                ignore_default_args=['--enable-automation'],
+                channel='chrome' if platform.system() == 'Windows' else None
+            )
+            logger.info(f"[OK] Browser {browser_index} launched with anti-detection settings")
             return browser
     
     def save_browser_state(self):
@@ -1709,6 +2048,15 @@ URL: {url}
                 logger.warning(f"[BROWSER {browser_index}] Resource limit reached, skipping")
                 return samples
             
+            # 日経225企業の場合は直接スクレイピング
+            if task.category == 'nikkei225' and task.url:
+                logger.info(f"[BROWSER {browser_index}] Processing Nikkei225 company: {task.company_name} ({task.data_type})")
+                company_sample = await self.scrape_company_page(page, task)
+                if company_sample:
+                    samples.append(company_sample)
+                    self.all_samples.append(company_sample)
+                return samples
+            
             # NSFW検知用サイトの場合は直接アクセス
             if task.url and task.category.startswith('nsfw_detection'):
                 logger.info(f"[BROWSER {browser_index}] Processing NSFW detection site: {task.keyword} (detection purpose only)")
@@ -1779,43 +2127,49 @@ URL: {url}
                     await asyncio.sleep(random.uniform(5.0, 10.0))
             
             if await self.human_like_search(page, task.keyword, task.language):
-                # SO8T統制: スクレイピング動作を評価
-                if self.use_so8t_control:
-                    scrape_context = {
-                        'url': page.url,
-                        'keyword': task.keyword,
-                        'category': task.category,
-                        'language': task.language
-                    }
-                    control_result = await self.so8t_control_scraping_action('scrape', scrape_context)
+                # Google検索結果ページは学習用データにならないため、リンクを抽出して各サイトをスクレイピング
+                logger.info(f"[DEEPRESEARCH] Extracting links from search results for keyword: {task.keyword}")
+                
+                # 検索結果からリンクを抽出
+                search_links = await self.extract_search_result_links(page, task.keyword, task.language)
+                
+                if search_links:
+                    logger.info(f"[DEEPRESEARCH] Found {len(search_links)} links from search results")
                     
-                    if control_result['decision'] == 'deny':
-                        logger.warning(f"[SO8T] Scraping denied for URL: {page.url}")
-                        logger.warning(f"[SO8T] Reasoning: {control_result.get('final_reasoning', 'No reasoning')}")
-                        return samples
-                
-                # ページをスクレイピング（エラーハンドリング強化版）
-                keyword_list = [task.keyword] + task.related_keywords
-                sample = await self.extract_page_content(page, task.keyword, task.category, task.language, keyword_list)
-                
-                # エラーが発生して別ワードに遷移した場合は再試行
-                if sample is None:
-                    # エラーハンドリングで別ワードに遷移した可能性がある
-                    # 現在のURLを確認して、別ワードで検索されたかチェック
-                    current_url = page.url
-                    if task.keyword.lower() not in current_url.lower():
-                        # 別ワードで検索されている可能性がある
-                        # 新しいキーワードで再抽出を試みる
-                        for alt_keyword in task.related_keywords:
-                            if alt_keyword.lower() in current_url.lower():
-                                sample = await self.extract_page_content(page, alt_keyword, task.category, task.language, keyword_list)
-                                if sample:
-                                    break
-                
-                if sample:
-                    samples.append(sample)
-                    # ブラウザ状態を更新
-                    self.browser_status[browser_index]['samples_collected'] += 1
+                    # 各リンク先をDeepResearch Webスクレイピング
+                    for link_url in search_links[:10]:  # 最大10サイトまで
+                        try:
+                            # SO8T統制: スクレイピング動作を評価
+                            if self.use_so8t_control:
+                                scrape_context = {
+                                    'url': link_url,
+                                    'keyword': task.keyword,
+                                    'category': task.category,
+                                    'language': task.language
+                                }
+                                control_result = await self.so8t_control_scraping_action('scrape', scrape_context)
+                                
+                                if control_result['decision'] == 'deny':
+                                    logger.warning(f"[SO8T] Scraping denied for URL: {link_url}")
+                                    logger.warning(f"[SO8T] Reasoning: {control_result.get('final_reasoning', 'No reasoning')}")
+                                    continue
+                            
+                            # リンク先をDeepResearch Webスクレイピング
+                            await asyncio.sleep(random.uniform(1.0, 2.0))  # 人間らしい待機
+                            sample = await self.scrape_deep_research_url(page, link_url, task.keyword, task.category, task.language, task.related_keywords)
+                            
+                            if sample:
+                                samples.append(sample)
+                                # ブラウザ状態を更新
+                                self.browser_status[browser_index]['samples_collected'] += 1
+                                
+                                # 次のサイトへの待機（人間がページを読んでいる様子）
+                                await asyncio.sleep(random.uniform(2.0, 4.0))
+                        except Exception as e:
+                            logger.warning(f"[DEEPRESEARCH] Failed to scrape {link_url}: {e}")
+                            continue
+                else:
+                    logger.warning(f"[DEEPRESEARCH] No links found in search results for keyword: {task.keyword}")
             
             # 関連キーワードで検索
             for related_keyword in task.related_keywords[:3]:  # 最大3個
@@ -1823,21 +2177,45 @@ URL: {url}
                 await asyncio.sleep(random.uniform(self.delay_per_action * 2, self.delay_per_action * 4))
                 
                 if await self.human_like_search(page, related_keyword, task.language):
-                    # ページ閲覧時間をランダムに（人間らしさ）
-                    view_time = random.uniform(3.0, 8.0)
-                    await asyncio.sleep(view_time)
+                    # Google検索結果ページからリンクを抽出
+                    logger.info(f"[DEEPRESEARCH] Extracting links from search results for related keyword: {related_keyword}")
+                    search_links = await self.extract_search_result_links(page, related_keyword, task.language)
                     
-                    # ボタン操作
-                    await self.human_like_button_click(page)
-                    
-                    # ボタンクリック後の待機
-                    await asyncio.sleep(random.uniform(1.0, 2.5))
-                    
-                    # ページをスクレイピング（エラーハンドリング強化版）
-                    keyword_list = [task.keyword] + task.related_keywords
-                    sample = await self.extract_page_content(page, related_keyword, task.category, task.language, keyword_list)
-                    if sample:
-                        samples.append(sample)
+                    if search_links:
+                        logger.info(f"[DEEPRESEARCH] Found {len(search_links)} links from search results for related keyword: {related_keyword}")
+                        
+                        # 各リンク先をDeepResearch Webスクレイピング
+                        for link_url in search_links[:5]:  # 関連キーワードは最大5サイトまで
+                            try:
+                                # SO8T統制: スクレイピング動作を評価
+                                if self.use_so8t_control:
+                                    scrape_context = {
+                                        'url': link_url,
+                                        'keyword': related_keyword,
+                                        'category': task.category,
+                                        'language': task.language
+                                    }
+                                    control_result = await self.so8t_control_scraping_action('scrape', scrape_context)
+                                    
+                                    if control_result['decision'] == 'deny':
+                                        logger.warning(f"[SO8T] Scraping denied for URL: {link_url}")
+                                        continue
+                                
+                                # リンク先をDeepResearch Webスクレイピング
+                                await asyncio.sleep(random.uniform(1.0, 2.0))
+                                keyword_list = [task.keyword] + task.related_keywords
+                                sample = await self.scrape_deep_research_url(page, link_url, related_keyword, task.category, task.language, keyword_list)
+                                
+                                if sample:
+                                    samples.append(sample)
+                                    # ブラウザ状態を更新
+                                    self.browser_status[browser_index]['samples_collected'] += 1
+                                    
+                                    # 次のサイトへの待機
+                                    await asyncio.sleep(random.uniform(2.0, 4.0))
+                            except Exception as e:
+                                logger.warning(f"[DEEPRESEARCH] Failed to scrape {link_url}: {e}")
+                                continue
                     
                     # 次の検索前の待機（人間がページを読んでいる様子）
                     await asyncio.sleep(random.uniform(2.0, 5.0))
@@ -1983,6 +2361,166 @@ URL: {url}
             logger.error(f"[EXTRACT] Failed to extract content: {e}")
             return None
     
+    async def extract_search_result_links(self, page: Page, keyword: str, language: str) -> List[str]:
+        """
+        検索結果ページからリンクを抽出（Google検索結果ページのコンテンツは保存しない）
+        
+        Args:
+            page: Playwright Pageオブジェクト
+            keyword: 検索キーワード
+            language: 言語
+        
+        Returns:
+            抽出したリンクのリスト
+        """
+        links = []
+        try:
+            # 検索結果ページが読み込まれるまで待機
+            await page.wait_for_load_state("networkidle", timeout=self.timeout)
+            await asyncio.sleep(random.uniform(1.0, 2.0))
+            
+            # HTML取得
+            html = await page.content()
+            
+            # BeautifulSoupでパース
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # urlparseをインポート（関数の先頭で）
+            from urllib.parse import parse_qs, urlparse
+            
+            # Google検索結果のリンクを抽出
+            # Google検索結果のセレクタ（複数のパターンを試す）
+            search_result_selectors = [
+                'div.g a[href^="http"]',  # Google検索結果のリンク
+                'div[data-ved] a[href^="http"]',  # Google検索結果（data-ved属性付き）
+                'h3 a[href^="http"]',  # タイトルリンク
+                'a[href^="http"]:not([href*="google.com"]):not([href*="googleusercontent.com"])',  # Google以外のリンク
+            ]
+            
+            found_urls = set()
+            
+            for selector in search_result_selectors:
+                elements = soup.select(selector)
+                for element in elements:
+                    href = element.get('href', '')
+                    if href:
+                        # GoogleのリダイレクトURLを処理
+                        if href.startswith('/url?q='):
+                            # GoogleのリダイレクトURLから実際のURLを抽出
+                            parsed = urlparse(href)
+                            query_params = parse_qs(parsed.query)
+                            if 'q' in query_params:
+                                actual_url = query_params['q'][0]
+                                if actual_url.startswith('http'):
+                                    found_urls.add(actual_url)
+                        elif href.startswith('http') and 'google.com' not in href and 'googleusercontent.com' not in href:
+                            found_urls.add(href)
+            
+            # ウィキペディアや主要サイトを優先
+            priority_domains = ['wikipedia.org', 'wikimedia.org', 'github.com', 'stackoverflow.com', 'reddit.com']
+            priority_links = []
+            other_links = []
+            
+            for url in found_urls:
+                domain = urlparse(url).netloc.lower()
+                if any(priority_domain in domain for priority_domain in priority_domains):
+                    priority_links.append(url)
+                else:
+                    other_links.append(url)
+            
+            # 優先リンクを先に、その後に他のリンク
+            links = priority_links + other_links
+            
+            logger.info(f"[EXTRACT LINKS] Extracted {len(links)} links from search results (priority: {len(priority_links)}, other: {len(other_links)})")
+            
+        except Exception as e:
+            logger.error(f"[EXTRACT LINKS] Failed to extract links from search results: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        return links
+    
+    async def scrape_deep_research_url(self, page: Page, url: str, keyword: str, category: str, language: str, related_keywords: List[str] = None) -> Optional[Dict]:
+        """
+        リンク先をDeepResearch Webスクレイピング
+        
+        Args:
+            page: Playwright Pageオブジェクト
+            url: スクレイピングするURL
+            keyword: 検索キーワード
+            category: カテゴリ
+            language: 言語
+            related_keywords: 関連キーワードリスト
+        
+        Returns:
+            スクレイピング結果（サンプル辞書）またはNone
+        """
+        try:
+            logger.info(f"[DEEPRESEARCH] Scraping URL: {url}")
+            
+            # URLに移動
+            await page.goto(url, timeout=self.timeout, wait_until='networkidle')
+            
+            # 人間を模倣した待機
+            await asyncio.sleep(random.uniform(2.0, 4.0))
+            
+            # 人間を模倣したページ閲覧動作
+            await self.human_like_page_view(page)
+            
+            # バックグラウンドチェックを検出・突破
+            checks = await self.detect_background_checks(page)
+            if any(checks.values()):
+                logger.info(f"[DEEPRESEARCH] Background checks detected for {url}, attempting bypass...")
+                await self.bypass_background_checks(page, checks)
+                await asyncio.sleep(random.uniform(2.0, 3.0))
+            
+            # ウィキペディアページの場合は関連項目を抽出してスクレイピング
+            is_wikipedia = 'wikipedia.org' in url.lower()
+            related_articles = []
+            
+            if is_wikipedia:
+                logger.info(f"[WIKIPEDIA] Extracting related articles from Wikipedia page: {url}")
+                related_articles = await self.extract_wikipedia_related_articles(page, url, language)
+                
+                if related_articles:
+                    logger.info(f"[WIKIPEDIA] Found {len(related_articles)} related articles")
+                    # 関連項目の最初の5つをスクレイピング
+                    for related_url in related_articles[:5]:
+                        try:
+                            await asyncio.sleep(random.uniform(1.0, 2.0))
+                            related_sample = await self.scrape_wikipedia_related_article(page, related_url, keyword, category, language, related_keywords)
+                            if related_sample:
+                                self.all_samples.append(related_sample)
+                                logger.info(f"[WIKIPEDIA] Scraped related article: {related_url}")
+                        except Exception as e:
+                            logger.warning(f"[WIKIPEDIA] Failed to scrape related article {related_url}: {e}")
+                            continue
+            
+            # ページコンテンツを抽出（既存のextract_page_contentメソッドを使用）
+            keyword_list = [keyword] + (related_keywords or [])
+            sample = await self.extract_page_content(page, keyword, category, language, keyword_list)
+            
+            if sample:
+                # DeepResearch用のメタデータを追加
+                sample['deep_research'] = True
+                sample['search_keyword'] = keyword
+                sample['discovered_from'] = 'search_results'
+                if is_wikipedia and related_articles:
+                    sample['wikipedia_related_articles'] = related_articles[:10]  # 最大10個
+                    sample['wikipedia_related_articles_count'] = len(related_articles)
+                logger.info(f"[DEEPRESEARCH] Successfully scraped: {url}")
+            
+            return sample
+            
+        except PlaywrightTimeoutError:
+            logger.warning(f"[DEEPRESEARCH] Timeout while scraping {url}")
+            return None
+        except Exception as e:
+            logger.error(f"[DEEPRESEARCH] Failed to scrape {url}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+    
     async def retry_with_backoff(self, func, max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0, *args, **kwargs):
         """
         指数バックオフでリトライ
@@ -2054,12 +2592,39 @@ URL: {url}
         self.browsers.append(browser)
         
         try:
-            # コンテキスト作成
+            # コンテキスト作成（ボット検知回避設定付き）
             contexts = browser.contexts
             if contexts:
                 context = contexts[0]
             else:
-                context = await browser.new_context()
+                # 最新のChrome User-Agent
+                user_agents = [
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                ]
+                user_agent = random.choice(user_agents)
+                
+                context = await browser.new_context(
+                    user_agent=user_agent,
+                    viewport={'width': 1920, 'height': 1080},
+                    locale='ja-JP',
+                    timezone_id='Asia/Tokyo',
+                    permissions=['geolocation'],
+                    extra_http_headers={
+                        'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                        'Accept-Encoding': 'gzip, deflate, br, zstd',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1',
+                        'Sec-Fetch-Dest': 'document',
+                        'Sec-Fetch-Mode': 'navigate',
+                        'Sec-Fetch-Site': 'none',
+                        'Sec-Fetch-User': '?1',
+                        'Cache-Control': 'max-age=0',
+                    }
+                )
             
             self.contexts.append(context)
             
@@ -2067,22 +2632,64 @@ URL: {url}
             page = await context.new_page()
             self.pages.append(page)
             
-            # User-Agent設定（より人間らしい）
-            user_agents = [
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            ]
-            user_agent = random.choice(user_agents)
-            await page.set_extra_http_headers({
-                'User-Agent': user_agent,
-                'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8' if language == 'ja' else 'en-US,en;q=0.9',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-            })
+            # ボット検知回避: navigator.webdriverを削除し、Chromeに偽装
+            await page.add_init_script("""
+                // navigator.webdriverを削除
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+                
+                // Chromeオブジェクトを追加
+                window.chrome = {
+                    runtime: {},
+                    loadTimes: function() {},
+                    csi: function() {},
+                    app: {}
+                };
+                
+                // Permissions APIを偽装
+                const originalQuery = window.navigator.permissions.query;
+                window.navigator.permissions.query = (parameters) => (
+                    parameters.name === 'notifications' ?
+                        Promise.resolve({ state: Notification.permission }) :
+                        originalQuery(parameters)
+                );
+                
+                // Pluginsを偽装
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => {
+                        const plugins = [];
+                        for (let i = 0; i < 5; i++) {
+                            plugins.push({
+                                name: `Plugin ${i}`,
+                                description: `Plugin ${i} Description`,
+                                filename: `plugin${i}.dll`
+                            });
+                        }
+                        return plugins;
+                    }
+                });
+                
+                // Languagesを偽装
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['ja-JP', 'ja', 'en-US', 'en']
+                });
+                
+                // Platformを偽装
+                Object.defineProperty(navigator, 'platform', {
+                    get: () => 'Win32'
+                });
+                
+                // HardwareConcurrencyを偽装
+                Object.defineProperty(navigator, 'hardwareConcurrency', {
+                    get: () => 8
+                });
+                
+                // DeviceMemoryを偽装
+                Object.defineProperty(navigator, 'deviceMemory', {
+                    get: () => 8
+                });
+            """)
             
             # ブラウザウィンドウサイズをランダムに設定（人間らしさ）
             viewport_sizes = [
@@ -2193,27 +2800,26 @@ URL: {url}
                 self.browser_status[browser_index]['resource_memory_gb'] = resource_status['memory_gb']
                 self.browser_status[browser_index]['resource_cpu_percent'] = resource_status['cpu_percent']
                 
-                # 現在のブラウザのスクリーンショットを取得（定期的に）
-                if len(self.all_samples) % 5 == 0:  # 5サンプルごと
-                    if page and not page.is_closed():
-                        try:
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            screenshot_path = self.screenshots_dir / f"browser_{browser_index}_{timestamp}.png"
-                            await page.screenshot(path=str(screenshot_path), full_page=False)
-                            
-                            # ブラウザ状態にスクリーンショットパスを記録
-                            if browser_index not in self.browser_status:
-                                self.browser_status[browser_index] = {
-                                    'status': 'active',
-                                    'current_keyword': None,
-                                    'samples_collected': 0,
-                                    'last_activity': None
-                                }
-                            self.browser_status[browser_index]['screenshot_path'] = str(screenshot_path)
-                            self.browser_status[browser_index]['screenshot_timestamp'] = timestamp
-                            logger.debug(f"[SCREENSHOT] Captured screenshot for browser {browser_index}: {screenshot_path}")
-                        except Exception as e:
-                            logger.debug(f"[SCREENSHOT] Failed to capture screenshot for browser {browser_index}: {e}")
+                # 現在のブラウザのスクリーンショットを取得（より頻繁に、タスクごと）
+                if page and not page.is_closed():
+                    try:
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        screenshot_path = self.screenshots_dir / f"browser_{browser_index}_{timestamp}.png"
+                        await page.screenshot(path=str(screenshot_path), full_page=True)  # フルページスクリーンショット
+                        
+                        # ブラウザ状態にスクリーンショットパスを記録
+                        if browser_index not in self.browser_status:
+                            self.browser_status[browser_index] = {
+                                'status': 'active',
+                                'current_keyword': None,
+                                'samples_collected': 0,
+                                'last_activity': None
+                            }
+                        self.browser_status[browser_index]['screenshot_path'] = str(screenshot_path)
+                        self.browser_status[browser_index]['screenshot_timestamp'] = timestamp
+                        logger.info(f"[SCREENSHOT] Captured screenshot for browser {browser_index}: {screenshot_path}")
+                    except Exception as e:
+                        logger.debug(f"[SCREENSHOT] Failed to capture screenshot for browser {browser_index}: {e}")
                 
                 # ダッシュボード用状態を保存（定期的に）
                 if len(self.all_samples) % 10 == 0:  # 10サンプルごと
@@ -2268,6 +2874,14 @@ URL: {url}
         logger.info(f"[TOTAL] Collected {len(self.all_samples)} samples")
         logger.info(f"[NSFW] Detected {len(self.nsfw_samples)} NSFW samples (detection purpose only)")
         
+        # 日経225企業サンプルの統計
+        nikkei225_total = sum(len(samples) for samples in self.nikkei225_samples.values())
+        if nikkei225_total > 0:
+            logger.info(f"[NIKKEI225] Collected {nikkei225_total} Nikkei225 company samples")
+            for data_type, samples in self.nikkei225_samples.items():
+                if samples:
+                    logger.info(f"[NIKKEI225]   - {data_type}: {len(samples)} samples")
+        
         # ブラウザ状態を最終更新
         for browser_index in range(self.num_browsers):
             if browser_index in self.browser_status:
@@ -2278,6 +2892,42 @@ URL: {url}
             await self.capture_browser_screenshots()
         except Exception as e:
             logger.warning(f"[SCREENSHOT] Failed to capture final screenshots: {e}")
+        
+        # 日経225企業サンプルをカテゴリ別に保存
+        if nikkei225_total > 0:
+            self.save_nikkei225_samples_by_category()
+        
+        # 全自動ラベル付け・4値分類・四重推論・学習用データセット変換
+        if self.auto_labeling_enabled and len(self.all_samples) > 0:
+            logger.info("="*80)
+            logger.info("Starting Automatic Labeling, 4-Class Classification, and Quadruple Thinking")
+            logger.info("="*80)
+            self.process_samples_for_training_dataset()
+    
+    def save_nikkei225_samples_by_category(self):
+        """日経225企業サンプルをカテゴリ別に保存"""
+        logger.info("[NIKKEI225] Saving samples by category...")
+        
+        for data_type, samples in self.nikkei225_samples.items():
+            if samples:
+                filename = f"nikkei225_{data_type}_{self.session_id}.jsonl"
+                output_file = self.save_samples(samples, filename)
+                logger.info(f"[NIKKEI225] Saved {len(samples)} {data_type} samples to {output_file}")
+        
+        # メタデータを保存
+        metadata = {
+            'total_samples': sum(len(samples) for samples in self.nikkei225_samples.values()),
+            'samples_by_category': {cat: len(samples) for cat, samples in self.nikkei225_samples.items()},
+            'session_id': self.session_id,
+            'created_at': datetime.now().isoformat(),
+            'source': 'nikkei225_companies'
+        }
+        
+        metadata_file = self.output_dir / f"nikkei225_metadata_{self.session_id}.json"
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"[NIKKEI225] Metadata saved to {metadata_file}")
     
     def save_samples(self, samples: List[Dict], filename: str = None) -> Path:
         """サンプルを保存"""
@@ -2295,15 +2945,15 @@ URL: {url}
         return output_file
     
     async def capture_browser_screenshots(self):
-        """すべてのブラウザのスクリーンショットを取得"""
+        """すべてのブラウザのスクリーンショットを取得（フルページ）"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         for browser_index, page in enumerate(self.pages):
             if page and not page.is_closed():
                 try:
-                    # スクリーンショットを取得
+                    # スクリーンショットを取得（フルページ）
                     screenshot_path = self.screenshots_dir / f"browser_{browser_index}_{timestamp}.png"
-                    await page.screenshot(path=str(screenshot_path), full_page=False)
+                    await page.screenshot(path=str(screenshot_path), full_page=True)
                     
                     # ブラウザ状態にスクリーンショットパスを記録
                     if browser_index not in self.browser_status:
@@ -2316,10 +2966,609 @@ URL: {url}
                     self.browser_status[browser_index]['screenshot_path'] = str(screenshot_path)
                     self.browser_status[browser_index]['screenshot_timestamp'] = timestamp
                     
-                    logger.debug(f"[SCREENSHOT] Captured screenshot for browser {browser_index}: {screenshot_path}")
+                    logger.info(f"[SCREENSHOT] Captured full-page screenshot for browser {browser_index}: {screenshot_path}")
                 except Exception as e:
                     logger.warning(f"[SCREENSHOT] Failed to capture screenshot for browser {browser_index}: {e}")
     
+    def process_samples_for_training_dataset(self):
+        """
+        全自動ラベル付け・4値分類・四重推論・学習用データセット変換
+        
+        スクレイピングしたサンプルに対して：
+        1. SO8T/thinkingモデルによる4値分類
+        2. 四重推論の実行
+        3. 学習用データセット形式への変換
+        4. 保存
+        """
+        if not self.quadruple_classifier:
+            logger.warning("[AUTO-LABELING] QuadrupleClassifier not available, skipping automatic labeling")
+            return
+        
+        logger.info(f"[AUTO-LABELING] Processing {len(self.all_samples)} samples for training dataset...")
+        
+        processed_count = 0
+        error_count = 0
+        
+        for i, sample in enumerate(self.all_samples):
+            try:
+                # 4値分類と四重推論を実行
+                classified_sample = self.quadruple_classifier.classify_quadruple(sample)
+                
+                # 学習用データセット形式に変換
+                training_sample = self._convert_to_training_format(classified_sample)
+                
+                if training_sample:
+                    self.training_dataset_samples.append(training_sample)
+                    processed_count += 1
+                
+                # 進捗ログ（10サンプルごと）
+                if (i + 1) % 10 == 0:
+                    logger.info(f"[AUTO-LABELING] Processed {i + 1}/{len(self.all_samples)} samples...")
+                    
+            except Exception as e:
+                logger.error(f"[AUTO-LABELING] Failed to process sample {i}: {e}")
+                error_count += 1
+                continue
+        
+        logger.info(f"[AUTO-LABELING] Completed: {processed_count} processed, {error_count} errors")
+        
+        # 統計的に有意なデータクレンジングを実行
+        if self.training_dataset_samples:
+            logger.info("="*80)
+            logger.info("Starting Statistical Data Cleaning")
+            logger.info("="*80)
+            original_count = len(self.training_dataset_samples)
+            cleaned_samples = self.statistical_data_cleaning(self.training_dataset_samples)
+            self.training_dataset_samples = cleaned_samples
+            logger.info(f"[STATISTICAL-CLEANING] Cleaned dataset: {len(cleaned_samples)} samples (removed {original_count - len(cleaned_samples)} outliers)")
+        
+        # 学習用データセットを保存
+        if self.training_dataset_samples:
+            self.save_training_dataset()
+        else:
+            logger.warning("[AUTO-LABELING] No training dataset samples generated")
+    
+    def _convert_to_training_format(self, classified_sample: Dict) -> Optional[Dict]:
+        """
+        分類済みサンプルを学習用データセット形式に変換
+        
+        Args:
+            classified_sample: 4値分類済みサンプル
+        
+        Returns:
+            学習用データセット形式のサンプル
+        """
+        try:
+            text = classified_sample.get('text', '')
+            if not text or len(text) < 50:
+                return None
+            
+            # 四重推論結果を取得
+            quadruple_classification = classified_sample.get('quadruple_classification', {})
+            task_reasoning = quadruple_classification.get('task', '')
+            safety_reasoning = quadruple_classification.get('safety', '')
+            policy_reasoning = quadruple_classification.get('policy', '')
+            final_reasoning = quadruple_classification.get('final', '')
+            four_class_label = classified_sample.get('four_class_label', 'ALLOW')
+            
+            # 学習用データセット形式に変換
+            # instruction-output形式
+            instruction = f"""以下のテキストを読み、四重推論（Task/Safety/Policy/Final）を行い、4値分類（ALLOW/ESCALATION/DENY/REFUSE）を実行してください。
+
+テキスト:
+{text[:2000]}  # 最大2000文字
+"""
+            
+            output = f"""<think-task>
+{task_reasoning}
+</think-task>
+
+<think-safety>
+{safety_reasoning}
+</think-safety>
+
+<think-policy>
+{policy_reasoning}
+</think-policy>
+
+<final>
+{final_reasoning}
+
+分類結果: {four_class_label}
+</final>"""
+            
+            training_sample = {
+                'instruction': instruction,
+                'output': output,
+                'input': text[:2000],  # 最大2000文字
+                'category': classified_sample.get('category', 'unknown'),
+                'language': classified_sample.get('language', 'unknown'),
+                'url': classified_sample.get('url', ''),
+                'domain': classified_sample.get('domain', ''),
+                'title': classified_sample.get('title', ''),
+                'keyword': classified_sample.get('keyword', ''),
+                'four_class_label': four_class_label,
+                'four_class_label_id': classified_sample.get('four_class_label_id', 0),
+                'quadruple_classification': quadruple_classification,
+                'nsfw_label': classified_sample.get('nsfw_label', 'safe'),
+                'nsfw_confidence': classified_sample.get('nsfw_confidence', 0.0),
+                'deep_research': classified_sample.get('deep_research', False),
+                'search_keyword': classified_sample.get('search_keyword', ''),
+                'discovered_from': classified_sample.get('discovered_from', ''),
+                'crawled_at': classified_sample.get('crawled_at', datetime.now().isoformat()),
+                'classified_at': classified_sample.get('classified_at', datetime.now().isoformat()),
+                'classification_version': classified_sample.get('classification_version', '1.0'),
+                'source': 'parallel_deep_research_scraper_auto_labeled'
+            }
+            
+            return training_sample
+            
+        except Exception as e:
+            logger.error(f"[TRAINING-FORMAT] Failed to convert sample to training format: {e}")
+            return None
+    
+    def save_training_dataset(self):
+        """学習用データセットを保存"""
+        if not self.training_dataset_samples:
+            logger.warning("[TRAINING-DATASET] No training dataset samples to save")
+            return
+        
+        logger.info(f"[TRAINING-DATASET] Saving {len(self.training_dataset_samples)} training dataset samples...")
+        
+        # JSONL形式で保存
+        training_dataset_file = self.output_dir / f"training_dataset_{self.session_id}.jsonl"
+        with open(training_dataset_file, 'w', encoding='utf-8') as f:
+            for sample in self.training_dataset_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"[TRAINING-DATASET] Saved training dataset to {training_dataset_file}")
+        
+        # メタデータを保存
+        metadata = {
+            'total_samples': len(self.training_dataset_samples),
+            'session_id': self.session_id,
+            'created_at': datetime.now().isoformat(),
+            'source': 'parallel_deep_research_scraper_auto_labeled',
+            'classification_version': self.training_dataset_samples[0].get('classification_version', '1.0') if self.training_dataset_samples else '1.0',
+            'four_class_distribution': self._calculate_four_class_distribution(),
+            'category_distribution': self._calculate_category_distribution(),
+            'language_distribution': self._calculate_language_distribution()
+        }
+        
+        metadata_file = self.output_dir / f"training_dataset_metadata_{self.session_id}.json"
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"[TRAINING-DATASET] Saved metadata to {metadata_file}")
+    
+    def _calculate_four_class_distribution(self) -> Dict[str, int]:
+        """4値分類ラベルの分布を計算"""
+        distribution = {'ALLOW': 0, 'ESCALATION': 0, 'DENY': 0, 'REFUSE': 0}
+        for sample in self.training_dataset_samples:
+            label = sample.get('four_class_label', 'ALLOW')
+            if label in distribution:
+                distribution[label] += 1
+        return distribution
+    
+    def _calculate_category_distribution(self) -> Dict[str, int]:
+        """カテゴリの分布を計算"""
+        distribution = {}
+        for sample in self.training_dataset_samples:
+            category = sample.get('category', 'unknown')
+            distribution[category] = distribution.get(category, 0) + 1
+        return distribution
+    
+    def _calculate_language_distribution(self) -> Dict[str, int]:
+        """言語の分布を計算"""
+        distribution = {}
+        for sample in self.training_dataset_samples:
+            language = sample.get('language', 'unknown')
+            distribution[language] = distribution.get(language, 0) + 1
+        return distribution
+    
+    def statistical_data_cleaning(self, samples: List[Dict]) -> List[Dict]:
+        """
+        統計的に有意な手法でデータクレンジング
+        
+        手法:
+        1. Z-scoreによる外れ値検出（テキスト長、信頼度スコア等）
+        2. IQR（四分位範囲）による外れ値検出
+        3. 重複検出（テキスト類似度、ハッシュベース）
+        4. 統計的品質スコアリング
+        5. 信頼区間によるフィルタリング
+        
+        Args:
+            samples: クレンジングするサンプルリスト
+        
+        Returns:
+            クレンジング済みサンプルリスト
+        """
+        if not samples:
+            return []
+        
+        logger.info(f"[STATISTICAL-CLEANING] Starting statistical data cleaning for {len(samples)} samples...")
+        
+        cleaned_samples = []
+        removal_stats = {
+            'duplicates': 0,
+            'outliers_zscore': 0,
+            'outliers_iqr': 0,
+            'low_quality': 0,
+            'statistical_filter': 0,
+            'total_removed': 0
+        }
+        
+        # 1. 重複検出（ハッシュベース + 類似度ベース）
+        seen_hashes = set()
+        unique_samples = []
+        
+        for sample in samples:
+            text = sample.get('input', sample.get('text', ''))
+            if not text:
+                removal_stats['low_quality'] += 1
+                continue
+            
+            # ハッシュベース重複検出
+            text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+            if text_hash in seen_hashes:
+                removal_stats['duplicates'] += 1
+                continue
+            
+            # 類似度ベース重複検出（既存サンプルとの類似度が高い場合は除外）
+            is_duplicate = False
+            for existing_sample in unique_samples:
+                existing_text = existing_sample.get('input', existing_sample.get('text', ''))
+                similarity = SequenceMatcher(None, text[:500], existing_text[:500]).ratio()
+                if similarity > 0.95:  # 95%以上類似している場合は重複とみなす
+                    is_duplicate = True
+                    removal_stats['duplicates'] += 1
+                    break
+            
+            if not is_duplicate:
+                seen_hashes.add(text_hash)
+                unique_samples.append(sample)
+        
+        logger.info(f"[STATISTICAL-CLEANING] Removed {removal_stats['duplicates']} duplicates")
+        
+        if not unique_samples:
+            logger.warning("[STATISTICAL-CLEANING] No samples remaining after duplicate removal")
+            return []
+        
+        # 2. 統計的特徴量の計算
+        if NUMPY_AVAILABLE:
+            text_lengths = [len(s.get('input', s.get('text', ''))) for s in unique_samples]
+            confidence_scores = [s.get('four_class_label_id', 0) for s in unique_samples]
+            nsfw_confidences = [s.get('nsfw_confidence', 0.0) for s in unique_samples]
+            
+            # Z-scoreによる外れ値検出（テキスト長）
+            if len(text_lengths) > 3:
+                mean_length = np.mean(text_lengths)
+                std_length = np.std(text_lengths)
+                
+                if std_length > 0:
+                    z_scores_length = np.abs((np.array(text_lengths) - mean_length) / std_length)
+                    z_threshold = 3.0  # 3シグマルール
+                    
+                    for i, sample in enumerate(unique_samples):
+                        if z_scores_length[i] > z_threshold:
+                            removal_stats['outliers_zscore'] += 1
+                            continue
+                        cleaned_samples.append(sample)
+                else:
+                    cleaned_samples = unique_samples
+            else:
+                cleaned_samples = unique_samples
+        else:
+            # NumPyが利用できない場合は基本的なフィルタリングのみ
+            cleaned_samples = unique_samples
+        
+        # 3. IQR（四分位範囲）による外れ値検出
+        if NUMPY_AVAILABLE and len(cleaned_samples) > 10:
+            text_lengths_cleaned = [len(s.get('input', s.get('text', ''))) for s in cleaned_samples]
+            
+            if len(text_lengths_cleaned) > 0:
+                q1 = np.percentile(text_lengths_cleaned, 25)
+                q3 = np.percentile(text_lengths_cleaned, 75)
+                iqr = q3 - q1
+                
+                if iqr > 0:
+                    lower_bound = q1 - 1.5 * iqr
+                    upper_bound = q3 + 1.5 * iqr
+                    
+                    iqr_filtered_samples = []
+                    for sample in cleaned_samples:
+                        text_length = len(sample.get('input', sample.get('text', '')))
+                        if lower_bound <= text_length <= upper_bound:
+                            iqr_filtered_samples.append(sample)
+                        else:
+                            removal_stats['outliers_iqr'] += 1
+                    
+                    cleaned_samples = iqr_filtered_samples
+                    logger.info(f"[STATISTICAL-CLEANING] Removed {removal_stats['outliers_iqr']} outliers (IQR method)")
+        
+        # 4. 統計的品質スコアリング
+        quality_filtered_samples = []
+        for sample in cleaned_samples:
+            quality_score = self._calculate_statistical_quality_score(sample)
+            sample['statistical_quality_score'] = quality_score
+            
+            # 品質スコアが低いサンプルを除外（統計的に有意な閾値）
+            if quality_score < 0.3:  # 30%未満は低品質とみなす
+                removal_stats['low_quality'] += 1
+                continue
+            
+            quality_filtered_samples.append(sample)
+        
+        cleaned_samples = quality_filtered_samples
+        logger.info(f"[STATISTICAL-CLEANING] Removed {removal_stats['low_quality']} low-quality samples")
+        
+        # 5. 信頼区間によるフィルタリング（4値分類の信頼度）
+        if NUMPY_AVAILABLE and len(cleaned_samples) > 10:
+            confidence_scores_cleaned = [s.get('four_class_label_id', 0) for s in cleaned_samples]
+            
+            if len(confidence_scores_cleaned) > 0 and np.std(confidence_scores_cleaned) > 0:
+                mean_confidence = np.mean(confidence_scores_cleaned)
+                std_confidence = np.std(confidence_scores_cleaned)
+                
+                # 95%信頼区間
+                confidence_interval_lower = mean_confidence - 1.96 * std_confidence
+                confidence_interval_upper = mean_confidence + 1.96 * std_confidence
+                
+                ci_filtered_samples = []
+                for sample in cleaned_samples:
+                    confidence = sample.get('four_class_label_id', 0)
+                    if confidence_interval_lower <= confidence <= confidence_interval_upper:
+                        ci_filtered_samples.append(sample)
+                    else:
+                        removal_stats['statistical_filter'] += 1
+                
+                cleaned_samples = ci_filtered_samples
+                logger.info(f"[STATISTICAL-CLEANING] Removed {removal_stats['statistical_filter']} samples outside confidence interval")
+        
+        # 統計サマリー
+        removal_stats['total_removed'] = len(samples) - len(cleaned_samples)
+        logger.info("="*80)
+        logger.info("[STATISTICAL-CLEANING] Cleaning Statistics:")
+        logger.info(f"  Original samples: {len(samples)}")
+        logger.info(f"  Cleaned samples: {len(cleaned_samples)}")
+        logger.info(f"  Removed duplicates: {removal_stats['duplicates']}")
+        logger.info(f"  Removed outliers (Z-score): {removal_stats['outliers_zscore']}")
+        logger.info(f"  Removed outliers (IQR): {removal_stats['outliers_iqr']}")
+        logger.info(f"  Removed low-quality: {removal_stats['low_quality']}")
+        logger.info(f"  Removed (statistical filter): {removal_stats['statistical_filter']}")
+        logger.info(f"  Total removed: {removal_stats['total_removed']}")
+        logger.info(f"  Retention rate: {len(cleaned_samples)/len(samples)*100:.2f}%")
+        logger.info("="*80)
+        
+        return cleaned_samples
+    
+    def _calculate_statistical_quality_score(self, sample: Dict) -> float:
+        """
+        統計的品質スコアを計算
+        
+        品質スコアの要素:
+        1. テキスト長（適切な範囲内か）
+        2. 情報量（ユニークな単語数）
+        3. 4値分類の信頼度
+        4. NSFW検知の信頼度
+        5. メタデータの完全性
+        
+        Args:
+            sample: サンプル
+        
+        Returns:
+            品質スコア（0.0-1.0）
+        """
+        score = 0.0
+        max_score = 0.0
+        
+        # 1. テキスト長スコア（100-5000文字が最適）
+        text = sample.get('input', sample.get('text', ''))
+        text_length = len(text)
+        if 100 <= text_length <= 5000:
+            length_score = 1.0
+        elif 50 <= text_length < 100 or 5000 < text_length <= 10000:
+            length_score = 0.7
+        elif text_length < 50 or text_length > 10000:
+            length_score = 0.3
+        else:
+            length_score = 0.0
+        
+        score += length_score * 0.3
+        max_score += 0.3
+        
+        # 2. 情報量スコア（ユニークな単語数）
+        if text:
+            words = text.split()
+            unique_words = len(set(words))
+            if len(words) > 0:
+                uniqueness_ratio = unique_words / len(words)
+                info_score = min(uniqueness_ratio * 2, 1.0)  # 0.5以上で満点
+            else:
+                info_score = 0.0
+        else:
+            info_score = 0.0
+        
+        score += info_score * 0.2
+        max_score += 0.2
+        
+        # 3. 4値分類の信頼度（ラベルIDが適切か）
+        four_class_label = sample.get('four_class_label', 'ALLOW')
+        if four_class_label in ['ALLOW', 'ESCALATION', 'DENY', 'REFUSE']:
+            classification_score = 1.0
+        else:
+            classification_score = 0.5
+        
+        score += classification_score * 0.2
+        max_score += 0.2
+        
+        # 4. NSFW検知の信頼度（safeラベルの場合は高スコア）
+        nsfw_label = sample.get('nsfw_label', 'safe')
+        nsfw_confidence = sample.get('nsfw_confidence', 0.0)
+        if nsfw_label == 'safe':
+            nsfw_score = 1.0
+        else:
+            # NSFW検知された場合は信頼度に応じてスコアを下げる
+            nsfw_score = 1.0 - nsfw_confidence * 0.5
+        
+        score += nsfw_score * 0.15
+        max_score += 0.15
+        
+        # 5. メタデータの完全性
+        required_fields = ['category', 'language', 'url', 'four_class_label']
+        metadata_completeness = sum(1 for field in required_fields if sample.get(field)) / len(required_fields)
+        
+        score += metadata_completeness * 0.15
+        max_score += 0.15
+        
+        # 正規化（0.0-1.0）
+        if max_score > 0:
+            normalized_score = score / max_score
+        else:
+            normalized_score = 0.0
+        
+        return normalized_score
+    
+    async def extract_wikipedia_related_articles(self, page: Page, url: str, language: str) -> List[str]:
+        """
+        ウィキペディアページから関連項目（関連記事）のリンクを抽出
+        
+        Args:
+            page: Playwright Pageオブジェクト
+            url: ウィキペディアページのURL
+            language: 言語
+        
+        Returns:
+            関連項目のURLリスト
+        """
+        related_urls = []
+        try:
+            # HTML取得
+            html = await page.content()
+            
+            # BeautifulSoupでパース
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # ウィキペディアの関連項目セクションを探す
+            # 日本語版: "関連項目" セクション
+            # 英語版: "See also" セクション
+            related_section_headers = {
+                'ja': ['関連項目', '関連記事', '関連リンク'],
+                'en': ['See also', 'Related articles', 'Related links']
+            }
+            
+            headers_to_find = related_section_headers.get(language, related_section_headers['en'])
+            
+            # セクション見出しを探す
+            for header_text in headers_to_find:
+                # h2タグで見出しを探す
+                headers = soup.find_all(['h2', 'h3'], string=lambda text: text and header_text in text)
+                
+                for header in headers:
+                    # 見出しの次の要素からリンクを抽出
+                    current = header.find_next_sibling()
+                    link_count = 0
+                    
+                    while current and link_count < 20:  # 最大20個のリンク
+                        if current.name in ['ul', 'div', 'p']:
+                            # リンクを抽出
+                            links = current.find_all('a', href=True)
+                            for link in links:
+                                href = link.get('href', '')
+                                if href.startswith('/wiki/'):
+                                    # 相対URLを絶対URLに変換
+                                    if 'wikipedia.org' in url:
+                                        base_url = '/'.join(url.split('/')[:3])
+                                        full_url = base_url + href
+                                        if full_url not in related_urls:
+                                            related_urls.append(full_url)
+                                            link_count += 1
+                                            if link_count >= 20:
+                                                break
+                        
+                        # 次のセクションが見つかったら終了
+                        if current.name in ['h2', 'h3']:
+                            break
+                        
+                        current = current.find_next_sibling()
+                    
+                    if related_urls:
+                        break
+                
+                if related_urls:
+                    break
+            
+            # 関連項目セクションが見つからない場合は、本文中のリンクから関連性の高いものを抽出
+            if not related_urls:
+                logger.debug(f"[WIKIPEDIA] Related section not found, extracting links from content")
+                # 本文中のウィキペディア内部リンクを抽出
+                content_links = soup.find_all('a', href=lambda href: href and href.startswith('/wiki/'))
+                for link in content_links[:15]:  # 最大15個
+                    href = link.get('href', '')
+                    if 'wikipedia.org' in url:
+                        base_url = '/'.join(url.split('/')[:3])
+                        full_url = base_url + href
+                        # 外部リンクや特殊ページを除外
+                        if ':' not in href.split('/wiki/')[-1]:  # 名前空間を除外
+                            if full_url not in related_urls:
+                                related_urls.append(full_url)
+            
+            logger.info(f"[WIKIPEDIA] Extracted {len(related_urls)} related article URLs from {url}")
+            
+        except Exception as e:
+            logger.error(f"[WIKIPEDIA] Failed to extract related articles from {url}: {e}")
+        
+        return related_urls
+    
+    async def scrape_wikipedia_related_article(self, page: Page, url: str, keyword: str, category: str, language: str, related_keywords: List[str] = None) -> Optional[Dict]:
+        """
+        ウィキペディアの関連項目ページをスクレイピング
+        
+        Args:
+            page: Playwright Pageオブジェクト
+            url: 関連項目のURL
+            keyword: 元のキーワード
+            category: カテゴリ
+            language: 言語
+            related_keywords: 関連キーワードリスト
+        
+        Returns:
+            スクレイピング結果（サンプル辞書）またはNone
+        """
+        try:
+            logger.info(f"[WIKIPEDIA-RELATED] Scraping related article: {url}")
+            
+            # URLに移動
+            await page.goto(url, timeout=self.timeout, wait_until='networkidle')
+            
+            # 人間を模倣した待機
+            await asyncio.sleep(random.uniform(2.0, 4.0))
+            
+            # 人間を模倣したページ閲覧動作
+            await self.human_like_page_view(page)
+            
+            # ページコンテンツを抽出
+            keyword_list = [keyword] + (related_keywords or [])
+            sample = await self.extract_page_content(page, keyword, category, language, keyword_list)
+            
+            if sample:
+                # ウィキペディア関連項目用のメタデータを追加
+                sample['deep_research'] = True
+                sample['search_keyword'] = keyword
+                sample['discovered_from'] = 'wikipedia_related_article'
+                sample['wikipedia_related'] = True
+                sample['source'] = 'wikipedia_related_article'
+                logger.info(f"[WIKIPEDIA-RELATED] Successfully scraped related article: {url}")
+            
+            return sample
+            
+        except PlaywrightTimeoutError:
+            logger.warning(f"[WIKIPEDIA-RELATED] Timeout while scraping {url}")
+            return None
+        except Exception as e:
+            logger.error(f"[WIKIPEDIA-RELATED] Failed to scrape {url}: {e}")
+            return None
+        
     def save_nsfw_samples(self, samples: List[Dict], filename: str = None) -> Optional[Path]:
         """NSFW検知サンプルを保存（検知目的のみ）"""
         if not samples:
@@ -2399,7 +3648,7 @@ async def main():
     parser.add_argument(
         '--use-so8t-control',
         action='store_true',
-        default=True,
+        default=False,
         help='Use SO8T model to control scraping actions'
     )
     parser.add_argument(
