@@ -1,0 +1,278 @@
+# 統合マスターパイプライン設定ファイル
+
+# 基本設定
+session_id_format: "%Y%m%d_%H%M%S"
+checkpoint_dir: "D:/webdataset/checkpoints/unified_master_pipeline"
+
+# Phase 1: 並列DeepResearch Webスクレイピング
+phase1_parallel_scraping:
+  enabled: true
+  required: true  # 必須フェーズ
+  num_instances: 10
+  target_samples: 50000  # 目標サンプル数（新規追加）
+  min_samples_per_keyword: 10  # キーワードあたりの最小サンプル数（新規追加）
+  max_samples_per_keyword: 100  # キーワードあたりの最大サンプル数（新規追加）
+  base_output: "D:/webdataset/processed"
+  base_port: 9222
+  restart_delay: 60.0
+  max_memory_gb: 8.0
+  max_cpu_percent: 80.0
+  # 並列タブスクレイピング設定
+  use_parallel_tabs: true  # 並列タブスクレイピングを使用するか（デフォルト: false）
+  num_tabs: 10  # タブ数（use_parallel_tabsがtrueの場合）
+  pages_per_tab: 10  # タブあたりのページ数（use_parallel_tabsがtrueの場合）
+  total_pages: 100  # 総ページ数（use_parallel_tabsがtrueの場合）
+  # MCP Chrome DevTools設定
+  use_mcp_chrome_devtools: true  # MCP Chrome DevToolsを使用するか
+  mcp_server:
+    enabled: true
+    transport: "stdio"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-chrome-devtools"]
+    timeout: 30000
+  # SO8T統制ChromeDev並列ブラウザCUDA分散処理設定
+  use_so8t_chromedev_daemon: true  # SO8T統制ChromeDev並列ブラウザCUDA分散処理を使用するか（デフォルト: false）
+  so8t_chromedev_daemon:
+    enabled: true  # SO8T統制ChromeDev並列ブラウザCUDA分散処理を有効にするか
+    total_parallel_tasks: 100  # 総並列処理数（10ブラウザ×10タブ=100タブ）
+    num_browsers: 10  # ブラウザ数（10ブラウザ）
+    num_tabs: 10  # タブ数（各ブラウザ10タブ）
+    base_port: 9222  # ベースリモートデバッグポート
+    config_path: "configs/so8t_chromedev_daemon_config.yaml"  # SO8T ChromeDevデーモン設定ファイルパス
+  # 百科事典ソース設定
+  encyclopedia_sources:
+    wikipedia_ja: true  # ウィキペディア（日本語）
+    wikipedia_en: true  # ウィキペディア（英語）
+    kotobank: true  # コトバンク
+    britannica: true  # ブリタニカ国際大百科事典
+  # コーディングソース設定
+  coding_sources:
+    enabled: true  # コーディング関連サイトを有効にするか
+  # コーディングキーワード設定
+  coding_keywords:
+    enabled: true  # コーディング関連キーワードを有効にするか
+  # ドメイン別知識キーワード設定
+  domain_keywords:
+    enabled: true  # ドメイン別知識キーワードを有効にするか
+  # NSFW検知目的ソース設定（検知目的のみ）
+  nsfw_sources:
+    enabled: false  # NSFW検知目的のサイトを有効にするか（デフォルト: false）
+    detection_only: true  # 検知目的のみ（生成目的ではない）
+  # キーワード協調動作設定（Phase 1専用）
+  keyword_coordination:
+    enabled: true  # キーワード協調動作を有効にするか
+    keyword_queue_file: "D:/webdataset/checkpoints/keyword_queue.json"  # キーワードキューファイル
+
+# Phase 2: SO8T全自動データ処理
+phase2_data_processing:
+  enabled: true
+  required: true  # 必須フェーズ
+  config: "configs/so8t_auto_data_processing_config.yaml"
+  timeout: 86400  # 24時間タイムアウト
+
+# Phase 3: SO8T完全統合A/Bテスト
+phase3_ab_test:
+  enabled: true
+  required: true  # オプションフェーズ（時間がかかるため）
+  config: "configs/complete_so8t_ab_test_pipeline_config.yaml"
+  timeout: 172800  # 48時間タイムアウト
+  min_samples_for_retraining: 50000  # SO8T再学習に必要な最小サンプル数（NSFWデータセット含む検知用）
+  dynamic_threshold: true  # 動的閾値設定を有効化（デフォルト: false）
+  threshold_by_dataset_type:  # データセットタイプごとの閾値
+    nsfw_detection: 30000  # NSFW検知用データセット
+    general: 50000  # 一般データセット
+    high_quality: 30000  # 高品質データセット（品質スコア > 0.8）
+    medium_quality: 50000  # 中品質データセット（品質スコア 0.5-0.8）
+    low_quality: 100000  # 低品質データセット（品質スコア < 0.5）
+  quality_score_threshold: 0.5  # 品質スコアの閾値
+
+# Phase 4: GitHubリポジトリ検索
+phase4_github_scraping:
+  enabled: true
+  required: false  # オプションフェーズ
+  output_dir: "D:/webdataset/processed/github"
+  github_token: null  # GitHub APIトークン（オプション）
+  queries:
+    - "best practices"
+    - "tutorial"
+    - "example"
+    - "documentation"
+  languages: null  # プログラミング言語（オプション、例: ["Python", "JavaScript"]）
+  max_repos: 100
+  min_stars: 100
+  timeout: 3600  # 1時間タイムアウト
+
+# Phase 5: エンジニア向けサイトスクレイピング
+phase5_engineer_sites:
+  enabled: true
+  required: true  # オプションフェーズ
+  output_dir: "D:/webdataset/processed/engineer_sites"
+  queries:
+    - "Python"
+    - "JavaScript"
+    - "programming"
+    - "coding"
+  delay: 2.0  # リクエスト間の遅延（秒）
+  max_articles: 100  # サイトあたりの最大記事数
+  timeout: 7200  # 2時間タイムアウト
+
+# Phase 6: コーディング関連データ抽出
+phase6_coding_extraction:
+  enabled: true
+  required: true  # オプションフェーズ
+  input_dir: "D:/webdataset/processed/four_class"
+  output_dir: "D:/webdataset/coding_dataset"
+  min_code_length: 10  # 最小コード長
+  min_text_length: 50  # 最小テキスト長
+  timeout: 3600  # 1時間タイムアウト
+
+# Phase 7: コーディングタスク用データセット作成
+phase7_coding_training_data:
+  enabled: true
+  required: true  # オプションフェーズ
+  input_dir: "D:/webdataset/coding_dataset"
+  output_dir: "D:/webdataset/coding_training_data"
+  timeout: 3600  # 1時間タイムアウト
+
+# Phase 8: コーディング特化再学習
+phase8_coding_retraining:
+  enabled: true
+  required: true  # オプションフェーズ（時間がかかるため）
+  config_path: "configs/coding_focused_retraining_config.yaml"
+  timeout: 86400  # 24時間タイムアウト
+
+# Phase 9: ドキュメンテーション収集
+phase9_documentation_scraping:
+  enabled: true
+  required: true  # オプションフェーズ
+  output_dir: "D:/webdataset/processed/documentation"
+  github_repos: []  # GitHubリポジトリURLのリスト（オプション）
+  api_urls: []  # APIドキュメンテーションURLのリスト（オプション）
+  blog_urls: []  # 技術ブログURLのリスト（オプション）
+  delay: 2.0  # リクエスト間の遅延（秒）
+  max_docs: 100  # ソースあたりの最大ドキュメント数
+  timeout: 7200  # 2時間タイムアウト
+
+# Phase 10: 統合AIエージェント基盤の構築
+phase10_unified_agent_base:
+  enabled: true
+  required: true  # オプションフェーズ
+  model_path: null  # SO8Tモデルのパス（nullの場合はデフォルト）
+  knowledge_base_path: "database/so8t_memory.db"  # 知識ベースのパス
+  rag_store_path: "D:/webdataset/vector_stores"  # RAGストアのパス
+  coding_data_path: "D:/webdataset/processed/coding"  # コーディングデータのパス
+  science_data_path: "D:/webdataset/processed/science"  # 科学データのパス
+  test_queries:  # テストクエリのリスト（オプション）
+    - "Pythonでリストをソートする方法"
+    - "機械学習の基本的な概念について説明してください"
+    - "SQLの基本的な概念について説明してください"
+  timeout: 3600  # 1時間タイムアウト
+
+# Phase 11: 検知用NSFWデータセット収集（拡張版）
+phase11_nsfw_detection_dataset:
+  enabled: true
+  required: true  # オプションフェーズ
+  input_dir: "D:/webdataset/processed/four_class"  # 入力ディレクトリ（処理済みデータ）
+  output_dir: "D:/webdataset/nsfw_detection_dataset"  # 出力ディレクトリ
+  nsfw_classifier_path: null  # NSFW分類器のパス（nullの場合はデフォルト）
+  max_samples: 50000  # 最大収集サンプル数（拡張）
+  use_multimodal: true  # マルチモーダル検知を使用するか
+  include_synthetic: true  # 合成データを含めるか
+  synthetic_samples: 1000  # 合成サンプル数
+  include_metadata: true  # 詳細メタデータを含めるか
+  
+  # 詳細カテゴリ設定
+  detailed_categories:
+    enabled: true
+    total_categories: 23  # 詳細カテゴリ数
+  
+  # データソース設定
+  data_sources:
+    existing_data: true  # 既存データから収集
+    synthetic_data: true  # 合成データ生成
+  
+  timeout: 14400  # 4時間タイムアウト（拡張）
+
+# Phase 12: 検知用違法薬物・医薬品データセット収集
+phase12_drug_pharmaceutical_detection_dataset:
+  enabled: true
+  required: false  # オプションフェーズ
+  output_dir: "D:/webdataset/drug_pharmaceutical_detection_dataset"  # 出力ディレクトリ
+  max_samples_per_source: 1000  # ソースあたりの最大サンプル数
+  sources:  # 収集するデータソース（all, pmda, gov, who, unodc, emcdda, wikipedia）
+    - "all"  # すべてのソースから収集
+
+  timeout: 7200  # 2時間タイムアウト
+
+# Phase 13: 統合データ収集・処理・再学習パイプライン
+phase13_japanese_training_dataset:
+  enabled: true
+  required: true  # 必須フェーズ
+  timeout: 172800  # 48時間タイムアウト（全サブフェーズ合計）
+  
+  # データ収集設定（13a）
+  data_collection:
+    output_dir: "D:/webdataset/japanese_training_dataset"  # 出力ディレクトリ
+    use_mcp_chrome_devtools: true  # MCP Chrome DevToolsを使用するか
+    num_tabs: 10  # 並列タブ数
+    delay_per_action: 2.0  # アクション間の遅延（秒）
+    target_samples:  # 各ソースの目標サンプル数
+      wikipedia_ja: 40000  # Wikipedia日本語
+      cc100_ja: 30000  # CC-100日本語
+      mc4_ja: 30000  # mc4日本語
+    timeout: 86400  # 24時間タイムアウト
+  
+  # データ処理設定（13b, 13c）
+  data_processing:
+    output_dir: "D:/webdataset/japanese_training_dataset/processed"  # 加工済みデータ出力ディレクトリ
+    use_phase2_pipeline: true  # Phase 2の処理を再利用するか
+    config_path: "configs/so8t_auto_data_processing_config.yaml"  # Phase 2の設定ファイルパス
+    timeout: 86400  # 24時間タイムアウト
+  
+  # 再学習設定（13d）
+  retraining:
+    script_path: "scripts/training/retrain_borea_phi35_with_so8t.py"  # 再学習スクリプトパス
+    config_path: "configs/retrain_borea_phi35_so8t_config.yaml"  # 再学習設定ファイルパス
+    output_dir: "D:/webdataset/models/so8t_retrained"  # 再学習済みモデル出力ディレクトリ
+    base_model_path: "models/Borea-Phi-3.5-mini-Instruct-Jp"  # ベースモデルパス
+    timeout: 172800  # 48時間タイムアウト
+
+# 評価設定
+evaluation:
+  coding_capability:
+    enabled: true
+    test_data_dir: "D:/webdataset/coding_training_data"
+    output_dir: "D:/webdataset/evaluation/coding_capability"
+    model_name: "so8t_coding_model"
+
+# Streamlitダッシュボード設定
+dashboard:
+  enabled: true
+  host: "0.0.0.0"  # 外部アクセスを許可（0.0.0.0 = すべてのインターフェース）
+  port: 8501
+
+# MCPサーバー設定
+mcp_server:
+  enabled: true  # MCPサーバーを使用するか
+  transport: "stdio"  # トランスポートタイプ（stdio, http, websocket）
+  command: "npx"  # MCPサーバー起動コマンド（stdioの場合）
+  args: ["-y", "@modelcontextprotocol/server-chrome-devtools"]  # MCPサーバー起動引数
+  url: null  # MCPサーバーURL（http/websocketの場合）
+  timeout: 30000  # タイムアウト（ミリ秒）
+
+# キーワード協調動作設定
+keyword_coordination:
+  enabled: true  # キーワード協調動作を有効にするか
+  keyword_queue_file: "D:/webdataset/checkpoints/keyword_queue.json"  # キーワードキューファイル
+  assignment_timeout: 3600  # キーワード割り当てタイムアウト（秒、1時間）
+  heartbeat_interval: 30  # ハートビート間隔（秒）
+  mcp_coordination:
+    enabled: true  # MCPサーバーを介した協調動作を有効にするか
+    broadcast_channel: "browser_coordination"  # ブロードキャストチャンネル名
+
+# タスクスケジューラ設定
+task_scheduler:
+  task_name: "SO8T-UnifiedMasterPipeline-AutoStart"
+  trigger: "onstart"  # システム起動時
+  priority: "highest"
+

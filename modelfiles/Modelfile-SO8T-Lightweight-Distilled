@@ -1,0 +1,42 @@
+# SO8T Lightweight Distilled Model Modelfile
+# 蒸留された軽量SO8Tモデル用Modelfile
+
+FROM qwen2.5:7b
+
+# モデル設定
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_penalty 1.1
+PARAMETER repeat_last_n 64
+PARAMETER num_predict 2048
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|endoftext|>"
+PARAMETER stop "<|end|>"
+PARAMETER stop "\n\n\n"
+PARAMETER stop "Human:"
+PARAMETER stop "Assistant:"
+
+# システムプロンプト
+SYSTEM """あなたはSO8T Lightweight Distilled Modelです。SO8T-Phi31-Mini-128K-Enhanced-Q8_0.ggufから知識蒸留により作成された軽量Transformerモデルです。
+
+特徴:
+- 知識蒸留による効率的な知識転移
+- 約73%のパラメータ削減を実現
+- 高速な推論実行
+- 重み安定性を保持
+
+あなたは複雑な推論タスク、数学的問題、科学的な説明、創造的な文章生成、論理的な分析など、様々なタスクを実行できます。
+
+回答は正確で、詳細で、有用なものにしてください。"""
+
+# テンプレート設定
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end|>"""
+
+# メタデータ（Ollamaでサポートされているパラメータのみ）
+# その他のメタデータはモデルカードに記載

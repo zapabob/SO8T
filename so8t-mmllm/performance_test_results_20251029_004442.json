@@ -1,0 +1,122 @@
+{
+  "response_time": {
+    "success": true,
+    "total_prompts": 5,
+    "successful_prompts": 5,
+    "overall_avg": 0.36013835271199546,
+    "overall_min": 0.33167433738708496,
+    "overall_max": 0.38819241523742676,
+    "overall_std": 0.02729492814224856,
+    "prompt_results": [
+      {
+        "prompt": "",
+        "iterations": 3,
+        "avg_time": 0.38819241523742676,
+        "min_time": 0.3124408721923828,
+        "max_time": 0.4889500141143799,
+        "std_dev": 0.09087269346019929,
+        "times": [
+          0.4889500141143799,
+          0.3124408721923828,
+          0.3631863594055176
+        ]
+      },
+      {
+        "prompt": "SO(8)",
+        "iterations": 3,
+        "avg_time": 0.38640666007995605,
+        "min_time": 0.34026479721069336,
+        "max_time": 0.45764970779418945,
+        "std_dev": 0.06258878828224655,
+        "times": [
+          0.45764970779418945,
+          0.36130547523498535,
+          0.34026479721069336
+        ]
+      },
+      {
+        "prompt": ": 2x + 5 = 13",
+        "iterations": 3,
+        "avg_time": 0.3605970541636149,
+        "min_time": 0.31367993354797363,
+        "max_time": 0.44937849044799805,
+        "std_dev": 0.07692847509860273,
+        "times": [
+          0.44937849044799805,
+          0.31367993354797363,
+          0.31873273849487305
+        ]
+      },
+      {
+        "prompt": "AI",
+        "iterations": 3,
+        "avg_time": 0.33382129669189453,
+        "min_time": 0.3117821216583252,
+        "max_time": 0.36774444580078125,
+        "std_dev": 0.029813873628286573,
+        "times": [
+          0.36774444580078125,
+          0.3117821216583252,
+          0.32193732261657715
+        ]
+      },
+      {
+        "prompt": "",
+        "iterations": 3,
+        "avg_time": 0.33167433738708496,
+        "min_time": 0.3125920295715332,
+        "max_time": 0.3654501438140869,
+        "std_dev": 0.02933290364766556,
+        "times": [
+          0.3654501438140869,
+          0.31698083877563477,
+          0.3125920295715332
+        ]
+      }
+    ]
+  },
+  "memory_usage": {
+    "success": true,
+    "model_size": "1.6",
+    "raw_output": "so8t-qwen2vl-2b:latest                                448613e16844    1.6 GB    8 minutes ago    "
+  },
+  "concurrent_requests": {
+    "success": true,
+    "total_requests": 3,
+    "successful_requests": 3,
+    "total_time": 1.774674415588379,
+    "avg_response_time": 1.6885417302449544,
+    "request_results": [
+      {
+        "request_id": 2,
+        "success": true,
+        "response_time": 1.6026837825775146,
+        "response": "\n\n"
+      },
+      {
+        "request_id": 0,
+        "success": true,
+        "response_time": 1.689267873764038,
+        "response": "\n\n"
+      },
+      {
+        "request_id": 1,
+        "success": true,
+        "response_time": 1.7736735343933105,
+        "response": "\n\n"
+      }
+    ]
+  },
+  "long_context": {
+    "success": true,
+    "prompt_length": 0,
+    "response_time": 0.376706600189209,
+    "response_length": 2,
+    "error": null
+  },
+  "summary": {
+    "model_name": "so8t-qwen2vl-2b",
+    "test_time": "2025-10-29T00:44:42.585688",
+    "total_tests": 4
+  }
+}

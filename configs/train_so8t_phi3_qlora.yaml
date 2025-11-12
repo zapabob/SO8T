@@ -1,0 +1,104 @@
+# SO8T統合Phi-3モデル QLoRA 8bitファインチューニング設定
+
+# モデル設定
+model:
+  base_model: "D:/webdataset/models/so8t_integrated/phi3_so8t"  # SO8T統合済みモデルパス
+  model_type: "phi3_so8t"
+  torch_dtype: "bfloat16"  # bfloat16, float16, float32
+
+# データ設定
+data:
+  # 訓練データ（複数指定可能）
+  train_data:
+    - "D:/webdataset/processed/finetuning/train.jsonl"
+  
+  # 検証データ
+  val_data: "D:/webdataset/processed/finetuning/val.jsonl"
+  
+  # データ処理
+  max_seq_length: 2048
+  preprocessing_num_workers: 0  # メモリ効率化のため0
+
+# QLoRA設定
+qlora:
+  r: 64                    # LoRAランク
+  lora_alpha: 128          # LoRAスケーリング係数
+  target_modules:          # LoRA適用対象
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# 量子化設定
+quantization:
+  load_in_8bit: true       # 8bit量子化を有効化
+  load_in_4bit: false     # 4bit量子化は無効化
+  bnb_8bit_compute_dtype: "float16"
+  bnb_8bit_use_double_quant: true
+  bnb_8bit_quant_type: "nf8"
+
+# 学習設定
+training:
+  # 基本設定
+  output_dir: "D:/webdataset/checkpoints/finetuning/so8t_phi3"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1  # メモリ削減のため1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16  # 実質バッチサイズ16
+  
+  # 最適化
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+  
+  # スケジューラ
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.1
+  warmup_steps: 0  # warmup_ratioを使用
+  
+  # 精度（メモリ削減のためfp16を使用）
+  fp16: true
+  bf16: false
+  tf32: false
+  
+  # ログ・保存
+  logging_steps: 10
+  save_steps: 500
+  save_total_limit: 5
+  save_strategy: "steps"
+  evaluation_strategy: "steps"
+  eval_steps: 500
+  
+  # その他
+  report_to: []
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
+  
+  # メモリ効率化
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+  dataloader_num_workers: 0  # メモリ効率化
+
+# 損失設定
+loss:
+  so8t_orthogonality_weight: 0.01  # SO8T直交性正則化損失の重み
+
+# デバイス設定
+device: "cuda"  # cuda or cpu
+
+
+
+
+
+
+

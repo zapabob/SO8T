@@ -1,0 +1,76 @@
+# SO(8) Transformer再学習統合設定ファイル
+# Borea-Phi-3.5-mini-Instruct-Jpベース + ベイズ最適化 + 電源断リカバリー
+
+# 出力ディレクトリ
+checkpoint_dir: "D:/webdataset/checkpoints/training"
+
+# ベースモデル設定
+base_model_path: "models/Borea-Phi-3.5-mini-Instruct-Jp"
+
+# データ設定
+data:
+  # 既存の処理済みデータ
+  existing_data_path: "D:/webdataset/processed/four_class/four_class_20251108_035137.jsonl"
+  # デフォルトデータセット
+  default_data_path: "data/so8t_seed_dataset.jsonl"
+  max_seq_length: 2048
+  use_quadruple_thinking: true
+
+# ベイズ最適化設定
+bayesian_optimization:
+  run_bayesian_optimization: false  # trueにするとベイズ最適化を実行
+  n_trials: 50
+  study_name: "so8t_bayesian_optimization"
+
+# 学習設定
+training:
+  num_epochs: 3
+  batch_size: 1
+  gradient_accumulation_steps: 16
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  logging_steps: 10
+  save_steps: 500
+  save_total_limit: 5
+  eval_steps: 500
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+
+# LoRA設定
+lora_r: 64
+lora_alpha: 128
+lora_target_modules:
+  - "q_proj"
+  - "k_proj"
+  - "v_proj"
+  - "o_proj"
+  - "gate_proj"
+  - "up_proj"
+  - "down_proj"
+lora_dropout: 0.05
+
+# チェックポイント設定
+checkpoint:
+  interval_seconds: 180  # 3分間隔
+  max_checkpoints: 5  # ローリングストック最大5個
+
+# 進捗ログ設定
+progress_log:
+  interval_seconds: 180  # 3分間隔
+  log_cpu_usage: true
+  log_memory_usage: true
+  log_gpu_usage: true
+  log_gpu_temperature: true
+  log_training_metrics: true
+
+
+
+
+
+
+
+
