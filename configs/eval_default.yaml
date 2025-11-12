@@ -1,8 +1,0 @@
-checkpoint: chk/so8t_default.pt
-split: val
-batch_size: 32
-num_workers: 2
-metrics:
-  - accuracy
-  - macro_f1
-  - confusion
