@@ -271,7 +271,15 @@ else
 # Step 10: Verify installation
 echo ""
 echo "[STEP 9] Verifying flash-attention installation..."
-if python3 -c "from flash_attn import flash_attn_func; print('[OK] Flash Attention 2.5.0 installed successfully!')" 2>/dev/null; then
+# If running as root, verify as the default user
+if [ "$EUID" -eq 0 ] && [ -n "$DEFAULT_USER" ]; then
+    if su - "$DEFAULT_USER" -c "python3 -c 'from flash_attn import flash_attn_func; print(\"[OK] Flash Attention 2.5.0 installed successfully!\")'" 2>/dev/null; then
+        su - "$DEFAULT_USER" -c "python3 -c 'import flash_attn; print(f\"  flash-attn version: {flash_attn.__version__}\")'" 2>/dev/null || echo "  Version check skipped"
+    else
+        echo "  [ERROR] flash-attention import failed"
+        exit 1
+    fi
+elif python3 -c "from flash_attn import flash_attn_func; print('[OK] Flash Attention 2.5.0 installed successfully!')" 2>/dev/null; then
     python3 -c "import flash_attn; print(f'  flash-attn version: {flash_attn.__version__}')" 2>/dev/null || echo "  Version check skipped"
     echo ""
     echo "=========================================="
