@@ -1,4 +1,4 @@
-﻿# uv 依存関係インストールスクリプト
+# uv 依存関係インストールスクリプト
 # Usage: .\scripts\utils\setup\install_dependencies_uv.ps1
 
 Write-Host "[INFO] Installing dependencies with uv..." -ForegroundColor Green

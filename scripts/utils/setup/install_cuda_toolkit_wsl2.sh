@@ -84,18 +84,51 @@ apt-get update || {
     exit 1
 }
 
+# Fix broken dependencies first
+echo "  [INFO] Fixing broken dependencies..."
+apt-get install -f -y || {
+    echo "  [WARNING] Failed to fix broken dependencies, continuing..."
+}
+
 # Step 4: Install CUDA toolkit
 echo ""
 echo "[STEP 4] Installing CUDA toolkit 12.1..."
 echo "  [WARNING] This will download and install ~2GB of packages..."
 echo "  [INFO] This may take 10-20 minutes..."
+echo "  [INFO] Note: nsight-systems will be excluded due to libtinfo5 dependency issue"
 
-apt-get install -y cuda-toolkit-12-1 || {
-    echo "  [ERROR] CUDA toolkit installation failed"
-    echo "  [INFO] Trying alternative: cuda-toolkit-12-0..."
-    apt-get install -y cuda-toolkit-12-0 || {
-        echo "  [ERROR] Alternative installation also failed"
-        exit 1
+# Install libtinfo5 compatibility package if available
+echo "  [INFO] Installing libtinfo5 compatibility package..."
+apt-get install -y libtinfo5 || {
+    echo "  [WARNING] libtinfo5 not available, trying libtinfo6 compatibility..."
+    # Try to create a symlink or install from alternative source
+    apt-get install -y libtinfo6 || echo "  [WARNING] libtinfo6 installation failed, continuing..."
+}
+
+# Try installing CUDA toolkit without nsight-systems
+echo "  [INFO] Installing CUDA toolkit components (excluding nsight-systems)..."
+apt-get install -y --no-install-recommends \
+    cuda-compiler-12-1 \
+    cuda-libraries-12-1 \
+    cuda-libraries-dev-12-1 \
+    cuda-tools-12-1 \
+    cuda-nvml-dev-12-1 || {
+    echo "  [WARNING] Individual component installation failed"
+    echo "  [INFO] Trying cuda-toolkit-12-1 with nsight-systems exclusion..."
+    # Exclude nsight-systems from installation
+    apt-get install -y cuda-toolkit-12-1 --no-install-recommends || {
+        echo "  [WARNING] CUDA toolkit 12.1 installation failed"
+        echo "  [INFO] Trying alternative: cuda-toolkit-12-0 (excluding nsight-systems)..."
+        apt-get install -y cuda-toolkit-12-0 --no-install-recommends || {
+            echo "  [WARNING] CUDA toolkit 12.0 installation also failed"
+            echo "  [INFO] Trying minimal installation (compiler only)..."
+            # Minimal installation: just the compiler
+            apt-get install -y cuda-nvcc-12-1 cuda-cudart-12-1 cuda-cudart-dev-12-1 || {
+                echo "  [ERROR] Minimal CUDA installation failed"
+                echo "  [INFO] You may need to manually install CUDA toolkit"
+                exit 1
+            }
+        }
     }
 }
 

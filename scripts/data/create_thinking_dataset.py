@@ -37,6 +37,8 @@ def convert_to_quadruple_thinking_format(
     output: str,
     safety_label: str = "ALLOW",
     policy_domain: str = "general",
+    domain_label: Optional[str] = None,
+    text: Optional[str] = None,
 ) -> str:
     """
     既存の出力を四重推論形式に変換
@@ -47,17 +49,111 @@ def convert_to_quadruple_thinking_format(
         output: 既存の出力
         safety_label: 安全ラベル
         policy_domain: ポリシードメイン
+        domain_label: ドメインラベル（オプション）
+        text: 元のテキスト（オプション）
     
     Returns:
         四重推論形式の出力
     """
-    # 簡易実装: 既存の出力を基に四重推論を生成
-    # 実際の実装では、より高度な変換ロジックが必要
+    # Task推論: タスクの理解、ドメイン知識、翻訳方針、要約方針
+    task_parts = []
+    if instruction:
+        task_parts.append(f"Task: {instruction}")
+    if input_text:
+        task_parts.append(f"Input: {input_text[:200]}")  # 最初の200文字
+    if domain_label:
+        task_parts.append(f"Domain: {domain_label}")
+    else:
+        task_parts.append("Domain: general")
     
-    task_reasoning = f"Task: {instruction}. Need to process: {input_text}. Output format: concise Japanese answer."
-    safety_reasoning = f"Safety check: {safety_label}. Content is public and safe. No harmful instructions."
-    policy_reasoning = f"Policy domain: {policy_domain}. Provide only descriptive, non-operational information."
-    final_answer = output.split('.')[0] + '.' if '.' in output else output
+    # ドメインに応じた方針を追加
+    if domain_label in ["medical", "医療", "health"]:
+        task_parts.append("Translation policy: Provide general information only, no medical advice.")
+        task_parts.append("Summary policy: Focus on factual information, avoid operational details.")
+    elif domain_label in ["legal", "法律", "law"]:
+        task_parts.append("Translation policy: Provide general legal concepts, no specific legal advice.")
+        task_parts.append("Summary policy: Focus on legal principles, avoid case-specific details.")
+    elif domain_label in ["technical", "技術", "tech"]:
+        task_parts.append("Translation policy: Provide technical explanations, avoid implementation details.")
+        task_parts.append("Summary policy: Focus on concepts and principles.")
+    else:
+        task_parts.append("Translation policy: Provide clear, concise Japanese answer.")
+        task_parts.append("Summary policy: Focus on key points and main information.")
+    
+    task_reasoning = " ".join(task_parts)
+    
+    # Safety推論: 安全性チェック、法令順守、NSFW違反評価
+    safety_parts = []
+    safety_parts.append(f"Safety check: {safety_label}")
+    
+    if safety_label == "ALLOW":
+        safety_parts.append("Content is public and safe.")
+        safety_parts.append("No harmful instructions detected.")
+        safety_parts.append("Complies with legal requirements.")
+    elif safety_label == "ESCALATE":
+        safety_parts.append("Content requires review.")
+        safety_parts.append("Potential sensitive topics detected.")
+        safety_parts.append("Escalation recommended for human review.")
+    elif safety_label in ["REFUSE", "DENY"]:
+        safety_parts.append("Content violates safety guidelines.")
+        safety_parts.append("Harmful or illegal content detected.")
+        safety_parts.append("Request refused for safety reasons.")
+    
+    # NSFWチェック（簡易実装）
+    nsfw_keywords = ["nsfw", "explicit", "adult", "violence", "harmful"]
+    text_to_check = (text or input_text or output).lower()
+    if any(keyword in text_to_check for keyword in nsfw_keywords):
+        safety_parts.append("NSFW content detected, filtering required.")
+    else:
+        safety_parts.append("No NSFW content detected.")
+    
+    safety_reasoning = " ".join(safety_parts)
+    
+    # Policy推論: 軍事・医療・インフラ等の領域別ポリシー、出せる/出せない情報範囲
+    policy_parts = []
+    policy_parts.append(f"Policy domain: {policy_domain}")
+    
+    # ドメイン別ポリシー
+    if policy_domain in ["military", "軍事", "defense"]:
+        policy_parts.append("Policy: Provide only publicly available information.")
+        policy_parts.append("Restriction: No operational details, classified information, or tactical data.")
+        policy_parts.append("Allowed: General concepts, historical information, public documents.")
+    elif policy_domain in ["medical", "医療", "health"]:
+        policy_parts.append("Policy: Provide general health information only.")
+        policy_parts.append("Restriction: No specific medical advice, diagnosis, or treatment recommendations.")
+        policy_parts.append("Allowed: General health concepts, public health information, educational content.")
+    elif policy_domain in ["infrastructure", "インフラ", "critical"]:
+        policy_parts.append("Policy: Provide general information only.")
+        policy_parts.append("Restriction: No operational details, security vulnerabilities, or system configurations.")
+        policy_parts.append("Allowed: General concepts, public information, educational content.")
+    elif policy_domain in ["financial", "金融", "finance"]:
+        policy_parts.append("Policy: Provide general financial information only.")
+        policy_parts.append("Restriction: No specific investment advice, trading strategies, or financial recommendations.")
+        policy_parts.append("Allowed: General financial concepts, educational content, public information.")
+    else:
+        policy_parts.append("Policy: Provide descriptive, non-operational information.")
+        policy_parts.append("Restriction: No sensitive operational details or confidential information.")
+        policy_parts.append("Allowed: General information, educational content, public knowledge.")
+    
+    policy_reasoning = " ".join(policy_parts)
+    
+    # Final回答: 制約を反映した最終回答（日本語）
+    # 既存の出力から適切に抽出
+    if output:
+        # 既に日本語の場合はそのまま使用
+        if any(ord(c) > 0x3040 for c in output):
+            final_answer = output
+        else:
+            # 英語の場合は簡易的に日本語に変換（実際の実装では翻訳が必要）
+            final_answer = f"回答: {output[:500]}"  # 最初の500文字
+    else:
+        final_answer = "回答を生成できませんでした。"
+    
+    # 安全性ラベルに応じて最終回答を調整
+    if safety_label in ["REFUSE", "DENY"]:
+        final_answer = "安全上の理由から、この要求にお答えできません。"
+    elif safety_label == "ESCALATE":
+        final_answer = f"この内容は専門家による確認が必要です。一般的な情報として: {final_answer[:200]}"
     
     return format_quadruple_thinking_output(
         task=task_reasoning,
@@ -110,13 +206,17 @@ def convert_existing_dataset_to_thinking(
                 if use_quadruple:
                     # 四重推論形式に変換
                     safety_label_str = sample.get("safety_label", "ALLOW")
-                    policy_domain = sample.get("policy_domain", "general")
+                    policy_domain = sample.get("policy_domain", sample.get("domain_label", "general"))
+                    domain_label = sample.get("domain_label", None)
+                    text = sample.get("text", None)
                     thinking_output = convert_to_quadruple_thinking_format(
                         instruction=instruction,
                         input_text=input_text,
                         output=output,
                         safety_label=safety_label_str,
                         policy_domain=policy_domain,
+                        domain_label=domain_label,
+                        text=text,
                     )
                 else:
                     tokens = get_thinking_tokens(use_redacted, use_quadruple)

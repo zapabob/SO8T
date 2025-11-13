@@ -20,6 +20,7 @@ import sys
 import json
 import logging
 import argparse
+import re
 from pathlib import Path
 from typing import Dict, List, Optional
 import warnings
@@ -47,12 +48,58 @@ from peft import (
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from so8t_core.so8t_layer import SO8TRotationGate
 from so8t_core.pet_regularizer import PETRegularizer, PETSchedule
+from src.so8t.checkpointing import TimeBasedCheckpointCallback
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def find_latest_checkpoint(output_dir: str) -> Optional[str]:
+    """
+    output_dir 配下の checkpoint-* ディレクトリのうち、
+    最大ステップ番号のもののパスを返す。なければ None。
+    
+    壊れたチェックポイントを除外するため、pytorch_model.bin または
+    trainer_state.json の存在をチェックする。
+    
+    Args:
+        output_dir: チェックポイントを検索するディレクトリ
+        
+    Returns:
+        最新チェックポイントのパス（存在しない場合はNone）
+    """
+    base = Path(output_dir)
+    if not base.exists():
+        return None
+
+    pattern = re.compile(r"^checkpoint-(\d+)$")
+    candidates = []
+    for child in base.iterdir():
+        if child.is_dir():
+            m = pattern.match(child.name)
+            if m:
+                step = int(m.group(1))
+                # チェックポイントが有効か確認（必須ファイルの存在チェック）
+                # pytorch_model.bin, model.safetensors, adapter_model.bin のいずれか、
+                # または trainer_state.json があれば有効とみなす
+                has_model = (
+                    (child / "pytorch_model.bin").exists() or
+                    (child / "model.safetensors").exists() or
+                    (child / "adapter_model.bin").exists()
+                )
+                has_state = (child / "trainer_state.json").exists()
+                
+                if has_model or has_state:
+                    candidates.append((step, child))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda x: x[0])
+    return str(candidates[-1][1])
 
 
 
@@ -293,6 +340,8 @@ def main():
                        help="Load model in 4bit")
     parser.add_argument("--load_in_8bit", action="store_true",
                        help="Load model in 8bit")
+    parser.add_argument("--auto-resume", action="store_true",
+                       help="Automatically resume from the latest checkpoint")
     
     args = parser.parse_args()
     
@@ -407,6 +456,9 @@ def main():
         gradient_checkpointing=True,
     )
     
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    
     # Trainer作成
     trainer = SO8TQLoRATrainer(
         model=model,
@@ -417,13 +469,23 @@ def main():
             mlm=False
         ),
         pet_regularizer=pet_regularizer,
-        so8t_orthogonality_weight=0.01
+        so8t_orthogonality_weight=0.01,
+        callbacks=[time_cb]
     )
+    
+    # 自動再開の処理
+    resume_ckpt = None
+    if args.auto_resume:
+        resume_ckpt = find_latest_checkpoint(str(output_dir))
+        if resume_ckpt is not None:
+            logger.info(f"[INFO] Resuming from latest checkpoint: {resume_ckpt}")
+        else:
+            logger.info("[INFO] No checkpoint found. Starting from scratch.")
     
     # 訓練開始
     logger.info("Starting training...")
     logger.info(f"Effective batch size: {args.batch_size * args.gradient_accumulation_steps}")
-    trainer.train()
+    trainer.train(resume_from_checkpoint=resume_ckpt)
     
     # モデル保存
     logger.info(f"Saving model to {output_dir}...")

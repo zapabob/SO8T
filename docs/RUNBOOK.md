@@ -103,6 +103,55 @@ python scripts/training/train_so8t_lora.py \
 - `save_steps`ごとにチェックポイントが保存される
 - 最新の3つのチェックポイントが保持される（`save_total_limit=3`）
 
+### Step 2.5: 電源断対応の自動再開
+
+電源断が頻発する環境では、`--auto-resume` オプションを使用して自動再開を有効化：
+
+```bash
+python scripts/training/train_so8t_lora.py \
+    --base_model models/Borea-Phi-3.5-mini-Instruct-Jp \
+    --dataset data/train.jsonl \
+    --output_dir D:/webdataset/checkpoints/training/so8t_lora \
+    --lora_r 16 \
+    --lora_alpha 32 \
+    --lora_dropout 0.05 \
+    --batch_size 1 \
+    --gradient_accumulation_steps 8 \
+    --learning_rate 2e-4 \
+    --num_epochs 3 \
+    --load_in_4bit \
+    --auto-resume
+```
+
+**電源断対応の仕組み：**
+- `TimeBasedCheckpointCallback` が約3分（180秒）ごとにチェックポイントを自動保存
+- `--auto-resume` が有効な場合、起動時に最新のチェックポイントを自動検出して再開
+- 電源断で失われる学習量は最大約3分分（約3分ごとに保存されるため）
+
+**ログの確認：**
+- 再起動後、`output_dir/trainer_state.json` の `global_step` が増えているかで再開できているか確認
+- ログに `[INFO] Resuming from latest checkpoint: ...` が表示されれば再開成功
+
+**壊れたチェックポイントの扱い：**
+- 電源断の瞬間に書き込み中だったチェックポイントが壊れる可能性がある
+- `find_latest_checkpoint()` 関数が `pytorch_model.bin`、`model.safetensors`、`adapter_model.bin`、または `trainer_state.json` の存在をチェックして、有効なチェックポイントのみを検出
+- 壊れたチェックポイントは自動的にスキップされる
+
+**Windows 11での自動起動設定：**
+1. タスクスケジューラを開く（`Win + R` → `taskschd.msc`）
+2. 「基本タスクの作成」を選択
+3. トリガーを「ログオン時」または「システム起動時」に設定
+4. 操作を「プログラムの開始」に設定
+5. プログラム/スクリプト: `C:\Users\downl\Desktop\SO8T\scripts\run_training.bat`
+6. 「開始場所」に `C:\Users\downl\Desktop\SO8T` を設定
+7. 「高い特権で実行する」にチェック
+8. 完了
+
+**注意事項：**
+- `TimeBasedCheckpointCallback` は `Trainer._save_checkpoint()` という内部APIを使用しているため、transformers のバージョンが変わったら壊れる可能性がある
+- チェックポイント保存中に電源断が発生すると、チェックポイントが壊れる可能性がある（自動的にスキップされる）
+- タスクスケジューラへの登録は手動作業が必要
+
 ## 焼き込み・変換パイプライン
 
 ### Step 1: SO8T回転の焼き込み
@@ -379,6 +428,11 @@ cp D:/webdataset/gguf_models/so8t_baked_v1_Q5_K_M.gguf \
 1. ログファイル（`logs/`ディレクトリ）
 2. チェックポイントファイル
 3. エラーメッセージの詳細
+
+
+
+
+
 
 
 

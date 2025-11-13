@@ -1,0 +1,104 @@
+# Borea-Phi-3.5-mini-Instruct-Jp SO8T/thinking学習設定（RTX3060最適化版）
+# RTX3060 (12GB) 向けメモリ最適化設定
+
+# モデル設定
+model:
+  base_model: "C:/Users/downl/Desktop/SO8T/models/Borea-Phi-3.5-mini-Instruct-Jp"  # ローカルパス
+  model_type: "phi3"
+  torch_dtype: "float16"
+
+# SO8T設定
+so8t:
+  enabled: true
+  # 選択的レイヤー適用（RTX3060向けに中間レイヤーのみ）
+  layer_indices: [4, 5, 6, 7, 8, 9, 10, 11]  # 全32レイヤー中8レイヤーのみ
+  init_scale: 0.05
+  orthogonal_reg: 1.0e-4
+
+# 量子化設定（QLoRA - RTX3060向け）
+quantization:
+  load_in_8bit: true
+  llm_int8_threshold: 6.0
+  llm_int8_has_fp16_weight: false
+
+# QLoRA設定（RTX3060向け最適化）
+qlora:
+  enabled: true
+  r: 32                    # LoRAランク（メモリ節約）
+  lora_alpha: 64          # LoRAスケーリング係数
+  target_modules:          # LoRA適用対象
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# データ設定
+data:
+  # 四重推論形式データセットディレクトリ（優先順位: quadruple > thinking_sft）
+  # バッチスクリプトが最新のファイルを自動検出
+  train_data_dir: "D:/webdataset/processed/thinking_quadruple"
+  train_data_pattern: "quadruple_thinking_*.jsonl"
+  # フォールバック: thinking_sftデータセット
+  fallback_train_data: "D:/webdataset/processed/thinking_sft/thinking_sft_dataset.jsonl"
+  max_seq_length: 1024    # RTX3060向けに1024に制限（メモリ節約）
+  preprocessing_num_workers: 0  # RTX3060向けに0に設定（メモリ効率化）
+
+# PET正則化設定
+pet:
+  enabled: true
+  # 3相スケジュール
+  lambda_exploration: 0.01      # 探索相（0-20%）
+  lambda_transition: 0.05       # 遷移相（20-60%）
+  lambda_stabilization: 0.1      # 安定相（60-100%）
+  exploration_ratio: 0.2
+  transition_ratio: 0.4
+  stabilization_ratio: 0.4
+  # 損失関数設定
+  huber_delta: 0.0              # 0ならL2損失
+  reduction: "mean"
+  # 安定性設定
+  clip_gradient: true
+  max_gradient_norm: 1.0
+  eps: 1.0e-8
+  # ログ設定
+  log_every_n_steps: 100
+  save_stats: true
+
+# 学習設定（RTX3060最適化）
+training:
+  # 基本設定
+  output_dir: "D:/webdataset/checkpoints/training/borea_phi35_so8t_thinking_rtx3060"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1  # RTX3060向けに1に設定（必須）
+  gradient_accumulation_steps: 16  # 実質バッチサイズ16
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  
+  # ログ・保存設定
+  logging_steps: 10
+  save_steps: 500
+  save_total_limit: 5
+  eval_steps: 500
+  evaluation_strategy: "no"  # 評価を無効化（メモリ節約）
+  
+  # 最適化設定（RTX3060向け）
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true  # メモリ節約のため有効化
+  optim: "paged_adamw_8bit"  # メモリ効率的なオプティマイザー
+  dataloader_num_workers: 0  # RTX3060向けに0に設定（メモリ効率化）
+  dataloader_pin_memory: false  # メモリ効率化
+
+# パイプライン設定
+pipeline:
+  base_output_dir: "D:/webdataset/borea_phi35_so8t_thinking_rtx3060"
+  model_name: "borea_phi35_so8t_thinking_rtx3060"
+

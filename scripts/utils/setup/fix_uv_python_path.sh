@@ -79,3 +79,9 @@ echo "  export UV_PYTHON=\"$SELECTED_PYTHON\""
 echo "  uv pip install <package>"
 
 
+
+
+
+
+
+

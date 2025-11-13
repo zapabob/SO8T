@@ -84,3 +84,9 @@ Write-Host "  `$env:UV_PYTHON = `"$selectedPython`"" -ForegroundColor Green
 Write-Host "  uv pip install <package>" -ForegroundColor Green
 
 
+
+
+
+
+
+

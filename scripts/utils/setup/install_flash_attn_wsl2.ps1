@@ -65,3 +65,9 @@ Write-Host "     https://developer.nvidia.com/cuda-downloads" -ForegroundColor G
 Write-Host "  3. WSL2環境でnvidia-smiを実行して確認" -ForegroundColor White
 
 
+
+
+
+
+
+

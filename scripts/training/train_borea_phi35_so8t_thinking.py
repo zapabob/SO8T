@@ -72,6 +72,9 @@ except ImportError as e:
 # PET正則化をインポート
 from pet_regularization import PETRegularization, PETConfig
 
+# 時間ベースチェックポイントCallbackをインポート
+from src.so8t.checkpointing import TimeBasedCheckpointCallback
+
 # ロギング設定
 logging.basicConfig(
     level=logging.INFO,
@@ -683,7 +686,14 @@ def main():
         optim=training_config.get("optim", "paged_adamw_8bit"),
         report_to=[],
         resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
     )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
     
     # トレーナー
     trainer = SO8TPETTrainer(
@@ -691,7 +701,8 @@ def main():
         args=training_args,
         train_dataset=train_dataset,
         data_collator=data_collator,
-        pet_regularization=pet_regularization
+        pet_regularization=pet_regularization,
+        callbacks=[time_cb]
     )
     
     # 学習実行
@@ -725,7 +736,88 @@ def main():
                             shutil.rmtree(old_path)
                     self.recovery.save_session(self.session_data)
     
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
     trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
     
     trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
     

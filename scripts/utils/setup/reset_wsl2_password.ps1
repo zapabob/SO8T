@@ -52,3 +52,9 @@ Write-Host "  2. パスワードをリセット: passwd" -ForegroundColor White
 Write-Host "  3. 新しいパスワードを設定" -ForegroundColor White
 
 
+
+
+
+
+
+
