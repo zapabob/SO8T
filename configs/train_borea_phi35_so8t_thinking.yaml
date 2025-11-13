@@ -1,0 +1,99 @@
+# Borea-Phi-3.5-mini-Instruct-Jp SO8T/thinking学習設定
+
+# モデル設定
+model:
+  base_model: "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp"
+  model_type: "phi3"
+  torch_dtype: "float16"
+
+# SO8T設定
+so8t:
+  enabled: true
+  # 選択的レイヤー適用（Noneの場合は全レイヤーに適用）
+  layer_indices: null  # 例: [0, 1, 2, 10, 11, 12] で特定レイヤーのみ
+  init_scale: 0.05
+  orthogonal_reg: 1.0e-4
+
+# 量子化設定（QLoRA）
+quantization:
+  load_in_8bit: true
+  llm_int8_threshold: 6.0
+  llm_int8_has_fp16_weight: false
+
+# QLoRA設定
+qlora:
+  enabled: true
+  r: 64                    # LoRAランク
+  lora_alpha: 128          # LoRAスケーリング係数
+  target_modules:          # LoRA適用対象
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# データ設定
+data:
+  # /think形式データセットパス
+  train_data: "D:/webdataset/processed/thinking_sft/thinking_sft_dataset.jsonl"
+  max_seq_length: 2048
+  preprocessing_num_workers: 4
+
+# PET正則化設定
+pet:
+  enabled: true
+  # 3相スケジュール
+  lambda_exploration: 0.01      # 探索相（0-20%）
+  lambda_transition: 0.05       # 遷移相（20-60%）
+  lambda_stabilization: 0.1      # 安定相（60-100%）
+  exploration_ratio: 0.2
+  transition_ratio: 0.4
+  stabilization_ratio: 0.4
+  # 損失関数設定
+  huber_delta: 0.0              # 0ならL2損失
+  reduction: "mean"
+  # 安定性設定
+  clip_gradient: true
+  max_gradient_norm: 1.0
+  eps: 1.0e-8
+  # ログ設定
+  log_every_n_steps: 100
+  save_stats: true
+
+# 学習設定
+training:
+  # 基本設定
+  output_dir: "D:/webdataset/checkpoints/training/borea_phi35_so8t_thinking"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  
+  # ログ・保存設定
+  logging_steps: 10
+  save_steps: 500
+  save_total_limit: 5
+  
+  # 最適化設定
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+
+# パイプライン設定
+pipeline:
+  base_output_dir: "D:/webdataset/borea_phi35_so8t_thinking"
+  model_name: "borea_phi35_so8t_thinking"
+  # 入力データセット（/think形式に変換する前のデータセット）
+  input_datasets:
+    - "D:/webdataset/processed/four_class/four_class_*.jsonl"
+    - "D:/webdataset/processed/domain_knowledge/domain_knowledge_*.jsonl"
+

@@ -125,3 +125,8 @@ Write-Host "[INFO] 電源投入時にパイプラインが自動再開されま�
 Write-Host ""
 
 
+
+
+
+
+
