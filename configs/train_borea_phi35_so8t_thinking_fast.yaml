@@ -47,14 +47,16 @@ data:
   # データセットサンプリング（高速化のため）
   sample_ratio: 0.5       # 50%のサンプルのみ使用（オプション）
 
-# PET正則化設定（簡略化）
+# PET正則化設定
 pet:
   enabled: true
-  # 2相スケジュール（3相 → 2相に簡略化）
-  lambda_exploration: 0.01      # 探索相（0-50%）
-  lambda_stabilization: 0.1      # 安定相（50-100%）
-  exploration_ratio: 0.5
-  stabilization_ratio: 0.5
+  # 3相スケジュール
+  lambda_exploration: 0.01      # 探索相（0-20%）
+  lambda_transition: 0.05       # 遷移相（20-60%）
+  lambda_stabilization: 0.1      # 安定相（60-100%）
+  exploration_ratio: 0.2
+  transition_ratio: 0.4
+  stabilization_ratio: 0.4
   # 損失関数設定
   huber_delta: 0.0              # 0ならL2損失
   reduction: "mean"
@@ -63,8 +65,8 @@ pet:
   max_gradient_norm: 1.0
   eps: 1.0e-8
   # ログ設定
-  log_every_n_steps: 200        # 100 → 200に削減
-  save_stats: false              # 統計保存を無効化
+  log_every_n_steps: 100
+  save_stats: true
 
 # 学習設定（高速化）
 training:

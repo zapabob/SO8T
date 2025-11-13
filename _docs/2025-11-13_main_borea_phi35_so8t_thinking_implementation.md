@@ -73,28 +73,6 @@ py -3 scripts/training/train_borea_phi35_so8t_thinking.py \
 - ディスク容量不足エラーを解決（CドライブではなくDドライブを使用）
 - 環境変数設定: `HF_HOME`, `TRANSFORMERS_CACHE`, `HF_DATASETS_CACHE`, `HF_HUB_CACHE`
 
-**電源断リカバリー機能**:
-- `PowerFailureRecovery`クラスを追加
-- セッション情報の自動保存（`training_session.json`）
-- チェックポイントからの自動再開機能
-- `--auto-resume`フラグで自動検出・再開
-- ステップごとにセッション情報を更新
-- チェックポイント保存時にセッション情報を更新
-- 電源投入時の自動再開スクリプト（`auto_resume_training.bat`, `auto_resume_training.ps1`）
-
-**使用方法**:
-```bash
-# 通常実行（自動再開機能付き）
-py -3 scripts/training/train_borea_phi35_so8t_thinking.py \
-    --config configs/train_borea_phi35_so8t_thinking.yaml \
-    --dataset "D:\webdataset\processed\thinking_sft\thinking_sft_dataset.jsonl" \
-    --output-dir "D:\webdataset\checkpoints\training\borea_phi35_so8t_thinking" \
-    --auto-resume
-
-# 電源投入時の自動再開
-scripts\training\auto_resume_training.bat
-```
-
 ### 3. 焼き込み処理の実行
 
 **ファイル**: `scripts/training/bake_borea_phi35_so8t.py`
@@ -201,58 +179,3 @@ ollama run borea-phi35-so8t-thinking "以下の問題を解いてください。
 2. Step 3（焼き込み処理）を実行
 3. Step 4（GGUF変換）を実行
 4. Step 5（Ollama動作確認）を実行
-
-## 高速版訓練設定
-
-**ファイル**: `configs/train_borea_phi35_so8t_thinking_fast.yaml`
-
-**実装状況**: [実装済み]  
-**動作確認**: [未確認]  
-**確認日時**: -  
-**備考**: 訓練時間を70-80%短縮するための最適化設定
-
-**最適化内容**:
-- エポック数: 3 → 1（67%削減）
-- 最大シーケンス長: 2048 → 1024（50%削減）
-- LoRAランク: 64 → 32（50%削減）
-- SO8T適用レイヤー: 全レイヤー → 8レイヤー（選択的）
-- 評価を無効化
-- チェックポイント保存頻度を削減
-- データセットサンプリング機能追加（オプション）
-
-**使用方法**:
-```bash
-# 高速版訓練を実行
-scripts\training\train_borea_phi35_so8t_thinking_fast.bat
-
-# または完全パイプライン（高速版）
-scripts\training\run_complete_pipeline.bat
-
-# 完全パイプライン（通常版）
-scripts\training\run_complete_pipeline.bat full
-```
-
-## 完全パイプラインスクリプト
-
-**ファイル**: `scripts/training/run_complete_pipeline.bat`
-
-**実装状況**: [実装済み]  
-**動作確認**: [未確認]  
-**確認日時**: -  
-**備考**: Step 1-5を自動的に順次実行
-
-**機能**:
-- Step 1: データセット作成（既存の場合はスキップ）
-- Step 2: 訓練実行（高速版/通常版を選択可能）
-- Step 3: 焼き込み処理
-- Step 4: GGUF変換
-- Step 5: Ollamaインポートとテスト
-
-**使用方法**:
-```bash
-# 高速版で完全パイプライン実行
-scripts\training\run_complete_pipeline.bat
-
-# 通常版で完全パイプライン実行
-scripts\training\run_complete_pipeline.bat full
-```

@@ -193,7 +193,7 @@ class ThinkingSFTDataset(Dataset):
             logger.info(f"[OK] Sampled {len(self.samples):,} samples from {len(all_samples):,} (ratio: {sample_ratio:.1%})")
         else:
             self.samples = all_samples
-            logger.info(f"[OK] Loaded {len(self.samples):,} training samples")
+        logger.info(f"[OK] Loaded {len(self.samples):,} training samples")
     
     def __len__(self):
         return len(self.samples)

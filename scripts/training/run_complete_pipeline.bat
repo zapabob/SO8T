@@ -47,7 +47,7 @@ if errorlevel 1 (
     echo [ERROR] Step 2 failed
     exit /b 1
 )
-echo.
+    echo.
 
 REM Step 3: Baking process
 echo [STEP 3] Baking SO8T rotations...
