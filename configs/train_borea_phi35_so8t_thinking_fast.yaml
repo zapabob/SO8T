@@ -1,0 +1,102 @@
+# Borea-Phi-3.5-mini-Instruct-Jp SO8T/thinking学習設定（高速版）
+# 訓練時間短縮のための最適化設定
+
+# モデル設定
+model:
+  base_model: "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp"
+  model_type: "phi3"
+  torch_dtype: "float16"
+
+# SO8T設定
+so8t:
+  enabled: true
+  # 選択的レイヤー適用（高速化のため中間レイヤーのみ）
+  layer_indices: [4, 5, 6, 7, 8, 9, 10, 11]  # 全32レイヤー中8レイヤーのみ
+  init_scale: 0.05
+  orthogonal_reg: 1.0e-4
+
+# 量子化設定（QLoRA）
+quantization:
+  load_in_8bit: true
+  llm_int8_threshold: 6.0
+  llm_int8_has_fp16_weight: false
+
+# QLoRA設定（高速化のためランクを削減）
+qlora:
+  enabled: true
+  r: 32                    # LoRAランク（64 → 32に削減）
+  lora_alpha: 64          # LoRAスケーリング係数（128 → 64に削減）
+  target_modules:          # LoRA適用対象
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# データ設定
+data:
+  # /think形式データセットパス
+  train_data: "D:/webdataset/processed/thinking_sft/thinking_sft_dataset.jsonl"
+  max_seq_length: 1024    # 2048 → 1024に削減（訓練時間約50%短縮）
+  preprocessing_num_workers: 4
+  # データセットサンプリング（高速化のため）
+  sample_ratio: 0.5       # 50%のサンプルのみ使用（オプション）
+
+# PET正則化設定（簡略化）
+pet:
+  enabled: true
+  # 2相スケジュール（3相 → 2相に簡略化）
+  lambda_exploration: 0.01      # 探索相（0-50%）
+  lambda_stabilization: 0.1      # 安定相（50-100%）
+  exploration_ratio: 0.5
+  stabilization_ratio: 0.5
+  # 損失関数設定
+  huber_delta: 0.0              # 0ならL2損失
+  reduction: "mean"
+  # 安定性設定
+  clip_gradient: true
+  max_gradient_norm: 1.0
+  eps: 1.0e-8
+  # ログ設定
+  log_every_n_steps: 200        # 100 → 200に削減
+  save_stats: false              # 統計保存を無効化
+
+# 学習設定（高速化）
+training:
+  # 基本設定
+  output_dir: "D:/webdataset/checkpoints/training/borea_phi35_so8t_thinking_fast"
+  num_train_epochs: 1            # 3 → 1に削減（訓練時間約67%短縮）
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  learning_rate: 3.0e-4          # 2.0e-4 → 3.0e-4に増加（収束を早める）
+  weight_decay: 0.01
+  warmup_ratio: 0.05             # 0.1 → 0.05に削減（ウォームアップ時間短縮）
+  lr_scheduler_type: "linear"    # cosine → linear（計算コスト削減）
+  
+  # ログ・保存設定
+  logging_steps: 20              # 10 → 20に削減
+  save_steps: 1000               # 500 → 1000に削減（チェックポイント保存頻度を減らす）
+  save_total_limit: 3            # 5 → 3に削減
+  eval_steps: 1000               # 評価頻度を減らす
+  evaluation_strategy: "no"       # 評価を無効化（訓練時間短縮）
+  
+  # 最適化設定
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+  dataloader_num_workers: 2      # 4 → 2に削減（メモリ効率化）
+  dataloader_pin_memory: false   # メモリ効率化
+
+# パイプライン設定
+pipeline:
+  base_output_dir: "D:/webdataset/borea_phi35_so8t_thinking_fast"
+  model_name: "borea_phi35_so8t_thinking_fast"
+
+
+

@@ -1,4 +1,4 @@
-# Borea-Phi-3.5-mini-Instruct-Jp SO8T/thinking化実装ログ
+# Borea-Phi-3.5 SO8T/thinking 実装ログ
 
 ## 実装情報
 - **日付**: 2025-11-13
@@ -8,209 +8,176 @@
 
 ## 実装内容
 
-### 1. /think形式SFTデータセット作成スクリプト
+### 1. /think形式データセットの作成
 
 **ファイル**: `scripts/data/create_thinking_sft_dataset.py`
 
 **実装状況**: [実装済み]  
-**動作確認**: [未確認]  
-**確認日時**: -  
-**備考**: Phi-3.5チャットテンプレート準拠の/think形式データセット作成
+**動作確認**: [OK]  
+**確認日時**: 2025-11-13  
+**備考**: 既存の4値分類データセットから/think形式のSFTデータセットを生成
 
-- `format_phi35_chat_template()`関数を実装
-  - `<|system|>`, `<|user|>`, `<|assistant|>`形式に対応
-  - `# 思考ステップ`と`# 最終回答`を分離した構造
-- `create_thinking_output()`関数を実装
-  - 思考ステップと最終回答を結合
-- `convert_sample_to_thinking_format()`関数を実装
-  - 既存サンプルを/think形式に変換
-  - 既に/think形式の場合はそのまま使用
-- `convert_dataset_to_thinking_format()`関数を実装
-  - JSONLファイルを一括変換
-- `merge_multiple_datasets()`関数を実装
-  - 複数データセットをマージして変換
+- 入力データセット: `D:/webdataset/processed/four_class/four_class_*.jsonl`
+- 出力データセット: `D:/webdataset/processed/thinking_sft/thinking_sft_dataset.jsonl`
+- 生成サンプル数: 1,441サンプル
+- フォーマット: Phi-3.5チャットテンプレート形式（`<|system|>`, `<|user|>`, `<|assistant|>`）
+- 思考ステップと最終回答の分離: `# 思考ステップ` と `# 最終回答` を含む形式
 
-### 2. 選択的SO8Tレイヤー適用機能
+**実行コマンド**:
+```bash
+$files = Get-ChildItem "D:\webdataset\processed\four_class\four_class_*.jsonl" | Select-Object -ExpandProperty FullName
+py -3 scripts/data/create_thinking_sft_dataset.py --inputs $files --output "D:\webdataset\processed\thinking_sft\thinking_sft_dataset.jsonl"
+```
 
-**ファイル**: `models/Borea-Phi-3.5-mini-Instruct-Jp/modeling_phi3_so8t.py`
-
-**実装状況**: [実装済み]  
-**動作確認**: [未確認]  
-**確認日時**: -  
-**備考**: 全レイヤーにSO8Tを適用せず、選択的レイヤー適用に対応
-
-- `SO8TPhi3Model.__init__()`に`so8t_layer_indices`パラメータを追加
-  - `None`の場合は全レイヤーに適用
-  - リスト指定の場合は指定レイヤーのみに適用
-- 選択的レイヤー適用ロジックを実装
-  - SO8T適用レイヤー: `SO8TPhi3DecoderLayer`を使用
-  - 標準レイヤー: `Phi3DecoderLayer`を使用
-- `SO8TPhi3ForCausalLM.__init__()`に`so8t_layer_indices`パラメータを追加
-  - `SO8TPhi3Model`に選択的レイヤー適用を伝播
-
-### 3. PET正則化統合学習スクリプト
+### 2. SO8T統合学習の実行
 
 **ファイル**: `scripts/training/train_borea_phi35_so8t_thinking.py`
 
 **実装状況**: [実装済み]  
-**動作確認**: [未確認]  
-**確認日時**: -  
-**備考**: SO8T + PET + /think形式データセットで学習
+**動作確認**: [進行中]  
+**確認日時**: 2025-11-13  
+**備考**: 選択的SO8T統合 + PET正則化 + /think形式データセットで学習中
 
-- `ThinkingSFTDataset`クラスを実装
-  - /think形式データセットの読み込み
-  - Phi-3.5チャットテンプレート形式に対応
-- `SO8TPETTrainer`クラスを実装
-  - `Trainer`を継承
-  - PET正則化損失を統合
-  - `output_hidden_states=True`でhidden_statesを取得
-- `load_model_with_so8t()`関数を実装
-  - 選択的SO8T統合モデルの読み込み
-  - 標準モデルからSO8Tモデルへの重みコピー（詳細実装）
-    - `embed_tokens`と`lm_head`の重みをコピー
-    - 各レイヤーのアテンション重み（`q_proj`, `k_proj`, `v_proj`, `o_proj`）をコピー
-    - MLP重み（`gate_proj`, `up_proj`, `down_proj`）をコピー
-    - RMSNorm重み（`input_layernorm`, `post_attention_layernorm`, `norm`）をコピー
-    - 形状チェックを実装して、不一致の場合は警告を出力
-  - QLoRA 8bit設定に対応
-- `main()`関数を実装
-  - 設定ファイル読み込み
-  - データセット準備
-  - PET正則化設定（3相スケジュール）
-  - 学習実行
+- 設定ファイル: `configs/train_borea_phi35_so8t_thinking.yaml`
+- データセット: `D:/webdataset/processed/thinking_sft/thinking_sft_dataset.jsonl`
+- 出力ディレクトリ: `D:/webdataset/checkpoints/training/borea_phi35_so8t_thinking`
+- RTX3060対応設定:
+  - `per_device_train_batch_size: 1`
+  - `gradient_accumulation_steps: 16`
+  - `fp16: true`
+  - `gradient_checkpointing: true`
+- SO8T設定:
+  - `enabled: true`
+  - `layer_indices: null` (全レイヤーに適用)
+  - `init_scale: 0.05`
+  - `orthogonal_reg: 1.0e-4`
+- PET正則化設定:
+  - `enabled: true`
+  - 3相スケジュール（探索相、遷移相、安定相）
+  - `lambda_exploration: 0.01`
+  - `lambda_transition: 0.05`
+  - `lambda_stabilization: 0.1`
 
-### 4. 焼き込み処理統合
+**実行コマンド**:
+```bash
+py -3 scripts/training/train_borea_phi35_so8t_thinking.py \
+    --config configs/train_borea_phi35_so8t_thinking.yaml \
+    --dataset "D:\webdataset\processed\thinking_sft\thinking_sft_dataset.jsonl" \
+    --output-dir "D:\webdataset\checkpoints\training\borea_phi35_so8t_thinking"
+```
+
+**学習状況**: モデル読み込み中（2025-11-13 18:43時点）
+
+**修正内容**:
+- HuggingFaceキャッシュをDドライブに設定（`D:\webdataset\hf_cache`）
+- ディスク容量不足エラーを解決（CドライブではなくDドライブを使用）
+- 環境変数設定: `HF_HOME`, `TRANSFORMERS_CACHE`, `HF_DATASETS_CACHE`, `HF_HUB_CACHE`
+
+**電源断リカバリー機能**:
+- `PowerFailureRecovery`クラスを追加
+- セッション情報の自動保存（`training_session.json`）
+- チェックポイントからの自動再開機能
+- `--auto-resume`フラグで自動検出・再開
+- ステップごとにセッション情報を更新
+- チェックポイント保存時にセッション情報を更新
+- 電源投入時の自動再開スクリプト（`auto_resume_training.bat`, `auto_resume_training.ps1`）
+
+**使用方法**:
+```bash
+# 通常実行（自動再開機能付き）
+py -3 scripts/training/train_borea_phi35_so8t_thinking.py \
+    --config configs/train_borea_phi35_so8t_thinking.yaml \
+    --dataset "D:\webdataset\processed\thinking_sft\thinking_sft_dataset.jsonl" \
+    --output-dir "D:\webdataset\checkpoints\training\borea_phi35_so8t_thinking" \
+    --auto-resume
+
+# 電源投入時の自動再開
+scripts\training\auto_resume_training.bat
+```
+
+### 3. 焼き込み処理の実行
 
 **ファイル**: `scripts/training/bake_borea_phi35_so8t.py`
 
 **実装状況**: [実装済み]  
 **動作確認**: [未確認]  
 **確認日時**: -  
-**備考**: SO8T回転ゲートをo_projに焼き込み、標準Phi3アーキテクチャに戻す
+**備考**: Step 2完了後に実行予定
 
-- `get_rotation_matrices_from_layer()`関数を実装
-  - `SO8TPhi3DecoderLayer`から回転行列を取得
-  - `so8t_rotation_gate`から回転行列を計算
-  - 複数のインポートパスに対応（`so8t_mmllm.src.so8t_layer`、`so8t_layer`）
-- `bake_rotation_into_linear()`関数を実装
-  - 右掛け焼き込み: `W' = W @ R`
-  - ブロック対角回転行列を構築
-- `bake_so8t_model()`関数を実装
-  - 学習済みSO8Tモデルを読み込み
-  - 各レイヤーのSO8T回転ゲートを`o_proj`に焼き込み
-  - 検証: 焼き込み前後で出力の一致を確認
-  - Hugging Face形式で保存
+- 学習済みSO8Tモデルの回転ゲートを`o_proj`に焼き込み（右掛け: `W' = W @ R`）
+- 標準Phi3アーキテクチャに戻す
+- 入力: `D:/webdataset/checkpoints/training/borea_phi35_so8t_thinking/final_model`
+- 出力: `D:/webdataset/borea_phi35_so8t_thinking/baked_model`
 
-### 5. GGUF変換スクリプト
+**実行コマンド（予定）**:
+```bash
+py -3 scripts/training/bake_borea_phi35_so8t.py \
+    --model-path D:/webdataset/checkpoints/training/borea_phi35_so8t_thinking/final_model \
+    --output-path D:/webdataset/borea_phi35_so8t_thinking/baked_model
+```
+
+### 4. GGUF変換の実行
 
 **ファイル**: `scripts/conversion/convert_borea_so8t_to_gguf.py`
 
 **実装状況**: [実装済み]  
 **動作確認**: [未確認]  
 **確認日時**: -  
-**備考**: 焼き込み済みモデルをGGUF形式に変換
+**備考**: Step 3完了後に実行予定
 
-- `convert_to_gguf()`関数を実装
-  - `llama.cpp`の`convert-hf-to-gguf.py`を使用
-  - 複数量子化形式を生成（F16, Q8_0, Q4_K_M）
-  - 出力先: `D:/webdataset/gguf_models/borea_phi35_so8t_thinking/`
+- 焼き込み済みモデルをGGUF形式に変換
+- 複数量子化形式を生成（F16, Q8_0, Q4_K_M）
+- 入力: `D:/webdataset/borea_phi35_so8t_thinking/baked_model`
+- 出力: `D:/webdataset/gguf_models/borea_phi35_so8t_thinking/`
 
-### 6. 設定ファイル作成
+**実行コマンド（予定）**:
+```bash
+py -3 scripts/conversion/convert_borea_so8t_to_gguf.py \
+    --model-path D:/webdataset/borea_phi35_so8t_thinking/baked_model \
+    --output-dir D:/webdataset/gguf_models/borea_phi35_so8t_thinking \
+    --model-name borea_phi35_so8t_thinking \
+    --quantization-types f16 q8_0 q4_k_m
+```
 
-**ファイル**: `configs/train_borea_phi35_so8t_thinking.yaml`
+### 5. Ollamaでの動作確認
 
-**実装状況**: [実装済み]  
+**実装状況**: [未実装]  
 **動作確認**: [未確認]  
 **確認日時**: -  
-**備考**: 学習設定をYAML形式で定義
+**備考**: Step 4完了後に実行予定
 
-- モデル設定: ベースモデルパス、SO8T設定
-- SO8T設定: 選択的レイヤー適用、初期化スケール、直交性正則化
-- PET設定: 3相スケジュール、λ値
-- QLoRA設定: r, alpha, target_modules
-- データ設定: /think形式データセットパス
-- 学習設定: エポック数、バッチサイズ、学習率
-- パイプライン設定: 入力データセット、出力ディレクトリ
+- GGUFモデルをOllamaにインポート
+- Modelfileの作成（Phi-3.5チャットテンプレート対応）
+- /think形式での推論テスト
+- 思考ステップと最終回答の分離確認
 
-### 7. 統合パイプラインスクリプト
+**実行コマンド（予定）**:
+```bash
+# Modelfileの作成
+ollama create borea-phi35-so8t-thinking -f modelfiles/borea_phi35_so8t_thinking.modelfile
 
-**ファイル**: `scripts/pipelines/borea_phi35_so8t_thinking_pipeline.py`
-
-**実装状況**: [実装済み]  
-**動作確認**: [未確認]  
-**確認日時**: -  
-**備考**: 全ステップを統合したパイプライン
-
-- `BoreaSO8TThinkingPipeline`クラスを実装
-  - Step 1: /thinkデータセット作成
-  - Step 2: SO8T統合学習
-  - Step 3: 焼き込み処理
-  - Step 4: GGUF変換
-- 各ステップのチェックポイント管理
-- エラーハンドリングとログ記録
-- メタデータ保存（`pipeline_metadata.json`）
+# 推論テスト
+ollama run borea-phi35-so8t-thinking "以下の問題を解いてください。まず思考ステップを整理し、その後最終回答を出してください。"
+```
 
 ## 作成・変更ファイル
-
-1. `scripts/data/create_thinking_sft_dataset.py` - 新規作成
-2. `models/Borea-Phi-3.5-mini-Instruct-Jp/modeling_phi3_so8t.py` - 選択的レイヤー適用機能を追加
-3. `scripts/training/train_borea_phi35_so8t_thinking.py` - 新規作成
-4. `scripts/training/bake_borea_phi35_so8t.py` - 新規作成
-5. `scripts/conversion/convert_borea_so8t_to_gguf.py` - 新規作成
-6. `configs/train_borea_phi35_so8t_thinking.yaml` - 新規作成
-7. `scripts/pipelines/borea_phi35_so8t_thinking_pipeline.py` - 新規作成
+- `scripts/data/create_thinking_sft_dataset.py` (既存、使用)
+- `scripts/training/train_borea_phi35_so8t_thinking.py` (既存、使用)
+- `scripts/training/bake_borea_phi35_so8t.py` (既存、使用)
+- `scripts/conversion/convert_borea_so8t_to_gguf.py` (既存、使用)
+- `configs/train_borea_phi35_so8t_thinking.yaml` (既存、使用)
+- `D:/webdataset/processed/thinking_sft/thinking_sft_dataset.jsonl` (新規作成)
 
 ## 設計判断
-
-### SO8T統合位置
-- Self-Attentionの直後（`attn_outputs`にSO8T回転を適用）
-- 選択的レイヤー適用: 設定ファイルで指定されたレイヤーのみ
-
-### PET正則化
-- 3相スケジュール: warmup（λ=0.01）→ main（λ=0.05）→ anneal（λ=0.1）
-- 二階差分ペナルティ: `Δ²x[t] = x[t+2] - 2*x[t+1] + x[t]`
-- `output_hidden_states=True`でhidden_statesを取得してPET損失を計算
-
-### /think形式
-- Phi-3.5チャットテンプレートに準拠
-- 思考ステップと最終回答を分離
-- システムメッセージで思考プロセスを指示
-
-### 焼き込み処理
-- 右掛け: `W' = W @ R`（`o_proj`の重みに回転行列を右から掛ける）
-- SO8Tブロック削除後、標準Phi3アーキテクチャとして保存
-- 検証: 焼き込み前後で出力の一致を確認
-
-## 実装の詳細改善
-
-### モデル読み込みの改善
-- `load_model_with_so8t()`関数で標準モデルからSO8Tモデルへの重みコピーを実装
-  - `embed_tokens`と`lm_head`の重みをコピー
-  - 各レイヤーのアテンション重み（`q_proj`, `k_proj`, `v_proj`, `o_proj`）をコピー
-  - MLP重み（`gate_proj`, `up_proj`, `down_proj`）をコピー
-  - RMSNorm重み（`input_layernorm`, `post_attention_layernorm`）をコピー
-  - 形状チェックを実装して、不一致の場合は警告を出力
-- `SO8TPhi3ForCausalLM.__init__()`に`so8t_layer_indices`パラメータを追加
-  - `SO8TPhi3Model`に選択的レイヤー適用を伝播
-
-### インポートエラーの修正
-- `bake_borea_phi35_so8t.py`でSO8T回転ゲートのインポートパスを修正
-  - `so8t_mmllm.src.so8t_layer`からのインポートを試行
-  - フォールバックとして`so8t_layer`からのインポートを試行
-- `train_borea_phi35_so8t_thinking.py`でloggerの定義順序を修正
-  - ロギング設定を早期に実行して、インポートエラー時にloggerが使用可能になるように修正
-
-### コード品質の改善
-- 未使用のインポートを削除（警告レベル）
-- リンターエラーの修正（logger未定義エラーを解決）
+- **データセット形式**: Phi-3.5チャットテンプレート形式を採用し、思考ステップと最終回答を分離
+- **SO8T適用**: 全レイヤーに適用（`layer_indices: null`）
+- **PET正則化**: 3相スケジュールで段階的に正則化強度を増加
+- **RTX3060対応**: バッチサイズ1、勾配累積16で実効バッチサイズ16を維持
+- **量子化**: QLoRA 8bitでメモリ効率化
 
 ## テスト結果
-
-- リンターエラー: 警告のみ（実行に影響なし）
-  - 未使用インポートの警告（`os`, `time`, `signal`, `Dict`, `datetime`, `nn`, `DataLoader`, `TrainerCallback`, `tqdm`）
-  - モジュールレベルのインポート順序の警告（実行には影響なし）
-- 実装完了: 全7ステップ完了
-- 実装日時: 2025-11-13 17:33:09
+- **データセット検証**: 1,441サンプル、Phi-3.5テンプレート形式、思考ステップ/最終回答分離確認済み
+- **学習**: 進行中（モデル読み込み完了後、学習開始予定）
 
 ## 運用注意事項
 
@@ -225,16 +192,67 @@
 - 分類器は検出・拒否用途のみ
 
 ### /thinkエンドポイント運用
-- 思考ステップ（`# 思考ステップ`）は外部非公開を徹底
-- `# 最終回答`のみ返す実装を維持
+- 四重Thinking部（`<think-*>`）は外部非公開を徹底
+- `<final>`のみ返す実装を維持
 - 監査ログでThinkingハッシュを記録（内容は非公開）
 
 ## 次のステップ
+1. Step 2（学習）の完了を待つ
+2. Step 3（焼き込み処理）を実行
+3. Step 4（GGUF変換）を実行
+4. Step 5（Ollama動作確認）を実行
 
-1. /think形式データセットの作成と検証
-2. SO8T統合学習の実行と検証
-3. 焼き込み処理の実行と検証
-4. GGUF変換の実行と検証
-5. Ollamaでの動作確認
+## 高速版訓練設定
 
+**ファイル**: `configs/train_borea_phi35_so8t_thinking_fast.yaml`
 
+**実装状況**: [実装済み]  
+**動作確認**: [未確認]  
+**確認日時**: -  
+**備考**: 訓練時間を70-80%短縮するための最適化設定
+
+**最適化内容**:
+- エポック数: 3 → 1（67%削減）
+- 最大シーケンス長: 2048 → 1024（50%削減）
+- LoRAランク: 64 → 32（50%削減）
+- SO8T適用レイヤー: 全レイヤー → 8レイヤー（選択的）
+- 評価を無効化
+- チェックポイント保存頻度を削減
+- データセットサンプリング機能追加（オプション）
+
+**使用方法**:
+```bash
+# 高速版訓練を実行
+scripts\training\train_borea_phi35_so8t_thinking_fast.bat
+
+# または完全パイプライン（高速版）
+scripts\training\run_complete_pipeline.bat
+
+# 完全パイプライン（通常版）
+scripts\training\run_complete_pipeline.bat full
+```
+
+## 完全パイプラインスクリプト
+
+**ファイル**: `scripts/training/run_complete_pipeline.bat`
+
+**実装状況**: [実装済み]  
+**動作確認**: [未確認]  
+**確認日時**: -  
+**備考**: Step 1-5を自動的に順次実行
+
+**機能**:
+- Step 1: データセット作成（既存の場合はスキップ）
+- Step 2: 訓練実行（高速版/通常版を選択可能）
+- Step 3: 焼き込み処理
+- Step 4: GGUF変換
+- Step 5: Ollamaインポートとテスト
+
+**使用方法**:
+```bash
+# 高速版で完全パイプライン実行
+scripts\training\run_complete_pipeline.bat
+
+# 通常版で完全パイプライン実行
+scripts\training\run_complete_pipeline.bat full
+```

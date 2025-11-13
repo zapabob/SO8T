@@ -81,12 +81,28 @@ def convert_sample_to_thinking_format(
     instruction = sample.get("instruction", "")
     input_text = sample.get("input", "")
     output = sample.get("output", "")
+    text = sample.get("text", "")
+    
+    # textフィールドがある場合は、それをinstructionとして使用
+    if not instruction and not input_text and text:
+        # textフィールドからinstructionを生成
+        # タイトルやキーワードがあれば使用、なければtextの最初の部分を使用
+        title = sample.get("title", "")
+        keyword = sample.get("keyword", "")
+        if title:
+            instruction = f"{title}について説明してください。"
+        elif keyword:
+            instruction = f"{keyword}について説明してください。"
+        else:
+            # textの最初の200文字をinstructionとして使用
+            instruction = f"以下の内容について説明してください。\n\n{text[:200]}..."
+        input_text = text
     
     # 既に/think形式の場合はそのまま使用
     if "# 思考ステップ" in output and "# 最終回答" in output:
         thinking_steps = output.split("# 思考ステップ")[1].split("# 最終回答")[0].strip()
         final_answer = output.split("# 最終回答")[1].strip()
-    else:
+    elif output:
         # 既存の出力から思考ステップと最終回答を生成
         # 簡易実装: 出力の前半を思考ステップ、後半を最終回答とする
         if len(output) > 100:
@@ -95,6 +111,18 @@ def convert_sample_to_thinking_format(
         else:
             thinking_steps = f"この問題について考えます。{output[:50]}"
             final_answer = output
+    elif text:
+        # textフィールドから思考ステップと最終回答を生成
+        # textの前半を思考ステップ、後半を最終回答とする
+        if len(text) > 200:
+            thinking_steps = f"この内容について分析します。\n\n{text[:len(text)//2]}"
+            final_answer = text[len(text)//2:]
+        else:
+            thinking_steps = f"この内容について分析します。\n\n{text[:100]}"
+            final_answer = text[100:] if len(text) > 100 else text
+    else:
+        logger.warning("No output or text found, skipping sample")
+        return None
     
     # ユーザーメッセージを構築
     if instruction and input_text:
@@ -312,5 +340,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
 
 

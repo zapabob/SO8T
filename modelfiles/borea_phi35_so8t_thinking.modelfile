@@ -1,0 +1,22 @@
+FROM D:/webdataset/gguf_models/borea_phi35_so8t_thinking/borea_phi35_so8t_thinking_Q8_0.gguf
+
+TEMPLATE """<|system|>
+{{ .System }}<|end|>
+<|user|>
+{{ .Prompt }}<|end|>
+<|assistant|>
+{{ .Response }}<|end|>"""
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_ctx 4096
+PARAMETER num_predict 2048
+
+SYSTEM """あなたは慎重に考えるAIアシスタントです。まず「# 思考ステップ」で考えを整理し、そのあとに「# 最終回答」でユーザーへの短い答えだけを出してください。"""
+
+
+
+
+
+

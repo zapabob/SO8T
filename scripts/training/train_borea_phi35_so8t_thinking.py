@@ -19,6 +19,12 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore")
 
+# HuggingFaceキャッシュをDドライブに設定
+os.environ["HF_HOME"] = r"D:\webdataset\hf_cache"
+os.environ["TRANSFORMERS_CACHE"] = r"D:\webdataset\hf_cache\transformers"
+os.environ["HF_DATASETS_CACHE"] = r"D:\webdataset\hf_cache\datasets"
+os.environ["HF_HUB_CACHE"] = r"D:\webdataset\hf_cache\hub"
+
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -78,6 +84,61 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class PowerFailureRecovery:
+    """電源断リカバリーシステム"""
+    
+    def __init__(self, session_file: Path):
+        """
+        Args:
+            session_file: セッションファイルパス
+        """
+        self.session_file = Path(session_file)
+        self.session_file.parent.mkdir(parents=True, exist_ok=True)
+        self.session_data = None
+    
+    def load_session(self) -> Optional[Dict[str, Any]]:
+        """前回セッションを読み込み"""
+        if not self.session_file.exists():
+            return None
+        
+        try:
+            with open(self.session_file, 'r', encoding='utf-8') as f:
+                self.session_data = json.load(f)
+            logger.info(f"[RECOVERY] Session loaded: {self.session_data.get('session_id', 'unknown')}")
+            logger.info(f"[RECOVERY] Progress: {self.session_data.get('current_step', 0)}/{self.session_data.get('total_steps', 0)}")
+            return self.session_data
+        except Exception as e:
+            logger.warning(f"[RECOVERY] Failed to load session: {e}")
+            return None
+    
+    def save_session(self, session_data: Dict[str, Any]):
+        """セッション情報を保存"""
+        try:
+            self.session_data = session_data
+            with open(self.session_file, 'w', encoding='utf-8') as f:
+                json.dump(session_data, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.warning(f"[RECOVERY] Failed to save session: {e}")
+    
+    def find_latest_checkpoint(self, checkpoint_dir: Path) -> Optional[Path]:
+        """最新のチェックポイントを検索"""
+        if not checkpoint_dir.exists():
+            return None
+        
+        # checkpoint-* ディレクトリを検索
+        checkpoints = sorted(
+            checkpoint_dir.glob("checkpoint-*"),
+            key=lambda x: int(x.name.split("-")[1]) if x.name.split("-")[1].isdigit() else 0,
+            reverse=True
+        )
+        
+        if checkpoints:
+            logger.info(f"[RECOVERY] Found latest checkpoint: {checkpoints[0]}")
+            return checkpoints[0]
+        
+        return None
+
+
 class ThinkingSFTDataset(Dataset):
     """/think形式SFTデータセット"""
     
@@ -85,13 +146,15 @@ class ThinkingSFTDataset(Dataset):
         self,
         data_path: Path,
         tokenizer,
-        max_length: int = 2048
+        max_length: int = 2048,
+        sample_ratio: Optional[float] = None
     ):
         """
         Args:
             data_path: JSONLファイルパス（/think形式）
             tokenizer: トークナイザー
             max_length: 最大シーケンス長
+            sample_ratio: サンプリング比率（Noneの場合は全サンプル使用）
         """
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -99,6 +162,7 @@ class ThinkingSFTDataset(Dataset):
         
         logger.info(f"Loading /think format dataset from {data_path}...")
         
+        all_samples = []
         with open(data_path, 'r', encoding='utf-8') as f:
             for line_no, line in enumerate(f, 1):
                 try:
@@ -107,7 +171,7 @@ class ThinkingSFTDataset(Dataset):
                     
                     # outputが既にPhi-3.5チャットテンプレート形式であることを確認
                     if "<|system|>" in output and "<|assistant|>" in output:
-                        self.samples.append({
+                        all_samples.append({
                             "text": output,
                             "instruction": sample.get("instruction", ""),
                             "input": sample.get("input", "")
@@ -120,7 +184,16 @@ class ThinkingSFTDataset(Dataset):
                     logger.warning(f"Line {line_no}: JSON decode error: {e}")
                     continue
         
-        logger.info(f"[OK] Loaded {len(self.samples):,} training samples")
+        # サンプリング（高速化のため）
+        if sample_ratio is not None and 0 < sample_ratio < 1:
+            import random
+            random.seed(42)
+            sample_size = int(len(all_samples) * sample_ratio)
+            self.samples = random.sample(all_samples, sample_size)
+            logger.info(f"[OK] Sampled {len(self.samples):,} samples from {len(all_samples):,} (ratio: {sample_ratio:.1%})")
+        else:
+            self.samples = all_samples
+            logger.info(f"[OK] Loaded {len(self.samples):,} training samples")
     
     def __len__(self):
         return len(self.samples)
@@ -158,9 +231,15 @@ class SO8TPETTrainer(Trainer):
         self.pet_regularization = pet_regularization
         self.hidden_states_history = []
     
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         """
         損失計算（PET統合）
+        
+        Args:
+            model: モデル
+            inputs: 入力データ
+            return_outputs: 出力を返すかどうか
+            num_items_in_batch: バッチ内のアイテム数（transformers新バージョン用、未使用）
         """
         # hidden_statesを取得するためにoutput_hidden_states=Trueを設定
         inputs_with_hidden = {**inputs, "output_hidden_states": True}
@@ -420,14 +499,25 @@ def main():
     parser.add_argument(
         "--dataset",
         type=Path,
-        required=True,
-        help="Training dataset path (JSONL, /think format)"
+        default=None,
+        help="Training dataset path (JSONL, /think format). If not provided, will be read from config."
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        required=True,
-        help="Output directory"
+        default=None,
+        help="Output directory. If not provided, will be read from config."
+    )
+    parser.add_argument(
+        "--resume-from-checkpoint",
+        type=str,
+        default=None,
+        help="Resume from checkpoint path. If not provided, will auto-detect from session file."
+    )
+    parser.add_argument(
+        "--auto-resume",
+        action="store_true",
+        help="Automatically resume from latest checkpoint if session file exists"
     )
     
     args = parser.parse_args()
@@ -436,15 +526,48 @@ def main():
     with open(args.config, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     
-    output_dir = Path(args.output_dir)
+    # 設定ファイルからデータセットパスと出力ディレクトリを取得
+    dataset_path = args.dataset
+    if dataset_path is None:
+        dataset_path = Path(config.get("data", {}).get("train_data", "D:/webdataset/processed/thinking_sft/thinking_sft_dataset.jsonl"))
+    
+    output_dir = args.output_dir
+    if output_dir is None:
+        output_dir = Path(config.get("training", {}).get("output_dir", "D:/webdataset/checkpoints/training/borea_phi35_so8t_thinking"))
+    else:
+        output_dir = Path(output_dir)
+    
     output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 電源断リカバリー設定
+    session_file = output_dir / "training_session.json"
+    recovery = PowerFailureRecovery(session_file)
+    
+    # 自動再開モード
+    resume_checkpoint = args.resume_from_checkpoint
+    existing_session = None
+    if args.auto_resume or resume_checkpoint is None:
+        existing_session = recovery.load_session()
+        if existing_session:
+            checkpoint_dir = output_dir / "checkpoints"
+            latest_checkpoint = recovery.find_latest_checkpoint(checkpoint_dir)
+            if latest_checkpoint:
+                resume_checkpoint = str(latest_checkpoint)
+                logger.info(f"[RECOVERY] Auto-resuming from checkpoint: {resume_checkpoint}")
+                logger.info(f"[RECOVERY] Session: {existing_session.get('session_id', 'unknown')}")
+                logger.info(f"[RECOVERY] Progress: {existing_session.get('current_step', 0)}/{existing_session.get('total_steps', 0)}")
+    
+    is_recovery = resume_checkpoint is not None
     
     logger.info("="*80)
     logger.info("Borea-Phi-3.5 SO8T/thinking Training")
     logger.info("="*80)
     logger.info(f"Model: {args.model_path}")
-    logger.info(f"Dataset: {args.dataset}")
+    logger.info(f"Dataset: {dataset_path}")
     logger.info(f"Output: {output_dir}")
+    logger.info(f"Recovery mode: {is_recovery}")
+    if is_recovery:
+        logger.info(f"Resume checkpoint: {resume_checkpoint}")
     
     # モデルとトークナイザー読み込み
     so8t_config = config.get("so8t", {})
@@ -476,10 +599,12 @@ def main():
         logger.info("[OK] QLoRA applied")
     
     # データセット読み込み
+    data_config = config.get("data", {})
     train_dataset = ThinkingSFTDataset(
-        data_path=args.dataset,
+        data_path=dataset_path,
         tokenizer=tokenizer,
-        max_length=config.get("data", {}).get("max_seq_length", 2048)
+        max_length=data_config.get("max_seq_length", 2048),
+        sample_ratio=data_config.get("sample_ratio", None)
     )
     
     # PET正則化設定
@@ -514,13 +639,37 @@ def main():
         mlm=False
     )
     
-    # トレーニング引数
+    # セッション情報を作成
+    session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if is_recovery and existing_session:
+        session_id = existing_session.get("session_id", session_id)
+    
+    # 総ステップ数を計算
     training_config = config.get("training", {})
+    num_epochs = training_config.get("num_train_epochs", 3)
+    batch_size = training_config.get("per_device_train_batch_size", 1)
+    gradient_accumulation = training_config.get("gradient_accumulation_steps", 16)
+    total_steps = (len(train_dataset) // (batch_size * gradient_accumulation)) * num_epochs
+    
+    # セッション情報を保存
+    session_data = {
+        "session_id": session_id,
+        "start_time": datetime.now().isoformat(),
+        "current_step": 0,
+        "total_steps": total_steps,
+        "checkpoints": [],
+        "model_path": str(args.model_path),
+        "dataset_path": str(dataset_path),
+        "output_dir": str(output_dir)
+    }
+    recovery.save_session(session_data)
+    
+    # トレーニング引数
     training_args = TrainingArguments(
         output_dir=str(output_dir / "checkpoints"),
-        num_train_epochs=training_config.get("num_train_epochs", 3),
-        per_device_train_batch_size=training_config.get("per_device_train_batch_size", 1),
-        gradient_accumulation_steps=training_config.get("gradient_accumulation_steps", 16),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
         learning_rate=training_config.get("learning_rate", 2.0e-4),
         weight_decay=training_config.get("weight_decay", 0.01),
         warmup_ratio=training_config.get("warmup_ratio", 0.1),
@@ -533,6 +682,7 @@ def main():
         gradient_checkpointing=training_config.get("gradient_checkpointing", True),
         optim=training_config.get("optim", "paged_adamw_8bit"),
         report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
     )
     
     # トレーナー
@@ -546,12 +696,48 @@ def main():
     
     # 学習実行
     logger.info("Starting training...")
-    trainer.train()
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
     
     # 最終モデル保存
     final_model_dir = output_dir / "final_model"
     trainer.save_model(str(final_model_dir))
     tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
     
     logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
 
