@@ -1243,6 +1243,52 @@ class ParallelDeepResearchScraper:
         # 日経225企業データ
         self.nikkei225_companies: List[Dict] = []
         self.nikkei225_enabled: bool = True  # デフォルトで有効
+        self.nikkei225_config: Dict = {}  # 設定ファイルから読み込んだ設定を保持
+        
+        # 設定ファイルからnikkei225_scraping設定を読み込む
+        try:
+            import yaml
+            config_path = PROJECT_ROOT / "configs" / "unified_master_pipeline_config.yaml"
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    phase1_config = config.get('phase1_parallel_scraping', {})
+                    nikkei225_config = phase1_config.get('nikkei225_scraping', {})
+                    
+                    if nikkei225_config:
+                        # 設定を保持
+                        self.nikkei225_config = nikkei225_config
+                        
+                        # nikkei225_scraping設定を適用
+                        self.nikkei225_enabled = nikkei225_config.get('enabled', True)
+                        if nikkei225_config.get('output_dir'):
+                            # nikkei225専用の出力ディレクトリが指定されている場合
+                            nikkei225_output_dir = Path(nikkei225_config['output_dir'])
+                            nikkei225_output_dir.mkdir(parents=True, exist_ok=True)
+                            logger.info(f"[NIKKEI225] Using dedicated output directory: {nikkei225_output_dir}")
+                        
+                        # ブラウザ・タブ設定を適用（設定ファイルの値が優先）
+                        if nikkei225_config.get('num_browsers'):
+                            self.num_browsers = nikkei225_config['num_browsers']
+                        if nikkei225_config.get('num_tabs'):
+                            self.num_tabs_per_browser = nikkei225_config['num_tabs']
+                        if nikkei225_config.get('base_port'):
+                            self.remote_debugging_port = nikkei225_config['base_port']
+                        if nikkei225_config.get('delay_per_action'):
+                            self.delay_per_action = nikkei225_config['delay_per_action']
+                        if nikkei225_config.get('timeout'):
+                            self.timeout = nikkei225_config['timeout']
+                        if nikkei225_config.get('max_memory_gb'):
+                            self.resource_manager.max_memory_gb = nikkei225_config['max_memory_gb']
+                        if nikkei225_config.get('max_cpu_percent'):
+                            self.resource_manager.max_cpu_percent = nikkei225_config['max_cpu_percent']
+                        
+                        logger.info(f"[NIKKEI225] Configuration loaded: enabled={self.nikkei225_enabled}, "
+                                  f"num_browsers={self.num_browsers}, num_tabs={self.num_tabs_per_browser}")
+                    else:
+                        logger.info("[NIKKEI225] No nikkei225_scraping config found, using defaults")
+        except Exception as e:
+            logger.warning(f"[NIKKEI225] Failed to load nikkei225_scraping config: {e}, using defaults")
         
         # ウィキペディアMediaWiki APIクライアント
         self.wikipedia_api_client: Optional[WikipediaMediaWikiAPIClient] = None
@@ -1832,17 +1878,28 @@ URL: {url}
             return []
     
     def _filter_target_companies(self, companies: List[Dict]) -> List[Dict]:
-        """防衛・航空宇宙・インフラ企業をフィルタリング"""
-        target_domains = [
-            'heavy_industry',  # 重工業（三菱重工、川崎重工、IHI等）
-            'airline',  # 航空会社（ANA、JAL等）
-            'transport',  # 運輸（JR各社等）
-            'defense',  # 防衛
-            'aerospace',  # 航空宇宙
-            'infrastructure',  # インフラ
-            'shipping',  # 海運（日本郵船、商船三井等）
-            'utility',  # 電力・ガス（インフラ関連）
-        ]
+        """設定ファイルのtarget_companies設定に基づいて企業をフィルタリング"""
+        # 設定ファイルからtarget_companies設定を取得
+        target_companies_config = self.nikkei225_config.get('target_companies', {})
+        
+        # 全企業を対象とする場合
+        if target_companies_config.get('all_companies', True):
+            logger.info(f"[NIKKEI225] All companies mode: {len(companies)} companies")
+            return companies
+        
+        # 特定カテゴリのみを対象とする場合
+        target_domains = []
+        if target_companies_config.get('defense', False):
+            target_domains.extend(['heavy_industry', 'defense'])  # 重工業（三菱重工、川崎重工、IHI等）
+        if target_companies_config.get('aerospace', False):
+            target_domains.extend(['airline', 'aerospace'])  # 航空会社（ANA、JAL等）
+        if target_companies_config.get('infrastructure', False):
+            target_domains.extend(['transport', 'infrastructure', 'shipping', 'utility'])  # 運輸、インフラ、海運、電力・ガス
+        
+        if not target_domains:
+            # カテゴリが指定されていない場合は全企業を返す
+            logger.info(f"[NIKKEI225] No specific categories selected, using all companies: {len(companies)} companies")
+            return companies
         
         filtered = []
         for company in companies:
@@ -1850,7 +1907,7 @@ URL: {url}
             if domain in target_domains:
                 filtered.append(company)
         
-        logger.info(f"[NIKKEI225] Filtered {len(filtered)} target companies (defense/aerospace/infrastructure) from {len(companies)} total")
+        logger.info(f"[NIKKEI225] Filtered {len(filtered)} target companies from {len(companies)} total (domains: {target_domains})")
         return filtered
     
     def _generate_company_urls(self, company: Dict) -> Dict[str, str]:
@@ -1888,8 +1945,8 @@ URL: {url}
             logger.warning("[NIKKEI225] No companies loaded, skipping Nikkei225 scraping")
             return
         
-        # 防衛・航空宇宙・インフラ企業をフィルタリング（全企業も含める）
-        target_companies = all_companies  # 全企業を対象とする
+        # 設定ファイルのtarget_companies設定に基づいてフィルタリング
+        target_companies = self._filter_target_companies(all_companies)
         
         # 企業ごとにタスクを作成
         for company in target_companies:
@@ -1901,9 +1958,18 @@ URL: {url}
             # 各種URLを生成
             urls = self._generate_company_urls(company)
             
-            # 各データタイプごとにタスクを作成
+            # 設定ファイルのdata_types設定を取得
+            data_types_config = self.nikkei225_config.get('data_types', {})
+            
+            # 各データタイプごとにタスクを作成（設定ファイルで有効なもののみ）
             for data_type, url in urls.items():
                 if url is None:
+                    continue
+                
+                # 設定ファイルでデータタイプが有効になっているか確認
+                # デフォルトではすべて有効
+                if data_types_config and not data_types_config.get(data_type, True):
+                    logger.debug(f"[NIKKEI225] Skipping {data_type} for {company_name} (disabled in config)")
                     continue
                 
                 task = KeywordTask(

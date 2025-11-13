@@ -50,6 +50,16 @@ except ImportError:
     SCIPY_AVAILABLE = False
     stats = None
 
+# sklearn for advanced similarity calculation
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    TfidfVectorizer = None
+    cosine_similarity = None
+
 # ロギング設定
 logging.basicConfig(
     level=logging.INFO,
@@ -917,35 +927,102 @@ class NSFWDrugDetectionQLoRATrainingDataPipeline:
             'total_removed': 0
         }
         
-        # 1. 重複検出（ハッシュベース + 類似度ベース）
+        # 1. 重複検出（ハッシュベース + 高度な類似度ベース）
         seen_hashes = set()
         unique_samples = []
+        similarity_threshold = self.cleaning_config.get('duplicate_detection', {}).get('similarity_threshold', 0.98)  # 0.95 → 0.98に変更（より厳格に）
         
-        for sample in samples:
-            text = sample.get('input', sample.get('text', sample.get('output', '')))
-            if not text:
-                removal_stats['low_quality'] += 1
-                continue
+        # TF-IDFベクトル化を使用した高度な類似度計算（可能な場合）
+        use_tfidf = SKLEARN_AVAILABLE and len(samples) > 10
+        
+        if use_tfidf:
+            # バッチ処理でTF-IDFベクトル化とコサイン類似度計算
+            texts = []
+            text_to_sample = {}
+            for i, sample in enumerate(samples):
+                text = sample.get('input', sample.get('text', sample.get('output', '')))
+                if not text:
+                    removal_stats['low_quality'] += 1
+                    continue
+                texts.append(text)
+                text_to_sample[len(texts) - 1] = sample
             
-            # ハッシュベース重複検出
-            text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
-            if text_hash in seen_hashes:
-                removal_stats['duplicates'] += 1
-                continue
-            
-            # 類似度ベース重複検出
-            is_duplicate = False
-            for existing_sample in unique_samples:
-                existing_text = existing_sample.get('input', existing_sample.get('text', existing_sample.get('output', '')))
-                similarity = SequenceMatcher(None, text[:500], existing_text[:500]).ratio()
-                if similarity > 0.95:  # 95%以上類似している場合は重複とみなす
-                    is_duplicate = True
+            if len(texts) > 1:
+                try:
+                    # TF-IDFベクトル化（ngram_range=(1, 2)でより精度の高い類似度計算）
+                    vectorizer = TfidfVectorizer(max_features=1000, ngram_range=(1, 2), min_df=1)
+                    vectors = vectorizer.fit_transform(texts)
+                    
+                    # コサイン類似度計算（バッチ処理）
+                    similarity_matrix = cosine_similarity(vectors)
+                    
+                    # 重複検出（上三角行列のみチェック）
+                    duplicate_indices = set()
+                    for i in range(len(texts)):
+                        if i in duplicate_indices:
+                            continue
+                        
+                        # ハッシュベース重複検出
+                        text = texts[i]
+                        text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+                        if text_hash in seen_hashes:
+                            duplicate_indices.add(i)
+                            removal_stats['duplicates'] += 1
+                            continue
+                        
+                        # 類似度ベース重複検出
+                        is_duplicate = False
+                        for j in range(i + 1, len(texts)):
+                            if j in duplicate_indices:
+                                continue
+                            
+                            similarity = similarity_matrix[i][j]
+                            if similarity >= similarity_threshold:  # 0.98以上類似している場合は重複とみなす
+                                is_duplicate = True
+                                duplicate_indices.add(j)
+                                removal_stats['duplicates'] += 1
+                        
+                        if not is_duplicate:
+                            seen_hashes.add(text_hash)
+                            unique_samples.append(text_to_sample[i])
+                    
+                    logger.info(f"[STATISTICAL-CLEANING] TF-IDFベクトル化を使用した重複検出: {removal_stats['duplicates']} サンプルを削除")
+                except Exception as e:
+                    logger.warning(f"[STATISTICAL-CLEANING] TF-IDFベクトル化に失敗、フォールバック: {e}")
+                    use_tfidf = False
+        
+        # TF-IDFが使用できない場合、従来の方法を使用
+        if not use_tfidf:
+            for sample in samples:
+                text = sample.get('input', sample.get('text', sample.get('output', '')))
+                if not text:
+                    removal_stats['low_quality'] += 1
+                    continue
+                
+                # ハッシュベース重複検出
+                text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+                if text_hash in seen_hashes:
                     removal_stats['duplicates'] += 1
-                    break
+                    continue
+                
+                # 類似度ベース重複検出（改善版：より長いテキストを比較）
+                is_duplicate = False
+                for existing_sample in unique_samples:
+                    existing_text = existing_sample.get('input', existing_sample.get('text', existing_sample.get('output', '')))
+                    # より長いテキストを比較（500文字 → 1000文字）
+                    text_snippet = text[:1000] if len(text) > 1000 else text
+                    existing_snippet = existing_text[:1000] if len(existing_text) > 1000 else existing_text
+                    similarity = SequenceMatcher(None, text_snippet, existing_snippet).ratio()
+                    if similarity >= similarity_threshold:  # 0.98以上類似している場合は重複とみなす
+                        is_duplicate = True
+                        removal_stats['duplicates'] += 1
+                        break
+                
+                if not is_duplicate:
+                    seen_hashes.add(text_hash)
+                    unique_samples.append(sample)
             
-            if not is_duplicate:
-                seen_hashes.add(text_hash)
-                unique_samples.append(sample)
+            logger.info(f"[STATISTICAL-CLEANING] SequenceMatcherを使用した重複検出: {removal_stats['duplicates']} サンプルを削除")
         
         logger.info(f"[STATISTICAL-CLEANING] 重複検出: {removal_stats['duplicates']} サンプルを削除")
         

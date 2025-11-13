@@ -37,11 +37,13 @@ domain_knowledge_dataset:
   use_cursor_browser: false  # falseの場合は新しいブラウザを起動（headless=False）
   remote_debugging_port: 9222
   delay_per_request: 2.0
-  timeout: 30000
-  max_pages_per_domain: 100
-  max_depth: 3
+  timeout: 60000  # 60秒（ページ読み込みタイムアウト）
+  max_pages_per_domain: 200  # 100 → 200に増加
+  max_depth: 5  # 3 → 5に増加
   quality_threshold: 0.7
-  timeout: 14400  # 4時間タイムアウト
+  pipeline_timeout: 14400  # 4時間（パイプライン全体のタイムアウト）
+  retry_count: 5  # 3 → 5に増加
+  retry_backoff: true  # 指数バックオフを有効化
   # ボタンクリック機能設定
   enable_button_click: true  # ボタンクリックでページ遷移を有効化
   max_button_clicks_per_page: 3  # ページあたりの最大ボタンクリック数
@@ -63,7 +65,7 @@ statistical_cleaning:
   duplicate_detection:
     hash_based: true
     similarity_based: true
-    similarity_threshold: 0.95  # 95%以上類似している場合は重複とみなす
+    similarity_threshold: 0.98  # 98%以上類似している場合は重複とみなす（より厳格に）
   # 外れ値検出設定
   outlier_detection:
     zscore_enabled: true

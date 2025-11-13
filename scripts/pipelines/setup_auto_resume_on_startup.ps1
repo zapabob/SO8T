@@ -124,3 +124,4 @@ Write-Host "[INFO] 設定完了" -ForegroundColor Green
 Write-Host "[INFO] 電源投入時にパイプラインが自動再開されます" -ForegroundColor Cyan
 Write-Host ""
 
+

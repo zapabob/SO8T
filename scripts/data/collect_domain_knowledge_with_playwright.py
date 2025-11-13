@@ -133,8 +133,19 @@ DOMAIN_SITES = {
             "https://ja.wikipedia.org/wiki/メインページ",
             "https://ja.wikipedia.org/wiki/Category:技術",
             "https://ja.wikipedia.org/wiki/Category:科学",
+            "https://ja.wikipedia.org/wiki/Category:数学",
+            "https://ja.wikipedia.org/wiki/Category:物理学",
+            "https://ja.wikipedia.org/wiki/Category:化学",
+            "https://ja.wikipedia.org/wiki/Category:生物学",
+            "https://ja.wikipedia.org/wiki/Category:医学",
+            "https://ja.wikipedia.org/wiki/Category:工学",
+            "https://ja.wikipedia.org/wiki/Category:情報技術",
             "https://qiita.com/",
             "https://zenn.dev/",
+            "https://note.com/",
+            "https://teratail.com/",
+            "https://stackoverflow.com/",
+            "https://github.com/",
         ],
         "selectors": {
             "title": "h1.firstHeading, h1, .title",
@@ -143,6 +154,63 @@ DOMAIN_SITES = {
         },
         "min_text_length": 500,
         "max_text_length": 10000,
+        "language": "ja"
+    },
+    "medical": {
+        "name": "医療",
+        "base_url": "https://www.mhlw.go.jp",
+        "start_urls": [
+            "https://www.mhlw.go.jp/",  # 厚生労働省
+            "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/",  # 健康・医療
+            "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/kenkou/",  # 健康
+            "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/iryou/",  # 医療
+            "https://www.pmda.go.jp/",  # PMDA
+            "https://www.jst.go.jp/",  # 科学技術振興機構
+        ],
+        "selectors": {
+            "title": "h1, .title, .page-title",
+            "content": "main, .content, .main-content, article",
+            "links": "a[href^='/'], a[href^='https://']"
+        },
+        "min_text_length": 400,
+        "max_text_length": 12000,
+        "language": "ja"
+    },
+    "education": {
+        "name": "教育",
+        "base_url": "https://www.mext.go.jp",
+        "start_urls": [
+            "https://www.mext.go.jp/",  # 文部科学省
+            "https://www.mext.go.jp/a_menu/koutou/shinkou/",  # 高等教育
+            "https://www.mext.go.jp/a_menu/shotou/gakugei/",  # 学芸
+            "https://www.jst.go.jp/",  # 科学技術振興機構
+            "https://www.jsps.go.jp/",  # 日本学術振興会
+        ],
+        "selectors": {
+            "title": "h1, .title, .page-title",
+            "content": "main, .content, .main-content, article",
+            "links": "a[href^='/'], a[href^='https://']"
+        },
+        "min_text_length": 400,
+        "max_text_length": 12000,
+        "language": "ja"
+    },
+    "legal": {
+        "name": "法律",
+        "base_url": "https://www.moj.go.jp",
+        "start_urls": [
+            "https://www.moj.go.jp/",  # 法務省
+            "https://www.courts.go.jp/",  # 裁判所
+            "https://www.mlit.go.jp/",  # 国土交通省
+            "https://elaws.e-gov.go.jp/",  # e-Gov法令検索
+        ],
+        "selectors": {
+            "title": "h1, .title, .page-title",
+            "content": "main, .content, .main-content, article",
+            "links": "a[href^='/'], a[href^='https://']"
+        },
+        "min_text_length": 500,
+        "max_text_length": 15000,
         "language": "ja"
     },
     "nsfw_detection": {
@@ -236,10 +304,16 @@ class DomainKnowledgeCollector:
         self.max_depth = max_depth
         self.quality_threshold = quality_threshold
         
+        # リトライ関連の設定
+        self.retry_count = 5  # リトライ回数
+        self.retry_backoff = True  # 指数バックオフを有効化
+        self.initial_timeout = 30000  # 初回タイムアウト（30秒）
+        self.retry_timeout = 60000  # リトライ時のタイムアウト（60秒）
+        
         # ボタンクリック関連の設定
         self.enable_button_click = True  # ボタンクリックを有効化
         self.max_button_clicks_per_page = 3  # ページあたりの最大ボタンクリック数
-        self.button_click_delay = (1.5, 3.0)  # ボタンクリック後の待機時間（秒）
+        self.button_click_delay = (2.0, 5.0)  # ボタンクリック後の待機時間（秒）1.5-3.0 → 2.0-5.0に延長
         
         self.visited_urls: Set[str] = set()
         self.collected_samples: List[Dict] = []
@@ -333,6 +407,39 @@ class DomainKnowledgeCollector:
         
         return result
     
+    async def _retry_with_backoff(self, func, *args, **kwargs):
+        """
+        指数バックオフを使用したリトライ戦略
+        
+        Args:
+            func: 実行する関数
+            *args: 関数の引数
+            **kwargs: 関数のキーワード引数
+        
+        Returns:
+            関数の戻り値
+        """
+        last_exception = None
+        for attempt in range(self.retry_count):
+            try:
+                return await func(*args, **kwargs)
+            except (PlaywrightTimeoutError, Exception) as e:
+                last_exception = e
+                if attempt < self.retry_count - 1:
+                    if self.retry_backoff:
+                        # 指数バックオフ: 1秒、2秒、4秒、8秒、16秒
+                        wait_time = 2 ** attempt
+                    else:
+                        # 固定待機時間
+                        wait_time = 2.0
+                    
+                    logger.debug(f"[RETRY] Attempt {attempt + 1}/{self.retry_count} failed, waiting {wait_time}s: {e}")
+                    await asyncio.sleep(wait_time)
+                else:
+                    logger.warning(f"[RETRY] All {self.retry_count} attempts failed: {e}")
+        
+        raise last_exception
+    
     async def scrape_page(
         self,
         page: Page,
@@ -341,7 +448,7 @@ class DomainKnowledgeCollector:
         depth: int = 0
     ) -> Optional[Dict]:
         """
-        単一ページをスクレイピング
+        単一ページをスクレイピング（リトライ戦略付き）
         
         Args:
             page: Playwright Pageオブジェクト
@@ -358,11 +465,24 @@ class DomainKnowledgeCollector:
         if depth > self.max_depth:
             return None
         
-        try:
+        async def _scrape_attempt():
+            """実際のスクレイピング処理"""
             logger.info(f"[SCRAPE] [{depth}] {url}")
             
-            # ページに移動
-            await page.goto(url, timeout=self.timeout, wait_until="networkidle")
+            # 段階的タイムアウト戦略（初回: 30秒、リトライ: 60秒）
+            current_timeout = self.initial_timeout if depth == 0 else self.retry_timeout
+            
+            # ページ読み込み戦略の最適化（networkidle → domcontentloaded）
+            # domcontentloadedの方が早く読み込めるが、動的コンテンツが読み込まれない可能性がある
+            # そのため、まずdomcontentloadedを試し、失敗した場合はnetworkidleを試す
+            try:
+                await page.goto(url, timeout=current_timeout, wait_until="domcontentloaded")
+                # 動的コンテンツの読み込みを待つ（必要に応じて）
+                await asyncio.sleep(1.0)
+            except PlaywrightTimeoutError:
+                # domcontentloadedがタイムアウトした場合、networkidleを試す
+                logger.debug(f"[SCRAPE] domcontentloaded timeout, trying networkidle: {url}")
+                await page.goto(url, timeout=current_timeout, wait_until="networkidle")
             
             # 人間を模倣した動作（HumanLikeScraperを使用）
             if self.human_scraper:
@@ -424,9 +544,12 @@ class DomainKnowledgeCollector:
                 sample['button_click_count'] = len(navigated_urls)
             
             return sample
-            
+        
+        try:
+            # リトライ戦略を使用してスクレイピングを実行
+            return await self._retry_with_backoff(_scrape_attempt)
         except PlaywrightTimeoutError:
-            logger.warning(f"[TIMEOUT] {url}")
+            logger.warning(f"[TIMEOUT] {url} (after {self.retry_count} attempts)")
             return None
         except Exception as e:
             logger.error(f"[ERROR] Failed to scrape {url}: {e}")
@@ -434,7 +557,7 @@ class DomainKnowledgeCollector:
     
     async def _click_buttons_and_navigate(self, page: Page, current_url: str, domain_config: Dict) -> List[str]:
         """
-        ボタンをクリックしてページ遷移を検出し、遷移先URLを返す
+        ボタンをクリックしてページ遷移を検出し、遷移先URLを返す（改善版）
         
         Args:
             page: Playwright Pageオブジェクト
@@ -447,10 +570,57 @@ class DomainKnowledgeCollector:
         navigated_urls = []
         
         try:
-            # ページ内のボタンやリンクを検出
-            buttons = await page.query_selector_all(
-                'button, a[href], [role="button"], [onclick], input[type="button"], input[type="submit"], .btn, .button'
-            )
+            # ページ内のボタンやリンクを検出（セレクターを拡充）
+            # より多くの要素を検出するため、セレクターを追加
+            button_selectors = [
+                'button',
+                'a[href]',  # リンク
+                '[role="button"]',
+                '[onclick]',  # onclick属性を持つ要素
+                'input[type="button"]',
+                'input[type="submit"]',
+                '.btn',  # Bootstrapボタン
+                '.button',  # 一般的なボタンクラス
+                '[class*="button"]',  # class名に"button"を含む要素
+                '[class*="btn"]',  # class名に"btn"を含む要素
+                '[id*="button"]',  # id名に"button"を含む要素
+                '[id*="btn"]',  # id名に"btn"を含む要素
+                'nav a',  # ナビゲーションメニューのリンク
+                'header a',  # ヘッダーのリンク
+                'footer a',  # フッターのリンク
+                '.menu a',  # メニューのリンク
+                '.nav a',  # ナビゲーションのリンク
+                '[data-link]',  # data-link属性を持つ要素
+                '[data-href]',  # data-href属性を持つ要素
+            ]
+            
+            # すべてのセレクターで要素を検出
+            all_buttons = []
+            for selector in button_selectors:
+                try:
+                    elements = await page.query_selector_all(selector)
+                    all_buttons.extend(elements)
+                except Exception as e:
+                    logger.debug(f"[BUTTON-CLICK] Failed to query selector '{selector}': {e}")
+                    continue
+            
+            # 重複を除去（同じ要素が複数のセレクターで検出される可能性がある）
+            unique_buttons = []
+            seen_elements = set()
+            for button in all_buttons:
+                try:
+                    # 要素のハッシュを作成（位置とテキストで判定）
+                    box = await button.bounding_box()
+                    text = await button.inner_text() if await button.is_visible() else ""
+                    element_id = f"{box['x']}_{box['y']}_{text[:50]}" if box else str(id(button))
+                    if element_id not in seen_elements:
+                        seen_elements.add(element_id)
+                        unique_buttons.append(button)
+                except Exception:
+                    # 要素が取得できない場合はスキップ
+                    continue
+            
+            buttons = unique_buttons
             
             if not buttons:
                 return navigated_urls
@@ -504,18 +674,25 @@ class DomainKnowledgeCollector:
                     # クリック
                     await button.click(timeout=5000)
                     
-                    # ページ遷移を待つ
+                    # ページ遷移を待つ（改善版：domcontentloadedを優先、失敗時はnetworkidle）
                     try:
-                        await page.wait_for_load_state("networkidle", timeout=5000)
+                        # まずdomcontentloadedを試す（より早く読み込める）
+                        await page.wait_for_load_state("domcontentloaded", timeout=10000)
                         await asyncio.sleep(random.uniform(self.button_click_delay[0], self.button_click_delay[1]))
                     except Exception:
-                        # タイムアウトしても続行
-                        await asyncio.sleep(1.0)
+                        try:
+                            # domcontentloadedが失敗した場合、networkidleを試す
+                            await page.wait_for_load_state("networkidle", timeout=10000)
+                            await asyncio.sleep(random.uniform(self.button_click_delay[0], self.button_click_delay[1]))
+                        except Exception:
+                            # タイムアウトしても続行
+                            await asyncio.sleep(2.0)
                     
-                    # 遷移後のURLを取得
+                    # 遷移後のURLを取得（改善版：より長い待機時間で遷移を検出）
+                    await asyncio.sleep(0.5)  # 遷移を確実に検出するための追加待機
                     after_url = page.url
                     
-                    # URLが変更された場合、遷移先として記録
+                    # URLが変更された場合、遷移先として記録（改善版：より厳密な判定）
                     if after_url != before_url and after_url != current_url:
                         # 同じドメイン内のURLのみを対象
                         if base_url and base_url in after_url:
@@ -526,11 +703,15 @@ class DomainKnowledgeCollector:
                                 # 遷移先ページの情報を収集
                                 await self._scrape_navigated_page(page, after_url, domain_config, depth + 1)
                         
-                        # 元のページに戻る（可能な場合）
+                        # 元のページに戻る（可能な場合）（改善版：より長い待機時間）
                         try:
-                            await page.go_back(timeout=3000)
-                            await page.wait_for_load_state("networkidle", timeout=3000)
-                            await asyncio.sleep(random.uniform(0.5, 1.0))
+                            await page.go_back(timeout=5000)
+                            # domcontentloadedを優先、失敗時はnetworkidle
+                            try:
+                                await page.wait_for_load_state("domcontentloaded", timeout=5000)
+                            except Exception:
+                                await page.wait_for_load_state("networkidle", timeout=5000)
+                            await asyncio.sleep(random.uniform(1.0, 2.0))  # 0.5-1.0 → 1.0-2.0に延長
                         except Exception:
                             # 戻れない場合は現在のページから続行
                             pass
@@ -566,7 +747,13 @@ class DomainKnowledgeCollector:
             
             # ページが既に遷移先にいる場合はそのまま使用
             if page.url != url:
-                await page.goto(url, timeout=self.timeout, wait_until="networkidle")
+                try:
+                    # まずdomcontentloadedを試す
+                    await page.goto(url, timeout=self.timeout, wait_until="domcontentloaded")
+                    await asyncio.sleep(1.0)
+                except PlaywrightTimeoutError:
+                    # domcontentloadedがタイムアウトした場合、networkidleを試す
+                    await page.goto(url, timeout=self.timeout, wait_until="networkidle")
             
             # 人間を模倣した動作
             if self.human_scraper:
