@@ -4539,7 +4539,6 @@ _**Agent (model default, mode Agent)**_
 
 ---
 
-
 バッチファイルの文字エンコーディング問題を確認し、修正します。
 
 
@@ -4572,7 +4571,6 @@ _**Agent (model default, mode Agent)**_
 
 
 ---
-
 
 バッチファイル内のPowerShellコマンドを`powershell -Command`でラップするよう修正します。
 
@@ -4792,7 +4790,6 @@ s\utils\play_audio_notification.ps1&quot;
 
 ---
 
-
 バッチファイルの文字エンコーディング問題を修正しました。
 
 ## 修正内容
@@ -4819,6 +4816,296 @@ scripts\training\run_complete_pipeline.bat full
 ```
 
 エンコーディングエラーは解消されているはずです。再実行してください。
+
+---
+
+_**User (2025-11-13 13:44Z)**_
+
+scripts\training\run_complete_pipeline.batscripts\tra
+
+ining\run_complete_pipeline.bat : モジュール 'scripts
+
+' を読み込むことができませんでした。詳細については、'
+
+Import-Module scripts' を実行してください。
+
+発生場所 行:1 文字:1
+
++ scripts\training\run_complete_pipeline.batscripts\t
+
+raining\run_comple ...
+
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~
+
+    + CategoryInfo          : ObjectNotFound: (scrip 
+
+   ts\trainin...te_pipeline.bat:String) [], Command  
+
+  NotFoundException
+
+    + FullyQualifiedErrorId : CouldNotAutoLoadModule  
+
+
+
+---
+
+_**Agent (model default, mode Agent)**_
+
+
+
+---
+
+
+PowerShellからバッチファイルを実行する際の構文を修正します。PowerShellスクリプト版も作成します。
+
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **code_edit** • Edit file: scripts/training/run_complete_pipeline.ps1</summary>
+
+**Chunk 1**
+Lines added: 127, lines removed: 1
+
+```diff
+@@ -1,1 +1,127 @@
+- 
++ # Borea-Phi-3.5 SO8T/thinking Complete Pipeline Script (PowerShell)
++ # Executes Steps 1-5 sequentially
++ 
++ Write-Host &quot;[PIPELINE] Borea-Phi-3.5 SO8T/thinking Complete Pipeline&quot; -ForegroundColor Green
++ Write-Host &quot;========================================================&quot; -ForegroundColor Green
++ Write-Host &quot;&quot;
++ 
++ # Step 1: Dataset creation (skip if already exists)
++ Write-Host &quot;[STEP 1] Checking dataset...&quot; -ForegroundColor Cyan
++ $DATASET = &quot;D:\webdataset\processed\thinking_sft\thinking_sft_dataset.jsonl&quot;
++ 
++ if (Test-Path $DATASET) {
++     Write-Host &quot;[OK] Dataset already exists: $DATASET&quot; -ForegroundColor Green
++ } else {
++     Write-Host &quot;[STEP 1] Creating /think format dataset...&quot; -ForegroundColor Yellow
++     $files = Get-ChildItem &quot;D:\webdataset\processed\four_class\four_class_*.jsonl&quot; | Select-Object -ExpandProperty FullName
++     py -3 scripts\data\create_thinking_sft_dataset.py --inputs $files --output $DATASET
++     
++     if ($LASTEXITCODE -ne 0) {
++         Write-Host &quot;[ERROR] Step 1 failed&quot; -ForegroundColor Red
++         exit 1
++     }
++ }
++ Write-Host &quot;&quot;
++ 
++ # Step 2: Training execution (fast or full mode)
++ Write-Host &quot;[STEP 2] Starting training...&quot; -ForegroundColor Cyan
++ $TRAINING_MODE = &quot;fast&quot;
++ if ($args[0] -eq &quot;full&quot;) {
++     $TRAINING_MODE = &quot;full&quot;
++ }
++ 
++ if ($TRAINING_MODE -eq &quot;fast&quot;) {
++     Write-Host &quot;[INFO] Using fast training configuration&quot; -ForegroundColor Yellow
++     $CONFIG = &quot;configs\train_borea_phi35_so8t_thinking_fast.yaml&quot;
++     $OUTPUT_DIR = &quot;D:\webdataset\checkpoints\training\borea_phi35_so8t_thinking_fast&quot;
++ } else {
++     Write-Host &quot;[INFO] Using full training configuration&quot; -ForegroundColor Yellow
++     $CONFIG = &quot;configs\train_borea_phi35_so8t_thinking.yaml&quot;
++     $OUTPUT_DIR = &quot;D:\webdataset\checkpoints\training\borea_phi35_so8t_thinking&quot;
++ }
++ 
++ py -3 scripts\training\train_borea_phi35_so8t_thinking.py &#96;
++     --config $CONFIG &#96;
++     --dataset $DATASET &#96;
++     --output-dir $OUTPUT_DIR &#96;
++     --auto-resume
++ 
++ if ($LASTEXITCODE -ne 0) {
++     Write-Host &quot;[ERROR] Step 2 failed&quot; -ForegroundColor Red
++     exit 1
++ }
++ Write-Host &quot;&quot;
++ 
++ # Step 3: Baking process
++ Write-Host &quot;[STEP 3] Baking SO8T rotations...&quot; -ForegroundColor Cyan
++ $TRAINED_MODEL = Join-Path $OUTPUT_DIR &quot;final_model&quot;
++ $BAKED_MODEL = &quot;D:\webdataset\borea_phi35_so8t_thinking\baked_model&quot;
++ 
++ if (-not (Test-Path $TRAINED_MODEL)) {
++     Write-Host &quot;[ERROR] Trained model not found: $TRAINED_MODEL&quot; -ForegroundColor Red
++     exit 1
++ }
++ 
++ py -3 scripts\training\bake_borea_phi35_so8t.py &#96;
++     --model-path $TRAINED_MODEL &#96;
++     --output-path $BAKED_MODEL
++ 
++ if ($LASTEXITCODE -ne 0) {
++     Write-Host &quot;[ERROR] Step 3 failed&quot; -ForegroundColor Red
++     exit 1
++ }
++ Write-Host &quot;&quot;
++ 
++ # Step 4: GGUF conversion
++ Write-Host &quot;[STEP 4] Converting to GGUF format...&quot; -ForegroundColor Cyan
++ $GGUF_OUTPUT_DIR = &quot;D:\webdataset\gguf_models\borea_phi35_so8t_thinking&quot;
++ 
++ if (-not (Test-Path $BAKED_MODEL)) {
++     Write-Host &quot;[ERROR] Baked model not found: $BAKED_MODEL&quot; -ForegroundColor Red
++     exit 1
++ }
++ 
++ py -3 scripts\conversion\convert_borea_so8t_to_gguf.py &#96;
++     --model-path $BAKED_MODEL &#96;
++     --output-dir $GGUF_OUTPUT_DIR &#96;
++     --model-name borea_phi35_so8t_thinking &#96;
++     --quantization-types f16 q8_0 q4_k_m
++ 
++ if ($LASTEXITCODE -ne 0) {
++     Write-Host &quot;[ERROR] Step 4 failed&quot; -ForegroundColor Red
++     exit 1
++ }
++ Write-Host &quot;&quot;
++ 
++ # Step 5: Ollama import and testing
++ Write-Host &quot;[STEP 5] Importing to Ollama and testing...&quot; -ForegroundColor Cyan
++ $MODELFILE = &quot;modelfiles\borea_phi35_so8t_thinking.modelfile&quot;
++ $GGUF_FILE = Join-Path $GGUF_OUTPUT_DIR &quot;borea_phi35_so8t_thinking_Q8_0.gguf&quot;
++ 
++ if (-not (Test-Path $GGUF_FILE)) {
++     Write-Host &quot;[ERROR] GGUF file not found: $GGUF_FILE&quot; -ForegroundColor Red
++     exit 1
++ }
++ 
++ # Update FROM path in Modelfile
++ $content = Get-Content $MODELFILE -Raw
++ $content = $content -replace &#39;FROM .*&#39;, &quot;FROM $GGUF_FILE&quot;
++ Set-Content $MODELFILE -Value $content -NoNewline
++ 
++ Write-Host &quot;[INFO] Creating Ollama model...&quot; -ForegroundColor Yellow
++ ollama create borea-phi35-so8t-thinking -f $MODELFILE
++ 
++ if ($LASTEXITCODE -ne 0) {
++     Write-Host &quot;[WARNING] Ollama import failed, but continuing...&quot; -ForegroundColor Yellow
++ } else {
++     Write-Host &quot;[OK] Ollama model created&quot; -ForegroundColor Green
++     Write-Host &quot;&quot;
++     Write-Host &quot;[TEST] Testing /think format inference...&quot; -ForegroundColor Cyan
++     ollama run borea-phi35-so8t-thinking &quot;Solve this problem. First organize your thinking steps, then provide the final answer. What is 2+2?&quot;
++ }
++ Write-Host &quot;&quot;
++ 
++ Write-Host &quot;[SUCCESS] Complete pipeline finished!&quot; -ForegroundColor Green
++ Write-Host &quot;[AUDIO] Playing completion notification...&quot; -ForegroundColor Cyan
++ &amp; &quot;scripts\utils\play_audio_notification.ps1&quot;
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **code_edit** • Edit file: scripts/training/run_complete_pipeline.bat</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -1,6 +1,6 @@
+  @echo off
+- chcp 65001 &gt;nul
+  REM Borea-Phi-3.5 SO8T/thinking Complete Pipeline Script
+  REM Executes Steps 1-5 sequentially
++ REM Note: For PowerShell, use run_complete_pipeline.ps1 instead
+  
+  echo [PIPELINE] Borea-Phi-3.5 SO8T/thinking Complete Pipeline
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="bash" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **command** • Run command: Write-Host "[INFO] Created PowerShell version of pipeline script" -ForegroundColor Green; Write-Host "[USAGE]:" -ForegroundColor Cyan; Write-Host "  PowerShell: .\scripts\training\run_complete_pipeline.ps1" -ForegroundColor Yellow; Write-Host "  PowerShell (full mode): .\scripts\training\run_complete_pipeline.ps1 full" -ForegroundColor Yellow; Write-Host "  CMD: scripts\training\run_complete_pipeline.bat" -ForegroundColor Yellow; Write-Host "  CMD (full mode): scripts\training\run_complete_pipeline.bat full" -ForegroundColor Yellow</summary>
+
+```bash
+Write-Host "[INFO] Created PowerShell version of pipeline script" -ForegroundColor Green; Write-Host "[USAGE]:" -ForegroundColor Cyan; Write-Host "  PowerShell: .\scripts\training\run_complete_pipeline.ps1" -ForegroundColor Yellow; Write-Host "  PowerShell (full mode): .\scripts\training\run_complete_pipeline.ps1 full" -ForegroundColor Yellow; Write-Host "  CMD: scripts\training\run_complete_pipeline.bat" -ForegroundColor Yellow; Write-Host "  CMD (full mode): scripts\training\run_complete_pipeline.bat full" -ForegroundColor Yellow
+```
+
+```
+[INFO] Created PowerShell version of pipeline script
+[USAGE]:
+  PowerShell: .\scripts\training\run_complete_pipeline.ps1
+  PowerShell (full mode): .\scripts\training\run_complete_pipeline.ps1 full
+  CMD: scripts\training\run_complete_pipeline.bat
+  CMD (full mode): scripts\training\run_complete_pipeline.bat full
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="bash" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **command** • Run command: powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"</summary>
+
+```bash
+powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+```
+
+```
+[OK] marisa_owattaze.wav played successfully
+```
+</details>
+</tool-use>
+
+---
+
+
+
+---
+
+
+PowerShell版のパイプラインスクリプトを作成しました。
+
+## 使用方法
+
+**PowerShellから実行（推奨）**:
+```powershell
+# 高速版
+.\scripts\training\run_complete_pipeline.ps1
+
+# 通常版
+.\scripts\training\run_complete_pipeline.ps1 full
+```
+
+**CMDから実行**:
+```cmd
+# 高速版
+scripts\training\run_complete_pipeline.bat
+
+# 通常版
+scripts\training\run_complete_pipeline.bat full
+```
+
+## 修正内容
+
+1. **PowerShellスクリプト版を作成** (`run_complete_pipeline.ps1`)
+   - PowerShellの構文で記述
+   - エラーハンドリングを改善
+   - カラー出力を追加
+
+2. **バッチファイルの改善**
+   - 文字エンコーディング問題を修正
+   - PowerShell使用時の注意を追加
+
+PowerShellから直接実行できます。実行してください。
 
 ---
 
