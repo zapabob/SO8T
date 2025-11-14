@@ -20,7 +20,22 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "so8t-mmllm" / "src"))
 
-from models.thinking_tokens import format_quadruple_thinking_output
+# インポートエラー回避のため、importlibを使用
+import importlib.util
+
+# thinking_tokensモジュールのインポート
+thinking_tokens_path = PROJECT_ROOT / "so8t-mmllm" / "src" / "models" / "thinking_tokens.py"
+spec = importlib.util.spec_from_file_location("thinking_tokens", thinking_tokens_path)
+thinking_tokens_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(thinking_tokens_module)
+format_quadruple_thinking_output = thinking_tokens_module.format_quadruple_thinking_output
+
+# create_thinking_datasetモジュールのインポート
+thinking_dataset_path = PROJECT_ROOT / "scripts" / "data" / "create_thinking_dataset.py"
+spec_dataset = importlib.util.spec_from_file_location("create_thinking_dataset", thinking_dataset_path)
+thinking_dataset_module = importlib.util.module_from_spec(spec_dataset)
+spec_dataset.loader.exec_module(thinking_dataset_module)
+convert_to_quadruple_thinking_format = thinking_dataset_module.convert_to_quadruple_thinking_format
 
 # ロギング設定
 logging.basicConfig(
@@ -68,8 +83,6 @@ def convert_sample_to_quadruple_thinking(
     Returns:
         変換されたサンプル（Noneの場合はスキップ）
     """
-    from scripts.data.create_thinking_dataset import convert_to_quadruple_thinking_format
-    
     instruction = sample.get("instruction", "")
     input_text = sample.get("input", "")
     output = sample.get("output", "")

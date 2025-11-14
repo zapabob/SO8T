@@ -9,12 +9,28 @@ from typing import Optional, Dict, Any, Tuple, List
 import hashlib
 import json
 from pathlib import Path
+import sys
 
-from ..models.thinking_tokens import (
-    extract_thinking_and_final,
-    format_thinking_output,
-    get_thinking_tokens,
-)
+# 相対インポートエラー回避のため、絶対インポートを使用
+# sys.pathにso8t-mmllm/srcが追加されていることを前提とする
+try:
+    from models.thinking_tokens import (
+        extract_thinking_and_final,
+        format_thinking_output,
+        get_thinking_tokens,
+    )
+except ImportError:
+    # フォールバック: 直接パスを指定
+    from pathlib import Path
+    import importlib.util
+    _file_path = Path(__file__)
+    _models_path = _file_path.parent.parent / "models" / "thinking_tokens.py"
+    spec = importlib.util.spec_from_file_location("thinking_tokens", _models_path)
+    thinking_tokens_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(thinking_tokens_module)
+    extract_thinking_and_final = thinking_tokens_module.extract_thinking_and_final
+    format_thinking_output = thinking_tokens_module.format_thinking_output
+    get_thinking_tokens = thinking_tokens_module.get_thinking_tokens
 
 
 def compute_text_hash(text: str) -> str:

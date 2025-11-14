@@ -16,19 +16,29 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "so8t-mmllm" / "src"))
 
-from utils.thinking_utils import (
-    convert_cot_to_thinking_format,
-    parse_safety_label,
-    parse_verifier_label,
-    load_thinking_dataset,
-    save_thinking_dataset,
-    validate_thinking_format,
-)
-from models.thinking_tokens import (
-    get_thinking_tokens,
-    format_quadruple_thinking_output,
-    extract_quadruple_thinking,
-)
+# インポートエラー回避のため、importlibを使用
+import importlib.util
+
+# utils.thinking_utilsモジュールのインポート
+thinking_utils_path = project_root / "so8t-mmllm" / "src" / "utils" / "thinking_utils.py"
+spec_utils = importlib.util.spec_from_file_location("thinking_utils", thinking_utils_path)
+thinking_utils_module = importlib.util.module_from_spec(spec_utils)
+spec_utils.loader.exec_module(thinking_utils_module)
+convert_cot_to_thinking_format = thinking_utils_module.convert_cot_to_thinking_format
+parse_safety_label = thinking_utils_module.parse_safety_label
+parse_verifier_label = thinking_utils_module.parse_verifier_label
+load_thinking_dataset = thinking_utils_module.load_thinking_dataset
+save_thinking_dataset = thinking_utils_module.save_thinking_dataset
+validate_thinking_format = thinking_utils_module.validate_thinking_format
+
+# models.thinking_tokensモジュールのインポート
+thinking_tokens_path = project_root / "so8t-mmllm" / "src" / "models" / "thinking_tokens.py"
+spec_tokens = importlib.util.spec_from_file_location("thinking_tokens", thinking_tokens_path)
+thinking_tokens_module = importlib.util.module_from_spec(spec_tokens)
+spec_tokens.loader.exec_module(thinking_tokens_module)
+get_thinking_tokens = thinking_tokens_module.get_thinking_tokens
+format_quadruple_thinking_output = thinking_tokens_module.format_quadruple_thinking_output
+extract_quadruple_thinking = thinking_tokens_module.extract_quadruple_thinking
 
 
 def convert_to_quadruple_thinking_format(
