@@ -85,7 +85,9 @@ REM 四重推論形式データセットを優先的に検索
 echo [INFO] Searching for quadruple thinking datasets...
 echo [INFO] Directory: %QUADRUPLE_DATASET_DIR%
 echo [INFO] Pattern: %QUADRUPLE_DATASET_PATTERN%
-powershell -Command "$files = Get-ChildItem '%QUADRUPLE_DATASET_DIR%\%QUADRUPLE_DATASET_PATTERN%' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName; if ($files) { Write-Host '[OK] Found quadruple thinking dataset:' -ForegroundColor Green; Write-Host \"  $files\" -ForegroundColor Cyan; $env:DATASET = $files } else { Write-Host '[WARNING] No quadruple thinking datasets found' -ForegroundColor Yellow }"
+REM PowerShellコマンドを2つに分離: 1つ目で警告メッセージを標準エラー出力に、2つ目でデータセットパスのみを標準出力に
+powershell -Command "$files = Get-ChildItem '%QUADRUPLE_DATASET_DIR%\%QUADRUPLE_DATASET_PATTERN%' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName; if ($files) { Write-Host '[OK] Found quadruple thinking dataset:' -ForegroundColor Green; Write-Host \"  $files\" -ForegroundColor Cyan } else { Write-Warning 'No quadruple thinking datasets found' }" 2>&1
+for /f "delims=" %%f in ('powershell -Command "$files = Get-ChildItem '%QUADRUPLE_DATASET_DIR%\%QUADRUPLE_DATASET_PATTERN%' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName; if ($files) { Write-Output $files }"') do set DATASET=%%f
 
 REM 四重推論形式が見つからない場合は、thinking_sftデータセットを確認
 if not defined DATASET (
@@ -103,10 +105,15 @@ if not defined DATASET (
             echo [WARNING] Failed to create quadruple thinking dataset, trying thinking_sft...
             
             REM thinking_sftデータセットを作成
-            powershell -Command "$files = Get-ChildItem 'D:\webdataset\processed\four_class\four_class_*.jsonl' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName; if ($files) { py -3 scripts\data\create_thinking_sft_dataset.py --inputs $files --output '%THINKING_SFT_DATASET%'; if ($LASTEXITCODE -eq 0) { $env:DATASET = '%THINKING_SFT_DATASET%'; Write-Host '[OK] Created thinking_sft dataset' -ForegroundColor Green } else { Write-Host '[ERROR] Failed to create thinking_sft dataset' -ForegroundColor Red; exit 1 } } else { Write-Host '[ERROR] No four_class datasets found' -ForegroundColor Red; exit 1 }"
+            powershell -Command "$files = Get-ChildItem 'D:\webdataset\processed\four_class\four_class_*.jsonl' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName; if ($files) { py -3 scripts\data\create_thinking_sft_dataset.py --inputs $files --output '%THINKING_SFT_DATASET%'; if ($LASTEXITCODE -eq 0) { Write-Host '[OK] Created thinking_sft dataset' -ForegroundColor Green; Write-Output '%THINKING_SFT_DATASET%' } else { Write-Host '[ERROR] Failed to create thinking_sft dataset' -ForegroundColor Red; exit 1 } } else { Write-Host '[ERROR] No four_class datasets found' -ForegroundColor Red; exit 1 }" > "%TEMP%\dataset_path.txt"
+            if exist "%TEMP%\dataset_path.txt" (
+                for /f "delims=" %%f in ('type "%TEMP%\dataset_path.txt"') do set DATASET=%%f
+                del "%TEMP%\dataset_path.txt"
+            )
         ) else (
             REM 作成されたデータセットを検索
-            powershell -Command "$files = Get-ChildItem 'D:\webdataset\processed\thinking_quadruple\quadruple_thinking_*.jsonl' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName; if ($files) { $env:DATASET = $files; Write-Host '[OK] Created dataset:' -ForegroundColor Green; Write-Host \"  $files\" -ForegroundColor Cyan } else { Write-Host '[ERROR] Dataset creation failed' -ForegroundColor Red; exit 1 }"
+            powershell -Command "$files = Get-ChildItem 'D:\webdataset\processed\thinking_quadruple\quadruple_thinking_*.jsonl' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName; if ($files) { Write-Host '[OK] Created dataset:' -ForegroundColor Green; Write-Host \"  $files\" -ForegroundColor Cyan } else { Write-Error 'Dataset creation failed'; exit 1 }" 2>&1
+            for /f "delims=" %%f in ('powershell -Command "$files = Get-ChildItem 'D:\webdataset\processed\thinking_quadruple\quadruple_thinking_*.jsonl' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName; if ($files) { Write-Output $files }"') do set DATASET=%%f
         )
         
         if not defined DATASET (
