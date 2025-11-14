@@ -166,7 +166,15 @@ class ThinkingSFTDataset(Dataset):
         logger.info(f"Loading /think format dataset from {data_path}...")
         
         all_samples = []
+        total_lines = 0
         with open(data_path, 'r', encoding='utf-8') as f:
+            # まず総行数をカウント（進捗表示のため）
+            f.seek(0)
+            total_lines = sum(1 for _ in f)
+            f.seek(0)
+            
+            logger.info(f"Total lines in dataset: {total_lines:,}")
+            
             for line_no, line in enumerate(f, 1):
                 try:
                     sample = json.loads(line.strip())
@@ -180,12 +188,18 @@ class ThinkingSFTDataset(Dataset):
                             "input": sample.get("input", "")
                         })
                     else:
-                        logger.warning(f"Line {line_no}: Invalid format, skipping")
+                        if line_no % 1000 == 0:
+                            logger.warning(f"Line {line_no}: Invalid format, skipping (progress: {line_no}/{total_lines})")
                         continue
                         
                 except json.JSONDecodeError as e:
-                    logger.warning(f"Line {line_no}: JSON decode error: {e}")
+                    if line_no % 1000 == 0:
+                        logger.warning(f"Line {line_no}: JSON decode error: {e} (progress: {line_no}/{total_lines})")
                     continue
+                
+                # 進捗表示（1000行ごと）
+                if line_no % 1000 == 0:
+                    logger.info(f"Loading progress: {line_no:,}/{total_lines:,} lines ({line_no*100//total_lines}%), loaded {len(all_samples):,} valid samples")
         
         # サンプリング（高速化のため）
         if sample_ratio is not None and 0 < sample_ratio < 1:
