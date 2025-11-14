@@ -424,18 +424,6 @@ def parse_training_log(log_file: Path, max_lines: int = 1000) -> Dict[str, Any]:
                 info['dataset_loading']['progress'] = progress_pct / 100.0
                 info['dataset_loading']['status'] = 'loading'
             
-            # データセット読み込み完了 - より柔軟なパターンマッチング
-            match = re.search(r'\[OK\]\s*Loaded\s*(\d+[,.]?\d*)\s*training samples', line)
-            if match:
-                samples_str = match.group(1).replace(',', '')
-                info['dataset_loading']['loaded_samples'] = int(float(samples_str))
-                info['dataset_loading']['status'] = 'completed'
-                info['dataset_loading']['progress'] = 1.0
-                # 読み込み完了時は総行数も設定（読み込み済みサンプル数と同じと仮定）
-                if info['dataset_loading']['total_lines'] == 0:
-                    info['dataset_loading']['total_lines'] = info['dataset_loading']['loaded_samples']
-                    info['dataset_loading']['current_line'] = info['dataset_loading']['loaded_samples']
-            
             # 総行数の検出
             match = re.search(r'Total lines in dataset:\s*(\d+[,.]?\d*)', line)
             if match:

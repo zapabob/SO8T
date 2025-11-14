@@ -12,10 +12,14 @@ Trainer._save_checkpoint(...) を呼び出す。
 """
 
 import time
+import logging
+from pathlib import Path
 from typing import Optional
 
 from transformers import TrainerCallback, TrainerState, TrainerControl, TrainingArguments
 from transformers.trainer import Trainer
+
+logger = logging.getLogger(__name__)
 
 
 class TimeBasedCheckpointCallback(TrainerCallback):
@@ -71,11 +75,26 @@ class TimeBasedCheckpointCallback(TrainerCallback):
         # Trainer インスタンスを取得
         trainer: Trainer = kwargs["trainer"]
 
+        # チェックポイント保存前のステップ数を記録
+        current_step = state.global_step
+        
         # Trainer の内部メソッドを使って checkpoint-XXXX を作成
         # trial=None, metrics=None で呼び出す
         # 注意: _save_checkpoint は内部APIのため、transformers のバージョンが
         # 変わったら壊れる可能性がある
-        trainer._save_checkpoint(model=trainer.model, trial=None, metrics=None)  # type: ignore
+        try:
+            trainer._save_checkpoint(model=trainer.model, trial=None, metrics=None)  # type: ignore
+            
+            # チェックポイントが保存されたか確認
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{current_step}"
+            if checkpoint_path.exists():
+                logger.info(f"[TIMEBASED_CHECKPOINT] Saved checkpoint at step {current_step} "
+                          f"(elapsed: {elapsed:.1f}s, interval: {self.fixed_interval_sec}s)")
+                logger.info(f"[TIMEBASED_CHECKPOINT] Checkpoint path: {checkpoint_path}")
+            else:
+                logger.warning(f"[TIMEBASED_CHECKPOINT] Checkpoint save attempted but file not found: {checkpoint_path}")
+        except Exception as e:
+            logger.error(f"[TIMEBASED_CHECKPOINT] Failed to save checkpoint at step {current_step}: {e}")
 
         # 保存時刻を更新
         self._last_save_time = now
