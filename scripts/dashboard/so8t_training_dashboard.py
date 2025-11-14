@@ -27,7 +27,10 @@ from scripts.dashboard.dashboard_utils import (
     calculate_progress,
     estimate_remaining_time,
     get_latest_session,
-    get_elapsed_time
+    get_elapsed_time,
+    parse_training_log,
+    load_training_session,
+    get_system_metrics
 )
 
 # ページ設定
@@ -129,9 +132,57 @@ def main():
     
     # データ読み込み
     session_info = load_session_info(session_dir)
+    # training_session.jsonも試す
+    if session_info is None:
+        session_info = load_training_session(session_dir)
+    
     progress_logs_dir = session_dir / "progress_logs"
     progress_logs = load_progress_logs(progress_logs_dir)
     checkpoint_info = load_checkpoint_info(session_dir)
+    
+    # ログファイルを解析
+    log_file = PROJECT_ROOT / "logs" / "train_borea_phi35_so8t_thinking.log"
+    log_info = parse_training_log(log_file)
+    
+    # システムメトリクスを取得
+    system_metrics = get_system_metrics()
+    
+    # データセット読み込み進捗セクション
+    st.header("📦 データセット読み込み進捗")
+    
+    dataset_loading = log_info.get('dataset_loading', {})
+    status = dataset_loading.get('status', 'not_started')
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        status_icon = {
+            'not_started': '⏸️',
+            'loading': '🔄',
+            'completed': '✅'
+        }.get(status, '❓')
+        st.metric("ステータス", f"{status_icon} {status}")
+    
+    with col2:
+        progress = dataset_loading.get('progress', 0.0)
+        total_lines = dataset_loading.get('total_lines', 0)
+        current_line = dataset_loading.get('current_line', 0)
+        if total_lines > 0:
+            st.metric("進捗", f"{current_line:,}/{total_lines:,} 行", f"{progress*100:.1f}%")
+        else:
+            st.metric("進捗", "読み込み中...", "0%")
+    
+    with col3:
+        loaded_samples = dataset_loading.get('loaded_samples', 0)
+        if loaded_samples > 0:
+            st.metric("読み込み済みサンプル", f"{loaded_samples:,}")
+        else:
+            st.metric("読み込み済みサンプル", "0")
+    
+    if status == 'loading' or status == 'completed':
+        st.progress(progress)
+        if dataset_loading.get('message'):
+            st.info(dataset_loading['message'])
     
     # セッション情報セクション
     st.header("📋 セッション情報")
@@ -164,76 +215,121 @@ def main():
     # 学習進捗セクション
     st.header("📈 学習進捗")
     
-    if session_info and progress_logs:
-        current_epoch = session_info.get('current_epoch', 0)
-        current_step = session_info.get('current_step', 0)
-        total_steps = session_info.get('total_steps', 0)
+    # ログファイルから学習進捗情報を取得
+    training_info = log_info.get('training', {})
+    
+    # セッション情報から情報を取得（優先）
+    if session_info:
+        current_epoch = session_info.get('current_epoch', training_info.get('current_epoch', 0))
+        current_step = session_info.get('current_step', training_info.get('current_step', 0))
+        total_steps = session_info.get('total_steps', training_info.get('total_steps', 0))
         best_loss = session_info.get('best_loss', float('inf'))
-        
-        # 最新のログから情報を取得
-        latest_log = progress_logs[-1] if progress_logs else {}
-        current_loss = latest_log.get('loss', 0.0)
-        learning_rate = latest_log.get('learning_rate', 0.0)
-        
-        # 進捗率計算
-        progress = calculate_progress(current_step, total_steps)
-        
-        # 残り時間推定
-        remaining_time = estimate_remaining_time(progress_logs, current_step, total_steps)
-        
+        num_epochs = session_info.get('num_epochs', training_info.get('total_epochs', 3))
+    else:
+        current_epoch = training_info.get('current_epoch', 0)
+        current_step = training_info.get('current_step', 0)
+        total_steps = training_info.get('total_steps', 0)
+        best_loss = float('inf')
+        num_epochs = training_info.get('total_epochs', 3)
+    
+    # ログファイルから損失値と学習率を取得
+    current_loss = training_info.get('loss', 0.0)
+    learning_rate = training_info.get('learning_rate', 0.0)
+    
+    # 進捗ログからも情報を取得（優先）
+    if progress_logs:
+        latest_log = progress_logs[-1]
+        if latest_log.get('loss'):
+            current_loss = latest_log.get('loss', current_loss)
+        if latest_log.get('learning_rate'):
+            learning_rate = latest_log.get('learning_rate', learning_rate)
+        if latest_log.get('step'):
+            current_step = latest_log.get('step', current_step)
+    
+    # 進捗率計算
+    progress = calculate_progress(current_step, total_steps) if total_steps > 0 else 0.0
+    
+    # 残り時間推定
+    remaining_time = estimate_remaining_time(progress_logs, current_step, total_steps) if progress_logs else None
+    
+    if total_steps > 0 or current_step > 0:
         col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
-            num_epochs = session_info.get('num_epochs', 3)
             st.metric("エポック", f"{current_epoch}/{num_epochs}")
         with col2:
-            st.metric("ステップ", f"{current_step:,}/{total_steps:,}", f"{progress*100:.1f}%")
+            st.metric("ステップ", f"{current_step:,}/{total_steps:,}", f"{progress*100:.1f}%" if total_steps > 0 else None)
         with col3:
-            st.metric("損失値", f"{current_loss:.4f}", f"Best: {best_loss:.4f}" if best_loss != float('inf') else None)
+            loss_delta = f"Best: {best_loss:.4f}" if best_loss != float('inf') else None
+            st.metric("損失値", f"{current_loss:.4f}", loss_delta)
         with col4:
-            st.metric("学習率", f"{learning_rate:.2e}")
+            st.metric("学習率", f"{learning_rate:.2e}" if learning_rate > 0 else "N/A")
         with col5:
             st.metric("推定残り時間", remaining_time if remaining_time else 'N/A')
         
         # 進捗バー
-        st.progress(progress)
+        if total_steps > 0:
+            st.progress(progress)
+        
+        # 学習ステータス
+        training_status = training_info.get('status', 'not_started')
+        status_icon = {
+            'not_started': '⏸️',
+            'running': '🔄',
+            'completed': '✅'
+        }.get(training_status, '❓')
+        st.info(f"{status_icon} 学習ステータス: {training_status}")
     else:
         st.info("学習進捗データがありません")
     
     # システムメトリクスセクション
     st.header("💻 システムメトリクス")
     
+    # リアルタイムシステムメトリクスを使用（ログから取得できない場合）
     if progress_logs:
         latest_log = progress_logs[-1]
-        
-        col1, col2, col3, col4, col5 = st.columns(5)
-        
-        with col1:
-            cpu_usage = latest_log.get('cpu_usage', 0.0)
-            fig_cpu = create_gauge_chart(cpu_usage, "CPU使用率", max_value=100.0)
-            st.plotly_chart(fig_cpu, use_container_width=True)
-        
-        with col2:
-            memory_usage = latest_log.get('memory_usage', 0.0)
-            fig_memory = create_gauge_chart(memory_usage, "メモリ使用率", max_value=100.0)
-            st.plotly_chart(fig_memory, use_container_width=True)
-        
-        with col3:
-            gpu_usage = latest_log.get('gpu_usage', 0.0)
+        cpu_usage = latest_log.get('cpu_usage', system_metrics.get('cpu_usage', 0.0))
+        memory_usage = latest_log.get('memory_usage', system_metrics.get('memory_usage', 0.0))
+        gpu_usage = latest_log.get('gpu_usage', system_metrics.get('gpu_usage', 0.0))
+        gpu_memory_usage = latest_log.get('gpu_memory_usage', system_metrics.get('gpu_memory_usage', 0.0))
+        gpu_temp = latest_log.get('gpu_temperature', system_metrics.get('gpu_temperature', 0.0))
+    else:
+        cpu_usage = system_metrics.get('cpu_usage', 0.0)
+        memory_usage = system_metrics.get('memory_usage', 0.0)
+        gpu_usage = system_metrics.get('gpu_usage', 0.0)
+        gpu_memory_usage = system_metrics.get('gpu_memory_usage', 0.0)
+        gpu_temp = system_metrics.get('gpu_temperature', 0.0)
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        fig_cpu = create_gauge_chart(cpu_usage, "CPU使用率", max_value=100.0)
+        st.plotly_chart(fig_cpu, use_container_width=True)
+    
+    with col2:
+        fig_memory = create_gauge_chart(memory_usage, "メモリ使用率", max_value=100.0)
+        st.plotly_chart(fig_memory, use_container_width=True)
+    
+    with col3:
+        if system_metrics.get('gpu_available', False):
             fig_gpu = create_gauge_chart(gpu_usage, "GPU使用率", max_value=100.0)
             st.plotly_chart(fig_gpu, use_container_width=True)
-        
-        with col4:
-            gpu_memory_usage = latest_log.get('gpu_memory_usage', 0.0)
+        else:
+            st.info("GPU情報が取得できません")
+    
+    with col4:
+        if system_metrics.get('gpu_available', False):
             fig_gpu_mem = create_gauge_chart(gpu_memory_usage, "GPUメモリ使用率", max_value=100.0)
             st.plotly_chart(fig_gpu_mem, use_container_width=True)
-        
-        with col5:
-            gpu_temp = latest_log.get('gpu_temperature', 0.0)
+        else:
+            st.info("GPU情報が取得できません")
+    
+    with col5:
+        if system_metrics.get('gpu_available', False):
             fig_gpu_temp = create_gauge_chart(gpu_temp, "GPU温度", max_value=100.0, warning_threshold=gpu_temp_warning)
             st.plotly_chart(fig_gpu_temp, use_container_width=True)
-    else:
-        st.info("システムメトリクスデータがありません")
+        else:
+            st.info("GPU情報が取得できません")
     
     # 学習曲線セクション
     st.header("📊 学習曲線")
@@ -298,6 +394,35 @@ def main():
     else:
         st.info("学習曲線データがありません")
     
+    # ログファイル表示セクション
+    st.header("📄 ログファイル")
+    
+    tab1, tab2, tab3 = st.tabs(["最新ログ", "エラー", "警告"])
+    
+    with tab1:
+        latest_logs = log_info.get('latest_logs', [])
+        if latest_logs:
+            log_lines = '\n'.join(latest_logs[-50:])  # 最新50行
+            st.text_area("最新ログ（最新50行）", log_lines, height=400, key="latest_logs")
+        else:
+            st.info("ログデータがありません")
+    
+    with tab2:
+        errors = log_info.get('errors', [])
+        if errors:
+            error_text = '\n'.join(errors[:20])  # 最新20件
+            st.text_area("エラーログ", error_text, height=400, key="error_logs")
+        else:
+            st.success("エラーはありません")
+    
+    with tab3:
+        warnings = log_info.get('warnings', [])
+        if warnings:
+            warning_text = '\n'.join(warnings[:20])  # 最新20件
+            st.text_area("警告ログ", warning_text, height=400, key="warning_logs")
+        else:
+            st.info("警告はありません")
+    
     # チェックポイント情報セクション
     st.header("💾 チェックポイント情報")
     
@@ -305,8 +430,19 @@ def main():
     
     with col1:
         st.subheader("最新チェックポイント")
-        if checkpoint_info['rolling_checkpoints']:
+        latest_checkpoint = None
+        
+        # HuggingFace形式のチェックポイントを優先
+        if checkpoint_info.get('hf_checkpoints'):
+            latest_checkpoint = Path(checkpoint_info['hf_checkpoints'][0])
+        elif checkpoint_info['rolling_checkpoints']:
             latest_checkpoint = Path(checkpoint_info['rolling_checkpoints'][0])
+        elif checkpoint_info.get('time_based_checkpoints'):
+            latest_checkpoint = Path(checkpoint_info['time_based_checkpoints'][0])
+        elif checkpoint_info['final_checkpoint']:
+            latest_checkpoint = Path(checkpoint_info['final_checkpoint'])
+        
+        if latest_checkpoint:
             st.write(f"**ファイル名**: {latest_checkpoint.name}")
             st.write(f"**パス**: {latest_checkpoint}")
             try:
@@ -314,24 +450,33 @@ def main():
                 st.write(f"**更新時刻**: {mtime.strftime('%Y-%m-%d %H:%M:%S')}")
             except:
                 pass
-        elif checkpoint_info['final_checkpoint']:
-            final_checkpoint = Path(checkpoint_info['final_checkpoint'])
-            st.write(f"**ファイル名**: {final_checkpoint.name}")
-            st.write(f"**パス**: {final_checkpoint}")
         else:
             st.info("チェックポイントが見つかりません")
     
     with col2:
         st.subheader("チェックポイント統計")
+        st.metric("HuggingFace形式", len(checkpoint_info.get('hf_checkpoints', [])))
+        st.metric("時間ベース", len(checkpoint_info.get('time_based_checkpoints', [])))
         st.metric("ローリングストック", f"{len(checkpoint_info['rolling_checkpoints'])}/5")
         st.metric("最終チェックポイント", "あり" if checkpoint_info['final_checkpoint'] else "なし")
         st.metric("緊急チェックポイント", len(checkpoint_info['emergency_checkpoints']))
         st.metric("総チェックポイント数", checkpoint_info['total_count'])
     
     # 自動更新設定
-    if st.checkbox("🔄 自動更新を有効化", value=True):
+    auto_refresh = st.checkbox("🔄 自動更新を有効化", value=True)
+    
+    if auto_refresh:
         import time
-        time.sleep(refresh_interval)
+        # ログファイルの変更を検知
+        log_file_mtime = log_file.stat().st_mtime if log_file.exists() else 0
+        current_time = time.time()
+        
+        # ログファイルが更新されている場合は即座に更新
+        if current_time - log_file_mtime < refresh_interval:
+            time.sleep(1)  # 短い待機
+        else:
+            time.sleep(refresh_interval)
+        
         st.rerun()
 
 
