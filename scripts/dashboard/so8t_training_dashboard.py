@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SO8T再学習進捗Streamlitダッシュボード
+SO8T再学習進捗Streamlitダッシュボード（サイバーパンク風）
 
 リアルタイムで学習進捗、システムメトリクス、学習曲線を可視化
 """
@@ -15,6 +15,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from datetime import datetime
+import time
 
 # プロジェクトルートをパスに追加
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -33,13 +34,138 @@ from scripts.dashboard.dashboard_utils import (
     get_system_metrics
 )
 
+# サイバーパンク風CSS
+CYBERPUNK_CSS = """
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+    
+    /* メイン背景 */
+    .stApp {
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 50%, #0a0a0a 100%);
+        background-attachment: fixed;
+    }
+    
+    /* ヘッダー */
+    h1, h2, h3 {
+        font-family: 'Orbitron', monospace;
+        color: #00ffff;
+        text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+        letter-spacing: 2px;
+    }
+    
+    /* メトリクス */
+    [data-testid="stMetricValue"] {
+        font-family: 'Orbitron', monospace;
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+        font-weight: 700;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        font-family: 'Orbitron', monospace;
+        color: #00ffff;
+        text-shadow: 0 0 5px #00ffff;
+    }
+    
+    /* サイドバー */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #1a0033 0%, #0a0a0a 100%);
+        border-right: 2px solid #00ffff;
+        box-shadow: 0 0 20px #00ffff;
+    }
+    
+    /* カード */
+    .stCard {
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid #00ffff;
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        padding: 20px;
+    }
+    
+    /* プログレスバー */
+    .stProgress > div > div > div {
+        background: linear-gradient(90deg, #00ffff 0%, #00ff00 50%, #ff00ff 100%);
+        box-shadow: 0 0 10px #00ffff;
+    }
+    
+    /* ボタン */
+    .stButton > button {
+        background: linear-gradient(135deg, #00ffff 0%, #00ff00 100%);
+        color: #000;
+        font-family: 'Orbitron', monospace;
+        font-weight: 700;
+        border: 2px solid #00ffff;
+        border-radius: 5px;
+        box-shadow: 0 0 10px #00ffff;
+        transition: all 0.3s;
+    }
+    
+    .stButton > button:hover {
+        box-shadow: 0 0 20px #00ffff;
+        transform: scale(1.05);
+    }
+    
+    /* テキストエリア */
+    .stTextArea > div > div > textarea {
+        background: rgba(0, 0, 0, 0.8);
+        color: #00ff00;
+        font-family: 'Courier New', monospace;
+        border: 1px solid #00ffff;
+        border-radius: 5px;
+    }
+    
+    /* タブ */
+    .stTabs [data-baseweb="tab-list"] {
+        background: rgba(0, 0, 0, 0.5);
+        border-bottom: 2px solid #00ffff;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: #00ffff;
+        font-family: 'Orbitron', monospace;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+    }
+    
+    /* グリッチエフェクト */
+    @keyframes glitch {
+        0%, 100% { transform: translate(0); }
+        20% { transform: translate(-2px, 2px); }
+        40% { transform: translate(-2px, -2px); }
+        60% { transform: translate(2px, 2px); }
+        80% { transform: translate(2px, -2px); }
+    }
+    
+    .glitch {
+        animation: glitch 0.3s infinite;
+    }
+    
+    /* パルスエフェクト */
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+</style>
+"""
+
 # ページ設定
 st.set_page_config(
-    page_title="SO8T再学習進捗ダッシュボード",
-    page_icon="📊",
+    page_title="SO8T Cyber Dashboard",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# CSSを適用
+st.markdown(CYBERPUNK_CSS, unsafe_allow_html=True)
 
 # 設定読み込み
 @st.cache_data
@@ -59,43 +185,79 @@ def load_config():
 
 def create_gauge_chart(value: float, title: str, max_value: float = 100.0, 
                        warning_threshold: Optional[float] = None) -> go.Figure:
-    """ゲージチャートを作成"""
-    # 色の決定
+    """サイバーパンク風ゲージチャートを作成"""
+    # サイバーパンク風の色決定
     if warning_threshold and value >= warning_threshold:
-        color = 'red'
+        color = '#ff0080'  # マゼンタ
+        bg_color = 'rgba(255, 0, 128, 0.2)'
     elif value >= max_value * 0.8:
-        color = 'orange'
+        color = '#ffff00'  # イエロー
+        bg_color = 'rgba(255, 255, 0, 0.2)'
     else:
-        color = 'green'
+        color = '#00ff00'  # グリーン
+        bg_color = 'rgba(0, 255, 0, 0.2)'
     
     fig = go.Figure(go.Indicator(
-        mode="gauge+number",
+        mode="gauge+number+delta",
         value=value,
         domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': title},
+        title={
+            'text': f"<span style='font-family: Orbitron; color: #00ffff; font-size: 16px;'>{title}</span>",
+            'font': {'size': 16}
+        },
+        number={
+            'font': {'family': 'Orbitron', 'size': 24, 'color': color},
+            'valueformat': '.1f',
+            'suffix': '%'
+        },
         gauge={
-            'axis': {'range': [None, max_value]},
-            'bar': {'color': color},
+            'axis': {
+                'range': [None, max_value],
+                'tickcolor': '#00ffff',
+                'tickfont': {'family': 'Orbitron', 'color': '#00ffff', 'size': 10}
+            },
+            'bar': {
+                'color': color,
+                'line': {'color': '#ffffff', 'width': 2}
+            },
+            'bgcolor': 'rgba(0, 0, 0, 0.8)',
+            'borderwidth': 2,
+            'bordercolor': '#00ffff',
             'steps': [
-                {'range': [0, max_value * 0.6], 'color': "lightgray"},
-                {'range': [max_value * 0.6, max_value * 0.8], 'color': "gray"}
+                {'range': [0, max_value * 0.6], 'color': bg_color},
+                {'range': [max_value * 0.6, max_value * 0.8], 'color': 'rgba(255, 255, 0, 0.1)'}
             ],
             'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
+                'line': {'color': "#ff0080", 'width': 3},
+                'thickness': 0.8,
                 'value': warning_threshold if warning_threshold else max_value
             }
         }
     ))
     
-    fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20))
+    fig.update_layout(
+        height=220,
+        margin=dict(l=20, r=20, t=50, b=20),
+        paper_bgcolor='rgba(0, 0, 0, 0)',
+        plot_bgcolor='rgba(0, 0, 0, 0)',
+        font={'family': 'Orbitron', 'color': '#00ffff'}
+    )
     return fig
 
 
 def main():
     """メイン関数"""
-    # タイトル
-    st.title("📊 SO8T再学習進捗ダッシュボード")
+    # サイバーパンク風タイトル
+    st.markdown("""
+    <div style="text-align: center; padding: 20px;">
+        <h1 style="font-family: 'Orbitron', monospace; color: #00ffff; text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff; letter-spacing: 5px; margin: 0;">
+            ⚡ SO8T CYBER DASHBOARD ⚡
+        </h1>
+        <p style="font-family: 'Orbitron', monospace; color: #00ff00; text-shadow: 0 0 10px #00ff00; letter-spacing: 3px; margin-top: 10px;">
+            REAL-TIME TRAINING MONITORING SYSTEM
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # 設定読み込み
     config = load_config()
@@ -105,14 +267,23 @@ def main():
     
     # サイドバー
     with st.sidebar:
-        st.header("設定")
+        st.markdown("""
+        <div style="font-family: 'Orbitron', monospace; color: #00ffff; text-shadow: 0 0 10px #00ffff;">
+            <h2>⚙️ CONTROL PANEL</h2>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # 更新間隔設定
-        refresh_interval = st.slider("更新間隔（秒）", 1, 30, refresh_interval)
+        # 更新間隔設定（リアルタイム重視）
+        refresh_interval = st.slider("更新間隔（秒）", 1, 10, 2, help="リアルタイム更新のため1-2秒推奨")
         
         # 手動更新ボタン
-        if st.button("🔄 手動更新"):
+        if st.button("🔄 FORCE REFRESH", use_container_width=True):
             st.rerun()
+        
+        # リアルタイムモード
+        realtime_mode = st.checkbox("⚡ REALTIME MODE", value=True, help="最高頻度で自動更新")
+        if realtime_mode:
+            refresh_interval = 1
         
         # セッション選択
         st.header("セッション選択")
@@ -148,7 +319,13 @@ def main():
     system_metrics = get_system_metrics()
     
     # データセット読み込み進捗セクション
-    st.header("📦 データセット読み込み進捗")
+    st.markdown("""
+    <div style="border: 2px solid #00ffff; border-radius: 10px; padding: 15px; background: rgba(0, 0, 0, 0.5); margin: 20px 0;">
+        <h2 style="font-family: 'Orbitron', monospace; color: #00ffff; text-shadow: 0 0 10px #00ffff; margin: 0;">
+            📦 DATASET LOADING STATUS
+        </h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     dataset_loading = log_info.get('dataset_loading', {})
     status = dataset_loading.get('status', 'not_started')
@@ -185,7 +362,13 @@ def main():
             st.info(dataset_loading['message'])
     
     # セッション情報セクション
-    st.header("📋 セッション情報")
+    st.markdown("""
+    <div style="border: 2px solid #00ffff; border-radius: 10px; padding: 15px; background: rgba(0, 0, 0, 0.5); margin: 20px 0;">
+        <h2 style="font-family: 'Orbitron', monospace; color: #00ffff; text-shadow: 0 0 10px #00ffff; margin: 0;">
+            📋 SESSION INFORMATION
+        </h2>
+    </div>
+    """, unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -213,7 +396,13 @@ def main():
         st.metric("経過時間", elapsed_time if elapsed_time else 'N/A')
     
     # 学習進捗セクション
-    st.header("📈 学習進捗")
+    st.markdown("""
+    <div style="border: 2px solid #00ff00; border-radius: 10px; padding: 15px; background: rgba(0, 0, 0, 0.5); margin: 20px 0;">
+        <h2 style="font-family: 'Orbitron', monospace; color: #00ff00; text-shadow: 0 0 10px #00ff00; margin: 0;">
+            📈 TRAINING PROGRESS
+        </h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     # ログファイルから学習進捗情報を取得
     training_info = log_info.get('training', {})
@@ -283,7 +472,13 @@ def main():
         st.info("学習進捗データがありません")
     
     # システムメトリクスセクション
-    st.header("💻 システムメトリクス")
+    st.markdown("""
+    <div style="border: 2px solid #ff00ff; border-radius: 10px; padding: 15px; background: rgba(0, 0, 0, 0.5); margin: 20px 0;">
+        <h2 style="font-family: 'Orbitron', monospace; color: #ff00ff; text-shadow: 0 0 10px #ff00ff; margin: 0;">
+            💻 SYSTEM METRICS
+        </h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     # リアルタイムシステムメトリクスを使用（ログから取得できない場合）
     if progress_logs:
@@ -332,7 +527,13 @@ def main():
             st.info("GPU情報が取得できません")
     
     # 学習曲線セクション
-    st.header("📊 学習曲線")
+    st.markdown("""
+    <div style="border: 2px solid #00ffff; border-radius: 10px; padding: 15px; background: rgba(0, 0, 0, 0.5); margin: 20px 0;">
+        <h2 style="font-family: 'Orbitron', monospace; color: #00ffff; text-shadow: 0 0 10px #00ffff; margin: 0;">
+            📊 TRAINING CURVES
+        </h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     if progress_logs:
         # データフレーム作成
@@ -346,23 +547,63 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            # 損失値の推移
+            # 損失値の推移（サイバーパンク風）
             if 'loss' in df.columns and 'step' in df.columns:
-                fig_loss = px.line(df, x='step', y='loss', 
-                                   title='損失値の推移',
-                                   labels={'step': 'ステップ', 'loss': '損失値'})
-                fig_loss.update_layout(height=400)
+                fig_loss = go.Figure()
+                fig_loss.add_trace(go.Scatter(
+                    x=df['step'],
+                    y=df['loss'],
+                    mode='lines',
+                    name='Loss',
+                    line=dict(color='#00ff00', width=3),
+                    fill='tonexty',
+                    fillcolor='rgba(0, 255, 0, 0.1)'
+                ))
+                fig_loss.update_layout(
+                    title={
+                        'text': '<span style="font-family: Orbitron; color: #00ff00; font-size: 18px;">LOSS CURVE</span>',
+                        'x': 0.5
+                    },
+                    xaxis_title='<span style="font-family: Orbitron; color: #00ffff;">STEP</span>',
+                    yaxis_title='<span style="font-family: Orbitron; color: #00ffff;">LOSS</span>',
+                    height=400,
+                    paper_bgcolor='rgba(0, 0, 0, 0)',
+                    plot_bgcolor='rgba(0, 0, 0, 0.5)',
+                    font={'family': 'Orbitron', 'color': '#00ffff'},
+                    xaxis=dict(gridcolor='rgba(0, 255, 255, 0.2)', showgrid=True),
+                    yaxis=dict(gridcolor='rgba(0, 255, 255, 0.2)', showgrid=True)
+                )
                 st.plotly_chart(fig_loss, use_container_width=True)
             else:
                 st.info("損失値データがありません")
         
         with col2:
-            # 学習率の推移
+            # 学習率の推移（サイバーパンク風）
             if 'learning_rate' in df.columns and 'step' in df.columns:
-                fig_lr = px.line(df, x='step', y='learning_rate',
-                                title='学習率の推移',
-                                labels={'step': 'ステップ', 'learning_rate': '学習率'})
-                fig_lr.update_layout(height=400)
+                fig_lr = go.Figure()
+                fig_lr.add_trace(go.Scatter(
+                    x=df['step'],
+                    y=df['learning_rate'],
+                    mode='lines',
+                    name='Learning Rate',
+                    line=dict(color='#ff00ff', width=3),
+                    fill='tonexty',
+                    fillcolor='rgba(255, 0, 255, 0.1)'
+                ))
+                fig_lr.update_layout(
+                    title={
+                        'text': '<span style="font-family: Orbitron; color: #ff00ff; font-size: 18px;">LEARNING RATE CURVE</span>',
+                        'x': 0.5
+                    },
+                    xaxis_title='<span style="font-family: Orbitron; color: #00ffff;">STEP</span>',
+                    yaxis_title='<span style="font-family: Orbitron; color: #00ffff;">LEARNING RATE</span>',
+                    height=400,
+                    paper_bgcolor='rgba(0, 0, 0, 0)',
+                    plot_bgcolor='rgba(0, 0, 0, 0.5)',
+                    font={'family': 'Orbitron', 'color': '#00ffff'},
+                    xaxis=dict(gridcolor='rgba(0, 255, 255, 0.2)', showgrid=True),
+                    yaxis=dict(gridcolor='rgba(0, 255, 255, 0.2)', showgrid=True)
+                )
                 st.plotly_chart(fig_lr, use_container_width=True)
             else:
                 st.info("学習率データがありません")
@@ -462,22 +703,67 @@ def main():
         st.metric("緊急チェックポイント", len(checkpoint_info['emergency_checkpoints']))
         st.metric("総チェックポイント数", checkpoint_info['total_count'])
     
-    # 自動更新設定
-    auto_refresh = st.checkbox("🔄 自動更新を有効化", value=True)
+    # リアルタイム自動更新
+    auto_refresh = st.checkbox("🔄 AUTO REFRESH", value=True, key="auto_refresh")
     
-    if auto_refresh:
-        import time
+    # セッション状態で更新回数を追跡
+    if 'update_count' not in st.session_state:
+        st.session_state.update_count = 0
+    if 'last_update_time' not in st.session_state:
+        st.session_state.last_update_time = time.time()
+    
+    # 更新状態を表示
+    current_time = time.time()
+    elapsed_since_update = current_time - st.session_state.last_update_time
+    st.session_state.update_count += 1
+    
+    # 更新情報を表示
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown(f"**更新回数**: {st.session_state.update_count}")
+        st.markdown(f"**最終更新**: {datetime.now().strftime('%H:%M:%S')}")
+        if log_file.exists():
+            log_mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
+            st.markdown(f"**ログ更新**: {log_mtime.strftime('%H:%M:%S')}")
+            time_since_log_update = (current_time - log_file.stat().st_mtime)
+            if time_since_log_update < 60:
+                st.markdown(f"**ログ更新**: {int(time_since_log_update)}秒前", help="ログファイルが最近更新されました")
+            else:
+                st.markdown(f"**ログ更新**: {int(time_since_log_update/60)}分前", help="ログファイルの更新が止まっている可能性があります")
+    
+    if realtime_mode or auto_refresh:
         # ログファイルの変更を検知
         log_file_mtime = log_file.stat().st_mtime if log_file.exists() else 0
         current_time = time.time()
         
         # ログファイルが更新されている場合は即座に更新
         if current_time - log_file_mtime < refresh_interval:
-            time.sleep(1)  # 短い待機
+            time.sleep(0.5)  # より短い待機
         else:
             time.sleep(refresh_interval)
         
-        st.rerun()
+        # プログレスバーで更新状態を表示
+        placeholder = st.empty()
+        with placeholder.container():
+            st.markdown("""
+            <div style="text-align: center; padding: 10px;">
+                <span style="font-family: 'Orbitron', monospace; color: #00ff00; text-shadow: 0 0 10px #00ff00;">
+                    ⚡ UPDATING... (更新回数: """ + str(st.session_state.update_count) + """)
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # セッション状態を更新
+        st.session_state.last_update_time = time.time()
+        
+        # 強制的に再実行
+        try:
+            st.rerun()
+        except Exception as e:
+            st.error(f"更新エラー: {e}")
+            # エラーが発生した場合でも再試行
+            time.sleep(1)
+            st.rerun()
 
 
 if __name__ == '__main__':

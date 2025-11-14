@@ -167,39 +167,83 @@ class ThinkingSFTDataset(Dataset):
         
         all_samples = []
         total_lines = 0
+        
+        # ファイルサイズを取得（進捗表示のため）
+        file_size = data_path.stat().st_size
+        file_size_mb = file_size / (1024 * 1024)
+        logger.info(f"Dataset file size: {file_size_mb:.2f} MB")
+        
         with open(data_path, 'r', encoding='utf-8') as f:
-            # まず総行数をカウント（進捗表示のため）
+            # 総行数をカウント（非同期で実行、またはスキップ）
+            logger.info("Counting total lines in dataset...")
+            start_count_time = time.time()
             f.seek(0)
             total_lines = sum(1 for _ in f)
+            count_time = time.time() - start_count_time
             f.seek(0)
+            logger.info(f"Total lines in dataset: {total_lines:,} (counted in {count_time:.2f}s)")
             
-            logger.info(f"Total lines in dataset: {total_lines:,}")
+            start_load_time = time.time()
+            bytes_read = 0
             
             for line_no, line in enumerate(f, 1):
+                bytes_read += len(line.encode('utf-8'))
+                
                 try:
-                    sample = json.loads(line.strip())
+                    # JSON解析を最適化（大きな行の場合）
+                    line_stripped = line.strip()
+                    if not line_stripped:
+                        continue
+                    
+                    sample = json.loads(line_stripped)
                     output = sample.get("output", "")
                     
+                    # 高速チェック: 必要なトークンが含まれているか確認
+                    if not output:
+                        if line_no % 100 == 0:
+                            logger.warning(f"Line {line_no}: Empty output, skipping")
+                        continue
+                    
                     # outputが既にPhi-3.5チャットテンプレート形式であることを確認
-                    if "<|system|>" in output and "<|assistant|>" in output:
+                    # 高速チェック: 最初の1000文字で確認
+                    output_preview = output[:1000] if len(output) > 1000 else output
+                    if "<|system|>" in output_preview and "<|assistant|>" in output:
                         all_samples.append({
                             "text": output,
                             "instruction": sample.get("instruction", ""),
                             "input": sample.get("input", "")
                         })
                     else:
-                        if line_no % 1000 == 0:
-                            logger.warning(f"Line {line_no}: Invalid format, skipping (progress: {line_no}/{total_lines})")
+                        if line_no % 100 == 0:
+                            logger.warning(f"Line {line_no}: Invalid format, skipping")
                         continue
                         
                 except json.JSONDecodeError as e:
-                    if line_no % 1000 == 0:
-                        logger.warning(f"Line {line_no}: JSON decode error: {e} (progress: {line_no}/{total_lines})")
+                    if line_no % 100 == 0:
+                        logger.warning(f"Line {line_no}: JSON decode error: {e}")
+                    continue
+                except Exception as e:
+                    if line_no % 100 == 0:
+                        logger.warning(f"Line {line_no}: Unexpected error: {e}")
                     continue
                 
-                # 進捗表示（1000行ごと）
-                if line_no % 1000 == 0:
-                    logger.info(f"Loading progress: {line_no:,}/{total_lines:,} lines ({line_no*100//total_lines}%), loaded {len(all_samples):,} valid samples")
+                # 進捗表示（50行ごと、または5秒ごと、または最初の10行）
+                elapsed = time.time() - start_load_time
+                should_log = (
+                    line_no <= 10 or  # 最初の10行
+                    line_no % 50 == 0 or  # 50行ごと
+                    (elapsed > 5 and line_no % 10 == 0)  # 5秒経過後は10行ごと
+                )
+                
+                if should_log:
+                    progress_pct = (line_no * 100 // total_lines) if total_lines > 0 else 0
+                    bytes_mb = bytes_read / (1024 * 1024)
+                    bytes_pct = (bytes_read * 100 / file_size) if file_size > 0 else 0
+                    speed_mb_per_sec = bytes_mb / elapsed if elapsed > 0 else 0
+                    logger.info(f"Loading progress: {line_no:,}/{total_lines:,} lines ({progress_pct}%), "
+                              f"{bytes_mb:.2f}MB/{file_size_mb:.2f}MB ({bytes_pct:.1f}%), "
+                              f"loaded {len(all_samples):,} valid samples, "
+                              f"speed: {speed_mb_per_sec:.2f}MB/s, elapsed: {elapsed:.1f}s")
         
         # サンプリング（高速化のため）
         if sample_ratio is not None and 0 < sample_ratio < 1:
@@ -708,6 +752,9 @@ def main():
     
     # 時間ベースチェックポイントCallbackを作成（約3分ごと）
     time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
     
     # トレーナー
     trainer = SO8TPETTrainer(
@@ -718,6 +765,21 @@ def main():
         pet_regularization=pet_regularization,
         callbacks=[time_cb]
     )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
     
     # 学習実行
     logger.info("Starting training...")
