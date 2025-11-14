@@ -1,8 +1,8 @@
-# Eドライブのページファイルサイズを220GBに設定するスクリプト
+# Eドライブのページファイルサイズを320GBに設定するスクリプト（220GB + 100GB追加）
 # 管理者権限で実行が必要
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "E Drive Page File Configuration (220GB)" -ForegroundColor Cyan
+Write-Host "E Drive Page File Configuration (320GB)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -17,17 +17,65 @@ if (-not $isAdmin) {
     exit 1
 }
 
-# 220GB = 225280 MB
-$targetSizeMB = 225280
-$targetSizeGB = 220
+# 320GB = 327680 MB (220GB + 100GB)
+$targetSizeMB = 327680
+$targetSizeGB = 320
 
 Write-Host "[INFO] Target Page File Size: $targetSizeGB GB ($targetSizeMB MB)" -ForegroundColor Green
 Write-Host ""
 
-# Eドライブの存在確認
-$driveE = Get-PSDrive -Name E -ErrorAction SilentlyContinue
-if (-not $driveE) {
-    Write-Host "[ERROR] E: drive not found." -ForegroundColor Red
+# Eドライブの存在確認（複数の方法を試行）
+$driveE = $null
+$driveFound = $false
+
+# Method 1: Test-Path
+if (Test-Path "E:\") {
+    $driveFound = $true
+    Write-Host "[OK] E: drive found using Test-Path" -ForegroundColor Green
+}
+
+# Method 2: Get-PSDrive
+if (-not $driveFound) {
+    $driveE = Get-PSDrive -Name E -ErrorAction SilentlyContinue
+    if ($driveE) {
+        $driveFound = $true
+        Write-Host "[OK] E: drive found using Get-PSDrive: $($driveE.Root)" -ForegroundColor Green
+    }
+}
+
+# Method 3: Get-WmiObject
+if (-not $driveFound) {
+    try {
+        $driveWMI = Get-WmiObject -Class Win32_LogicalDisk -Filter "DeviceID='E:'" -ErrorAction SilentlyContinue
+        if ($driveWMI) {
+            $driveFound = $true
+            Write-Host "[OK] E: drive found using WMI: $($driveWMI.DeviceID)" -ForegroundColor Green
+        }
+    } catch {
+        # Ignore WMI errors
+    }
+}
+
+# Method 4: [System.IO.DriveInfo]
+if (-not $driveFound) {
+    try {
+        $driveInfo = [System.IO.DriveInfo]::GetDrives() | Where-Object { $_.Name -eq "E:\" }
+        if ($driveInfo -and $driveInfo.IsReady) {
+            $driveFound = $true
+            Write-Host "[OK] E: drive found using DriveInfo: $($driveInfo.Name)" -ForegroundColor Green
+        }
+    } catch {
+        # Ignore DriveInfo errors
+    }
+}
+
+if (-not $driveFound) {
+    Write-Host "[ERROR] E: drive not found using any method." -ForegroundColor Red
+    Write-Host "[INFO] Available drives:" -ForegroundColor Yellow
+    Get-PSDrive -PSProvider FileSystem | ForEach-Object {
+        Write-Host "  - $($_.Name): $($_.Root)" -ForegroundColor Cyan
+    }
+    Write-Host ""
     Write-Host "[INFO] Please ensure E: drive exists and is accessible." -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Press any key to exit..."
@@ -35,7 +83,7 @@ if (-not $driveE) {
     exit 1
 }
 
-Write-Host "[OK] E: drive found: $($driveE.Root)" -ForegroundColor Green
+Write-Host "[OK] E: drive verified and accessible" -ForegroundColor Green
 Write-Host ""
 
 # 現在のページファイル設定を確認
@@ -58,8 +106,8 @@ if ($eDrivePageFile) {
     Write-Host "  Maximum: $($eDrivePageFile.MaximumSize) MB ($([math]::Round($eDrivePageFile.MaximumSize / 1024, 2)) GB)" -ForegroundColor White
     Write-Host ""
     
-    # サイズを220GBに設定するか確認
-    Write-Host "[QUESTION] Do you want to set E: drive page file size to $targetSizeGB GB?" -ForegroundColor Yellow
+    # サイズを320GBに設定するか確認（100GB追加）
+    Write-Host "[QUESTION] Do you want to set E: drive page file size to $targetSizeGB GB (adding 100GB)?" -ForegroundColor Yellow
     Write-Host "  Current: Initial=$($eDrivePageFile.InitialSize) MB, Maximum=$($eDrivePageFile.MaximumSize) MB" -ForegroundColor White
     Write-Host "  New: Initial=$targetSizeMB MB, Maximum=$targetSizeMB MB" -ForegroundColor White
     Write-Host ""

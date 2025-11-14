@@ -357,15 +357,26 @@ def parse_training_log(log_file: Path, max_lines: int = 1000) -> Dict[str, Any]:
         },
         'latest_logs': [],
         'errors': [],
-        'warnings': []
+        'warnings': [],
+        'log_file_mtime': None,  # ログファイルの最終更新時刻
+        'log_file_size': 0  # ログファイルのサイズ
     }
     
     if not log_file.exists():
         return info
     
     try:
+        # ログファイルの更新時刻とサイズを記録（最新ログ確認用）
+        try:
+            stat = log_file.stat()
+            info['log_file_mtime'] = datetime.fromtimestamp(stat.st_mtime).isoformat()
+            info['log_file_size'] = stat.st_size
+        except Exception:
+            pass
+        
         # 最新N行のみを読み込む（効率化のため）
-        with open(log_file, 'r', encoding='utf-8') as f:
+        # ファイルを毎回開き直して最新の状態を確実に読み込む
+        with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
             if len(lines) > max_lines:
                 lines = lines[-max_lines:]

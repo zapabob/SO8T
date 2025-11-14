@@ -183,4 +183,3 @@ class TimeBasedCheckpointCallback(TrainerCallback):
         self._last_save_time = now
 
         return control
-

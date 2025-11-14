@@ -1,17 +1,24 @@
 @echo off
-chcp 65001 >nul
-echo ========================================
-echo E Drive Page File Configuration (220GB)
-echo ========================================
-echo.
-echo [INFO] Eドライブに220GBの仮想メモリを設定します
-echo [WARNING] この操作には管理者権限が必要です
-echo [WARNING] 管理者として実行してください
-echo.
-echo [INFO] PowerShellスクリプトを実行中...
-powershell -ExecutionPolicy Bypass -File "%~dp0set_virtual_memory_e_drive.ps1"
-echo.
-echo [AUDIO] 完了通知音を再生します...
-powershell -ExecutionPolicy Bypass -File "%~dp0play_audio_notification.ps1"
-pause
+REM Set UTF-8 code page
+chcp 65001 >nul 2>&1
+timeout /t 1 >nul 2>&1
 
+echo ========================================
+echo E Drive Page File Configuration (320GB)
+echo ========================================
+echo.
+echo [INFO] Setting virtual memory to 320GB on E: drive (adding 100GB)
+echo [WARNING] Administrator privileges required
+echo [WARNING] Please run as administrator
+echo.
+echo [INFO] Executing PowerShell script...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0set_virtual_memory_e_drive.ps1"
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] PowerShell script execution failed
+    pause
+    exit /b %ERRORLEVEL%
+)
+echo.
+echo [AUDIO] Playing completion notification...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0play_audio_notification.ps1"
+pause
