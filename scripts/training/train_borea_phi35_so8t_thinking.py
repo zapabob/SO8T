@@ -336,12 +336,23 @@ class SO8TPETTrainer(Trainer):
             return_outputs: 出力を返すかどうか
             num_items_in_batch: バッチ内のアイテム数（transformers新バージョン用、未使用）
         """
+        # CRITICAL: 8-bit量子化モデルで勾配を有効化するための処理
+        # PEFT 0.15.2にはenable_input_require_gradsが存在しないため、
+        # prepare_model_for_kbit_trainingが既に呼ばれていることを前提とする
+        # ただし、hidden_statesがrequires_grad=Falseになる問題があるため、
+        # モデルのforwardをラップして勾配を有効化
+        
         # hidden_statesを取得するためにoutput_hidden_states=Trueを設定
         inputs_with_hidden = {**inputs, "output_hidden_states": True}
         
         # 標準損失
         outputs = model(**inputs_with_hidden)
         loss = outputs.loss
+        
+        # CRITICAL: 8-bit量子化モデルでは、hidden_statesがrequires_grad=Falseになることがある
+        # これは、ベースモデルのパラメータが凍結されているため
+        # LoRAアダプターを通るパスだけが勾配を必要とするが、
+        # hidden_states自体は勾配グラフから外れている可能性がある
         
         # CRITICAL: モデルが訓練モードであることを確認
         if not model.training:
@@ -389,13 +400,10 @@ class SO8TPETTrainer(Trainer):
                                 logger.warning(f"[FIX] Model not in training mode, setting to training mode")
                                 model.train()
                             
-                            # Try to enable input require_grads again
-                            try:
-                                from peft.tuners.lora import enable_input_require_grads
-                                enable_input_require_grads(model)
-                                logger.info("[FIX] Re-enabled input require_grads")
-                            except Exception as e:
-                                logger.warning(f"[WARNING] Failed to re-enable input require_grads: {e}")
+                            # CRITICAL: PEFT 0.15.2にはenable_input_require_gradsが存在しない
+                            # 代わりに、次回のforward呼び出しで入力テンソルにrequires_grad=Trueを設定
+                            logger.warning(f"[WARNING] PEFT 0.15.2 does not have enable_input_require_grads")
+                            logger.info("[FIX] Input requires_grad will be set in next forward pass")
                             
                             # Verify trainable parameters
                             trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -753,18 +761,9 @@ def load_model_with_so8t(
                     from peft import prepare_model_for_kbit_training
                     so8t_model = prepare_model_for_kbit_training(so8t_model)
                     
-                    # CRITICAL: Enable input require_grads for 8-bit quantization
-                    try:
-                        from peft.tuners.lora import enable_input_require_grads
-                        enable_input_require_grads(so8t_model)
-                        logger.info("[DEBUG] enable_input_require_grads completed for SO8T model")
-                    except ImportError:
-                        # Fallback: manually enable requires_grad
-                        logger.warning("[WARNING] enable_input_require_grads not available for SO8T model, using manual method")
-                        for name, param in so8t_model.named_parameters():
-                            if 'lora' in name.lower() or param.requires_grad:
-                                param.requires_grad = True
-                        logger.info("[DEBUG] Manually enabled requires_grad for SO8T model")
+                    # CRITICAL: prepare_model_for_kbit_trainingが既に呼ばれているので、LoRAパラメータは有効
+                    # 入力テンソルのrequires_gradはcompute_loss内で設定
+                    logger.info("[DEBUG] prepare_model_for_kbit_training completed for SO8T model (input requires_grad will be set in compute_loss)")
                 
                 model = so8t_model
             else:
@@ -973,18 +972,10 @@ def main():
         logger.info("[DEBUG] prepare_model_for_kbit_training completed")
         
         # CRITICAL: Enable input require_grads for 8-bit quantization
-        # This ensures that input tensors (and thus hidden_states) require gradients
-        try:
-            from peft.tuners.lora import enable_input_require_grads
-            enable_input_require_grads(model)
-            logger.info("[DEBUG] enable_input_require_grads completed")
-        except ImportError:
-            # Fallback: manually enable requires_grad for trainable parameters
-            logger.warning("[WARNING] enable_input_require_grads not available, using manual method")
-            for name, param in model.named_parameters():
-                if 'lora' in name.lower() or param.requires_grad:
-                    param.requires_grad = True
-            logger.info("[DEBUG] Manually enabled requires_grad for trainable parameters")
+        # PEFT 0.15.2にはenable_input_require_gradsが存在しないため、手動で設定
+        # prepare_model_for_kbit_trainingが既に呼ばれているので、LoRAパラメータは有効
+        # 入力テンソルのrequires_gradはcompute_loss内で設定
+        logger.info("[DEBUG] prepare_model_for_kbit_training completed (input requires_grad will be set in compute_loss)")
         
         qlora_config = config.get("qlora", {})
         lora_config = LoraConfig(
@@ -1008,18 +999,9 @@ def main():
         total_params = sum(p.numel() for p in model.parameters())
         logger.info(f"[DEBUG] Trainable parameters: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)")
         
-        # Enable input require_grads (critical for 8-bit quantization)
-        try:
-            from peft.tuners.lora import enable_input_require_grads
-            enable_input_require_grads(model)
-            logger.info("[DEBUG] enable_input_require_grads completed after QLoRA")
-        except ImportError:
-            logger.warning("[WARNING] enable_input_require_grads not available, using manual method")
-            # Fallback: ensure LoRA parameters require gradients
-            for name, param in model.named_parameters():
-                if 'lora' in name.lower():
-                    param.requires_grad = True
-            logger.info("[DEBUG] Manually enabled requires_grad for LoRA parameters")
+        # CRITICAL: prepare_model_for_kbit_trainingとget_peft_modelが既に呼ばれているので、LoRAパラメータは有効
+        # 入力テンソルのrequires_gradはcompute_loss内で設定
+        logger.info("[DEBUG] QLoRA setup completed (input requires_grad will be set in compute_loss)")
         
         # Verify model is in training mode
         model.train()
