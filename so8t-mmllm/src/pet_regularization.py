@@ -341,7 +341,9 @@ class PETRegularization(nn.Module):
                 'loss': 0.0,
                 'raw_loss': 0.0,
             }
-            return torch.tensor(0.0, device=hidden_states.device), info
+            # CRITICAL: requires_grad=Trueのゼロテンソルを作成（hidden_statesから派生）
+            zero_loss = (hidden_states.sum() * 0.0) if hidden_states.numel() > 0 else torch.tensor(0.0, device=hidden_states.device, requires_grad=True)
+            return zero_loss, info
         
         # 二階差分を計算
         d2 = second_difference(hidden_states, dim=1)  # [B, T-2, D]

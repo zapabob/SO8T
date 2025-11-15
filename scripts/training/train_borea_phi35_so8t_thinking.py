@@ -309,6 +309,66 @@ class SO8TPETTrainer(Trainer):
         outputs = model(**inputs_with_hidden)
         loss = outputs.loss
         
+        # CRITICAL: モデルが訓練モードであることを確認
+        if not model.training:
+            logger.warning(f"[WARNING] Model is not in training mode at step {self.state.global_step}, setting training mode")
+            model.train()
+        
+        # CRITICAL: logitsがrequires_grad=Trueであることを事前に確認
+        if hasattr(outputs, 'logits') and outputs.logits is not None:
+            if not outputs.logits.requires_grad:
+                logger.warning(f"[WARNING] outputs.logits does not require grad at step {self.state.global_step}")
+                # logitsをrequires_grad=Trueに設定（ただし、これは勾配グラフに接続されない可能性がある）
+                # 実際の修正は損失再計算時に行う
+        
+        # CRITICAL: outputs.lossがrequires_grad=Falseの場合、勾配計算グラフに接続
+        if loss is not None and not loss.requires_grad:
+            # logitsから損失を再計算して勾配グラフに接続
+            if hasattr(outputs, 'logits') and 'labels' in inputs:
+                logits = outputs.logits
+                loss_fct = nn.CrossEntropyLoss()
+                shift_labels = inputs['labels'][..., 1:].contiguous()
+                shift_labels = shift_labels.view(-1)
+                
+                # CRITICAL: logitsがrequires_grad=Falseの場合、hidden_statesから直接logitsを再計算
+                # logits.requires_grad_(True)だけでは不十分（勾配グラフから外れているため）
+                if not logits.requires_grad:
+                    logger.debug(f"[FIX] logits requires_grad=False, recalculating from hidden_states")
+                    # hidden_statesから直接logitsを再計算（これにより勾配グラフに接続される）
+                    if hasattr(outputs, 'hidden_states') and outputs.hidden_states:
+                        hidden_states = outputs.hidden_states[-1]
+                        if hidden_states.requires_grad:
+                            # hidden_statesからlogitsを再計算
+                            logits_from_hidden = model.lm_head(hidden_states)
+                            logits_from_hidden = logits_from_hidden.float()
+                            shift_logits = logits_from_hidden[..., :-1, :].contiguous()
+                            shift_logits = shift_logits.view(-1, shift_logits.size(-1))
+                            shift_labels = shift_labels.to(shift_logits.device)
+                            loss = loss_fct(shift_logits, shift_labels)
+                            logger.debug(f"[FIX] Recalculated loss from hidden_states (loss.requires_grad={loss.requires_grad})")
+                        else:
+                            logger.error(f"[ERROR] hidden_states also does not require grad at step {self.state.global_step}")
+                            # 最後の手段: logitsを使用（勾配は流れないが、エラーは回避）
+                            shift_logits = logits[..., :-1, :].contiguous()
+                            shift_logits = shift_logits.view(-1, shift_logits.size(-1))
+                            shift_labels = shift_labels.to(shift_logits.device)
+                            loss = loss_fct(shift_logits, shift_labels)
+                            logger.warning(f"[WARNING] Using logits without grad tracking (loss.requires_grad={loss.requires_grad})")
+                    else:
+                        # hidden_statesが利用できない場合
+                        logger.error(f"[ERROR] hidden_states not available, using logits without grad tracking")
+                        shift_logits = logits[..., :-1, :].contiguous()
+                        shift_logits = shift_logits.view(-1, shift_logits.size(-1))
+                        shift_labels = shift_labels.to(shift_logits.device)
+                        loss = loss_fct(shift_logits, shift_labels)
+                else:
+                    # logitsがrequires_grad=Trueの場合、通常通り使用
+                    shift_logits = logits[..., :-1, :].contiguous()
+                    shift_logits = shift_logits.view(-1, shift_logits.size(-1))
+                    shift_labels = shift_labels.to(shift_logits.device)
+                    loss = loss_fct(shift_logits, shift_labels)
+                    logger.debug(f"[FIX] outputs.loss requires_grad=False, recalculated from logits (loss.requires_grad={loss.requires_grad})")
+        
         # PET損失を追加
         if self.pet_regularization is not None and hasattr(outputs, 'hidden_states') and outputs.hidden_states:
             # hidden_statesが利用可能な場合
@@ -321,6 +381,18 @@ class SO8TPETTrainer(Trainer):
                 mask=inputs.get("attention_mask")
             )
             
+            # CRITICAL: pet_lossがrequires_grad=Falseの場合、lossから直接派生したゼロテンソルを作成
+            if not pet_loss.requires_grad:
+                # loss * 0.0を使用して、lossから直接派生したゼロテンソルを作成
+                # これにより、勾配計算グラフに含まれる
+                # スカラーではなくテンソルとして作成（形状を保持）
+                if loss.dim() == 0:
+                    pet_loss = loss * 0.0
+                else:
+                    pet_loss = (loss * 0.0).sum() if loss.numel() > 0 else loss * 0.0
+                # デバッグログ
+                logger.debug(f"[PET] pet_loss requires_grad=False, using loss * 0.0 (shape: {pet_loss.shape})")
+            
             loss = loss + pet_loss
             
             # ログ出力（定期的に）
@@ -328,6 +400,41 @@ class SO8TPETTrainer(Trainer):
                 logger.info(f"[PET] Step {step}: Loss={pet_loss.item():.6e}, "
                           f"Phase={pet_info.get('phase', 'unknown')}, "
                           f"Lambda={pet_info.get('lambda', 0.0):.4f}")
+        
+        # 最終的な損失の検証
+        if loss is not None:
+            if not loss.requires_grad:
+                logger.warning(f"[WARNING] Final loss does not require grad at step {self.state.global_step}")
+                # 緊急対応: hidden_statesから直接損失を計算（logitsは使わない）
+                if hasattr(outputs, 'hidden_states') and outputs.hidden_states and 'labels' in inputs:
+                    hidden_states = outputs.hidden_states[-1]
+                    if hidden_states.requires_grad:
+                        # hidden_statesからlogitsを再計算（これにより勾配グラフに接続される）
+                        loss_fct = nn.CrossEntropyLoss()
+                        logits_from_hidden = model.lm_head(hidden_states)
+                        logits_from_hidden = logits_from_hidden.float()
+                        shift_logits = logits_from_hidden[..., :-1, :].contiguous()
+                        shift_labels = inputs['labels'][..., 1:].contiguous()
+                        shift_logits = shift_logits.view(-1, shift_logits.size(-1))
+                        shift_labels = shift_labels.view(-1)
+                        shift_labels = shift_labels.to(shift_logits.device)
+                        loss = loss_fct(shift_logits, shift_labels)
+                        logger.debug(f"[FIX] Final validation: Recalculated loss from hidden_states (loss.requires_grad={loss.requires_grad})")
+                        
+                        if self.pet_regularization is not None:
+                            # PET損失を再追加（requires_grad=Trueを保証）
+                            pet_loss, _ = self.pet_regularization.compute_pet_loss(
+                                hidden_states=hidden_states,
+                                step=self.state.global_step,
+                                mask=inputs.get("attention_mask")
+                            )
+                            if not pet_loss.requires_grad:
+                                pet_loss = loss * 0.0
+                            loss = loss + pet_loss
+                    else:
+                        logger.error(f"[ERROR] Final validation: hidden_states also does not require grad")
+                else:
+                    logger.error(f"[ERROR] Final validation: Cannot recalculate loss (hidden_states or labels not available)")
         
         return (loss, outputs) if return_outputs else loss
 
@@ -382,13 +489,20 @@ def load_model_with_so8t(
             if SO8TPhi3ForCausalLM is not None:
                 # 標準モデルを読み込んでからSO8Tモデルに置き換え
                 logger.info("[DEBUG] Loading base model (this may take several minutes)...")
-                base_model = AutoModelForCausalLM.from_pretrained(
-                    model_path,
-                    quantization_config=quantization_config,
-                    device_map="auto",
-                    trust_remote_code=True,
-                    torch_dtype=torch.float16
-                )
+                logger.info("[DEBUG] Starting model loading at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                try:
+                    base_model = AutoModelForCausalLM.from_pretrained(
+                        model_path,
+                        quantization_config=quantization_config,
+                        device_map="auto",
+                        trust_remote_code=True,
+                        torch_dtype=torch.float16,
+                        low_cpu_mem_usage=True
+                    )
+                    logger.info("[DEBUG] Base model loaded successfully at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                except Exception as e:
+                    logger.error(f"[ERROR] Failed to load base model: {e}")
+                    raise
                 
                 logger.info("[DEBUG] Base model loaded, creating SO8T model...")
                 # SO8TForCausalLMを作成
@@ -529,23 +643,37 @@ def load_model_with_so8t(
             logger.warning(f"Failed to load SO8T model: {e}")
             logger.info("Falling back to standard model loading...")
             logger.info("[DEBUG] Loading standard model (this may take several minutes)...")
+            logger.info("[DEBUG] Starting model loading at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            try:
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_path,
+                    quantization_config=quantization_config,
+                    device_map="auto",
+                    trust_remote_code=True,
+                    torch_dtype=torch.float16,
+                    low_cpu_mem_usage=True
+                )
+                logger.info("[DEBUG] Standard model loaded successfully at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            except Exception as e:
+                logger.error(f"[ERROR] Failed to load standard model: {e}")
+                raise
+    else:
+        # 標準モデルを読み込み
+        logger.info("[DEBUG] Loading standard model (this may take several minutes)...")
+        logger.info("[DEBUG] Starting model loading at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        try:
             model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 quantization_config=quantization_config,
                 device_map="auto",
                 trust_remote_code=True,
-                torch_dtype=torch.float16
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True
             )
-    else:
-        # 標準モデルを読み込み
-        logger.info("[DEBUG] Loading standard model (this may take several minutes)...")
-        model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            quantization_config=quantization_config,
-            device_map="auto",
-            trust_remote_code=True,
-            torch_dtype=torch.float16
-        )
+            logger.info("[DEBUG] Standard model loaded successfully at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to load standard model: {e}")
+            raise
     
     logger.info("[OK] Model and tokenizer loaded")
     logger.info(f"[DEBUG] Model type: {type(model)}")
