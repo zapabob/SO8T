@@ -10841,7 +10841,7 @@ Write-Host "`n[SUCCESS] Training Resumed with All Features!" -ForegroundColor Gr
 ```
 
 ```
-_phi35_so8t_thinking_rtx3060\poc_reports\&quot; -ForegroundColor Yellow              
+D:\webdataset\checkpoints\training\borea_phi35_so8t_thinking_rtx3060\poc_reports\" -ForegroundColor Yellow
 
 [SUCCESS] Training Resumed with All Features!
 ================================
