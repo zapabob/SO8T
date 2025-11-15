@@ -349,6 +349,7 @@ def load_model_with_so8t(
         (model, tokenizer)
     """
     logger.info(f"Loading model from {model_path}...")
+    logger.info("[DEBUG] Step 1: Loading tokenizer...")
     
     # トークナイザー読み込み
     tokenizer = AutoTokenizer.from_pretrained(
@@ -357,9 +358,12 @@ def load_model_with_so8t(
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    logger.info("[DEBUG] Step 1: Tokenizer loaded")
     
     # 設定読み込み
+    logger.info("[DEBUG] Step 2: Loading config...")
     config = Phi3Config.from_pretrained(model_path, trust_remote_code=True)
+    logger.info("[DEBUG] Step 2: Config loaded")
     
     # 量子化設定
     quantization_config = None
@@ -372,10 +376,12 @@ def load_model_with_so8t(
     # SO8T統合モデルを読み込み
     if SO8TPhi3Model is not None and so8t_layer_indices is not None:
         try:
+            logger.info("[DEBUG] Step 3: Loading base model for SO8T integration...")
             # SO8TPhi3Modelを使用してモデルを構築
             # 注意: SO8TPhi3ForCausalLMが存在しない場合は、標準モデルを読み込んでSO8Tを適用
             if SO8TPhi3ForCausalLM is not None:
                 # 標準モデルを読み込んでからSO8Tモデルに置き換え
+                logger.info("[DEBUG] Loading base model (this may take several minutes)...")
                 base_model = AutoModelForCausalLM.from_pretrained(
                     model_path,
                     quantization_config=quantization_config,
@@ -384,6 +390,7 @@ def load_model_with_so8t(
                     torch_dtype=torch.float16
                 )
                 
+                logger.info("[DEBUG] Base model loaded, creating SO8T model...")
                 # SO8TForCausalLMを作成
                 so8t_model = SO8TPhi3ForCausalLM(
                     config=config,
@@ -464,6 +471,7 @@ def load_model_with_so8t(
             else:
                 # 標準モデルを読み込んで、SO8Tモデルに置き換え
                 logger.info("SO8TPhi3ForCausalLM not available, using standard model with SO8T integration")
+                logger.info("[DEBUG] Loading base model (this may take several minutes)...")
                 base_model = AutoModelForCausalLM.from_pretrained(
                     model_path,
                     quantization_config=quantization_config,
@@ -520,6 +528,7 @@ def load_model_with_so8t(
         except Exception as e:
             logger.warning(f"Failed to load SO8T model: {e}")
             logger.info("Falling back to standard model loading...")
+            logger.info("[DEBUG] Loading standard model (this may take several minutes)...")
             model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 quantization_config=quantization_config,
@@ -529,6 +538,7 @@ def load_model_with_so8t(
             )
     else:
         # 標準モデルを読み込み
+        logger.info("[DEBUG] Loading standard model (this may take several minutes)...")
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
             quantization_config=quantization_config,
@@ -538,6 +548,8 @@ def load_model_with_so8t(
         )
     
     logger.info("[OK] Model and tokenizer loaded")
+    logger.info(f"[DEBUG] Model type: {type(model)}")
+    logger.info(f"[DEBUG] Model device: {next(model.parameters()).device if hasattr(model, 'parameters') else 'N/A'}")
     return model, tokenizer
 
 
@@ -639,9 +651,13 @@ def main():
         load_in_8bit=config.get("quantization", {}).get("load_in_8bit", True)
     )
     
+    logger.info("[DEBUG] Model loaded, preparing for QLoRA...")
+    
     # QLoRA設定
     if config.get("qlora", {}).get("enabled", True):
+        logger.info("[DEBUG] Starting prepare_model_for_kbit_training...")
         model = prepare_model_for_kbit_training(model)
+        logger.info("[DEBUG] prepare_model_for_kbit_training completed")
         
         qlora_config = config.get("qlora", {})
         lora_config = LoraConfig(
@@ -656,10 +672,12 @@ def main():
             task_type=TaskType.CAUSAL_LM
         )
         
+        logger.info("[DEBUG] Starting get_peft_model...")
         model = get_peft_model(model, lora_config)
         logger.info("[OK] QLoRA applied")
     
     # データセット読み込み
+    logger.info("[DEBUG] Starting dataset loading...")
     data_config = config.get("data", {})
     train_dataset = ThinkingSFTDataset(
         data_path=dataset_path,
