@@ -9,6 +9,7 @@ SO8T再学習進捗Streamlitダッシュボード（サイバーパンク風）
 import sys
 import yaml
 import logging
+import warnings
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
 import streamlit as st
@@ -18,12 +19,18 @@ import pandas as pd
 from datetime import datetime
 import time
 
+# Streamlitの警告を抑制
+warnings.filterwarnings("ignore", category=UserWarning, module="streamlit")
+
 # ロギング設定
 logging.basicConfig(
     level=logging.WARNING,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# StreamlitのScriptRunContext警告を抑制
+logging.getLogger("streamlit.runtime.scriptrunner.script_runner").setLevel(logging.ERROR)
 
 # プロジェクトルートをパスに追加
 PROJECT_ROOT = Path(__file__).parent.parent.parent

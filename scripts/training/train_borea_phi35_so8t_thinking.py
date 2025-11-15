@@ -336,28 +336,80 @@ class SO8TPETTrainer(Trainer):
             return_outputs: 出力を返すかどうか
             num_items_in_batch: バッチ内のアイテム数（transformers新バージョン用、未使用）
         """
-        # CRITICAL: 8-bit量子化モデルで勾配を有効化するための処理
-        # PEFT 0.15.2にはenable_input_require_gradsが存在しないため、
-        # prepare_model_for_kbit_trainingが既に呼ばれていることを前提とする
-        # ただし、hidden_statesがrequires_grad=Falseになる問題があるため、
-        # モデルのforwardをラップして勾配を有効化
+        # CRITICAL: PEFT 0.18.0ではenable_input_require_gradsが存在しないため、
+        # embedding層のパラメータ自体にrequires_grad=Trueを設定し、
+        # さらにforward hookを登録して出力にrequires_grad=Trueを設定
+        hook_handles = []
         
-        # hidden_statesを取得するためにoutput_hidden_states=Trueを設定
-        inputs_with_hidden = {**inputs, "output_hidden_states": True}
+        # Embedding層のパラメータにrequires_grad=Trueを設定
+        # これにより、embedding層の出力が確実に勾配計算グラフに接続される
+        embedding_modules = []
+        for name, module in model.named_modules():
+            if isinstance(module, (nn.Embedding, nn.EmbeddingBag)):
+                embedding_modules.append((name, module))
+                # Embedding層のパラメータにrequires_grad=Trueを設定
+                for param in module.parameters():
+                    if not param.requires_grad:
+                        param.requires_grad = True
+                        logger.debug(f"[EMBEDDING] Set requires_grad=True for {name}.{param}")
         
-        # 標準損失
-        outputs = model(**inputs_with_hidden)
-        loss = outputs.loss
+        def make_embedding_hook():
+            """Embedding層の出力にrequires_grad=Trueを設定するhook
+            
+            Note: embedding層のパラメータにrequires_grad=Trueを設定したが、
+            それでも不十分な場合があるため、forward hookでも設定を試みる。
+            ただし、既に計算グラフから外れているテンソルには効果がない可能性がある。
+            """
+            def hook(module, input, output):
+                if isinstance(output, torch.Tensor):
+                    # requires_gradを設定（勾配グラフに接続する試み）
+                    if not output.requires_grad:
+                        output.requires_grad_(True)
+                elif isinstance(output, tuple):
+                    # タプルの場合、各要素を処理
+                    for item in output:
+                        if isinstance(item, torch.Tensor) and not item.requires_grad:
+                            item.requires_grad_(True)
+                return output
+            return hook
+        
+        # Embedding層にforward hookを登録
+        for name, module in embedding_modules:
+            handle = module.register_forward_hook(make_embedding_hook())
+            hook_handles.append(handle)
+            logger.debug(f"[HOOK] Registered forward hook on embedding layer: {name}")
+        
+        try:
+            # CRITICAL: モデルが訓練モードであることを確認
+            if not model.training:
+                logger.warning(f"[WARNING] Model is not in training mode at step {self.state.global_step}, setting training mode")
+                model.train()
+            
+            # past_key_values警告を回避するため、use_cache=Falseとpast_key_values=Noneを明示的に設定
+            # hidden_statesを取得するためにoutput_hidden_states=Trueを設定
+            inputs_with_hidden = {
+                **inputs,
+                "output_hidden_states": True,
+                "use_cache": False,  # 訓練時はキャッシュを使用しない
+                "past_key_values": None  # 明示的にNoneを設定
+            }
+            
+            # 標準損失
+            outputs = model(**inputs_with_hidden)
+            loss = outputs.loss
+        finally:
+            # Hookを削除（メモリリークを防ぐ）
+            for handle in hook_handles:
+                handle.remove()
+            if hook_handles:
+                logger.debug(f"[HOOK] Removed {len(hook_handles)} forward hooks")
         
         # CRITICAL: 8-bit量子化モデルでは、hidden_statesがrequires_grad=Falseになることがある
         # これは、ベースモデルのパラメータが凍結されているため
         # LoRAアダプターを通るパスだけが勾配を必要とするが、
         # hidden_states自体は勾配グラフから外れている可能性がある
-        
-        # CRITICAL: モデルが訓練モードであることを確認
-        if not model.training:
-            logger.warning(f"[WARNING] Model is not in training mode at step {self.state.global_step}, setting training mode")
-            model.train()
+        # Forward hookでembedding層の出力にrequires_grad=Trueを設定したが、
+        # それでも不十分な場合は、損失計算時にhidden_statesから直接損失を再計算する
         
         # CRITICAL: logitsがrequires_grad=Trueであることを事前に確認
         if hasattr(outputs, 'logits') and outputs.logits is not None:
@@ -400,10 +452,11 @@ class SO8TPETTrainer(Trainer):
                                 logger.warning(f"[FIX] Model not in training mode, setting to training mode")
                                 model.train()
                             
-                            # CRITICAL: PEFT 0.15.2にはenable_input_require_gradsが存在しない
-                            # 代わりに、次回のforward呼び出しで入力テンソルにrequires_grad=Trueを設定
-                            logger.warning(f"[WARNING] PEFT 0.15.2 does not have enable_input_require_grads")
-                            logger.info("[FIX] Input requires_grad will be set in next forward pass")
+                            # CRITICAL: PEFT 0.18.0にはenable_input_require_gradsが存在しない
+                            # Forward hookでembedding層の出力にrequires_grad=Trueを設定したが、
+                            # それでも不十分な場合は、次回のforward呼び出しで再度試行
+                            logger.warning(f"[WARNING] PEFT 0.18.0 does not have enable_input_require_grads")
+                            logger.info("[FIX] Forward hook applied, but hidden_states still requires_grad=False. Will retry in next forward pass.")
                             
                             # Verify trainable parameters
                             trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -488,10 +541,11 @@ class SO8TPETTrainer(Trainer):
                 except Exception as e:
                     logger.debug(f"[METRICS] Failed to record metrics: {e}")
         
-        # 最終的な損失の検証
+        # 最終的な損失の検証（Forward hookが機能しなかった場合のフォールバック）
         if loss is not None:
             if not loss.requires_grad:
                 logger.warning(f"[WARNING] Final loss does not require grad at step {self.state.global_step}")
+                logger.info("[FIX] Attempting to recalculate loss from hidden_states as fallback...")
                 # 緊急対応: hidden_statesから直接損失を計算（logitsは使わない）
                 if hasattr(outputs, 'hidden_states') and outputs.hidden_states and 'labels' in inputs:
                     hidden_states = outputs.hidden_states[-1]
@@ -506,7 +560,7 @@ class SO8TPETTrainer(Trainer):
                         shift_labels = shift_labels.view(-1)
                         shift_labels = shift_labels.to(shift_logits.device)
                         loss = loss_fct(shift_logits, shift_labels)
-                        logger.debug(f"[FIX] Final validation: Recalculated loss from hidden_states (loss.requires_grad={loss.requires_grad})")
+                        logger.info(f"[FIX] Final validation: Recalculated loss from hidden_states (loss.requires_grad={loss.requires_grad})")
                         
                         if self.pet_regularization is not None:
                             # PET損失を再追加（requires_grad=Trueを保証）
@@ -519,7 +573,8 @@ class SO8TPETTrainer(Trainer):
                                 pet_loss = loss * 0.0
                             loss = loss + pet_loss
                     else:
-                        logger.error(f"[ERROR] Final validation: hidden_states also does not require grad")
+                        logger.error(f"[ERROR] Final validation: hidden_states also does not require grad after forward hook")
+                        logger.error(f"[ERROR] This indicates that forward hook did not work properly. Check model configuration.")
                 else:
                     logger.error(f"[ERROR] Final validation: Cannot recalculate loss (hidden_states or labels not available)")
         
@@ -761,9 +816,18 @@ def load_model_with_so8t(
                     from peft import prepare_model_for_kbit_training
                     so8t_model = prepare_model_for_kbit_training(so8t_model)
                     
-                    # CRITICAL: prepare_model_for_kbit_trainingが既に呼ばれているので、LoRAパラメータは有効
-                    # 入力テンソルのrequires_gradはcompute_loss内で設定
-                    logger.info("[DEBUG] prepare_model_for_kbit_training completed for SO8T model (input requires_grad will be set in compute_loss)")
+                    # PEFT 0.18.0ではenable_input_require_gradsが削除された可能性がある
+                    # prepare_model_for_kbit_trainingで自動的に設定される
+                    try:
+                        from peft.tuners.lora import enable_input_require_grads
+                        enable_input_require_grads(so8t_model)
+                        logger.info("[DEBUG] enable_input_require_grads called successfully for SO8T model")
+                    except ImportError:
+                        logger.info("[INFO] enable_input_require_grads not available in PEFT 0.18.0, relying on prepare_model_for_kbit_training")
+                    except Exception as e:
+                        logger.warning(f"[WARNING] Failed to call enable_input_require_grads for SO8T model: {e}")
+                    
+                    logger.info("[DEBUG] prepare_model_for_kbit_training completed for SO8T model")
                 
                 model = so8t_model
             else:
@@ -967,15 +1031,28 @@ def main():
     
     # QLoRA設定
     if config.get("qlora", {}).get("enabled", True):
-        logger.info("[DEBUG] Starting prepare_model_for_kbit_training...")
-        model = prepare_model_for_kbit_training(model)
-        logger.info("[DEBUG] prepare_model_for_kbit_training completed")
+        # 8-bit量子化が有効な場合のみprepare_model_for_kbit_trainingを呼び出す
+        load_in_8bit = config.get("quantization", {}).get("load_in_8bit", False)
+        if load_in_8bit:
+            logger.info("[DEBUG] Starting prepare_model_for_kbit_training (8-bit quantization enabled)...")
+            model = prepare_model_for_kbit_training(model)
+            logger.info("[DEBUG] prepare_model_for_kbit_training completed")
+        else:
+            logger.info("[DEBUG] Skipping prepare_model_for_kbit_training (8-bit quantization disabled, using FP16/BF16)")
         
-        # CRITICAL: Enable input require_grads for 8-bit quantization
-        # PEFT 0.15.2にはenable_input_require_gradsが存在しないため、手動で設定
-        # prepare_model_for_kbit_trainingが既に呼ばれているので、LoRAパラメータは有効
-        # 入力テンソルのrequires_gradはcompute_loss内で設定
-        logger.info("[DEBUG] prepare_model_for_kbit_training completed (input requires_grad will be set in compute_loss)")
+        # PEFT 0.18.0ではenable_input_require_gradsが削除された可能性がある
+        # prepare_model_for_kbit_trainingとget_peft_modelで自動的に設定される
+        # ただし、念のため手動で設定を試みる
+        try:
+            from peft.tuners.lora import enable_input_require_grads
+            enable_input_require_grads(model)
+            logger.info("[DEBUG] enable_input_require_grads called successfully")
+        except ImportError:
+            logger.info("[INFO] enable_input_require_grads not available in PEFT 0.18.0, relying on prepare_model_for_kbit_training and get_peft_model")
+        except Exception as e:
+            logger.warning(f"[WARNING] Failed to call enable_input_require_grads: {e}")
+        
+        logger.info("[DEBUG] Model preparation completed")
         
         qlora_config = config.get("qlora", {})
         lora_config = LoraConfig(
@@ -994,18 +1071,50 @@ def main():
         model = get_peft_model(model, lora_config)
         logger.info("[OK] QLoRA applied")
         
-        # CRITICAL: Verify trainable parameters and enable input require_grads
+        # CRITICAL: Verify trainable parameters
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
         total_params = sum(p.numel() for p in model.parameters())
         logger.info(f"[DEBUG] Trainable parameters: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)")
         
-        # CRITICAL: prepare_model_for_kbit_trainingとget_peft_modelが既に呼ばれているので、LoRAパラメータは有効
-        # 入力テンソルのrequires_gradはcompute_loss内で設定
-        logger.info("[DEBUG] QLoRA setup completed (input requires_grad will be set in compute_loss)")
+        # CRITICAL: PEFT 0.18.0では、LoRAパラメータがrequires_grad=Falseになる問題がある
+        # LoRAパラメータのrequires_gradを確認して、必要に応じて手動で設定
+        lora_params_fixed = 0
+        for name, param in model.named_parameters():
+            if 'lora' in name.lower() and not param.requires_grad:
+                param.requires_grad = True
+                lora_params_fixed += 1
+        if lora_params_fixed > 0:
+            logger.warning(f"[WARNING] Fixed {lora_params_fixed} LoRA parameters with requires_grad=False")
         
-        # Verify model is in training mode
+        # CRITICAL: Embedding層のパラメータにrequires_grad=Trueを設定
+        # これにより、embedding層の出力が確実に勾配計算グラフに接続される
+        embedding_params_fixed = 0
+        for name, module in model.named_modules():
+            if isinstance(module, (nn.Embedding, nn.EmbeddingBag)):
+                for param in module.parameters():
+                    if not param.requires_grad:
+                        param.requires_grad = True
+                        embedding_params_fixed += 1
+        if embedding_params_fixed > 0:
+            logger.info(f"[INFO] Set requires_grad=True for {embedding_params_fixed} embedding parameters")
+        
+        # CRITICAL: SO(8)群構造パラメータにrequires_grad=Trueを設定
+        # SO(8)群の回転行列パラメータは学習可能パラメータとして維持する必要がある
+        # PEFT LoRAのtarget_modulesに含まれないため、手動で設定する
+        so8t_params_fixed = 0
+        for name, param in model.named_parameters():
+            # SO(8)群構造に関連するパラメータを検索
+            if any(keyword in name.lower() for keyword in ['rotation', 'so8', 'group_structure', 'pet', 'so8t']):
+                if not param.requires_grad:
+                    param.requires_grad = True
+                    so8t_params_fixed += 1
+        if so8t_params_fixed > 0:
+            logger.info(f"[INFO] Set requires_grad=True for {so8t_params_fixed} SO(8) group structure parameters")
+        
+        # CRITICAL: モデルを訓練モードに設定
         model.train()
         logger.info("[DEBUG] Model set to training mode")
+        logger.info("[DEBUG] QLoRA setup completed (embedding, LoRA, and SO(8) group structure parameters configured for gradient computation)")
     
     # データセット読み込み
     logger.info("[DEBUG] Starting dataset loading...")

@@ -19,6 +19,19 @@ except ImportError:
     FLASH_ATTN_AVAILABLE = False
     warnings.warn("Flash Attention not available. Using standard attention.")
 
+# Import EfficientAttention as fallback
+try:
+    import sys
+    from pathlib import Path
+    PROJECT_ROOT = Path(__file__).parent.parent
+    sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "utils"))
+    from efficient_attention import EfficientAttention, efficient_attention_func
+    EFFICIENT_ATTN_AVAILABLE = True
+except ImportError:
+    EFFICIENT_ATTN_AVAILABLE = False
+    EfficientAttention = None
+    efficient_attention_func = None
+
 
 class SO8TRotaryEmbedding(nn.Module):
     """SO8T Rotary Position Embedding with group structure."""
@@ -112,6 +125,7 @@ class SO8TAttention(nn.Module):
         attention_dropout: float = 0.0,
         bias: bool = False,
         use_flash_attention: bool = False,
+        use_efficient_attention: bool = True,
     ):
         super().__init__()
         self.hidden_size = hidden_size
@@ -120,6 +134,19 @@ class SO8TAttention(nn.Module):
         self.attention_dropout = attention_dropout
         self.bias = bias
         self.use_flash_attention = use_flash_attention and FLASH_ATTN_AVAILABLE
+        self.use_efficient_attention = use_efficient_attention and EFFICIENT_ATTN_AVAILABLE and not self.use_flash_attention
+        
+        # Initialize EfficientAttention if available
+        if self.use_efficient_attention and EfficientAttention is not None:
+            self.head_dim = hidden_size // num_heads
+            self.efficient_attn = EfficientAttention(
+                head_dim=self.head_dim,
+                dropout=attention_dropout,
+                chunk_size=512,
+                use_tiling=True,
+            )
+        else:
+            self.efficient_attn = None
         
         # Calculate head dimensions
         self.head_dim = hidden_size // num_heads
@@ -204,6 +231,17 @@ class SO8TAttention(nn.Module):
         if self.use_flash_attention:
             attn_output = self._flash_attention(query_states, key_states, value_states, attention_mask)
             attn_weights = None
+        elif self.use_efficient_attention and self.efficient_attn is not None:
+            # Use EfficientAttention
+            attn_output = self.efficient_attn(
+                query_states,
+                key_states,
+                value_states,
+                attention_mask=attention_mask,
+                causal=True,
+                softmax_scale=1.0 / math.sqrt(self.head_dim),
+            )
+            attn_weights = None  # EfficientAttention doesn't return attention weights
         else:
             attn_output, attn_weights = self._standard_attention(
                 query_states, key_states, value_states, attention_mask
@@ -329,47 +367,98 @@ class SO8TAttention(nn.Module):
         value_states: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Apply SO8T Multi-Head Attention with group structure."""
+        """
+        Apply SO8T Multi-Head Attention with group structure (optimized version).
+        
+        Optimizations:
+        - Chunked attention computation for memory efficiency
+        - Efficient causal mask processing
+        - Batch matrix operations instead of per-head loops
+        """
         batch_size, num_heads, seq_len, head_dim = query_states.shape
         
-        # SO8T Multi-Head Attention with Triality symmetry
-        attn_outputs = []
-        attn_weights_list = []
+        # Optimized: Use chunked attention for long sequences
+        chunk_size = 512  # Process in chunks for memory efficiency
+        use_chunked = seq_len > chunk_size
         
-        # Process each head with SO8 group structure
-        for head_idx in range(num_heads):
-            # Extract head-specific states
-            q_head = query_states[:, head_idx, :, :]  # [batch_size, seq_len, head_dim]
-            k_head = key_states[:, head_idx, :, :]    # [batch_size, seq_len, head_dim]
-            v_head = value_states[:, head_idx, :, :]  # [batch_size, seq_len, head_dim]
+        if use_chunked:
+            # Chunked attention computation
+            attn_outputs = []
+            attn_weights_list = []
             
-            # Apply SO8 group structure to this head
-            q_head, k_head, v_head = self._apply_head_group_structure(
-                q_head, k_head, v_head, head_idx
+            for chunk_start in range(0, seq_len, chunk_size):
+                chunk_end = min(chunk_start + chunk_size, seq_len)
+                
+                # Extract chunk
+                q_chunk = query_states[:, :, chunk_start:chunk_end, :]
+                k_chunk = key_states[:, :, :chunk_end, :]  # Causal: only up to chunk_end
+                v_chunk = value_states[:, :, :chunk_end, :]
+                
+                # Apply SO8 group structure to chunks
+                q_chunk, k_chunk, v_chunk = self._apply_group_structure(
+                    q_chunk, k_chunk, v_chunk
+                )
+                
+                # Compute attention for chunk
+                attn_weights_chunk = torch.matmul(q_chunk, k_chunk.transpose(-2, -1)) / math.sqrt(head_dim)
+                
+                # Apply causal mask for chunk
+                if attention_mask is not None:
+                    mask_chunk = attention_mask[:, chunk_start:chunk_end, :chunk_end]
+                    attn_weights_chunk = attn_weights_chunk + mask_chunk
+                else:
+                    # Create causal mask for chunk
+                    causal_mask = torch.triu(torch.ones(chunk_end - chunk_start, chunk_end, device=q_chunk.device, dtype=q_chunk.dtype), diagonal=1) * -1e9
+                    attn_weights_chunk = attn_weights_chunk + causal_mask.unsqueeze(0).unsqueeze(0)
+                
+                # Apply softmax
+                attn_weights_chunk = F.softmax(attn_weights_chunk, dim=-1, dtype=torch.float32).to(q_chunk.dtype)
+                
+                # Apply dropout
+                attn_weights_chunk = self.attn_dropout(attn_weights_chunk)
+                
+                # Apply attention to values
+                attn_output_chunk = torch.matmul(attn_weights_chunk, v_chunk)
+                
+                attn_outputs.append(attn_output_chunk)
+                attn_weights_list.append(attn_weights_chunk)
+            
+            # Concatenate chunks
+            attn_output = torch.cat(attn_outputs, dim=2)
+            attn_weights = torch.cat(attn_weights_list, dim=2)
+        else:
+            # Standard batch attention (optimized for shorter sequences)
+            # Apply SO8 group structure to all heads at once
+            query_states, key_states, value_states = self._apply_group_structure(
+                query_states, key_states, value_states
             )
             
-            # Compute attention for this head
-            attn_weights = torch.matmul(q_head, k_head.transpose(-2, -1)) / math.sqrt(head_dim)
+            # Compute attention scores for all heads at once
+            # [batch_size, num_heads, seq_len, head_dim] @ [batch_size, num_heads, head_dim, seq_len]
+            attn_weights = torch.matmul(query_states, key_states.transpose(-2, -1)) / math.sqrt(head_dim)
             
-            # Apply attention mask
+            # Apply attention mask efficiently
             if attention_mask is not None:
+                # Expand mask to match attention weights shape
+                if attention_mask.dim() == 2:
+                    attention_mask = attention_mask.unsqueeze(1).unsqueeze(1)
+                elif attention_mask.dim() == 3:
+                    attention_mask = attention_mask.unsqueeze(1)
                 attn_weights = attn_weights + attention_mask
-                
+            else:
+                # Create causal mask efficiently
+                causal_mask = torch.triu(torch.ones(seq_len, seq_len, device=query_states.device, dtype=query_states.dtype), diagonal=1) * -1e9
+                causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # [1, 1, seq_len, seq_len]
+                attn_weights = attn_weights + causal_mask
+            
             # Apply softmax
-            attn_weights = F.softmax(attn_weights, dim=-1, dtype=torch.float32).to(q_head.dtype)
+            attn_weights = F.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
             
             # Apply dropout
             attn_weights = self.attn_dropout(attn_weights)
             
             # Apply attention to values
-            attn_output = torch.matmul(attn_weights, v_head)
-            
-            attn_outputs.append(attn_output)
-            attn_weights_list.append(attn_weights)
-        
-        # Concatenate all heads
-        attn_output = torch.stack(attn_outputs, dim=1)  # [batch_size, num_heads, seq_len, head_dim]
-        attn_weights = torch.stack(attn_weights_list, dim=1)  # [batch_size, num_heads, seq_len, seq_len]
+            attn_output = torch.matmul(attn_weights, value_states)
         
         # Apply cross-head SO8 group interaction
         attn_output = self._apply_cross_head_group_interaction(attn_output)

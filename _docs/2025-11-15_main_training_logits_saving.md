@@ -169,3 +169,5 @@ timestamp = logits_data['timestamp']
 - `<final>`のみ返す実装を維持
 - 監査ログでThinkingハッシュを記録（内容は非公開）
 
+
+

@@ -18,7 +18,7 @@ dependencies = [
     "transformers>=4.35.0",
     "tokenizers>=0.14.0",
     "accelerate>=0.24.0",
-    "peft>=0.6.0",
+    "peft>=0.10.0",
     "bitsandbytes>=0.41.0",
     
     # Data processing and utilities
