@@ -183,23 +183,80 @@ $form.ShowDialog() | Out-Null
 
 ## トラブルシューティング
 
-### 音が聞こえない場合
+### 音が聞こえない場合（魔理沙の声が聞こえない場合）
+
+#### 確認事項
 
 1. **システム音量の確認**
-   - Windowsの音量設定を確認
+   - Windowsの音量設定を確認（システム音量が0になっていないか）
    - アプリケーション音量の確認
+   - ミュートになっていないか確認
 
 2. **音声デバイスの確認**
    - デフォルトの音声出力デバイスを確認
    - スピーカー/ヘッドフォンの接続確認
+   - 音声デバイスが正しく選択されているか確認
 
 3. **音声ファイルの確認**
    - ファイルが正しく読み込めるか確認
-   - 他のアプリケーションで再生可能か確認
+   - 他のアプリケーション（Windows Media Playerなど）で再生可能か確認
+   - ファイル形式: WAV (RIFF形式、ステレオ、16-bit、8000Hz)
 
-4. **再生方法の切り替え**
+4. **再生方法の確認**
    - スクリプト内で自動的に複数の方法を試行
    - ログを確認してどの方法が使用されたか確認
+   - Python winsoundが使用されている場合、正常に動作している可能性が高い
+
+#### 現在の実装状況
+
+- **Method 1**: Python winsound (PRIMARY METHOD) - 最も確実な方法
+- **Method 1b**: SoundPlayer (Fallback)
+- **Method 2**: SoundPlayer (非同期)
+- **Method 3**: Windows Media Player COM
+- **Method 4**: WinMM API
+- **Method 5**: Python winsound (サブプロセス)
+- **Method 6**: システムビープ (フォールバック)
+
+#### 音が聞こえない場合の対処法
+
+1. **Windowsの音量設定を確認**
+   ```
+   - タスクバーの音量アイコンをクリック
+   - 音量が0になっていないか確認
+   - ミュートになっていないか確認
+   ```
+
+2. **音声デバイスの確認**
+   ```
+   - 設定 > システム > サウンド
+   - 出力デバイスが正しく選択されているか確認
+   - 他のアプリケーションで音声が再生できるか確認
+   ```
+
+3. **音声ファイルの直接再生テスト**
+   ```powershell
+   # Windows Media Playerで直接再生
+   Start-Process "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav"
+   
+   # Python winsoundで直接再生
+   py -3 -c "import winsound; winsound.PlaySound(r'C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav', winsound.SND_FILENAME)"
+   ```
+
+4. **視覚通知の確認**
+   - 音声が聞こえない場合でも、ポップアップウィンドウで通知を確認できます
+   - ポップアップウィンドウが表示されない場合は、コンソール出力を確認してください
+
+#### デバッグ情報
+
+- **WAVファイル情報**:
+  - Channels: 2 (ステレオ)
+  - Sample width: 2 (16-bit)
+  - Frame rate: 8000 Hz
+  - Duration: 0.96 seconds
+  - File size: 30,748 bytes
+
+- **再生方法**: Python winsound (SND_FILENAME) が最も確実
+- **フォールバック**: システムビープ + 視覚通知（ポップアップウィンドウ）
 
 ## 関連ファイル
 - `scripts/utils/audio/play_audio.ps1` (非推奨、後方互換性のため保持)

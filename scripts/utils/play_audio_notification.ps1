@@ -22,17 +22,63 @@ if (-not (Test-Path $audioFile)) {
     }
 }
 
-# Method 1: SoundPlayer (PRIMARY METHOD - Synchronous)
-Write-Host "[METHOD 1] Trying SoundPlayer (synchronous)..." -ForegroundColor Cyan
+# Method 1: Python winsound (PRIMARY METHOD - Most reliable for WAV)
+Write-Host "[METHOD 1] Trying Python winsound (synchronous)..." -ForegroundColor Cyan
+Write-Host "[INFO] Make sure your system volume is not muted or too low" -ForegroundColor Yellow
 try {
-    Add-Type -AssemblyName System.Windows.Forms
-    $player = New-Object System.Media.SoundPlayer($audioFile)
-    $player.Load()  # Pre-load the sound
-    $player.PlaySync()
-    Write-Host "[OK] marisa_owattaze.wav played successfully with SoundPlayer (sync)" -ForegroundColor Green
-    $audioPlayed = $true
+    # Use py -3 command (more reliable on Windows)
+    $tempScript = [System.IO.Path]::GetTempFileName() + ".py"
+    @"
+import winsound
+import sys
+import os
+
+audio_file = r'$audioFile'
+print(f'[INFO] Playing: {os.path.basename(audio_file)}')
+print(f'[INFO] File exists: {os.path.exists(audio_file)}')
+print(f'[INFO] File size: {os.path.getsize(audio_file) if os.path.exists(audio_file) else 0} bytes')
+
+try:
+    # Play synchronously (blocking until complete)
+    winsound.PlaySound(audio_file, winsound.SND_FILENAME)
+    print('[OK] Playback completed')
+    sys.exit(0)
+except Exception as e:
+    print(f'[ERROR] Playback failed: {e}', file=sys.stderr)
+    sys.exit(1)
+"@ | Out-File -FilePath $tempScript -Encoding UTF8 -NoNewline
+    
+    $result = & py -3 $tempScript 2>&1
+    Write-Host $result
+    Remove-Item $tempScript -ErrorAction SilentlyContinue
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] marisa_owattaze.wav played successfully with Python winsound" -ForegroundColor Green
+        Write-Host "[INFO] If you didn't hear the sound, check:" -ForegroundColor Yellow
+        Write-Host "  - Windows volume settings (not muted, volume > 0)" -ForegroundColor Yellow
+        Write-Host "  - Audio device is connected and selected" -ForegroundColor Yellow
+        Write-Host "  - Other applications can play audio" -ForegroundColor Yellow
+        $audioPlayed = $true
+    } else {
+        Write-Host "[WARNING] Python winsound failed: $result" -ForegroundColor Yellow
+    }
 } catch {
-    Write-Host "[WARNING] SoundPlayer (sync) failed: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "[WARNING] Python winsound failed: $($_.Exception.Message)" -ForegroundColor Yellow
+}
+
+# Method 1b: SoundPlayer (Fallback if Python fails)
+if (-not $audioPlayed) {
+    Write-Host "[METHOD 1b] Trying SoundPlayer (synchronous)..." -ForegroundColor Cyan
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $player = New-Object System.Media.SoundPlayer($audioFile)
+        $player.Load()  # Pre-load the sound
+        $player.PlaySync()
+        Write-Host "[OK] marisa_owattaze.wav played successfully with SoundPlayer (sync)" -ForegroundColor Green
+        $audioPlayed = $true
+    } catch {
+        Write-Host "[WARNING] SoundPlayer (sync) failed: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
 }
 
 # Method 2: SoundPlayer (Asynchronous with wait)
