@@ -286,11 +286,45 @@ class SO8TPETTrainer(Trainer):
         self,
         *args,
         pet_regularization: Optional[PETRegularization] = None,
+        save_logits: bool = False,
+        save_logits_steps: int = 100,
+        save_logits_dir: str = "logits",
+        save_logits_max_files: int = 10,
+        save_metrics: bool = True,
+        save_metrics_steps: int = 10,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.pet_regularization = pet_regularization
         self.hidden_states_history = []
+        self.save_logits = save_logits
+        self.save_logits_steps = save_logits_steps
+        self.save_logits_dir = save_logits_dir
+        self.save_logits_max_files = save_logits_max_files
+        self.saved_logits_files = []  # 保存済みファイルリスト（古いファイル削除用）
+        
+        # logits保存ディレクトリを作成
+        if self.save_logits and hasattr(self.args, 'output_dir'):
+            self.logits_save_dir = Path(self.args.output_dir) / self.save_logits_dir
+            self.logits_save_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"[LOGITS] Logits will be saved to: {self.logits_save_dir}")
+        
+        # メトリクス記録機能を初期化
+        self.save_metrics = save_metrics
+        self.save_metrics_steps = save_metrics_steps
+        self.metrics_recorder = None
+        if self.save_metrics and hasattr(self.args, 'output_dir'):
+            try:
+                from scripts.utils.training_metrics_recorder import TrainingMetricsRecorder
+                self.metrics_recorder = TrainingMetricsRecorder(
+                    output_dir=Path(self.args.output_dir),
+                    model_name="borea_phi35_so8t",
+                    save_interval=save_metrics_steps
+                )
+                logger.info(f"[METRICS] Metrics recorder initialized: {self.args.output_dir}")
+            except Exception as e:
+                logger.warning(f"[METRICS] Failed to initialize metrics recorder: {e}")
+                self.metrics_recorder = None
     
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         """
@@ -348,6 +382,31 @@ class SO8TPETTrainer(Trainer):
                             logger.debug(f"[FIX] Recalculated loss from hidden_states (loss.requires_grad={loss.requires_grad})")
                         else:
                             logger.error(f"[ERROR] hidden_states also does not require grad at step {self.state.global_step}")
+                            
+                            # CRITICAL: Try to fix the model state
+                            # Check if model is in training mode
+                            if not model.training:
+                                logger.warning(f"[FIX] Model not in training mode, setting to training mode")
+                                model.train()
+                            
+                            # Try to enable input require_grads again
+                            try:
+                                from peft.tuners.lora import enable_input_require_grads
+                                enable_input_require_grads(model)
+                                logger.info("[FIX] Re-enabled input require_grads")
+                            except Exception as e:
+                                logger.warning(f"[WARNING] Failed to re-enable input require_grads: {e}")
+                            
+                            # Verify trainable parameters
+                            trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+                            if trainable_params == 0:
+                                logger.error(f"[ERROR] No trainable parameters found! This is a critical issue.")
+                                # Try to enable LoRA parameters manually
+                                for name, param in model.named_parameters():
+                                    if 'lora' in name.lower():
+                                        param.requires_grad = True
+                                logger.info("[FIX] Manually enabled requires_grad for LoRA parameters")
+                            
                             # 最後の手段: logitsを使用（勾配は流れないが、エラーは回避）
                             shift_logits = logits[..., :-1, :].contiguous()
                             shift_logits = shift_logits.view(-1, shift_logits.size(-1))
@@ -400,6 +459,26 @@ class SO8TPETTrainer(Trainer):
                 logger.info(f"[PET] Step {step}: Loss={pet_loss.item():.6e}, "
                           f"Phase={pet_info.get('phase', 'unknown')}, "
                           f"Lambda={pet_info.get('lambda', 0.0):.4f}")
+            
+            # メトリクス記録
+            if self.metrics_recorder is not None:
+                try:
+                    # Perplexity計算（lossから）
+                    perplexity = torch.exp(loss).item() if loss.item() < 10 else float('inf')
+                    
+                    # 学習率取得
+                    lr = self._get_learning_rate()
+                    
+                    self.metrics_recorder.record_step(
+                        step=self.state.global_step,
+                        epoch=self.state.epoch if hasattr(self.state, 'epoch') else 0.0,
+                        loss=loss.item(),
+                        learning_rate=lr,
+                        pet_loss=pet_loss.item() if isinstance(pet_loss, torch.Tensor) else pet_loss,
+                        perplexity=perplexity if perplexity != float('inf') else None
+                    )
+                except Exception as e:
+                    logger.debug(f"[METRICS] Failed to record metrics: {e}")
         
         # 最終的な損失の検証
         if loss is not None:
@@ -436,7 +515,100 @@ class SO8TPETTrainer(Trainer):
                 else:
                     logger.error(f"[ERROR] Final validation: Cannot recalculate loss (hidden_states or labels not available)")
         
+        # Logits保存（定期的に）
+        if self.save_logits and hasattr(outputs, 'logits') and outputs.logits is not None:
+            if self.state.global_step % self.save_logits_steps == 0:
+                try:
+                    self._save_logits(
+                        logits=outputs.logits,
+                        labels=inputs.get('labels'),
+                        step=self.state.global_step,
+                        epoch=self.state.epoch if hasattr(self.state, 'epoch') else 0
+                    )
+                except Exception as e:
+                    logger.warning(f"[WARNING] Failed to save logits at step {self.state.global_step}: {e}")
+        
+        # メトリクス記録（PET損失がない場合も）
+        if self.metrics_recorder is not None and loss is not None:
+            try:
+                perplexity = torch.exp(loss).item() if loss.item() < 10 else float('inf')
+                lr = self._get_learning_rate()
+                
+                self.metrics_recorder.record_step(
+                    step=self.state.global_step,
+                    epoch=self.state.epoch if hasattr(self.state, 'epoch') else 0.0,
+                    loss=loss.item(),
+                    learning_rate=lr,
+                    perplexity=perplexity if perplexity != float('inf') else None
+                )
+            except Exception as e:
+                logger.debug(f"[METRICS] Failed to record metrics: {e}")
+        
         return (loss, outputs) if return_outputs else loss
+    
+    def _get_learning_rate(self) -> float:
+        """現在の学習率を取得"""
+        try:
+            if hasattr(self, 'lr_scheduler') and self.lr_scheduler is not None:
+                if hasattr(self.lr_scheduler, 'get_last_lr'):
+                    return self.lr_scheduler.get_last_lr()[0]
+                elif hasattr(self.lr_scheduler, 'get_lr'):
+                    return self.lr_scheduler.get_lr()[0]
+            if hasattr(self, 'optimizer') and self.optimizer is not None:
+                return self.optimizer.param_groups[0].get('lr', 0.0)
+        except Exception:
+            pass
+        return 0.0
+    
+    def _save_logits(self, logits: torch.Tensor, labels: Optional[torch.Tensor], step: int, epoch: int):
+        """
+        Logitsを保存
+        
+        Args:
+            logits: モデルの出力logits
+            labels: ラベル（存在する場合）
+            step: 現在のステップ数
+            epoch: 現在のエポック数
+        """
+        if not hasattr(self, 'logits_save_dir'):
+            return
+        
+        # CPUに移動してから保存（メモリ効率化）
+        logits_cpu = logits.detach().cpu()
+        labels_cpu = labels.detach().cpu() if labels is not None else None
+        
+        # ファイル名を生成
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"logits_step_{step}_epoch_{epoch}_{timestamp}.pt"
+        filepath = self.logits_save_dir / filename
+        
+        # 保存データを準備
+        save_data = {
+            'logits': logits_cpu,
+            'step': step,
+            'epoch': epoch,
+            'timestamp': timestamp,
+            'logits_shape': logits_cpu.shape,
+            'logits_dtype': str(logits_cpu.dtype),
+        }
+        
+        if labels_cpu is not None:
+            save_data['labels'] = labels_cpu
+            save_data['labels_shape'] = labels_cpu.shape
+        
+        # 保存
+        torch.save(save_data, filepath)
+        self.saved_logits_files.append(filepath)
+        logger.info(f"[LOGITS] Saved logits to {filepath} (shape: {logits_cpu.shape})")
+        
+        # 古いファイルを削除（最大ファイル数制限）
+        if len(self.saved_logits_files) > self.save_logits_max_files:
+            old_file = self.saved_logits_files.pop(0)
+            try:
+                old_file.unlink()
+                logger.debug(f"[LOGITS] Deleted old logits file: {old_file}")
+            except Exception as e:
+                logger.warning(f"[WARNING] Failed to delete old logits file {old_file}: {e}")
 
 
 def load_model_with_so8t(
@@ -580,6 +752,19 @@ def load_model_with_so8t(
                 if quantization_config:
                     from peft import prepare_model_for_kbit_training
                     so8t_model = prepare_model_for_kbit_training(so8t_model)
+                    
+                    # CRITICAL: Enable input require_grads for 8-bit quantization
+                    try:
+                        from peft.tuners.lora import enable_input_require_grads
+                        enable_input_require_grads(so8t_model)
+                        logger.info("[DEBUG] enable_input_require_grads completed for SO8T model")
+                    except ImportError:
+                        # Fallback: manually enable requires_grad
+                        logger.warning("[WARNING] enable_input_require_grads not available for SO8T model, using manual method")
+                        for name, param in so8t_model.named_parameters():
+                            if 'lora' in name.lower() or param.requires_grad:
+                                param.requires_grad = True
+                        logger.info("[DEBUG] Manually enabled requires_grad for SO8T model")
                 
                 model = so8t_model
             else:
@@ -787,6 +972,20 @@ def main():
         model = prepare_model_for_kbit_training(model)
         logger.info("[DEBUG] prepare_model_for_kbit_training completed")
         
+        # CRITICAL: Enable input require_grads for 8-bit quantization
+        # This ensures that input tensors (and thus hidden_states) require gradients
+        try:
+            from peft.tuners.lora import enable_input_require_grads
+            enable_input_require_grads(model)
+            logger.info("[DEBUG] enable_input_require_grads completed")
+        except ImportError:
+            # Fallback: manually enable requires_grad for trainable parameters
+            logger.warning("[WARNING] enable_input_require_grads not available, using manual method")
+            for name, param in model.named_parameters():
+                if 'lora' in name.lower() or param.requires_grad:
+                    param.requires_grad = True
+            logger.info("[DEBUG] Manually enabled requires_grad for trainable parameters")
+        
         qlora_config = config.get("qlora", {})
         lora_config = LoraConfig(
             r=qlora_config.get("r", 64),
@@ -803,6 +1002,28 @@ def main():
         logger.info("[DEBUG] Starting get_peft_model...")
         model = get_peft_model(model, lora_config)
         logger.info("[OK] QLoRA applied")
+        
+        # CRITICAL: Verify trainable parameters and enable input require_grads
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        total_params = sum(p.numel() for p in model.parameters())
+        logger.info(f"[DEBUG] Trainable parameters: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)")
+        
+        # Enable input require_grads (critical for 8-bit quantization)
+        try:
+            from peft.tuners.lora import enable_input_require_grads
+            enable_input_require_grads(model)
+            logger.info("[DEBUG] enable_input_require_grads completed after QLoRA")
+        except ImportError:
+            logger.warning("[WARNING] enable_input_require_grads not available, using manual method")
+            # Fallback: ensure LoRA parameters require gradients
+            for name, param in model.named_parameters():
+                if 'lora' in name.lower():
+                    param.requires_grad = True
+            logger.info("[DEBUG] Manually enabled requires_grad for LoRA parameters")
+        
+        # Verify model is in training mode
+        model.train()
+        logger.info("[DEBUG] Model set to training mode")
     
     # データセット読み込み
     logger.info("[DEBUG] Starting dataset loading...")
@@ -903,12 +1124,28 @@ def main():
     logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
     
     # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
     trainer = SO8TPETTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         data_collator=data_collator,
         pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
         callbacks=[time_cb]
     )
     
@@ -1042,6 +1279,31 @@ def main():
     trainer.add_callback(progress_cb)
     
     trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
     
     # 最終モデル保存
     final_model_dir = output_dir / "final_model"

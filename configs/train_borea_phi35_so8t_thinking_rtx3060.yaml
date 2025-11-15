@@ -89,6 +89,16 @@ training:
   eval_steps: 500
   evaluation_strategy: "no"  # 評価を無効化（メモリ節約）
   
+  # Logits保存設定
+  save_logits: true              # logits保存を有効化
+  save_logits_steps: 100         # logits保存間隔（ステップ数）
+  save_logits_dir: "logits"      # logits保存先ディレクトリ（output_dir相対）
+  save_logits_max_files: 10      # 最大保存ファイル数（古いファイルを自動削除）
+  
+  # メトリクス記録設定（PoC提出用）
+  save_metrics: true             # メトリクス記録を有効化
+  save_metrics_steps: 10         # メトリクス記録間隔（ステップ数）
+  
   # 最適化設定（RTX3060向け）
   fp16: true
   bf16: false
