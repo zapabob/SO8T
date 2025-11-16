@@ -96,3 +96,16 @@ Write-Host "  3. WSL2環境でnvidia-smiを実行して確認" -ForegroundColor 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+

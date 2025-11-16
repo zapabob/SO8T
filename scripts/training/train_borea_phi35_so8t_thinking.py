@@ -1003,10 +1003,14 @@ def main():
             if latest_checkpoint:
                 resume_checkpoint = str(latest_checkpoint)
                 logger.info(f"[RECOVERY] Auto-resuming from checkpoint: {resume_checkpoint}")
-                logger.info(f"[RECOVERY] Session: {existing_session.get('session_id', 'unknown')}")
-                logger.info(f"[RECOVERY] Progress: {existing_session.get('current_step', 0)}/{existing_session.get('total_steps', 0)}")
+            else:
+                # チェックポイントが存在しない場合でも、セッション情報が存在する場合はRecovery modeを有効化
+                logger.info(f"[RECOVERY] Session found but no checkpoint directory. Recovery mode enabled.")
+            logger.info(f"[RECOVERY] Session: {existing_session.get('session_id', 'unknown')}")
+            logger.info(f"[RECOVERY] Progress: {existing_session.get('current_step', 0)}/{existing_session.get('total_steps', 0)}")
     
-    is_recovery = resume_checkpoint is not None
+    # セッション情報が存在する場合、またはチェックポイントが指定されている場合はRecovery modeを有効化
+    is_recovery = (existing_session is not None) or (resume_checkpoint is not None)
     
     logger.info("="*80)
     logger.info("Borea-Phi-3.5 SO8T/thinking Training")
