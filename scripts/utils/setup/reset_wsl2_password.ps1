@@ -96,3 +96,25 @@ Write-Host "  3. 新しいパスワードを設定" -ForegroundColor White
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

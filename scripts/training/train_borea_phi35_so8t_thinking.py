@@ -726,6 +726,7 @@ def load_model_with_so8t(
                 logger.info("[DEBUG] Loading base model (this may take several minutes)...")
                 logger.info("[DEBUG] Starting model loading at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 try:
+                    # Try loading with device_map="auto" first
                     base_model = AutoModelForCausalLM.from_pretrained(
                         model_path,
                         quantization_config=quantization_config,
@@ -736,8 +737,33 @@ def load_model_with_so8t(
                     )
                     logger.info("[DEBUG] Base model loaded successfully at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 except Exception as e:
-                    logger.error(f"[ERROR] Failed to load base model: {e}")
-                    raise
+                    logger.error(f"[ERROR] Failed to load base model with device_map='auto': {e}")
+                    logger.error(f"[ERROR] Error type: {type(e).__name__}")
+                    import traceback
+                    logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
+                    
+                    # Fallback: Try loading without device_map
+                    logger.info("[DEBUG] Attempting fallback: loading without device_map...")
+                    try:
+                        base_model = AutoModelForCausalLM.from_pretrained(
+                            model_path,
+                            quantization_config=quantization_config,
+                            device_map=None,
+                            trust_remote_code=True,
+                            torch_dtype=torch.float16,
+                            low_cpu_mem_usage=True
+                        )
+                        # Move to CUDA if available
+                        if torch.cuda.is_available():
+                            base_model = base_model.to("cuda")
+                            logger.info("[DEBUG] Base model moved to CUDA device")
+                        logger.info("[DEBUG] Base model loaded successfully (fallback mode) at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                    except Exception as e2:
+                        logger.error(f"[ERROR] Fallback loading also failed: {e2}")
+                        logger.error(f"[ERROR] Error type: {type(e2).__name__}")
+                        import traceback
+                        logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
+                        raise
                 
                 logger.info("[DEBUG] Base model loaded, creating SO8T model...")
                 # SO8TForCausalLMを作成
@@ -834,13 +860,34 @@ def load_model_with_so8t(
                 # 標準モデルを読み込んで、SO8Tモデルに置き換え
                 logger.info("SO8TPhi3ForCausalLM not available, using standard model with SO8T integration")
                 logger.info("[DEBUG] Loading base model (this may take several minutes)...")
-                base_model = AutoModelForCausalLM.from_pretrained(
-                    model_path,
-                    quantization_config=quantization_config,
-                    device_map="auto",
-                    trust_remote_code=True,
-                    torch_dtype=torch.float16
-                )
+                try:
+                    # Try loading with device_map="auto" first
+                    base_model = AutoModelForCausalLM.from_pretrained(
+                        model_path,
+                        quantization_config=quantization_config,
+                        device_map="auto",
+                        trust_remote_code=True,
+                        torch_dtype=torch.float16
+                    )
+                except Exception as e:
+                    logger.error(f"[ERROR] Failed to load base model with device_map='auto': {e}")
+                    logger.error(f"[ERROR] Error type: {type(e).__name__}")
+                    import traceback
+                    logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
+                    
+                    # Fallback: Try loading without device_map
+                    logger.info("[DEBUG] Attempting fallback: loading without device_map...")
+                    base_model = AutoModelForCausalLM.from_pretrained(
+                        model_path,
+                        quantization_config=quantization_config,
+                        device_map=None,
+                        trust_remote_code=True,
+                        torch_dtype=torch.float16
+                    )
+                    # Move to CUDA if available
+                    if torch.cuda.is_available():
+                        base_model = base_model.to("cuda")
+                        logger.info("[DEBUG] Base model moved to CUDA device")
                 
                 # SO8Tモデルに置き換え（model.modelをSO8TPhi3Modelに置き換え）
                 if hasattr(base_model, 'model'):
@@ -893,6 +940,7 @@ def load_model_with_so8t(
             logger.info("[DEBUG] Loading standard model (this may take several minutes)...")
             logger.info("[DEBUG] Starting model loading at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             try:
+                # Try loading with device_map="auto" first
                 model = AutoModelForCausalLM.from_pretrained(
                     model_path,
                     quantization_config=quantization_config,
@@ -903,13 +951,39 @@ def load_model_with_so8t(
                 )
                 logger.info("[DEBUG] Standard model loaded successfully at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             except Exception as e:
-                logger.error(f"[ERROR] Failed to load standard model: {e}")
-                raise
+                logger.error(f"[ERROR] Failed to load standard model with device_map='auto': {e}")
+                logger.error(f"[ERROR] Error type: {type(e).__name__}")
+                import traceback
+                logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
+                
+                # Fallback: Try loading without device_map
+                logger.info("[DEBUG] Attempting fallback: loading without device_map...")
+                try:
+                    model = AutoModelForCausalLM.from_pretrained(
+                        model_path,
+                        quantization_config=quantization_config,
+                        device_map=None,
+                        trust_remote_code=True,
+                        torch_dtype=torch.float16,
+                        low_cpu_mem_usage=True
+                    )
+                    # Move to CUDA if available
+                    if torch.cuda.is_available():
+                        model = model.to("cuda")
+                        logger.info("[DEBUG] Model moved to CUDA device")
+                    logger.info("[DEBUG] Standard model loaded successfully (fallback mode) at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                except Exception as e2:
+                    logger.error(f"[ERROR] Fallback loading also failed: {e2}")
+                    logger.error(f"[ERROR] Error type: {type(e2).__name__}")
+                    import traceback
+                    logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
+                    raise
     else:
         # 標準モデルを読み込み
         logger.info("[DEBUG] Loading standard model (this may take several minutes)...")
         logger.info("[DEBUG] Starting model loading at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         try:
+            # Try loading with device_map="auto" first
             model = AutoModelForCausalLM.from_pretrained(
                 model_path,
                 quantization_config=quantization_config,
@@ -920,8 +994,33 @@ def load_model_with_so8t(
             )
             logger.info("[DEBUG] Standard model loaded successfully at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            logger.error(f"[ERROR] Failed to load standard model: {e}")
-            raise
+            logger.error(f"[ERROR] Failed to load standard model with device_map='auto': {e}")
+            logger.error(f"[ERROR] Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
+            
+            # Fallback: Try loading without device_map
+            logger.info("[DEBUG] Attempting fallback: loading without device_map...")
+            try:
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_path,
+                    quantization_config=quantization_config,
+                    device_map=None,
+                    trust_remote_code=True,
+                    torch_dtype=torch.float16,
+                    low_cpu_mem_usage=True
+                )
+                # Move to CUDA if available
+                if torch.cuda.is_available():
+                    model = model.to("cuda")
+                    logger.info("[DEBUG] Model moved to CUDA device")
+                logger.info("[DEBUG] Standard model loaded successfully (fallback mode) at: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            except Exception as e2:
+                logger.error(f"[ERROR] Fallback loading also failed: {e2}")
+                logger.error(f"[ERROR] Error type: {type(e2).__name__}")
+                import traceback
+                logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
+                raise
     
     logger.info("[OK] Model and tokenizer loaded")
     logger.info(f"[DEBUG] Model type: {type(model)}")
