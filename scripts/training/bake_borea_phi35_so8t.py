@@ -16,6 +16,17 @@ from typing import Dict, Any, Optional
 import warnings
 warnings.filterwarnings("ignore")
 
+# ロギング設定
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/bake_borea_phi35_so8t.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
 import torch
 import torch.nn as nn
 from transformers import AutoModelForCausalLM, AutoTokenizer, Phi3Config
@@ -47,18 +58,6 @@ except ImportError:
     except ImportError:
         logger.warning("SO8TRotationGate not found, some functions may not work")
         SO8TRotationGate = None
-
-# ロギング設定
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/bake_borea_phi35_so8t.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
-
 
 def get_rotation_matrices_from_layer(layer: SO8TPhi3DecoderLayer) -> Optional[torch.Tensor]:
     """
