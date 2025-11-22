@@ -1,0 +1,15 @@
+{
+  "workflow_completed_at": "2025-11-22 15:47:14",
+  "steps": {
+    "evaluation": false,
+    "gguf_conversion": false,
+    "ollama_import": false,
+    "performance_tests": false
+  },
+  "directories": {
+    "checkpoints": "D:/webdataset/checkpoints/so8t_thinking_retrained",
+    "evaluation": "C:\\Users\\downl\\Desktop\\SO8T\\results\\so8t_thinking_workflow\\evaluation",
+    "gguf_models": "D:\\webdataset\\gguf_models\\so8t_thinking_v1",
+    "results": "C:\\Users\\downl\\Desktop\\SO8T\\results\\so8t_thinking_workflow"
+  }
+}
