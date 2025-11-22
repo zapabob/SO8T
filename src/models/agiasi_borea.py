@@ -42,7 +42,8 @@ class AGIASI_SO8T_Wrapper(nn.Module):
             base_model_id,
             quantization_config=bnb_config,
             device_map=device,
-            trust_remote_code=True
+            trust_remote_code=True,
+            attn_implementation="eager"  # Avoid DynamicCache error
         )
         
         # Apply LoRA to make base model trainable without full gradient
@@ -88,7 +89,9 @@ class AGIASI_SO8T_Wrapper(nn.Module):
         outputs = self.base_model.model(
             input_ids=input_ids, 
             attention_mask=attention_mask,
-            output_hidden_states=True
+            output_hidden_states=True,
+            output_attentions=False,  # Avoid DynamicCache error
+            use_cache=False  # Disable caching for training
         )
         hidden_states = outputs.last_hidden_state  # (Batch, Seq, Dim)
         
