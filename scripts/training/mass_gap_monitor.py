@@ -470,6 +470,10 @@ class SO8TMassGapCallback:
         """ステップ開始時のコールバック"""
         pass
 
+    def on_substep_end(self, args, state, control, **kwargs):
+        """サブステップ終了時のコールバック"""
+        pass
+
     def on_step_end(self, args, state, control, **kwargs):
         """ステップ終了時のコールバック"""
         model = kwargs.get('model')

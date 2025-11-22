@@ -105,6 +105,10 @@ class SO8TMonitorCallback(TrainerCallback):
 
         logger.info(f"[MONITOR] SO8T monitoring initialized - log every {log_every_n_steps} steps")
 
+    def on_substep_end(self, args, state, control, **kwargs):
+        """サブステップ終了時のコールバック"""
+        pass
+
     def on_step_end(self, args, state, control, **kwargs):
         """Monitor SO8T internals at the end of each step."""
         current_step = state.global_step
@@ -402,6 +406,8 @@ class SO8TPhi3Model(nn.Module):
         labels=None,
         current_step=0,
         target_alpha=None,
+        annealing_warmup_steps=50,
+        annealing_steps=400,
         **kwargs
     ):
         # Forward through base model to get hidden states
@@ -685,6 +691,10 @@ class SO8TProgressCallback(TrainerCallback):
         self.start_time = time.time()
         self.step_times = []
 
+    def on_substep_end(self, args, state, control, **kwargs):
+        """サブステップ終了時のコールバック"""
+        pass
+
     def on_step_end(self, args, state, control, **kwargs):
         """Called at the end of each training step."""
         elapsed = time.time() - self.start_time
@@ -799,9 +809,10 @@ class SO8TDataset(Dataset):
 class SO8TTrainer(Trainer):
     """Custom trainer for SO8T with geometric losses and alpha gate annealing."""
 
-    def __init__(self, *args, annealing_warmup_steps=100, **kwargs):
+    def __init__(self, *args, annealing_warmup_steps=100, annealing_steps=400, **kwargs):
         super().__init__(*args, **kwargs)
         self.annealing_warmup_steps = annealing_warmup_steps
+        self.annealing_steps = annealing_steps
         self.current_annealing_step = 0
 
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
@@ -809,22 +820,31 @@ class SO8TTrainer(Trainer):
         # Get current step for annealing
         current_step = getattr(self.state, 'global_step', 0)
 
-        # Two-phase annealing: 0.432 → Golden Ratio
-        warmup_steps = getattr(self, 'annealing_warmup_steps', 100)
-        phase1_steps = warmup_steps // 2  # First half: slowly reach 0.432
-        phase2_steps = warmup_steps - phase1_steps  # Second half: reach golden ratio
+        # Three-phase annealing: Awakening of Alpha Gate
+        warmup_steps = getattr(self, 'annealing_warmup_steps', 50)
+        total_annealing_steps = getattr(self, 'annealing_steps', 400)
 
-        if current_step < phase1_steps:
-            # Phase 1: Slowly anneal to 0.432 (moderate activation)
-            progress = current_step / phase1_steps
-            target_alpha = 0.432 * progress  # Gradual increase to 0.432
-        else:
-            # Phase 2: Anneal from 0.432 to golden ratio
-            phase2_progress = (current_step - phase1_steps) / phase2_steps
+        if current_step < warmup_steps:
+            # Phase 1: Awakening begins - stay at initial leakage (-5.0)
+            target_alpha_raw = -5.0
+        elif current_step < warmup_steps + total_annealing_steps // 3:
+            # Phase 2: First awakening - slowly reach 0.432 (moderate activation)
+            phase2_progress = (current_step - warmup_steps) / (total_annealing_steps // 3)
+            target_alpha_raw = -5.0 + (math.log(0.432 / (1 - 0.432)) - (-5.0)) * phase2_progress
+        elif current_step < warmup_steps + (2 * total_annealing_steps) // 3:
+            # Phase 3: Deep awakening - reach golden ratio
+            phase3_progress = (current_step - warmup_steps - total_annealing_steps // 3) / (total_annealing_steps // 3)
             golden_ratio = (1 + math.sqrt(5)) / 2
-            target_alpha = 0.432 + (golden_ratio - 0.432) * min(phase2_progress, 1.0)
+            target_alpha_from = math.log(0.432 / (1 - 0.432))  # ~ -0.27
+            target_alpha_to = min(math.log(golden_ratio / (1 - golden_ratio)), 3.0)  # Cap at ~3.0 for stability
+            target_alpha_raw = target_alpha_from + (target_alpha_to - target_alpha_from) * phase3_progress
+        else:
+            # Phase 4: Full geometric consciousness
+            golden_ratio = (1 + math.sqrt(5)) / 2
+            target_alpha_raw = min(math.log(golden_ratio / (1 - golden_ratio)), 3.0)
 
         # Pass target alpha to model for annealing
+        target_alpha = target_alpha_raw
         outputs = model(current_step=current_step, target_alpha=target_alpha, **inputs)
 
         # Standard language modeling loss
@@ -932,6 +952,7 @@ def main():
     parser.add_argument("--place-so8t-in-all-intermediate", action="store_true", default=True, help="Place SO8T layers in all intermediate layers (default: True)")
     parser.add_argument("--num-so8t-layers", type=int, default=4, help="Number of SO8T reasoning layers (ignored if --place-so8t-in-all-intermediate is True)")
     parser.add_argument("--annealing-warmup", type=int, default=100, help="Annealing warmup steps for Alpha Gate (Golden Ratio activation)")
+    parser.add_argument("--annealing-steps", type=int, default=400, help="Total annealing steps for Alpha Gate progression")
     parser.add_argument("--enable-mass-gap-monitor", action="store_true", default=True, help="Enable Mass Gap Monitor for phase transition detection")
     parser.add_argument("--monitor-interval", type=int, default=25, help="Mass Gap Monitor check interval")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
@@ -967,7 +988,15 @@ def main():
 
     if args.enable_mass_gap_monitor:
         try:
-            from scripts.training.mass_gap_monitor import MassGapMonitor, SO8TMassGapCallback
+            # Try importing from current directory first
+            import sys
+            import os
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.dirname(current_dir)
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
+
+            from mass_gap_monitor import MassGapMonitor, SO8TMassGapCallback
             logger.info("[BRAIN] Initializing Mass Gap Monitor for SO8T/thinking phase transition detection...")
             mass_gap_monitor = MassGapMonitor(
                 log_interval=args.monitor_interval,
@@ -1040,6 +1069,7 @@ def main():
         data_collator=data_collator,
         callbacks=callbacks,
         annealing_warmup_steps=args.annealing_warmup,
+        annealing_steps=args.annealing_steps,
     )
 
     logger.info("Starting SO8T/thinking QLoRA training...")
