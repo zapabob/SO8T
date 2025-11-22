@@ -470,6 +470,10 @@ class SO8TMassGapCallback:
         """ステップ開始時のコールバック"""
         pass
 
+    def on_pre_optimizer_step(self, args, state, control, **kwargs):
+        """オプティマイザーステップ前のコールバック"""
+        pass
+
     def on_substep_end(self, args, state, control, **kwargs):
         """サブステップ終了時のコールバック"""
         pass
