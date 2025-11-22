@@ -136,11 +136,21 @@ class FourClassDataset(Dataset):
 
 class FourClassModel(nn.Module):
     """四値分類モデル（ベースモデル + 分類ヘッド）"""
-    
+
     def __init__(self, base_model, num_classes: int = 4, hidden_size: int = 3072):
         super().__init__()
         self.base_model = base_model
         self.classifier = nn.Linear(hidden_size, num_classes)
+
+    def gradient_checkpointing_enable(self, gradient_checkpointing_kwargs=None):
+        """Enable gradient checkpointing on the base model"""
+        if hasattr(self.base_model, 'gradient_checkpointing_enable'):
+            self.base_model.gradient_checkpointing_enable(gradient_checkpointing_kwargs)
+
+    def gradient_checkpointing_disable(self):
+        """Disable gradient checkpointing on the base model"""
+        if hasattr(self.base_model, 'gradient_checkpointing_disable'):
+            self.base_model.gradient_checkpointing_disable()
     
     def forward(self, input_ids, attention_mask=None, labels=None):
         # ベースモデルの出力
@@ -208,14 +218,39 @@ def compute_metrics(eval_pred):
 class FourClassTrainer:
     """四値分類学習クラス"""
     
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, resume_from_checkpoint: Optional[str] = None):
         """
         Args:
             config_path: 設定ファイルパス
+            resume_from_checkpoint: 再開するチェックポイントのパス
         """
         self.config = self._load_config(config_path)
+        self.resume_from_checkpoint = resume_from_checkpoint
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = None
+
+        # 自動チェックポイント検出
+        if self.resume_from_checkpoint is None:
+            self.resume_from_checkpoint = self._find_latest_checkpoint()
+
+    def _find_latest_checkpoint(self) -> Optional[str]:
+        """最新のチェックポイントを検出"""
+        output_dir = Path(self.config['training']['output_dir'])
+        if not output_dir.exists():
+            return None
+
+        # checkpoint-* ディレクトリを検索
+        checkpoint_dirs = list(output_dir.glob("checkpoint-*"))
+        if not checkpoint_dirs:
+            return None
+
+        # ステップ番号でソートして最新のものを選択
+        checkpoint_dirs.sort(key=lambda x: int(x.name.split('-')[1]) if len(x.name.split('-')) > 1 and x.name.split('-')[1].isdigit() else 0)
+
+        latest_checkpoint = checkpoint_dirs[-1]
+        logger.info(f"[CHECKPOINT] Found latest checkpoint: {latest_checkpoint}")
+
+        return str(latest_checkpoint)
         self.tokenizer = None
         self.train_dataset = None
         self.val_dataset = None
@@ -319,7 +354,13 @@ class FourClassTrainer:
         logger.info("="*80)
         logger.info("Four Class Classification Training")
         logger.info("="*80)
-        
+
+        # チェックポイント再開情報
+        if self.resume_from_checkpoint:
+            logger.info(f"[RESUME] Resuming training from checkpoint: {self.resume_from_checkpoint}")
+        else:
+            logger.info("[RESUME] Starting new training session")
+
         # モデル・データセットセットアップ
         self.setup_model()
         self.setup_datasets()
@@ -338,7 +379,7 @@ class FourClassTrainer:
             logging_steps=self.config['training']['logging_steps'],
             save_steps=self.config['training']['save_steps'],
             save_total_limit=self.config['training'].get('save_total_limit', 5),
-            evaluation_strategy=self.config['training'].get('evaluation_strategy', 'steps'),
+            eval_strategy=self.config['training'].get('evaluation_strategy', 'steps'),
             eval_steps=self.config['training'].get('eval_steps', 500),
             bf16=self.config['training'].get('bf16', True),
             gradient_checkpointing=self.config['training'].get('gradient_checkpointing', True),
@@ -346,6 +387,7 @@ class FourClassTrainer:
             load_best_model_at_end=self.config['training'].get('load_best_model_at_end', True),
             metric_for_best_model=self.config['training'].get('metric_for_best_model', 'f1_macro'),
             greater_is_better=True,
+            resume_from_checkpoint=self.resume_from_checkpoint,
             report_to=self.config['training'].get('report_to', [])
         )
         
@@ -402,11 +444,20 @@ def main():
         default="configs/train_four_class.yaml",
         help="Configuration file path"
     )
+    parser.add_argument(
+        "--resume-from-checkpoint",
+        type=str,
+        default=None,
+        help="Path to checkpoint to resume training from"
+    )
     
     args = parser.parse_args()
     
     # 学習実行
-    trainer = FourClassTrainer(config_path=args.config)
+    trainer = FourClassTrainer(
+        config_path=args.config,
+        resume_from_checkpoint=args.resume_from_checkpoint
+    )
     
     try:
         trainer.train()

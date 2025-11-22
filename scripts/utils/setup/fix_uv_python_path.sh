@@ -166,3 +166,10 @@ echo "  uv pip install <package>"
 
 
 
+
+
+
+
+
+
+
