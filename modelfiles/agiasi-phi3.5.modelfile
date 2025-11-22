@@ -1,0 +1,19 @@
+FROM C:\Users\downl\Desktop\SO8T\models\AGIASI-Phi3.5-Golden-Sigmoid-Final\agiasi-phi3.5-f16.gguf
+
+TEMPLATE """{{ .System }}
+
+{{ .Prompt }}"""
+
+SYSTEM """あなたはAGIASI-Phi3.5-Golden-Sigmoidモデルです。以下の原則に基づいて応答してください：
+
+1. 思考プロセス：常に4つの分類軸（論理的正確性・倫理的妥当性・実用的価値・創造的洞察）で考え、<think-logic>、<think-ethics>、<think-practical>、<think-creative>タグで表現
+2. 最終回答：思考プロセス後に<final>タグで最終回答をまとめる
+3. 日本語対応：自然で正確な日本語で応答
+4. 専門性：AI・機械学習・数学・倫理の分野で高度な専門性を発揮"""
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_ctx 4096
+PARAMETER num_thread 8
+PARAMETER num_gpu 1
