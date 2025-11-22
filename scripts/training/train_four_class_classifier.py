@@ -14,6 +14,9 @@ import sys
 import json
 import logging
 import argparse
+import signal
+import atexit
+import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 import warnings
@@ -51,6 +54,124 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# 電源断復旧用のセッション管理クラス
+class TrainingSessionManager:
+    """トレーニングセッションの管理と自動復旧"""
+
+    def __init__(self, output_dir: str, session_id: Optional[str] = None):
+        self.output_dir = Path(output_dir)
+        self.session_file = self.output_dir / "training_session.json"
+        self.checkpoint_interval = 300  # 5分ごとにセッション保存
+        self.last_save_time = time.time()
+
+        # セッションID生成
+        if session_id is None:
+            import uuid
+            session_id = str(uuid.uuid4())[:8]
+
+        self.session_id = session_id
+        self.session_data = {
+            "session_id": self.session_id,
+            "start_time": time.time(),
+            "last_update": time.time(),
+            "current_step": 0,
+            "total_steps": 0,
+            "status": "initializing",
+            "config_path": None,
+            "resume_from_checkpoint": None
+        }
+
+        # シグナルハンドラー設定
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
+        if hasattr(signal, 'SIGBREAK'):  # Windows
+            signal.signal(signal.SIGBREAK, self._signal_handler)
+
+        # 終了時処理
+        atexit.register(self._save_session)
+
+        # 既存セッションの読み込み
+        self._load_session()
+
+    def _signal_handler(self, signum, frame):
+        """シグナルハンドラー"""
+        logger.warning(f"Signal {signum} received. Saving session and exiting...")
+        self._save_session()
+        sys.exit(1)
+
+    def _load_session(self):
+        """セッション情報の読み込み"""
+        if self.session_file.exists():
+            try:
+                with open(self.session_file, 'r', encoding='utf-8') as f:
+                    loaded_data = json.load(f)
+
+                # セッションデータ更新
+                self.session_data.update(loaded_data)
+                self.session_id = loaded_data.get('session_id', self.session_id)
+
+                logger.info(f"[SESSION] Loaded session: {self.session_id}")
+                logger.info(f"[SESSION] Previous status: {loaded_data.get('status', 'unknown')}")
+                logger.info(f"[SESSION] Progress: {loaded_data.get('current_step', 0)}/{loaded_data.get('total_steps', 0)}")
+
+            except Exception as e:
+                logger.warning(f"Failed to load session file: {e}")
+
+    def _save_session(self):
+        """セッション情報の保存"""
+        try:
+            self.session_data["last_update"] = time.time()
+            self.session_file.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(self.session_file, 'w', encoding='utf-8') as f:
+                json.dump(self.session_data, f, indent=2, ensure_ascii=False)
+
+            logger.debug(f"[SESSION] Session saved: {self.session_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to save session: {e}")
+
+    def update_progress(self, current_step: int, total_steps: int, status: str = "running"):
+        """進捗更新"""
+        self.session_data["current_step"] = current_step
+        self.session_data["total_steps"] = total_steps
+        self.session_data["status"] = status
+
+        # 定期保存
+        current_time = time.time()
+        if current_time - self.last_save_time >= self.checkpoint_interval:
+            self._save_session()
+            self.last_save_time = current_time
+
+    def set_config(self, config_path: str, resume_from_checkpoint: Optional[str] = None):
+        """設定情報の保存"""
+        self.session_data["config_path"] = config_path
+        self.session_data["resume_from_checkpoint"] = resume_from_checkpoint
+        self._save_session()
+
+    def finish_session(self):
+        """セッション完了"""
+        self.session_data["status"] = "completed"
+        self.session_data["end_time"] = time.time()
+        self._save_session()
+        logger.info(f"[SESSION] Session completed: {self.session_id}")
+
+    def get_session_info(self) -> Dict[str, Any]:
+        """セッション情報取得"""
+        return self.session_data.copy()
+
+# トレーニング進捗更新用のコールバッククラス
+class ProgressCallback:
+    """トレーニング進捗をセッション管理に更新するコールバック"""
+
+    def __init__(self, session_manager: TrainingSessionManager, total_steps: int):
+        self.session_manager = session_manager
+        self.total_steps = total_steps
+
+    def __call__(self, step: int):
+        """各ステップで呼ばれる"""
+        self.session_manager.update_progress(step, self.total_steps, "running")
 
 # ラベルマッピング
 LABEL_TO_ID = {"ALLOW": 0, "ESCALATION": 1, "DENY": 2, "REFUSE": 3}
@@ -233,6 +354,11 @@ class FourClassTrainer:
         if self.resume_from_checkpoint is None:
             self.resume_from_checkpoint = self._find_latest_checkpoint()
 
+        # セッション管理初期化
+        output_dir = self.config['training']['output_dir']
+        self.session_manager = TrainingSessionManager(output_dir)
+        self.session_manager.set_config(config_path, self.resume_from_checkpoint)
+
     def _find_latest_checkpoint(self) -> Optional[str]:
         """最新のチェックポイントを検出"""
         output_dir = Path(self.config['training']['output_dir'])
@@ -388,7 +514,14 @@ class FourClassTrainer:
             metric_for_best_model=self.config['training'].get('metric_for_best_model', 'f1_macro'),
             greater_is_better=True,
             resume_from_checkpoint=self.resume_from_checkpoint,
-            report_to=self.config['training'].get('report_to', [])
+            report_to=self.config['training'].get('report_to', []),
+
+        # 総ステップ数の計算
+        total_steps = int((len(self.train_dataset) / (training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps)) * training_args.num_train_epochs)
+        self.total_steps = total_steps
+
+        # 進捗コールバック設定
+        self.progress_callback = ProgressCallback(self.session_manager, total_steps)
         )
         
         # Trainer作成
@@ -397,7 +530,8 @@ class FourClassTrainer:
             args=training_args,
             train_dataset=self.train_dataset,
             eval_dataset=self.val_dataset,
-            compute_metrics=compute_metrics
+            compute_metrics=compute_metrics,
+            callbacks=[self.progress_callback]
         )
         
         # 学習実行
@@ -409,7 +543,10 @@ class FourClassTrainer:
             
             training_time = time.time() - start_time
             logger.info(f"Training completed in {training_time/3600:.2f} hours")
-            
+
+            # セッション完了マーク
+            self.session_manager.finish_session()
+
             # 最終評価
             if self.val_dataset:
                 logger.info("Running final evaluation...")
