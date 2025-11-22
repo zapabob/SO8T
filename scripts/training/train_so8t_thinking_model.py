@@ -479,6 +479,57 @@ class SO8TPhi3Model(nn.Module):
         # [DNA] Save last hidden states for Mass Gap Monitor
         self._last_hidden_states = enhanced_hidden_states[-1]
 
+        # Store metacognitive information for monitoring
+        metacognitive_info = {
+            'entropy': normalized_entropy if 'normalized_entropy' in locals() else None,
+            'alpha_adjustment': metacognitive_alpha_adjustment,
+            'target_alpha': target_alpha
+        }
+
+        # Use enhanced intermediate states for final processing
+        # Here we use the last enhanced hidden state
+        final_hidden = enhanced_hidden_states[-1]
+
+        # Use enhanced hidden states for LM head
+        lm_logits = self.base_model.lm_head(final_hidden)
+
+        # Return metacognitive information along with outputs
+        outputs['metacognitive_info'] = metacognitive_info
+        outputs['logits'] = lm_logits
+
+        # Calculate loss if labels provided
+        loss = None
+        if labels is not None:
+            shift_logits = lm_logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            loss_fct = nn.CrossEntropyLoss()
+            loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+
+            # Add SO8T geometric losses for SO(8) rotation parameters
+            ortho_loss = 0
+            triality_loss = 0
+
+            # Calculate orthogonality loss for each SO(8) rotation parameter
+            for rotation_params in self.so8t_rotations:
+                rotation_matrices = self._construct_so8_matrix(rotation_params.unsqueeze(0))
+                ortho_loss += orthogonality_loss(rotation_matrices)
+
+            ortho_loss = ortho_loss / len(self.so8t_rotations) if len(self.so8t_rotations) > 0 else 0.0
+            triality_loss = triality_consistency_loss(final_hidden, labels)
+
+            # Combine losses with annealing for geometric constraints
+            annealing_weight = min(0.1, current_step / 100.0 * 0.1) if current_step else 0.01
+            total_loss = loss + annealing_weight * ortho_loss + annealing_weight * triality_loss
+        else:
+            total_loss = loss
+
+        return {
+            'loss': total_loss,
+            'logits': lm_logits,
+            'hidden_states': outputs.hidden_states,
+            'so8t_enhanced': final_hidden
+        }
+
     def _apply_so8_rotation(self, hidden_states: torch.Tensor, rotation_params: torch.Tensor) -> torch.Tensor:
         """
         SO(8) isometric rotationを適用 (等長変換)
@@ -561,57 +612,6 @@ class SO8TPhi3Model(nn.Module):
         rotation_matrix = torch.matrix_exp(lie_algebra)
 
         return rotation_matrix
-
-        # Store metacognitive information for monitoring
-        metacognitive_info = {
-            'entropy': normalized_entropy if 'normalized_entropy' in locals() else None,
-            'alpha_adjustment': metacognitive_alpha_adjustment,
-            'target_alpha': target_alpha
-        }
-
-        # Use enhanced intermediate states for final processing
-        # Here we use the last enhanced hidden state
-        final_hidden = enhanced_hidden_states[-1]
-
-        # Use enhanced hidden states for LM head
-        lm_logits = self.base_model.lm_head(final_hidden)
-
-        # Return metacognitive information along with outputs
-        outputs['metacognitive_info'] = metacognitive_info
-        outputs['logits'] = lm_logits
-
-        # Calculate loss if labels provided
-        loss = None
-        if labels is not None:
-            shift_logits = lm_logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            loss_fct = nn.CrossEntropyLoss()
-            loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-
-            # Add SO8T geometric losses for SO(8) rotation parameters
-            ortho_loss = 0
-            triality_loss = 0
-
-            # Calculate orthogonality loss for each SO(8) rotation parameter
-            for rotation_params in self.so8t_rotations:
-                rotation_matrices = self._construct_so8_matrix(rotation_params.unsqueeze(0))
-                ortho_loss += orthogonality_loss(rotation_matrices)
-
-            ortho_loss = ortho_loss / len(self.so8t_rotations) if len(self.so8t_rotations) > 0 else 0.0
-            triality_loss = triality_consistency_loss(final_hidden, labels)
-
-            # Combine losses with annealing for geometric constraints
-            annealing_weight = min(0.1, current_step / 100.0 * 0.1) if current_step else 0.01
-            total_loss = loss + annealing_weight * ortho_loss + annealing_weight * triality_loss
-        else:
-            total_loss = loss
-
-        return {
-            'loss': total_loss,
-            'logits': lm_logits,
-            'hidden_states': outputs.hidden_states,
-            'so8t_enhanced': final_hidden
-        }
 
     def save_pretrained(self, save_directory: str):
         """Save the SO8T-enhanced model."""
