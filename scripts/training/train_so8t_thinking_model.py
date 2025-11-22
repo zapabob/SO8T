@@ -5,12 +5,23 @@ import torch.nn as nn
 import torch.optim as optim
 import argparse
 import math
+from tqdm import tqdm
 
 # Add project root to path for absolute imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, project_root)
 
 from src.models.nkat_so8t import NKAT_SO8T_ThinkingModel
+
+# Try importing datasets and transformers
+try:
+    from datasets import load_dataset
+    from transformers import AutoTokenizer, DataCollatorForLanguageModeling
+    from torch.utils.data import DataLoader
+except ImportError:
+    print("❌ Missing required libraries: `datasets` or `transformers`.")
+    print("   Please install them via: `pip install datasets transformers`")
+    sys.exit(1)
 
 def linear_annealing(step, warmup_steps, annealing_steps, start_alpha, target_alpha):
     """Alpha Gate linear annealing schedule"""
@@ -24,12 +35,14 @@ def linear_annealing(step, warmup_steps, annealing_steps, start_alpha, target_al
         return target_alpha
 
 def train():
-    parser = argparse.ArgumentParser(description="NKAT-SO8T Phase Transition Training")
-    parser.add_argument("--max-steps", type=int, default=500)
-    parser.add_argument("--annealing-warmup", type=int, default=50)
-    parser.add_argument("--annealing-steps", type=int, default=400)
+    parser = argparse.ArgumentParser(description="NKAT-SO8T Phase Transition Training (TinyStories)")
+    parser.add_argument("--max-steps", type=int, default=1000)
+    parser.add_argument("--annealing-warmup", type=int, default=100)
+    parser.add_argument("--annealing-steps", type=int, default=800)
     parser.add_argument("--logging-steps", type=int, default=10)
-    parser.add_argument("--save-steps", type=int, default=50)
+    parser.add_argument("--save-steps", type=int, default=100)
+    parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--seq-len", type=int, default=128)
     parser.add_argument("--enable-mass-gap-monitor", action="store_true")
     
     args = parser.parse_args()
@@ -38,17 +51,37 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"🚀 Device: {device}")
 
-    # Dummy Data (Batch size 8, Sequence length 128)
-    # In a real scenario, use a DataLoader
-    dummy_input = torch.randint(0, 32000, (8, 128)).to(device)
-    dummy_targets = torch.randint(0, 32000, (8, 128)).to(device)
+    # --- 2. Data Loading (TinyStories) ---
+    print("📚 Loading TinyStories dataset...")
+    # Load streaming to avoid downloading the whole thing if not needed
+    dataset = load_dataset("roneneldan/TinyStories", split="train", streaming=True)
     
-    # Model Initialization
-    model = NKAT_SO8T_ThinkingModel(in_dim=32000, out_dim=32000).to(device)
+    # Tokenizer
+    print("🔡 Loading Tokenizer (GPT-2)...")
+    tokenizer = AutoTokenizer.from_pretrained("gpt2")
+    tokenizer.pad_token = tokenizer.eos_token
+    
+    def tokenize_function(examples):
+        return tokenizer(examples["text"], truncation=True, max_length=args.seq_len, padding="max_length")
+
+    # Create an iterable dataset
+    tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=["text"])
+    
+    # Data Collator
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+    
+    # DataLoader
+    train_dataloader = DataLoader(tokenized_dataset, batch_size=args.batch_size, collate_fn=data_collator)
+    
+    # --- 3. Model Initialization ---
+    vocab_size = len(tokenizer)
+    print(f"🧠 Initializing Model (Vocab Size: {vocab_size})...")
+    
+    model = NKAT_SO8T_ThinkingModel(in_dim=vocab_size, out_dim=vocab_size).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=1e-4)
     criterion = nn.CrossEntropyLoss()
 
-    # --- 2. Training Loop (Phase Transition Observation) ---
+    # --- 4. Training Loop (Phase Transition Observation) ---
     print(f"🔥 Ignition! Starting Phase Transition Sequence...")
     print(f"   Target Alpha: {1.6180339887} (Golden Ratio)")
     print(f"   Schedule: Warmup={args.annealing_warmup}, Annealing={args.annealing_steps}")
@@ -58,8 +91,28 @@ def train():
     # Target Golden Ratio
     PHI = 1.6180339887
     START_ALPHA = -5.0
+    
+    step = 0
+    iterator = iter(train_dataloader)
+    
+    progress_bar = tqdm(range(args.max_steps), desc="Training")
 
-    for step in range(args.max_steps):
+    for step in progress_bar:
+        try:
+            batch = next(iterator)
+        except StopIteration:
+            iterator = iter(train_dataloader)
+            batch = next(iterator)
+            
+        # Move batch to device
+        input_ids = batch['input_ids'].to(device)
+        labels = batch['labels'].to(device) # Auto-shifted by DataCollator? No, usually labels=input_ids for CausalLM
+        
+        # DataCollatorForLanguageModeling with mlm=False sets labels = input_ids, 
+        # and handles -100 for padding if configured, but let's check.
+        # Standard practice: inputs = input_ids, targets = input_ids (shifted inside model or loss)
+        # Here we do manual loss calc, so we need to shift.
+        
         optimizer.zero_grad()
 
         # --- A. Alpha Annealing ---
@@ -71,11 +124,16 @@ def train():
         model.alpha.data.fill_(current_alpha_val)
 
         # --- B. Forward ---
-        outputs = model(dummy_input) # (B, Seq, Vocab)
+        outputs = model(input_ids) # (B, Seq, Vocab)
         
-        # Loss Calculation
+        # Shift for Causal LM Loss
+        # Logits: [..., :-1, :] -> Predict next token
+        # Labels: [..., 1:] -> Next token
+        shift_logits = outputs[..., :-1, :].contiguous()
+        shift_labels = labels[..., 1:].contiguous()
+        
         # Task Loss
-        task_loss = criterion(outputs.reshape(-1, 32000), dummy_targets.view(-1))
+        task_loss = criterion(shift_logits.view(-1, vocab_size), shift_labels.view(-1))
         
         # Orthogonality Loss
         ortho_loss = getattr(model, "ortho_loss", 0.0) 
@@ -94,16 +152,11 @@ def train():
             if abs(current_alpha_val - PHI) < 0.01:
                 status = "🟢 Golden Ratio Reached"
 
-            # Check for Mass Gap Spike (heuristic)
-            if args.enable_mass_gap_monitor and step > 0:
-                 # In a real monitor, we'd track loss history. 
-                 # Here we just print the current state.
-                 pass
-
-            print(f"[Step {step:03d}/{args.max_steps}] "
-                  f"Alpha: {current_alpha_val:.6f} | "
-                  f"Loss: {loss.item():.6f} (Ortho: {ortho_loss:.6f}) | "
-                  f"Status: {status}")
+            progress_bar.set_postfix({
+                "Alpha": f"{current_alpha_val:.4f}",
+                "Loss": f"{loss.item():.4f}",
+                "Status": status
+            })
 
         # --- D. Save Checkpoint ---
         if step > 0 and step % args.save_steps == 0:
@@ -111,9 +164,11 @@ def train():
             os.makedirs(save_dir, exist_ok=True)
             save_path = os.path.join(save_dir, f"so8t_step_{step}.pt")
             torch.save(model.state_dict(), save_path)
-            # print(f"   💾 Checkpoint saved: {save_path}")
+            
+        if step >= args.max_steps:
+            break
 
-    print("✅ Training sequence complete. Alpha Gate is now fully open.")
+    print("\n✅ Training sequence complete. Alpha Gate is now fully open.")
     print(f"   Final Alpha: {model.alpha.item():.6f}")
 
 if __name__ == "__main__":
