@@ -282,15 +282,38 @@ def orthogonality_loss(rotation_matrices: torch.Tensor) -> torch.Tensor:
 
     Ensures that rotation matrices maintain their orthogonal properties.
     """
-    batch_size, num_matrices, dim, _ = rotation_matrices.shape
+    # Handle different input shapes
+    shape = rotation_matrices.shape
+    if len(shape) == 4:
+        # Shape: (batch_size, num_matrices, dim, dim)
+        batch_size, num_matrices, dim, _ = shape
+        # Average over batch and matrices
+        orthogonality_error = torch.matmul(rotation_matrices.transpose(-2, -1), rotation_matrices) - torch.eye(dim, device=rotation_matrices.device).unsqueeze(0).unsqueeze(0)
+        loss = torch.norm(orthogonality_error, p='fro', dim=(-2, -1)).mean()
+    elif len(shape) == 3 and shape[0] == 1:
+        # Shape: (1, dim, dim) - single matrix with batch dim
+        rotation_matrix = rotation_matrices.squeeze(0)  # (dim, dim)
+        dim = rotation_matrix.shape[0]
+        identity = torch.eye(dim, device=rotation_matrix.device, dtype=rotation_matrix.dtype)
+        orthogonality_error = torch.matmul(rotation_matrix.transpose(-2, -1), rotation_matrix) - identity
+        loss = torch.norm(orthogonality_error, p='fro')
+    elif len(shape) == 3:
+        # Shape: (batch_size or num_matrices, dim, dim) - average over first dim
+        rotation_matrix = rotation_matrices.mean(dim=0)  # (dim, dim)
+        dim = rotation_matrix.shape[0]
+        identity = torch.eye(dim, device=rotation_matrix.device, dtype=rotation_matrix.dtype)
+        orthogonality_error = torch.matmul(rotation_matrix.transpose(-2, -1), rotation_matrix) - identity
+        loss = torch.norm(orthogonality_error, p='fro')
+    elif len(shape) == 2:
+        # Shape: (dim, dim) - single matrix
+        dim = rotation_matrices.shape[0]
+        identity = torch.eye(dim, device=rotation_matrices.device, dtype=rotation_matrices.dtype)
+        orthogonality_error = torch.matmul(rotation_matrices.transpose(-2, -1), rotation_matrices) - identity
+        loss = torch.norm(orthogonality_error, p='fro')
+    else:
+        raise ValueError(f"Unsupported rotation matrix shape: {shape}")
 
-    # Compute R^T @ R - I
-    orthogonality_error = torch.matmul(rotation_matrices.transpose(-2, -1), rotation_matrices) - torch.eye(dim, device=rotation_matrices.device)
-
-    # Frobenius norm of the error
-    loss = torch.norm(orthogonality_error, p='fro', dim=(-2, -1))
-
-    return loss.mean()
+    return loss
 
 def triality_consistency_loss(model_output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
@@ -338,5 +361,7 @@ class SO8TConfig:
         self.vocab_size = vocab_size
         self.dropout = dropout
         self.initializer_range = initializer_range
+
+
 
 

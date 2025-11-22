@@ -140,7 +140,9 @@ class SO8TMonitorCallback(TrainerCallback):
                     identity = torch.eye(8, device=rot_matrix.device)
 
                     # Compute orthogonality loss: ||R^T R - I||_F
-                    ortho_loss = torch.norm(rot_matrix.T @ rot_matrix - identity, p='fro').item()
+                    # Squeeze the batch dimension for matrix operations
+                    R = rot_matrix.squeeze(0)  # (8, 8)
+                    ortho_loss = torch.norm(R.T @ R - identity, p='fro').item()
                     ortho_losses.append(ortho_loss)
 
                     logger.info(f"[MONITOR] Step {step} - Layer {i} Orthogonality Loss: {ortho_loss:.6f}")
@@ -700,9 +702,16 @@ class SO8TProgressCallback(TrainerCallback):
             gpu_info = self._get_gpu_info()
             memory_info = self._get_memory_info()
 
+            # Get loss value safely
+            loss_value = state.log_history[-1].get('train_loss', 'N/A')
+            if isinstance(loss_value, str):
+                loss_str = loss_value
+            else:
+                loss_str = f"{loss_value:.4f}"
+
             logger.info(
                 f"Step {current_step}/{total_steps} | "
-                f"Loss: {state.log_history[-1].get('train_loss', 'N/A'):.4f} | "
+                f"Loss: {loss_str} | "
                 f"GPU: {gpu_info['utilization']:.1f}% | "
                 f"Memory: {gpu_info['memory_used']:.0f}MB | "
                 f"Temperature: {gpu_info['temperature']:.0f}°C | "
@@ -957,14 +966,19 @@ def main():
     mgm_callback = None
 
     if args.enable_mass_gap_monitor:
-        logger.info("[BRAIN] Initializing Mass Gap Monitor for SO8T/thinking phase transition detection...")
-        mass_gap_monitor = MassGapMonitor(
-            log_interval=args.monitor_interval,
-            model_name="so8t_thinking_qlora"
-        )
-        mass_gap_monitor.start_monitoring()
-        mgm_callback = SO8TMassGapCallback(mass_gap_monitor)
-        logger.info("[TARGET] Mass Gap Monitor active - watching for geometric awakening!")
+        try:
+            from scripts.training.mass_gap_monitor import MassGapMonitor, SO8TMassGapCallback
+            logger.info("[BRAIN] Initializing Mass Gap Monitor for SO8T/thinking phase transition detection...")
+            mass_gap_monitor = MassGapMonitor(
+                log_interval=args.monitor_interval,
+                model_name="so8t_thinking_qlora"
+            )
+            mass_gap_monitor.start_monitoring()
+            mgm_callback = SO8TMassGapCallback(mass_gap_monitor)
+            logger.info("[TARGET] Mass Gap Monitor active - watching for geometric awakening!")
+        except ImportError as e:
+            logger.warning(f"[WARNING] Mass Gap Monitor import failed: {e}. Continuing without monitoring.")
+            args.enable_mass_gap_monitor = False
 
     # Create dataset
     train_dataset = SO8TDataset(args.train_data, tokenizer)

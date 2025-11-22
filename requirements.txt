@@ -99,3 +99,5 @@ google-genai>=1.40.0
 
 
 # google-cloud-storage>=2.10.0
+# google-cloud-storage>=2.10.0
+# google-cloud-storage>=2.10.0

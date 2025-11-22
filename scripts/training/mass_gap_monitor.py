@@ -63,7 +63,7 @@ class MassGapMonitor:
         self.visualization_thread = threading.Thread(target=self._real_time_visualization)
         self.visualization_thread.daemon = True
         self.visualization_thread.start()
-        self.logger.info("📊 Real-time monitoring started")
+        self.logger.info("[CHART] Real-time monitoring started")
 
     def stop_monitoring(self):
         """監視停止"""
@@ -458,6 +458,18 @@ class SO8TMassGapCallback:
         """トレーニング開始時のコールバック"""
         pass
 
+    def on_epoch_begin(self, args, state, control, **kwargs):
+        """エポック開始時のコールバック"""
+        pass
+
+    def on_epoch_end(self, args, state, control, **kwargs):
+        """エポック終了時のコールバック"""
+        pass
+
+    def on_step_begin(self, args, state, control, **kwargs):
+        """ステップ開始時のコールバック"""
+        pass
+
     def on_step_end(self, args, state, control, **kwargs):
         """ステップ終了時のコールバック"""
         model = kwargs.get('model')
@@ -472,3 +484,15 @@ class SO8TMassGapCallback:
     def on_train_end(self, args, state, control, **kwargs):
         """トレーニング終了時のコールバック"""
         self.monitor.stop_monitoring()
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        """ログ出力時のコールバック"""
+        pass
+
+    def on_save(self, args, state, control, **kwargs):
+        """モデル保存時のコールバック"""
+        pass
+
+    def on_prediction_step(self, args, state, control, **kwargs):
+        """予測ステップ時のコールバック"""
+        pass
