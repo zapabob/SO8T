@@ -31,6 +31,7 @@ from transformers import (
     AutoTokenizer,
     TrainingArguments,
     Trainer,
+    TrainerCallback,
     BitsAndBytesConfig
 )
 from peft import (
@@ -162,16 +163,17 @@ class TrainingSessionManager:
         return self.session_data.copy()
 
 # トレーニング進捗更新用のコールバッククラス
-class ProgressCallback:
+class ProgressCallback(TrainerCallback):
     """トレーニング進捗をセッション管理に更新するコールバック"""
 
     def __init__(self, session_manager: TrainingSessionManager, total_steps: int):
         self.session_manager = session_manager
         self.total_steps = total_steps
 
-    def __call__(self, step: int):
-        """各ステップで呼ばれる"""
-        self.session_manager.update_progress(step, self.total_steps, "running")
+    def on_step_end(self, args, state, control, **kwargs):
+        """各ステップ終了時に呼ばれる"""
+        self.session_manager.update_progress(state.global_step, self.total_steps, "running")
+        return control
 
 # ラベルマッピング
 LABEL_TO_ID = {"ALLOW": 0, "ESCALATION": 1, "DENY": 2, "REFUSE": 3}
@@ -505,7 +507,7 @@ class FourClassTrainer:
             logging_steps=self.config['training']['logging_steps'],
             save_steps=self.config['training']['save_steps'],
             save_total_limit=self.config['training'].get('save_total_limit', 5),
-            eval_strategy=self.config['training'].get('evaluation_strategy', 'steps'),
+            eval_strategy=self.config['training'].get('eval_strategy', 'steps'),
             eval_steps=self.config['training'].get('eval_steps', 500),
             bf16=self.config['training'].get('bf16', True),
             gradient_checkpointing=self.config['training'].get('gradient_checkpointing', True),
@@ -515,6 +517,7 @@ class FourClassTrainer:
             greater_is_better=True,
             resume_from_checkpoint=self.resume_from_checkpoint,
             report_to=self.config['training'].get('report_to', []),
+        )
 
         # 総ステップ数の計算
         total_steps = int((len(self.train_dataset) / (training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps)) * training_args.num_train_epochs)
@@ -522,7 +525,6 @@ class FourClassTrainer:
 
         # 進捗コールバック設定
         self.progress_callback = ProgressCallback(self.session_manager, total_steps)
-        )
         
         # Trainer作成
         self.trainer = Trainer(

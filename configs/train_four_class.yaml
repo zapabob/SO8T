@@ -58,11 +58,11 @@ training:
   
   # ログ・保存
   logging_steps: 5
-  save_steps: 1458  # 2917ステップの約2回ごと（1458.5 ≈ 1458）
+  save_steps: 10  # 10ステップごとにチェックポイント保存
   save_total_limit: 5  # 5個のチェックポイントをローリングストック
   save_strategy: "steps"
   eval_strategy: "steps"
-  eval_steps: 1458
+  eval_steps: 10
   
   # その他
   report_to: []
