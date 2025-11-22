@@ -206,3 +206,9 @@ class NKAT_Wrapper(nn.Module):
     def get_gate_activations(self):
         """Get current gate activation values σ(α)."""
         return [torch.sigmoid(adapter.alpha_gate.alpha).item() for adapter in self.nkat_adapters]
+
+
+
+
+
+
