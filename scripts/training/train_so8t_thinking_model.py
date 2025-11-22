@@ -52,15 +52,16 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"🚀 Device: {device}")
 
-    # --- 2. Data Loading (TinyStories) ---
-    print("📚 Loading TinyStories dataset...")
-    # Load streaming to avoid downloading the whole thing if not needed
-    dataset = load_dataset("roneneldan/TinyStories", split="train", streaming=True)
+    # --- 2. Data Loading (Borea-Phi3.5-instinct-jp Knowledge) ---
+    print("📚 Loading Knowledge: TFMC/imatrix-dataset-for-japanese-llm...")
+    # Load streaming to avoid downloading the whole thing
+    dataset = load_dataset("TFMC/imatrix-dataset-for-japanese-llm", split="train", streaming=True)
     
-    # Tokenizer
-    print("🔡 Loading Tokenizer (GPT-2)...")
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
-    tokenizer.pad_token = tokenizer.eos_token
+    # Tokenizer (Phi-3.5)
+    print("🔡 Loading Tokenizer (microsoft/Phi-3.5-mini-instruct)...")
+    tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3.5-mini-instruct", trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
     
     def tokenize_function(examples):
         return tokenizer(examples["text"], truncation=True, max_length=args.seq_len, padding="max_length")
