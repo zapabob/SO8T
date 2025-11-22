@@ -89,7 +89,9 @@ class AGIASI_SO8T_Wrapper(nn.Module):
         outputs = self.base_model.model(
             input_ids=input_ids, 
             attention_mask=attention_mask,
-            output_hidden_states=True
+            output_hidden_states=True,
+            output_attentions=False,  # Avoid DynamicCache error
+            use_cache=False  # Disable caching for training
         )
         hidden_states = outputs.last_hidden_state  # (Batch, Seq, Dim)
         
