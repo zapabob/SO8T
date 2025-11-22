@@ -24,16 +24,32 @@ except ImportError:
     print("   Please install them via: `pip install datasets transformers`")
     sys.exit(1)
 
-def linear_annealing(step, warmup_steps, annealing_steps, start_alpha, target_alpha):
-    """Alpha Gate linear annealing schedule"""
-    if step < warmup_steps:
-        return start_alpha
-    elif step < warmup_steps + annealing_steps:
-        # Progress (0.0 -> 1.0)
-        progress = (step - warmup_steps) / annealing_steps
-        return start_alpha + progress * (target_alpha - start_alpha)
-    else:
-        return target_alpha
+def get_sigmoid_alpha(step, total_steps, start_alpha, target_alpha, steepness=12.0):
+    """
+    物理的な相転移（Phase Transition）をシミュレートするシグモイドアニーリング。
+
+    Args:
+        step (int): 現在のステップ
+        total_steps (int): 全ステップ数（アニーリング期間）
+        start_alpha (float): 初期状態 (-5.0: Chaos)
+        target_alpha (float): 最終状態 (1.618: Golden Ratio)
+        steepness (float): 転移の急激さ。10-12あたりが自然な相転移に近い。
+
+    Returns:
+        float: 現在の Alpha 値
+    """
+    # 進行度 x を -0.5 ~ 0.5 の範囲に正規化（中心で転移させるため）
+    # stepが半分(total_steps/2)の時に x=0 となり、変化が最大になる
+    relative_progress = (step / total_steps) - 0.5
+
+    # シグモイド関数: S(x) = 1 / (1 + e^(-k*x))
+    # これにより 0.0 (Start) から 1.0 (Target) への滑らかな遷移を作る
+    sigmoid_factor = 1 / (1 + math.exp(-steepness * relative_progress))
+
+    # 値のスケーリング
+    current_alpha = start_alpha + (target_alpha - start_alpha) * sigmoid_factor
+
+    return current_alpha
 
 def train():
     parser = argparse.ArgumentParser(description="NKAT-SO8T Phase Transition Training (TinyStories)")
@@ -119,9 +135,18 @@ def train():
         optimizer.zero_grad()
 
         # --- A. Alpha Annealing ---
-        current_alpha_val = linear_annealing(
-            step, args.annealing_warmup, args.annealing_steps, START_ALPHA, PHI
-        )
+        # ★物理的シグモイドアニーリング（Phase Transition）
+        # アニーリング期間中のみ適用
+        if step < args.annealing_steps:
+            current_alpha_val = get_sigmoid_alpha(
+                step,
+                args.annealing_steps,
+                start_alpha=START_ALPHA,    # -5.0: Chaos
+                target_alpha=PHI,           # 1.618: Golden Ratio
+                steepness=12.0              # 相転移の鋭さ
+            )
+        else:
+            current_alpha_val = PHI  # 転移完了後は黄金比で固定
         
         # Force update Alpha (Parameter)
         model.alpha.data.fill_(current_alpha_val)
