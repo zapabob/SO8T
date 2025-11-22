@@ -1,0 +1,12 @@
+{
+  "best_objective": 2.5748502787127423,
+  "best_params": {
+    "learning_rate": 0.00027027804822585613,
+    "batch_size": 2,
+    "warmup_steps": 6,
+    "alpha_warmup_steps": 7
+  },
+  "n_trials": 3,
+  "study_name": "so8t_alpha_gate_opt_fixed",
+  "timestamp": 1763821075.440167
+}

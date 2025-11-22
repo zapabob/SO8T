@@ -45,6 +45,7 @@ def train():
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--seq-len", type=int, default=128)
     parser.add_argument("--enable-mass-gap-monitor", action="store_true")
+    parser.add_argument("--monitor-interval", type=int, default=25)
     
     args = parser.parse_args()
 
@@ -170,8 +171,19 @@ def train():
         if step >= args.max_steps:
             break
 
+    # Save final model
+    final_save_path = os.path.join(project_root, "checkpoints", "so8t_final_model.pt")
+    torch.save({
+        'model_state_dict': model.state_dict(),
+        'alpha': model.alpha.item(),
+        'step': step,
+        'final_loss': loss.item()
+    }, final_save_path)
+
     print("\n[COMPLETE] Training sequence complete. Alpha Gate is now fully open.")
     print(f"   Final Alpha: {model.alpha.item():.6f}")
+    print(f"   Final Loss: {loss.item():.4f}")
+    print(f"   Model saved to: {final_save_path}")
 
 if __name__ == "__main__":
     train()
