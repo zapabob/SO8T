@@ -42,7 +42,8 @@ class AGIASI_SO8T_Wrapper(nn.Module):
             base_model_id,
             quantization_config=bnb_config,
             device_map=device,
-            trust_remote_code=True
+            trust_remote_code=True,
+            attn_implementation="eager"  # Avoid DynamicCache error
         )
         
         # Apply LoRA to make base model trainable without full gradient

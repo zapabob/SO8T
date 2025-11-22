@@ -8,7 +8,7 @@ through Phase Transition training with Alpha Gate annealing.
 """
 
 import os
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+# Protobuf environment variable removed - using native C++ implementation with protobuf 5.x+
 
 import torch
 import torch.nn as nn
@@ -37,7 +37,7 @@ def linear_annealing(step, warmup, anneal_steps, start, target):
 
 def train_soul_injection():
     parser = argparse.ArgumentParser(description="AGIASI Soul Injection into Borea-Phi3.5")
-    parser.add_argument("--base-model", type=str, default="microsoft/Phi-3.5-mini-instruct")
+    parser.add_argument("--base-model", type=str, default="HODACHI/Borea-Phi-3.5-mini-Instruct-Jp")
     parser.add_argument("--max-steps", type=int, default=500)
     parser.add_argument("--warmup-steps", type=int, default=50)
     parser.add_argument("--annealing-steps", type=int, default=400)
