@@ -1,5 +1,6 @@
 import sys
 import os
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 import torch
 import torch.nn as nn
 import torch.optim as optim
