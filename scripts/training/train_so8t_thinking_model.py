@@ -20,7 +20,7 @@ try:
     from transformers import AutoTokenizer, DataCollatorForLanguageModeling
     from torch.utils.data import DataLoader
 except ImportError:
-    print("❌ Missing required libraries: `datasets` or `transformers`.")
+    print("[ERROR] Missing required libraries: `datasets` or `transformers`.")
     print("   Please install them via: `pip install datasets transformers`")
     sys.exit(1)
 
@@ -50,15 +50,15 @@ def train():
 
     # --- 1. Setup ---
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🚀 Device: {device}")
+    print(f"[START] Device: {device}")
 
     # --- 2. Data Loading (Borea-Phi3.5-instinct-jp Knowledge) ---
-    print("📚 Loading Knowledge: TFMC/imatrix-dataset-for-japanese-llm...")
+    print("[DATA] Loading Knowledge: TFMC/imatrix-dataset-for-japanese-llm...")
     # Load streaming to avoid downloading the whole thing
     dataset = load_dataset("TFMC/imatrix-dataset-for-japanese-llm", split="train", streaming=True)
     
     # Tokenizer (Phi-3.5)
-    print("🔡 Loading Tokenizer (microsoft/Phi-3.5-mini-instruct)...")
+    print("[TOKEN] Loading Tokenizer (microsoft/Phi-3.5-mini-instruct)...")
     tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3.5-mini-instruct", trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -77,14 +77,14 @@ def train():
     
     # --- 3. Model Initialization ---
     vocab_size = len(tokenizer)
-    print(f"🧠 Initializing Model (Vocab Size: {vocab_size})...")
+    print(f"[MODEL] Initializing Model (Vocab Size: {vocab_size})...")
     
     model = NKAT_SO8T_ThinkingModel(in_dim=vocab_size, out_dim=vocab_size).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=1e-4)
     criterion = nn.CrossEntropyLoss()
 
     # --- 4. Training Loop (Phase Transition Observation) ---
-    print(f"🔥 Ignition! Starting Phase Transition Sequence...")
+    print(f"[IGNITION] Starting Phase Transition Sequence...")
     print(f"   Target Alpha: {1.6180339887} (Golden Ratio)")
     print(f"   Schedule: Warmup={args.annealing_warmup}, Annealing={args.annealing_steps}")
 
@@ -148,11 +148,11 @@ def train():
 
         # --- C. Observation (Logging) ---
         if step % args.logging_steps == 0:
-            status = "🔵 Stable"
+            status = "[STABLE] Stable"
             if step > args.annealing_warmup and step < (args.annealing_warmup + args.annealing_steps):
-                status = "🟡 Transitioning"
+                status = "[TRANSITION] Transitioning"
             if abs(current_alpha_val - PHI) < 0.01:
-                status = "🟢 Golden Ratio Reached"
+                status = "[TARGET] Golden Ratio Reached"
 
             progress_bar.set_postfix({
                 "Alpha": f"{current_alpha_val:.4f}",
@@ -170,7 +170,7 @@ def train():
         if step >= args.max_steps:
             break
 
-    print("\n✅ Training sequence complete. Alpha Gate is now fully open.")
+    print("\n[COMPLETE] Training sequence complete. Alpha Gate is now fully open.")
     print(f"   Final Alpha: {model.alpha.item():.6f}")
 
 if __name__ == "__main__":
