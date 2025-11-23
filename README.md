@@ -33,21 +33,36 @@ SO8Tは、SO(8)群構造を活用した先進的なマルチモーダル大規�
 - **創造的洞察**: 革新的アイデアと視点 (`<think-creative>`)
 - **構造化応答**: XMLタグによる明確な思考プロセス
 
-## ディレクトリ構造
+## 統合開発フロー
+
+SO8Tプロジェクトは、開発を直線関係にするために統合されたモジュール構造を採用しています。
+
+### 📋 開発ステップ（線形フロー）
+
+1. **環境セットアップ**: `python scripts/setup.py`
+2. **データ準備**: `python scripts/train.py --prepare-data`
+3. **モデル学習**: `python scripts/train.py`
+4. **評価実行**: `python scripts/eval.py`
+5. **デプロイ**: `python scripts/deploy.py`
+
+### 🏗️ 統合モジュール構造
 
 ```
 SO8T/
-├── models/                          # モデルファイル
-│   ├── so8t-vl-2b-instruct-main.gguf    # メインモデル
-│   ├── so8t-vl-2b-instruct-gpu-optimized.gguf  # GPU最適化モデル
-│   ├── so8t-vl-2b-instruct-lightweight.gguf    # 軽量版モデル
-│   ├── Modelfile-main                # メインModelfile
-│   ├── Modelfile-gpu-simple          # GPU最適化Modelfile
-│   └── *.py                         # モデル実装ファイル
-├── scripts/                         # 実行スクリプト
-│   ├── convert_so8t_to_gguf_fixed.py    # GGUF変換（修正版）
-│   ├── convert_so8t_to_gguf_gpu.py      # GPU最適化GGUF変換
-│   ├── convert_so8t_to_gguf_llama.py    # llama.cpp互換GGUF変換
+├── so8t/                           # 統合SO8Tパッケージ
+│   ├── core/                       # SO(8)コアコンポーネント
+│   ├── training/                   # 学習関連
+│   ├── inference/                  # 推論関連
+│   ├── data/                       # データ処理
+│   ├── safety/                     # 安全性機能
+│   ├── utils/                      # 汎用ユーティリティ
+│   └── config/                     # 統合設定ファイル
+├── scripts/                        # 実行スクリプト（線形フロー）
+│   ├── setup.py                    # 環境セットアップ
+│   ├── train.py                    # 学習パイプライン
+│   ├── eval.py                     # 評価パイプライン
+│   └── deploy.py                   # デプロイパイプライン
+├── _docs/                          # プロジェクトドキュメント
 │   └── test_so8t_ollama_complex.bat     # 複雑テストスクリプト
 ├── tests/                           # テストファイル
 │   ├── test_so8_operations_comprehensive.py  # SO(8)演算テスト

@@ -1,0 +1,52 @@
+# Borea-Phi-3.5-mini-Instruct-Jp SO8T再学習設定
+
+# 出力ディレクトリ
+output_dir: "D:/webdataset/checkpoints/so8t_retrained_borea_phi35"
+
+# データ設定
+data:
+  input_path: "D:/webdataset/processed/four_class/four_class_20251108_035137.jsonl"
+  max_seq_length: 2048
+  use_quadruple_thinking: true  # 四重推論形式を使用
+
+# モデル設定
+model:
+  base_model_path: "models/Borea-Phi-3.5-mini-Instruct-Jp"  # ローカルパス
+
+# 学習設定
+training:
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  logging_steps: 10
+  save_steps: 500
+  save_total_limit: 5
+  eval_steps: 500
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+  
+  # LoRA設定
+  lora_r: 64
+  lora_alpha: 128
+  lora_target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_dropout: 0.05
+
+# チェックポイント設定
+checkpoint:
+  interval_seconds: 300  # 5分間隔
+  max_checkpoints: 10
+

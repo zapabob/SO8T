@@ -1,0 +1,58 @@
+# SO8T Pipeline Configuration
+# Unified configuration for all SO8T components
+
+# Environment settings
+environment:
+  name: development
+  debug: true
+  log_level: INFO
+
+# Model configuration
+model:
+  base_model: "microsoft/phi-3.5-mini-instruct"
+  so8t_enabled: true
+  safety_enabled: true
+  thinking_enabled: true
+
+# Training configuration
+training:
+  method: "qlora"
+  pet_regularization: true
+  burn_in_enabled: true
+  max_epochs: 10
+  batch_size: 4
+  learning_rate: 2e-4
+
+# Data configuration
+data:
+  dataset_path: "D:/webdataset/datasets/"
+  safety_dataset: "safety_corpus.jsonl"
+  synthetic_data_enabled: true
+  web_scraping_enabled: false
+
+# Safety configuration
+safety:
+  audit_logging: true
+  self_verification: true
+  content_filtering: true
+  max_retries: 3
+
+# Inference configuration
+inference:
+  temperature: 0.7
+  max_tokens: 2048
+  self_consistency_checks: 3
+  temperature_calibration: true
+
+# Storage configuration
+storage:
+  checkpoints_dir: "D:/webdataset/checkpoints/"
+  models_dir: "D:/webdataset/models/"
+  logs_dir: "D:/webdataset/logs/"
+  gguf_dir: "D:/webdataset/gguf_models/"
+
+# Development configuration
+development:
+  enable_progress_bars: true
+  enable_audio_notifications: true
+  audio_file: "C:/Users/downl/Desktop/SO8T/.cursor/marisa_owattaze.wav"
