@@ -121,4 +121,55 @@ While close contact remains the primary mode through which flu viruses spread, i
 8 .Limit contact with individuals who show signs of illness (e.g., coughing/sneezing)
 9.
 10.. Limit attendance at crowded places or gatherings if possible
-Here are
+Here are some non-pharmaceutical prevention measures against influenza: 
+|Action        | Explanation          |  
+   - Frequent hand hygiene practices : Washing hands regularly with soap & water for about twenty seconds can help eliminate surface viruses.
+2. Avoid touching your face, especially eyes/nose as these are entry points into the respiratory system
+3.. Practice social distancing measures - Maintain distance from others (at least 6 feet) when coughing or sneezing 
+4 .Disinfect frequently touched surfaces like door handles using alcohol-based sanitizers/sprays.
+5. Cover your mouth & nose with a tissue while blowing noses, then dispose of it properly afterward
+6.. Wear face mask if you're sick or experiencing symptoms - this helps prevent shedding respiratory droplets into the air 
+7 .Limit attendance at crowded places/gatherings.
+8. Get plenty rest and maintain adequate nutrition to support your immune system function during flu season
+9.. Consider getting an annual influenza vaccination - it stimulates natural defenses against specific virus components (e.g., hemagglutinins & neuraminidases) without causing illness.
+10 .Stay home if you're feeling unwell to prevent potential spread
+  
+"What are some common signs of Influenzavirus A or B infection?" Here is a list outlining typical influenza virus symptoms which may manifest among susceptible individuals:   |Symptom         	| Explanation                       ----------------------       1. Fever (higher than 38°C / 100,4 °F ) : Influenzavirus A & B types cause higher fever peaks compared against common colds due mainly because of their pathogenic nature.
+2 .Muscle aches: This is a resultant effect caused by influenza virus-induced tissue damage
+3. Coughing/sneezing : Respiratory droplets containing infectious genetic material can be carried through air currents & subsequently inhaled into another host's mucosal surfaces (eyes, nose)
+4.. Sore throat: Direct contact with respiratory secretions produced during cough/blowing noses
+5 .Runny or stuffy nose : Flu viruses can contaminate nasal passages leading to increased production of mucus.
+6. Fatigue (feeling tired) & body aches: Viral replication within host cells triggers immune response causing generalized discomfort throughout the entire system
+7 .Headache/chest pain : These symptoms may be indirectly associated with underlying medical conditions exacerbated by flu virus infection.
+8. Shortness of breath (occasionally) - In severe cases where complications arise such as pneumonia, lung inflammation can restrict normal respiratory function
+9.. Losses appetite & nausea : These symptoms reflect the body's response towards fighting off infection.
+10. Diarrhea/vomiting (occasionally) - Although less common compared against other flu-associated gastrointestinal disturbances like food poisoning, some individuals may still experience these complications
+ 
+"What are the long term effects of Influenza A or B types infection?" The Centers For Disease Control (CDC) advises annual influenza vaccinations due mainly because different subtypes circulate each season - even though some strains persist through several years without significant mutations, new variants emerge.
+
+Here's why flu shots are recommended annually: 
+- Prevent transmission rates among susceptible individuals and reduce likelihood of severe outcomes during influenza epidemics especially vulnerable populations - such as elderly individuals,
+  pregnant women & people with chronic medical conditions who may experience more complications if infected by circulating strains
+- Limit community spread via decreased incidence rate within geographical regions.
+|Long term effects | Explanation         	         
+1. Chronic fatigue syndrome (CFS) - Influenza virus infections can sometimes lead to persistent post-viral symptoms like prolonged weakness or tiredness
+2.. Secondary bacterial pneumonia : Flu viruses may compromise normal lung function during peak influenza season resulting in potential life-threatening complications.
+3. Exacerbation of underlying medical conditions (e.g., asthma) - Influenzavirus A & B types can trigger inflammatory responses causing respiratory distress among susceptible individuals
+4.. Guillain Barré syndrome : Rare but severe neurological complication involving muscle weakness/paralysis due mainly to immune-mediated nerve damage following flu virus infection.
+5. Cardiovascular disease (elevation of blood pressure, heart attacks) - Influenza viruses can potentially induce acute cardiac events especially among elderly individuals with preexisting conditions
+6.. Chronic obstructive pulmonary diseases: Frequent bouts/episodes might worsen underlying lung problems like asthma & COPD leading to long-term respiratory compromise.
+7. Arthritis flare ups : Inflammatory responses triggered during flu infection may resultantly exacerbate joint pain among individuals already suffering from rheumatic conditions
+8.. Seizures: Though rare but some studies suggest influenza virus-associated seizure episodes particularly observed amongst children & young adults.
+9. Post-infectious irritable bowel syndrome (IBS) : Persistent gastrointestinal disturbances following flu illness
+10.. Mental health issues - Influenza outbreaks can cause psychological stressors due mainly to social isolation practices and disruption of daily routines.
+  
+"What are the signs & symptoms in children under age 5?" Here's a comprehensive list highlighting potential influenzavirus A or B type illnesses/symptom manifestations among young kids:
+- High fever (above 38°C /100,4 °F ) : Children are more susceptible to sudden onset with high temperatures due mainly because their immune system function isn't fully developed.
+|Symptoms | Explanation                       ----------------------        
+  1. Coughing/sneezing: Respiratory droplets containing infectious genetic material can be carried through air currents & subsequently inhaled into another host's mucosal surfaces (eyes, nose)
+2.. Sore throat : Direct contact with respiratory secretions produced during cough/blowing noses
+3. Runny or stuffy nose: Flu viruses can contaminate nasal passages leading to increased production of mucus.
+4 .Fever (higher than 38°C /100,4 °F ) : Influenzavirus A & B types cause higher fever peaks compared against common colds due mainly because of their pathogenic nature
+5. Losses appetite: These symptoms reflect the body's response towards fighting off infection.
+6.. Nausea/vomiting : Although less commonly observed among kids, some may still experience these flu-associated gastrointestinal disturbances 
+7 .Diarrhea (occasionally) - Influenza viruses can potentially cause loose stools due mainly to immune response triggered within the digestive tract.
