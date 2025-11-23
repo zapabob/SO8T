@@ -439,12 +439,12 @@ def main():
     report_path = create_detailed_report(results, str(results_dir.parent))
     chart_paths = create_comparison_charts(results, str(results_dir.parent))
 
-    print("
-[ANALYSIS COMPLETE]"    print(f"  Detailed Report: {report_path}")
+    print("\n[ANALYSIS COMPLETE]")
+    print(f"  Detailed Report: {report_path}")
     print(f"  Comparison Chart: {chart_paths[0]}")
     print(f"  AGI Radar Chart: {chart_paths[1]}")
-    print("
-[Scores]"    print(".3f")
+    print("\n[Scores]")
+    print(".3f")
     print(".3f")
     print("+.3f")
 

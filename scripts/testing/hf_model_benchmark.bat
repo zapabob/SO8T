@@ -72,3 +72,4 @@ echo.
 echo [AUDIO] HFモデルベンチマークテスト完了
 powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
 
+
