@@ -1,0 +1,35 @@
+# A/Bテスト完全自動パイプライン設定
+
+# A/Bテスト設定
+ab_test:
+  base_model: "models/Borea-Phi-3.5-mini-Instruct-Jp"
+  retrained_model: "D:/webdataset/checkpoints/so8t_retrained_borea_phi35/final_model"
+  test_data: "D:/webdataset/processed/four_class/four_class_20251108_035137.jsonl"
+  output_dir: "eval_results/ab_test_borea_phi35_original_vs_so8t"
+
+# GGUF変換設定
+gguf:
+  convert_script: "external/llama.cpp-master/convert_hf_to_gguf.py"
+  output_dir: "D:/webdataset/gguf_models"
+  quantizations:
+    - "f16"
+    - "q8_0"
+
+# Ollama設定
+ollama:
+  model_name: "borea-phi35-so8t"  # 勝者モデル名に基づいて動的に変更される
+  modelfile_dir: "modelfiles"
+
+# 日本語パフォーマンステスト設定
+japanese_test:
+  output_dir: "_docs"
+  test_categories:
+    - "understanding"
+    - "generation"
+    - "reasoning"
+    - "dialogue"
+    - "technical"
+
+# デバイス設定
+device: "cuda"  # cuda or cpu
+

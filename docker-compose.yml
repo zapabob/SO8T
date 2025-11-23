@@ -1,0 +1,240 @@
+# SO8T Safe Agent Docker Compose Configuration
+# Multi-service deployment for production
+
+version: '3.8'
+
+services:
+  # Main SO8T Agent Service
+  so8t-agent:
+    build:
+      context: .
+      target: production
+    image: so8t-safe-agent:latest
+    container_name: so8t-agent
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # API port
+      - "8080:8080"  # Metrics port
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+      - ./configs:/app/configs
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+      - MODEL_PATH=checkpoints/so8t_qwen2.5-7b_sft_fp16
+      - SAFETY_THRESHOLD=0.8
+      - CONFIDENCE_THRESHOLD=0.7
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - so8t-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Redis for caching and message queuing
+  redis:
+    image: redis:7-alpine
+    container_name: so8t-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - so8t-network
+
+  # PostgreSQL for audit logs and compliance data
+  postgres:
+    image: postgres:15-alpine
+    container_name: so8t-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    environment:
+      - POSTGRES_DB=so8t_audit
+      - POSTGRES_USER=so8t_user
+      - POSTGRES_PASSWORD=so8t_password
+    networks:
+      - so8t-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: so8t-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - so8t-agent
+    networks:
+      - so8t-network
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: so8t-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - so8t-network
+
+  # Monitoring with Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: so8t-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - so8t-network
+
+  # Log aggregation with ELK Stack
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    container_name: so8t-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    networks:
+      - so8t-network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.8.0
+    container_name: so8t-logstash
+    restart: unless-stopped
+    ports:
+      - "5044:5044"
+    volumes:
+      - ./monitoring/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./logs:/usr/share/logstash/logs
+    depends_on:
+      - elasticsearch
+    networks:
+      - so8t-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.8.0
+    container_name: so8t-kibana
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - so8t-network
+
+  # Training service (optional)
+  so8t-training:
+    build:
+      context: .
+      target: training
+    image: so8t-training:latest
+    container_name: so8t-training
+    restart: "no"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+      - ./configs:/app/configs
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+      - WANDB_ENABLED=false
+    networks:
+      - so8t-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - training
+
+  # Evaluation service (optional)
+  so8t-evaluation:
+    build:
+      context: .
+      target: evaluation
+    image: so8t-evaluation:latest
+    container_name: so8t-evaluation
+    restart: "no"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./checkpoints:/app/checkpoints
+      - ./eval_results:/app/eval_results
+      - ./configs:/app/configs
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+    networks:
+      - so8t-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - evaluation
+
+volumes:
+  redis_data:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+  elasticsearch_data:
+
+networks:
+  so8t-network:
+    driver: bridge

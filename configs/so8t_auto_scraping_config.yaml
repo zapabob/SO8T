@@ -1,0 +1,39 @@
+# SO8T統制による完全自動バックグラウンドDeepResearch Webスクレイピング設定
+
+# 出力ディレクトリ
+output_dir: "D:/webdataset/processed"
+
+# ブラウザ設定
+num_browsers: 10
+use_cursor_browser: true
+remote_debugging_port: 9222
+
+# タイミング設定
+delay_per_action: 1.5  # アクション間の遅延（秒）
+timeout: 30000  # ページ読み込みタイムアウト（ミリ秒）
+max_pages_per_keyword: 5  # キーワードあたりの最大ページ数
+
+# リソース管理
+max_memory_gb: 8.0  # 最大メモリ使用量（GB）
+max_cpu_percent: 80.0  # 最大CPU使用率（%）
+
+# SO8T統制設定
+use_so8t_control: true  # SO8Tモデルで統制するか
+so8t_model_path: null  # SO8Tモデルのパス（nullの場合は自動検出）
+
+# 自動再起動設定
+auto_restart: true  # 自動再起動
+max_restarts: 10  # 最大再起動回数
+restart_delay: 60.0  # 再起動待機時間（秒）
+
+# セッション間隔
+session_interval: 3600.0  # セッション間の待機時間（秒、1時間）
+
+# ログ設定
+log_level: "INFO"
+log_file: "logs/so8t_auto_background_scraping.log"
+
+
+
+
+

@@ -1,0 +1,65 @@
+# SO8T完全パイプラインA/Bテスト設定ファイル
+
+# 出力ディレクトリ
+output_dir: eval_results/complete_so8t_ab
+checkpoint_dir: checkpoints/complete_pipeline
+
+# 進捗管理設定
+progress:
+  log_interval: 1800  # 30分（秒）
+
+# Phase 1: データ収集・前処理パイプライン
+phase1:
+  config: configs/data_pipeline_config.yaml
+  output_dir: data/processed
+  checkpoint_dir: data/pipeline_checkpoints
+  target_size_gb: 300.0
+
+# Phase 2: SO(8) Transformer再学習 + ベイズ最適化
+phase2:
+  config: configs/so8t_bayesian_config.yaml
+  checkpoint_dir: D:/webdataset/checkpoints/training
+  n_trials: 50
+  study_name: so8t_bayesian_optimization
+
+# Phase 3: GGUF変換（A/Bモデル）
+phase3:
+  model_a_base: models/Borea-Phi-3.5-mini-Instruct-Jp
+  model_b_path: checkpoints/bayesian_optimized_model
+  output_dir: D:/webdataset/gguf_models
+  quant_types:
+    - Q8_0
+    - Q4_K_M
+
+# Phase 4: A/Bテスト評価 + HFベンチマーク
+phase4:
+  model_a_path: D:/webdataset/gguf_models/model_a/model_a_Q8_0.gguf
+  model_b_path: D:/webdataset/gguf_models/model_b/model_b_Q8_0.gguf
+  test_data_path: data/splits/test.jsonl
+  batch_size: 8
+  max_new_tokens: 50
+
+# Phase 5: 可視化・レポート生成
+phase5:
+  output_dir: eval_results/visualizations
+  plot_format: png
+  dpi: 300
+
+# RTX3060/32GB最適化設定
+optimization:
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  cpu_offload: true
+  mixed_precision: true
+  gradient_checkpointing: true
+
+
+
+
+
+
+
+
+
+
+

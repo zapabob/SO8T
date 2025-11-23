@@ -1,0 +1,5 @@
+FROM ./So8tCodex.gguf
+PARAMETER q8_0
+TEMPLATE \u003c|system|>\nYou are SO8T Codex.\n\u003c|user|>\n{{prompt}}\n\u003c|assistant|>
+SYSTEM_PROMPT You are SO8T Codex, a local safety-aligned multimodal assistant.
+DESCRIPTION Safety-first SO(8) transformer with PET regularisation and SQL audit logging.

@@ -1,0 +1,76 @@
+# SO8T Transformer Configuration
+# Complete SO8T Transformer model configuration replacing Qwen2.5
+
+model:
+  # Basic model parameters (Qwen2.5-7B-Instruct準拠)
+  vocab_size: 152064
+  hidden_size: 3584
+  intermediate_size: 18944
+  num_hidden_layers: 28
+  num_attention_heads: 28
+  num_key_value_heads: 4
+  hidden_act: "silu"
+  max_position_embeddings: 32768
+  rms_norm_eps: 1e-6
+  rope_theta: 1000000.0
+  attention_bias: false
+  attention_dropout: 0.0
+  use_cache: false
+  
+  # Tokenizer
+  tokenizer_name: "Qwen/Qwen2.5-7B-Instruct"
+
+# SO8T specific parameters
+so8t:
+  rotation_dim: 8  # SO(8) group dimension
+  safety_weight: 0.1  # Safety reasoning weight
+  cmd_weight: 0.9  # Command reasoning weight
+  pet_lambda: 0.01  # PET regularization weight
+  group_monitoring: true  # Enable group structure monitoring
+
+# Training parameters
+training:
+  # Basic training
+  num_epochs: 3
+  batch_size: 1  # RTX3060 optimized
+  gradient_accumulation_steps: 8
+  learning_rate: 2e-4
+  weight_decay: 0.01
+  max_grad_norm: 0.3
+  
+  # Memory optimization
+  gradient_checkpointing: true
+  use_flash_attention: false  # Disable for RTX3060 compatibility
+  dataloader_pin_memory: false
+  dataloader_num_workers: 0
+  
+  # Logging and saving
+  logging_steps: 1
+  save_steps: 50
+  eval_steps: 50
+  save_total_limit: 3
+  
+  # Output directory
+  output_dir: "./checkpoints/so8t_transformer"
+
+# Data parameters
+data:
+  train_path: "data/so8t_seed_dataset.jsonl"
+  max_length: 512
+  safety_labels: true
+  authority_labels: true
+
+# Hardware optimization
+hardware:
+  # RTX3060 (12GB) optimization
+  memory_efficient_attention: true
+  cpu_offload: true
+  gradient_accumulation: true
+  
+  # Mixed precision
+  use_amp: true
+  amp_dtype: "float16"
+  
+  # Memory management
+  max_memory_usage: 0.95  # 95% of available GPU memory
+  cleanup_cache: true
