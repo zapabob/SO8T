@@ -1,0 +1,29 @@
+{
+  "session_id": "test_20251108_003314",
+  "timestamp": "2025-11-08T00:33:16.908206",
+  "elapsed_seconds": 2.008492946624756,
+  "phases": {
+    "phase1": {
+      "phase_name": "phase1",
+      "status": "completed",
+      "start_time": 1762529594.9047182,
+      "end_time": 1762529595.9066322,
+      "progress": 1.0,
+      "metrics": {
+        "accuracy": 0.95
+      },
+      "error_message": null,
+      "duration_seconds": 1.0019140243530273
+    },
+    "phase2": {
+      "phase_name": "phase2",
+      "status": "running",
+      "start_time": 1762529595.9066322,
+      "end_time": null,
+      "progress": 0.5,
+      "metrics": {},
+      "error_message": null,
+      "duration_seconds": null
+    }
+  }
+}

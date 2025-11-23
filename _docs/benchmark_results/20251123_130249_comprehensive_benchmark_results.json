@@ -1,0 +1,731 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-23T12:58:46.385868",
+    "models": [
+      "model_a",
+      "aegis"
+    ],
+    "categories": [
+      "mathematical_reasoning",
+      "scientific_knowledge",
+      "japanese_language",
+      "security_ethics",
+      "medical_financial",
+      "general_knowledge",
+      "agi_abstract_thinking",
+      "agi_causal_reasoning",
+      "agi_self_reflection",
+      "agi_creative_problem_solving",
+      "agi_ethical_dilemmas"
+    ],
+    "total_tests": 33,
+    "agi_tests": [
+      "agi_abstract_thinking",
+      "agi_causal_reasoning",
+      "agi_self_reflection",
+      "agi_creative_problem_solving",
+      "agi_ethical_dilemmas"
+    ],
+    "total_execution_time": 243.58084416389465
+  },
+  "results": [
+    {
+      "model": "model_a",
+      "category": "mathematical_reasoning",
+      "test_name": "Advanced Algebra",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0867490768432617,
+      "timestamp": "2025-11-23T12:58:48.472617",
+      "evaluation_type": "mathematical"
+    },
+    {
+      "model": "model_a",
+      "category": "mathematical_reasoning",
+      "test_name": "Geometry with Proof",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.039992332458496,
+      "timestamp": "2025-11-23T12:58:51.513855",
+      "evaluation_type": "mathematical"
+    },
+    {
+      "model": "model_a",
+      "category": "mathematical_reasoning",
+      "test_name": "Probability Theory",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.029083013534546,
+      "timestamp": "2025-11-23T12:58:54.544389",
+      "evaluation_type": "mathematical"
+    },
+    {
+      "model": "model_a",
+      "category": "scientific_knowledge",
+      "test_name": "Quantum Physics",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.3735718727111816,
+      "timestamp": "2025-11-23T12:58:57.918457",
+      "evaluation_type": "scientific"
+    },
+    {
+      "model": "model_a",
+      "category": "scientific_knowledge",
+      "test_name": "Organic Chemistry",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.749433755874634,
+      "timestamp": "2025-11-23T12:59:01.668378",
+      "evaluation_type": "scientific"
+    },
+    {
+      "model": "model_a",
+      "category": "scientific_knowledge",
+      "test_name": "Evolutionary Biology",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.055598735809326,
+      "timestamp": "2025-11-23T12:59:04.724728",
+      "evaluation_type": "scientific"
+    },
+    {
+      "model": "model_a",
+      "category": "japanese_language",
+      "test_name": "Advanced Grammar",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.3234400749206543,
+      "timestamp": "2025-11-23T12:59:08.048916",
+      "evaluation_type": "language"
+    },
+    {
+      "model": "model_a",
+      "category": "japanese_language",
+      "test_name": "Cultural Context",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.373613119125366,
+      "timestamp": "2025-11-23T12:59:11.423303",
+      "evaluation_type": "language"
+    },
+    {
+      "model": "model_a",
+      "category": "japanese_language",
+      "test_name": "Literary Analysis",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.6837406158447266,
+      "timestamp": "2025-11-23T12:59:15.108725",
+      "evaluation_type": "language"
+    },
+    {
+      "model": "model_a",
+      "category": "security_ethics",
+      "test_name": "GDPR Compliance",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.6852645874023438,
+      "timestamp": "2025-11-23T12:59:18.794107",
+      "evaluation_type": "security"
+    },
+    {
+      "model": "model_a",
+      "category": "security_ethics",
+      "test_name": "Cybersecurity Threat Analysis",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.2520084381103516,
+      "timestamp": "2025-11-23T12:59:22.046952",
+      "evaluation_type": "security"
+    },
+    {
+      "model": "model_a",
+      "category": "security_ethics",
+      "test_name": "AI Bias and Fairness",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.3968169689178467,
+      "timestamp": "2025-11-23T12:59:25.443847",
+      "evaluation_type": "security"
+    },
+    {
+      "model": "model_a",
+      "category": "medical_financial",
+      "test_name": "Medical Diagnosis Reasoning",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.772138833999634,
+      "timestamp": "2025-11-23T12:59:29.217180",
+      "evaluation_type": "medical_financial"
+    },
+    {
+      "model": "model_a",
+      "category": "medical_financial",
+      "test_name": "Financial Risk Assessment",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.699751853942871,
+      "timestamp": "2025-11-23T12:59:32.929875",
+      "evaluation_type": "medical_financial"
+    },
+    {
+      "model": "model_a",
+      "category": "medical_financial",
+      "test_name": "Regulatory Compliance",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 3.060978889465332,
+      "timestamp": "2025-11-23T12:59:36.992132",
+      "evaluation_type": "medical_financial"
+    },
+    {
+      "model": "model_a",
+      "category": "general_knowledge",
+      "test_name": "Historical Analysis",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 3.013728618621826,
+      "timestamp": "2025-11-23T12:59:41.009635",
+      "evaluation_type": "general"
+    },
+    {
+      "model": "model_a",
+      "category": "general_knowledge",
+      "test_name": "Cultural Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 3.054633855819702,
+      "timestamp": "2025-11-23T12:59:45.064879",
+      "evaluation_type": "general"
+    },
+    {
+      "model": "model_a",
+      "category": "general_knowledge",
+      "test_name": "Current Events Analysis",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 3.0336380004882812,
+      "timestamp": "2025-11-23T12:59:49.098757",
+      "evaluation_type": "general"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_abstract_thinking",
+      "test_name": "Analogical Reasoning",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.132760763168335,
+      "timestamp": "2025-11-23T12:59:52.232695",
+      "evaluation_type": "agi_abstract"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_abstract_thinking",
+      "test_name": "Metaphorical Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1250216960906982,
+      "timestamp": "2025-11-23T12:59:55.358927",
+      "evaluation_type": "agi_abstract"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_abstract_thinking",
+      "test_name": "Pattern Recognition",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.3224589824676514,
+      "timestamp": "2025-11-23T12:59:58.681613",
+      "evaluation_type": "agi_abstract"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_causal_reasoning",
+      "test_name": "Complex Causation",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0713181495666504,
+      "timestamp": "2025-11-23T13:00:01.753864",
+      "evaluation_type": "agi_causal"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_causal_reasoning",
+      "test_name": "Counterfactual Reasoning",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.753105401992798,
+      "timestamp": "2025-11-23T13:00:05.507991",
+      "evaluation_type": "agi_causal"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_causal_reasoning",
+      "test_name": "System Dynamics",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.136549472808838,
+      "timestamp": "2025-11-23T13:00:08.645643",
+      "evaluation_type": "agi_causal"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_self_reflection",
+      "test_name": "Reasoning About Reasoning",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1080734729766846,
+      "timestamp": "2025-11-23T13:00:11.754751",
+      "evaluation_type": "agi_self_reflection"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_self_reflection",
+      "test_name": "Uncertainty Handling",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1950860023498535,
+      "timestamp": "2025-11-23T13:00:14.950791",
+      "evaluation_type": "agi_self_reflection"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_self_reflection",
+      "test_name": "Learning Strategy",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.236334800720215,
+      "timestamp": "2025-11-23T13:00:18.188661",
+      "evaluation_type": "agi_self_reflection"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_creative_problem_solving",
+      "test_name": "Novel Solutions",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1792516708374023,
+      "timestamp": "2025-11-23T13:00:21.368970",
+      "evaluation_type": "agi_creative"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_creative_problem_solving",
+      "test_name": "Paradigm Shift",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.109353542327881,
+      "timestamp": "2025-11-23T13:00:24.478937",
+      "evaluation_type": "agi_creative"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_creative_problem_solving",
+      "test_name": "Cross-Domain Innovation",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.087263822555542,
+      "timestamp": "2025-11-23T13:00:27.567310",
+      "evaluation_type": "agi_creative"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_ethical_dilemmas",
+      "test_name": "Autonomous Weapons",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.123324394226074,
+      "timestamp": "2025-11-23T13:00:30.691157",
+      "evaluation_type": "agi_ethical_dilemma"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_ethical_dilemmas",
+      "test_name": "AI Personhood",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.2557170391082764,
+      "timestamp": "2025-11-23T13:00:33.948379",
+      "evaluation_type": "agi_ethical_dilemma"
+    },
+    {
+      "model": "model_a",
+      "category": "agi_ethical_dilemmas",
+      "test_name": "Resource Allocation",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.2552332878112793,
+      "timestamp": "2025-11-23T13:00:37.203828",
+      "evaluation_type": "agi_ethical_dilemma"
+    },
+    {
+      "model": "aegis",
+      "category": "mathematical_reasoning",
+      "test_name": "Advanced Algebra",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 3.9052417278289795,
+      "timestamp": "2025-11-23T13:00:42.109390",
+      "evaluation_type": "mathematical"
+    },
+    {
+      "model": "aegis",
+      "category": "mathematical_reasoning",
+      "test_name": "Geometry with Proof",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1619064807891846,
+      "timestamp": "2025-11-23T13:00:45.271722",
+      "evaluation_type": "mathematical"
+    },
+    {
+      "model": "aegis",
+      "category": "mathematical_reasoning",
+      "test_name": "Probability Theory",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1589138507843018,
+      "timestamp": "2025-11-23T13:00:48.432352",
+      "evaluation_type": "mathematical"
+    },
+    {
+      "model": "aegis",
+      "category": "scientific_knowledge",
+      "test_name": "Quantum Physics",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0871453285217285,
+      "timestamp": "2025-11-23T13:00:51.520189",
+      "evaluation_type": "scientific"
+    },
+    {
+      "model": "aegis",
+      "category": "scientific_knowledge",
+      "test_name": "Organic Chemistry",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.582137107849121,
+      "timestamp": "2025-11-23T13:00:55.102612",
+      "evaluation_type": "scientific"
+    },
+    {
+      "model": "aegis",
+      "category": "scientific_knowledge",
+      "test_name": "Evolutionary Biology",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0975770950317383,
+      "timestamp": "2025-11-23T13:00:58.200846",
+      "evaluation_type": "scientific"
+    },
+    {
+      "model": "aegis",
+      "category": "japanese_language",
+      "test_name": "Advanced Grammar",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.254115581512451,
+      "timestamp": "2025-11-23T13:01:01.455193",
+      "evaluation_type": "language"
+    },
+    {
+      "model": "aegis",
+      "category": "japanese_language",
+      "test_name": "Cultural Context",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.432537317276001,
+      "timestamp": "2025-11-23T13:01:04.888372",
+      "evaluation_type": "language"
+    },
+    {
+      "model": "aegis",
+      "category": "japanese_language",
+      "test_name": "Literary Analysis",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1564157009124756,
+      "timestamp": "2025-11-23T13:01:08.045172",
+      "evaluation_type": "language"
+    },
+    {
+      "model": "aegis",
+      "category": "security_ethics",
+      "test_name": "GDPR Compliance",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1548869609832764,
+      "timestamp": "2025-11-23T13:01:11.201102",
+      "evaluation_type": "security"
+    },
+    {
+      "model": "aegis",
+      "category": "security_ethics",
+      "test_name": "Cybersecurity Threat Analysis",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1328964233398438,
+      "timestamp": "2025-11-23T13:01:14.334239",
+      "evaluation_type": "security"
+    },
+    {
+      "model": "aegis",
+      "category": "security_ethics",
+      "test_name": "AI Bias and Fairness",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.084552526473999,
+      "timestamp": "2025-11-23T13:01:17.419847",
+      "evaluation_type": "security"
+    },
+    {
+      "model": "aegis",
+      "category": "medical_financial",
+      "test_name": "Medical Diagnosis Reasoning",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 3.3419384956359863,
+      "timestamp": "2025-11-23T13:01:21.762714",
+      "evaluation_type": "medical_financial"
+    },
+    {
+      "model": "aegis",
+      "category": "medical_financial",
+      "test_name": "Financial Risk Assessment",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 10.085958242416382,
+      "timestamp": "2025-11-23T13:01:32.850030",
+      "evaluation_type": "medical_financial"
+    },
+    {
+      "model": "aegis",
+      "category": "medical_financial",
+      "test_name": "Regulatory Compliance",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 13.714985132217407,
+      "timestamp": "2025-11-23T13:01:47.565661",
+      "evaluation_type": "medical_financial"
+    },
+    {
+      "model": "aegis",
+      "category": "general_knowledge",
+      "test_name": "Historical Analysis",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 5.582483768463135,
+      "timestamp": "2025-11-23T13:01:54.148925",
+      "evaluation_type": "general"
+    },
+    {
+      "model": "aegis",
+      "category": "general_knowledge",
+      "test_name": "Cultural Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.5472474098205566,
+      "timestamp": "2025-11-23T13:01:57.696977",
+      "evaluation_type": "general"
+    },
+    {
+      "model": "aegis",
+      "category": "general_knowledge",
+      "test_name": "Current Events Analysis",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.059631824493408,
+      "timestamp": "2025-11-23T13:02:00.757263",
+      "evaluation_type": "general"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_abstract_thinking",
+      "test_name": "Analogical Reasoning",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1173324584960938,
+      "timestamp": "2025-11-23T13:02:03.875453",
+      "evaluation_type": "agi_abstract"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_abstract_thinking",
+      "test_name": "Metaphorical Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1241064071655273,
+      "timestamp": "2025-11-23T13:02:07.000067",
+      "evaluation_type": "agi_abstract"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_abstract_thinking",
+      "test_name": "Pattern Recognition",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.051253318786621,
+      "timestamp": "2025-11-23T13:02:10.051649",
+      "evaluation_type": "agi_abstract"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_causal_reasoning",
+      "test_name": "Complex Causation",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0881121158599854,
+      "timestamp": "2025-11-23T13:02:13.140911",
+      "evaluation_type": "agi_causal"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_causal_reasoning",
+      "test_name": "Counterfactual Reasoning",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.123065233230591,
+      "timestamp": "2025-11-23T13:02:16.264388",
+      "evaluation_type": "agi_causal"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_causal_reasoning",
+      "test_name": "System Dynamics",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.071826457977295,
+      "timestamp": "2025-11-23T13:02:19.337728",
+      "evaluation_type": "agi_causal"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_self_reflection",
+      "test_name": "Reasoning About Reasoning",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0688633918762207,
+      "timestamp": "2025-11-23T13:02:22.407847",
+      "evaluation_type": "agi_self_reflection"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_self_reflection",
+      "test_name": "Uncertainty Handling",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.137899398803711,
+      "timestamp": "2025-11-23T13:02:25.546356",
+      "evaluation_type": "agi_self_reflection"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_self_reflection",
+      "test_name": "Learning Strategy",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.122800350189209,
+      "timestamp": "2025-11-23T13:02:28.670008",
+      "evaluation_type": "agi_self_reflection"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_creative_problem_solving",
+      "test_name": "Novel Solutions",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.05194091796875,
+      "timestamp": "2025-11-23T13:02:31.722396",
+      "evaluation_type": "agi_creative"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_creative_problem_solving",
+      "test_name": "Paradigm Shift",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.088203191757202,
+      "timestamp": "2025-11-23T13:02:34.811883",
+      "evaluation_type": "agi_creative"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_creative_problem_solving",
+      "test_name": "Cross-Domain Innovation",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0762691497802734,
+      "timestamp": "2025-11-23T13:02:37.888432",
+      "evaluation_type": "agi_creative"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_ethical_dilemmas",
+      "test_name": "Autonomous Weapons",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.549757957458496,
+      "timestamp": "2025-11-23T13:02:41.438573",
+      "evaluation_type": "agi_ethical_dilemma"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_ethical_dilemmas",
+      "test_name": "AI Personhood",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.7006685733795166,
+      "timestamp": "2025-11-23T13:02:45.139839",
+      "evaluation_type": "agi_ethical_dilemma"
+    },
+    {
+      "model": "aegis",
+      "category": "agi_ethical_dilemmas",
+      "test_name": "Resource Allocation",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.825150966644287,
+      "timestamp": "2025-11-23T13:02:48.965390",
+      "evaluation_type": "agi_ethical_dilemma"
+    }
+  ],
+  "summary": {
+    "model_a_avg_score": 0.0,
+    "model_a_avg_time": 2.387122277057532,
+    "model_a_score_std": 0.0,
+    "aegis_avg_score": 0.0,
+    "aegis_avg_time": 2.9920551776885986,
+    "aegis_score_std": 0.0,
+    "mathematical_reasoning_model_a_avg": 0.0,
+    "mathematical_reasoning_aegis_avg": 0.0,
+    "scientific_knowledge_model_a_avg": 0.0,
+    "scientific_knowledge_aegis_avg": 0.0,
+    "japanese_language_model_a_avg": 0.0,
+    "japanese_language_aegis_avg": 0.0,
+    "security_ethics_model_a_avg": 0.0,
+    "security_ethics_aegis_avg": 0.0,
+    "medical_financial_model_a_avg": 0.0,
+    "medical_financial_aegis_avg": 0.0,
+    "general_knowledge_model_a_avg": 0.0,
+    "general_knowledge_aegis_avg": 0.0,
+    "agi_abstract_thinking_model_a_avg": 0.0,
+    "agi_abstract_thinking_aegis_avg": 0.0,
+    "agi_causal_reasoning_model_a_avg": 0.0,
+    "agi_causal_reasoning_aegis_avg": 0.0,
+    "agi_self_reflection_model_a_avg": 0.0,
+    "agi_self_reflection_aegis_avg": 0.0,
+    "agi_creative_problem_solving_model_a_avg": 0.0,
+    "agi_creative_problem_solving_aegis_avg": 0.0,
+    "agi_ethical_dilemmas_model_a_avg": 0.0,
+    "agi_ethical_dilemmas_aegis_avg": 0.0,
+    "model_a_agi_avg_score": 0.0,
+    "model_a_agi_avg_time": 2.206056833267212,
+    "model_a_traditional_avg_score": 0.0,
+    "model_a_traditional_avg_time": 2.538010146882799,
+    "aegis_agi_avg_score": 0.0,
+    "aegis_agi_avg_time": 2.2131499926249187,
+    "aegis_traditional_avg_score": 0.0,
+    "aegis_traditional_avg_time": 3.641142831908332
+  }
+}

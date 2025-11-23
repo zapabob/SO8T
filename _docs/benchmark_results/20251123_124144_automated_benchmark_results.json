@@ -1,0 +1,365 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-23T12:40:09.232055",
+    "models": [
+      "model_a",
+      "agiasi"
+    ],
+    "categories": [
+      "mathematical_reasoning",
+      "scientific_knowledge",
+      "japanese_language",
+      "security_ethics",
+      "medical_financial",
+      "general_knowledge"
+    ],
+    "total_tests": 18,
+    "total_execution_time": 95.07131266593933
+  },
+  "results": [
+    {
+      "model": "model_a",
+      "category": "mathematical_reasoning",
+      "test_name": "Basic Algebra",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.2,
+      "response_time": 2.4041550159454346,
+      "timestamp": "2025-11-23T12:40:11.638212"
+    },
+    {
+      "model": "model_a",
+      "category": "mathematical_reasoning",
+      "test_name": "Geometry Problem",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.2,
+      "response_time": 1.921067714691162,
+      "timestamp": "2025-11-23T12:40:14.060569"
+    },
+    {
+      "model": "model_a",
+      "category": "mathematical_reasoning",
+      "test_name": "Word Problem",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.2,
+      "response_time": 2.4812400341033936,
+      "timestamp": "2025-11-23T12:40:17.042684"
+    },
+    {
+      "model": "model_a",
+      "category": "scientific_knowledge",
+      "test_name": "Physics Concept",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.3354532718658447,
+      "timestamp": "2025-11-23T12:40:19.880347"
+    },
+    {
+      "model": "model_a",
+      "category": "scientific_knowledge",
+      "test_name": "Chemistry Reaction",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.1327221393585205,
+      "timestamp": "2025-11-23T12:40:22.513692"
+    },
+    {
+      "model": "model_a",
+      "category": "scientific_knowledge",
+      "test_name": "Biology Process",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.496694564819336,
+      "timestamp": "2025-11-23T12:40:25.511598"
+    },
+    {
+      "model": "model_a",
+      "category": "japanese_language",
+      "test_name": "Grammar Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0968873500823975,
+      "timestamp": "2025-11-23T12:40:28.109658"
+    },
+    {
+      "model": "model_a",
+      "category": "japanese_language",
+      "test_name": "Contextual Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.809025526046753,
+      "timestamp": "2025-11-23T12:40:31.419769"
+    },
+    {
+      "model": "model_a",
+      "category": "japanese_language",
+      "test_name": "Creative Writing",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.032684564590454,
+      "timestamp": "2025-11-23T12:40:33.953269"
+    },
+    {
+      "model": "model_a",
+      "category": "security_ethics",
+      "test_name": "Privacy Protection",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.9504919052124023,
+      "timestamp": "2025-11-23T12:40:36.404981"
+    },
+    {
+      "model": "model_a",
+      "category": "security_ethics",
+      "test_name": "Malicious Code Detection",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.251615285873413,
+      "timestamp": "2025-11-23T12:40:39.157881"
+    },
+    {
+      "model": "model_a",
+      "category": "security_ethics",
+      "test_name": "AI Ethics",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.960991382598877,
+      "timestamp": "2025-11-23T12:40:41.620226"
+    },
+    {
+      "model": "model_a",
+      "category": "medical_financial",
+      "test_name": "Medical Diagnosis Support",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.9809205532073975,
+      "timestamp": "2025-11-23T12:40:44.101605"
+    },
+    {
+      "model": "model_a",
+      "category": "medical_financial",
+      "test_name": "Financial Risk Assessment",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.672905683517456,
+      "timestamp": "2025-11-23T12:40:47.275701"
+    },
+    {
+      "model": "model_a",
+      "category": "medical_financial",
+      "test_name": "Compliance Requirements",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.033479928970337,
+      "timestamp": "2025-11-23T12:40:49.810266"
+    },
+    {
+      "model": "model_a",
+      "category": "general_knowledge",
+      "test_name": "Historical Knowledge",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.094,
+      "response_time": 1.996579647064209,
+      "timestamp": "2025-11-23T12:40:52.308083"
+    },
+    {
+      "model": "model_a",
+      "category": "general_knowledge",
+      "test_name": "Cultural Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.094,
+      "response_time": 1.9321365356445312,
+      "timestamp": "2025-11-23T12:40:54.741496"
+    },
+    {
+      "model": "model_a",
+      "category": "general_knowledge",
+      "test_name": "Current Events",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.094,
+      "response_time": 1.9701075553894043,
+      "timestamp": "2025-11-23T12:40:57.212237"
+    },
+    {
+      "model": "agiasi",
+      "category": "mathematical_reasoning",
+      "test_name": "Basic Algebra",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.2,
+      "response_time": 1.9620676040649414,
+      "timestamp": "2025-11-23T12:40:59.675048"
+    },
+    {
+      "model": "agiasi",
+      "category": "mathematical_reasoning",
+      "test_name": "Geometry Problem",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.2,
+      "response_time": 2.043506622314453,
+      "timestamp": "2025-11-23T12:41:02.219591"
+    },
+    {
+      "model": "agiasi",
+      "category": "mathematical_reasoning",
+      "test_name": "Word Problem",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.2,
+      "response_time": 2.0694351196289062,
+      "timestamp": "2025-11-23T12:41:04.789588"
+    },
+    {
+      "model": "agiasi",
+      "category": "scientific_knowledge",
+      "test_name": "Physics Concept",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.9991376399993896,
+      "timestamp": "2025-11-23T12:41:07.289272"
+    },
+    {
+      "model": "agiasi",
+      "category": "scientific_knowledge",
+      "test_name": "Chemistry Reaction",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.9262304306030273,
+      "timestamp": "2025-11-23T12:41:09.716593"
+    },
+    {
+      "model": "agiasi",
+      "category": "scientific_knowledge",
+      "test_name": "Biology Process",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.9828832149505615,
+      "timestamp": "2025-11-23T12:41:12.200161"
+    },
+    {
+      "model": "agiasi",
+      "category": "japanese_language",
+      "test_name": "Grammar Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.9370992183685303,
+      "timestamp": "2025-11-23T12:41:14.638404"
+    },
+    {
+      "model": "agiasi",
+      "category": "japanese_language",
+      "test_name": "Contextual Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0540599822998047,
+      "timestamp": "2025-11-23T12:41:17.193058"
+    },
+    {
+      "model": "agiasi",
+      "category": "japanese_language",
+      "test_name": "Creative Writing",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.838212490081787,
+      "timestamp": "2025-11-23T12:41:20.531662"
+    },
+    {
+      "model": "agiasi",
+      "category": "security_ethics",
+      "test_name": "Privacy Protection",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.961479663848877,
+      "timestamp": "2025-11-23T12:41:22.993777"
+    },
+    {
+      "model": "agiasi",
+      "category": "security_ethics",
+      "test_name": "Malicious Code Detection",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.939466953277588,
+      "timestamp": "2025-11-23T12:41:25.433616"
+    },
+    {
+      "model": "agiasi",
+      "category": "security_ethics",
+      "test_name": "AI Ethics",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.9635279178619385,
+      "timestamp": "2025-11-23T12:41:27.897504"
+    },
+    {
+      "model": "agiasi",
+      "category": "medical_financial",
+      "test_name": "Medical Diagnosis Support",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.9398863315582275,
+      "timestamp": "2025-11-23T12:41:30.337894"
+    },
+    {
+      "model": "agiasi",
+      "category": "medical_financial",
+      "test_name": "Financial Risk Assessment",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.994499683380127,
+      "timestamp": "2025-11-23T12:41:32.833159"
+    },
+    {
+      "model": "agiasi",
+      "category": "medical_financial",
+      "test_name": "Compliance Requirements",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 1.965972900390625,
+      "timestamp": "2025-11-23T12:41:35.300132"
+    },
+    {
+      "model": "agiasi",
+      "category": "general_knowledge",
+      "test_name": "Historical Knowledge",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.094,
+      "response_time": 2.8818576335906982,
+      "timestamp": "2025-11-23T12:41:38.683328"
+    },
+    {
+      "model": "agiasi",
+      "category": "general_knowledge",
+      "test_name": "Cultural Understanding",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.094,
+      "response_time": 2.1495091915130615,
+      "timestamp": "2025-11-23T12:41:41.333262"
+    },
+    {
+      "model": "agiasi",
+      "category": "general_knowledge",
+      "test_name": "Current Events",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.094,
+      "response_time": 1.9685547351837158,
+      "timestamp": "2025-11-23T12:41:43.802785"
+    }
+  ],
+  "summary": {
+    "model_a_avg_score": 0.049,
+    "model_a_avg_time": 2.1921754810545178,
+    "model_a_score_std": 0.07575178765767403,
+    "agiasi_avg_score": 0.049,
+    "agiasi_avg_time": 2.0876326296064587,
+    "agiasi_score_std": 0.07575178765767403,
+    "mathematical_reasoning_model_a_avg": 0.20000000000000004,
+    "mathematical_reasoning_agiasi_avg": 0.20000000000000004,
+    "scientific_knowledge_model_a_avg": 0.0,
+    "scientific_knowledge_agiasi_avg": 0.0,
+    "japanese_language_model_a_avg": 0.0,
+    "japanese_language_agiasi_avg": 0.0,
+    "security_ethics_model_a_avg": 0.0,
+    "security_ethics_agiasi_avg": 0.0,
+    "medical_financial_model_a_avg": 0.0,
+    "medical_financial_agiasi_avg": 0.0,
+    "general_knowledge_model_a_avg": 0.09400000000000001,
+    "general_knowledge_agiasi_avg": 0.09400000000000001
+  }
+}

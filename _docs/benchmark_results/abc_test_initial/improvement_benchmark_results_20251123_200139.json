@@ -1,0 +1,257 @@
+{
+  "baseline": {
+    "model": "model-a:q8_0",
+    "results": [
+      {
+        "question_id": 1,
+        "question": "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?",
+        "response": "TIMEOUT",
+        "response_time": 30,
+        "success": false,
+        "error": "Timeout"
+      },
+      {
+        "question_id": 2,
+        "question": "A robe takes 2 bolts of blue fiber and half times that much white fiber. How many bolts in total does it take?",
+        "response": "I would write the equation as:  \n$$\\text{total fibers} = \\boxed{1}\\tag{$B_b=2$, $B_w=\\frac{1}{2}(2)=1$}$$ \n\nHere, we are given that one robe takes 2 bolts of blue fiber ($B_b$) and half times the amount in white fibers. Since halving a quantity is equivalent to multiplying by $\\frac{1}{2}$, for $B_w$, we have:  \n$$B_w = \\frac{1}{2} \\times B_b = \\frac{1}{2} \\times 2 = 1.$$\n\nAdding the blue and white fibers together gives us the total number of bolts needed to make one robe:  \n$$\\text{total fibers for a single robe} = B_b + B_w = 2 + 1 = 3.$$\n\nTherefore, it takes $3$ bolts in total (both blue and white) to create one robe. The final answer is $\\boxed{3}$.  \n\nThe correct choice according to the question's context would be: \\text{(Choice B): } \\$1$. However, based on our calculation above which correctly follows through with a mathematical explanation in LaTeX format as requested and provides accurate information about bolts of fiber needed for one robe (totaling 3), we must clarify that \"B\" corresponds to the number $3$ rather than \"$1\". Hence there seems to be an error either within choice labelings or textual descriptions. The correct answer, purely based on our calculation is $\\boxed{3}$.",
+        "response_time": 12.33952522277832,
+        "success": true,
+        "error": null
+      },
+      {
+        "question_id": 3,
+        "question": "Josh decides to try flipping a house. He buys a house for $80,000 and then puts in $50,000 in repairs. This increased the value of the house by 150%. How much profit did he make?",
+        "response": "To calculate Josh's profit from renovating his new property, we need to follow these steps:\n\n1. Calculate the total investment made into the property (the initial purchase price plus repair costs):\n   - Purchase Price = $80,000\n   - Repair Costs = $50,000\n   - Total Investment = Purchase Price + Repair Costs\n                       = $80,000 + $50,000 \n                       = $130,000\n\n2. Determine the percentage increase in value due to renovations:\n   - The property's value increased by 150%. This means that for every dollar of investment before repairs (i.e., purchase price), there is an additional $1.50 worth added after completion because it’s a 150% increase, not just the original amount plus half more ($80k + $40k = total value).\n   \n3. Calculate the new property's market value based on this percentage:\n   - New Value Increase Percentage (in decimal form) = 150 / 100 = 1.5\n   - Total Market Value after renovation = Purchase Price * (Original + Additional % increase in Decimal Form)\n                       = $80,000 * (1 + 1.5)\n                       = $80,000 * 2.5\n                       = $200,000\n   \n4. Calculate the profit by subtracting total investment from new market value:\n   - Profit = New Market Value after renovation – Total Investment\n           = $200,000 (new property's value) - $130,000 (total invested amount) \n           = $70,000.\n   \nJosh made a profit of **$70,000** from his house flipping venture after accounting for both the purchase and repair costs as well as considering the increase in property value due to renovations.",
+        "response_time": 7.568046569824219,
+        "success": true,
+        "error": null
+      },
+      {
+        "question_id": 4,
+        "question": "Every day, Wendi feeds each of her chickens three cups of mixed chicken feed, containing seeds, mealworms and vegetables to help keep them healthy. She gives the chickens their feed in three separate meals. In the morning, she gives her flock of chickens 15 cups of feed. In the afternoon, she gives her chickens another 25 cups of feed. How many cups of feed does she need to give her chickens in the evening to follow her daily routine?",
+        "response": "Let's calculate it step by step:\n1. Morning meal = 15 cups\n2. Afternoon meal = 25 cups\n3. Total feed given before evening = morning + afternoon = 15 cups + 25 cups = 40 cups\n4. To follow her daily routine, Wendi needs to give a total of three separate meals per day.\n5. Since she has already fed them twice (morning and afternoon), we need to find out how many more cups are needed for the third meal in the evening:\n6. Total feed required = 3 times daily amount - feed given before evening = total routine * number of meals per day - sum of morning + afternoon.\n7. Without knowing Wendi's specific \"total routine\" (the exact three separate cups she plans to give each chicken), we can only calculate based on the information provided:\n   Total required for third meal = Unknown daily total * 3 - 40 cups.\n8. Since there is no number given, this problem cannot be solved with a specific numerical answer without additional data about Wendi's planned evening feeding routine per chicken or the overall goal (e.g., \"Wendi wants to ensure each of her x chickens gets exactly y total cups daily\").\n\nThe question lacks information regarding how many individual servings are required in one meal, so we cannot find a numeric answer for this problem as it stands.",
+        "response_time": 5.415585041046143,
+        "success": true,
+        "error": null
+      },
+      {
+        "question_id": 5,
+        "question": "A company produces 420 units of a product per day. The company operates 6 days a week. How many units does the company produce in a week?",
+        "response": "To calculate this, we need to multiply the number of units produced each day by the number of operating days in a week:\n\n\\[ \\text{Units per day} = 420 \\]\n\\[ \\text{Days per week} = 6 \\]\n\\[ \\text{Total production per week} = \\text{Units per day} \\times \\text{Days per week} \\]\n\\[ \\text{Total production per week} = 420 \\times 6 \\]\n\\[ \\text{Total production per week} = 2520 \\]\n\nTherefore, the company produces \\( 2520 \\) units in a week.",
+        "response_time": 2.3562445640563965,
+        "success": true,
+        "error": null
+      }
+    ],
+    "evaluations": [
+      {
+        "correct": false,
+        "partial_credit": 0.0,
+        "reasoning_quality": "poor",
+        "hallucination_detected": false,
+        "calculation_preserved": true,
+        "difficulty": "basic_arithmetic"
+      },
+      {
+        "correct": true,
+        "partial_credit": 1.0,
+        "reasoning_quality": "good",
+        "hallucination_detected": true,
+        "calculation_preserved": true,
+        "difficulty": "fraction_arithmetic"
+      },
+      {
+        "correct": true,
+        "partial_credit": 1.0,
+        "reasoning_quality": "excellent",
+        "hallucination_detected": true,
+        "calculation_preserved": true,
+        "difficulty": "percentage_calculation"
+      },
+      {
+        "correct": false,
+        "partial_credit": 0.0,
+        "reasoning_quality": "excellent",
+        "hallucination_detected": true,
+        "calculation_preserved": false,
+        "difficulty": "multiplication_distribution"
+      },
+      {
+        "correct": true,
+        "partial_credit": 1.0,
+        "reasoning_quality": "good",
+        "hallucination_detected": true,
+        "calculation_preserved": true,
+        "difficulty": "basic_multiplication"
+      }
+    ],
+    "test_cases": [
+      {
+        "question": "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?",
+        "expected_answer": "72",
+        "difficulty": "basic_arithmetic"
+      },
+      {
+        "question": "A robe takes 2 bolts of blue fiber and half times that much white fiber. How many bolts in total does it take?",
+        "expected_answer": "3",
+        "difficulty": "fraction_arithmetic"
+      },
+      {
+        "question": "Josh decides to try flipping a house. He buys a house for $80,000 and then puts in $50,000 in repairs. This increased the value of the house by 150%. How much profit did he make?",
+        "expected_answer": "$70,000",
+        "difficulty": "percentage_calculation"
+      },
+      {
+        "question": "Every day, Wendi feeds each of her chickens three cups of mixed chicken feed, containing seeds, mealworms and vegetables to help keep them healthy. She gives the chickens their feed in three separate meals. In the morning, she gives her flock of chickens 15 cups of feed. In the afternoon, she gives her chickens another 25 cups of feed. How many cups of feed does she need to give her chickens in the evening to follow her daily routine?",
+        "expected_answer": "30",
+        "difficulty": "multiplication_distribution"
+      },
+      {
+        "question": "A company produces 420 units of a product per day. The company operates 6 days a week. How many units does the company produce in a week?",
+        "expected_answer": "2520",
+        "difficulty": "basic_multiplication"
+      }
+    ]
+  },
+  "improved": {
+    "model": "agiasi-phi35-golden-sigmoid:q8_0",
+    "results": [
+      {
+        "question_id": 1,
+        "question": "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?",
+        "response": "TIMEOUT",
+        "response_time": 30,
+        "success": false,
+        "error": "Timeout"
+      },
+      {
+        "question_id": 2,
+        "question": "A robe takes 2 bolts of blue fiber and half times that much white fiber. How many bolts in total does it take?",
+        "response": "TIMEOUT",
+        "response_time": 30,
+        "success": false,
+        "error": "Timeout"
+      },
+      {
+        "question_id": 3,
+        "question": "Josh decides to try flipping a house. He buys a house for $80,000 and then puts in $50,000 in repairs. This increased the value of the house by 150%. How much profit did he make?",
+        "response": "To calculate Josh's total investment:\nTotal Investment = Purchase Price + Repair Costs\n                     = $80,000 + $50,000\n                     = $130,000\nTo find the increased value of the house after repairs (which is 150% more than its original purchase price):\nIncreased Value = Purchase Price * Increase Percentage / 100 + Original Purchase Price\n                         = $80,000 * 150/100 + $80,000\n                         = $120,000 + $80,000\n                         = $200,000\nTo calculate the profit:\nProfit = Increased Value - Total Investment\n           = $200,000 - $130,000\n           = $70,000\nJosh made a profit of $70,000.",
+        "response_time": 3.6452105045318604,
+        "success": true,
+        "error": null
+      },
+      {
+        "question_id": 4,
+        "question": "Every day, Wendi feeds each of her chickens three cups of mixed chicken feed, containing seeds, mealworms and vegetables to help keep them healthy. She gives the chickens their feed in three separate meals. In the morning, she gives her flock of chickens 15 cups of feed. In the afternoon, she gives her chickens another 25 cups of feed. How many cups of feed does she need to give her chickens in the evening to follow her daily routine?",
+        "response": "To find out how much feed Wendi needs to give her chickens in the evening, we first add up the amount of feed given during the morning and afternoon: 15 + 25 = 40 cups. Since she feeds them three separate meals a day totaling x cup per meal (3x), we can set up an equation to solve for x:\n \nMorning + Afternoon + Evening = Total feed given in one day\n15 + 25 + evening_feed = 3 * x\n40 + evenings_feed = 3 * x\nTo isolate the variable, we subtract 40 from both sides of the equation:\n40 - 40 + evenings_feed = 3x - 40\nevening_feed = 3x - 40\nWe know that Wendi needs to give her chickens a total of x cups per meal, so we can substitute this value into the equation:\nevening_feed = 3 * (15 + 25)\nevening_feed = 3 * 40\nevening_feed = 120\nTherefore, Wendi needs to give her chickens a total of 120 cups in the evening.",
+        "response_time": 4.671891689300537,
+        "success": true,
+        "error": null
+      },
+      {
+        "question_id": 5,
+        "question": "A company produces 420 units of a product per day. The company operates 6 days a week. How many units does the company produce in a week?",
+        "response": "To find out how many units are produced in one week, we need to multiply the daily production by the number of operating days: \n\nUnits per Week = Units Per Day * Days Operated\n= 420 units/day * 6 days/week\n= 2520 units/week.\nSo, the company produces 2520 units in a week.",
+        "response_time": 1.4418003559112549,
+        "success": true,
+        "error": null
+      }
+    ],
+    "evaluations": [
+      {
+        "correct": false,
+        "partial_credit": 0.0,
+        "reasoning_quality": "poor",
+        "hallucination_detected": false,
+        "calculation_preserved": true,
+        "difficulty": "basic_arithmetic"
+      },
+      {
+        "correct": false,
+        "partial_credit": 0.0,
+        "reasoning_quality": "poor",
+        "hallucination_detected": false,
+        "calculation_preserved": true,
+        "difficulty": "fraction_arithmetic"
+      },
+      {
+        "correct": true,
+        "partial_credit": 1.0,
+        "reasoning_quality": "fair",
+        "hallucination_detected": true,
+        "calculation_preserved": true,
+        "difficulty": "percentage_calculation"
+      },
+      {
+        "correct": false,
+        "partial_credit": 0.0,
+        "reasoning_quality": "good",
+        "hallucination_detected": true,
+        "calculation_preserved": true,
+        "difficulty": "multiplication_distribution"
+      },
+      {
+        "correct": true,
+        "partial_credit": 1.0,
+        "reasoning_quality": "fair",
+        "hallucination_detected": false,
+        "calculation_preserved": true,
+        "difficulty": "basic_multiplication"
+      }
+    ],
+    "test_cases": [
+      {
+        "question": "Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?",
+        "expected_answer": "72",
+        "difficulty": "basic_arithmetic"
+      },
+      {
+        "question": "A robe takes 2 bolts of blue fiber and half times that much white fiber. How many bolts in total does it take?",
+        "expected_answer": "3",
+        "difficulty": "fraction_arithmetic"
+      },
+      {
+        "question": "Josh decides to try flipping a house. He buys a house for $80,000 and then puts in $50,000 in repairs. This increased the value of the house by 150%. How much profit did he make?",
+        "expected_answer": "$70,000",
+        "difficulty": "percentage_calculation"
+      },
+      {
+        "question": "Every day, Wendi feeds each of her chickens three cups of mixed chicken feed, containing seeds, mealworms and vegetables to help keep them healthy. She gives the chickens their feed in three separate meals. In the morning, she gives her flock of chickens 15 cups of feed. In the afternoon, she gives her chickens another 25 cups of feed. How many cups of feed does she need to give her chickens in the evening to follow her daily routine?",
+        "expected_answer": "30",
+        "difficulty": "multiplication_distribution"
+      },
+      {
+        "question": "A company produces 420 units of a product per day. The company operates 6 days a week. How many units does the company produce in a week?",
+        "expected_answer": "2520",
+        "difficulty": "basic_multiplication"
+      }
+    ]
+  },
+  "analysis": {
+    "overall_improvement": {
+      "baseline_accuracy": 0.6,
+      "improved_accuracy": 0.4,
+      "improvement": -0.19999999999999996,
+      "baseline_correct": 3,
+      "improved_correct": 2
+    },
+    "category_breakdown": {},
+    "hallucination_reduction": {
+      "baseline_hallucination_rate": 0.8,
+      "improved_hallucination_rate": 0.4,
+      "reduction": 0.4
+    },
+    "reasoning_quality_improvement": {
+      "baseline_avg_quality": 2.0,
+      "improved_avg_quality": 0.8,
+      "improvement": -1.2
+    },
+    "response_time_change": {
+      "baseline_avg_time": 11.535880279541015,
+      "improved_avg_time": 13.95178050994873,
+      "change": 2.415900230407715,
+      "faster": false
+    }
+  },
+  "timestamp": "2025-11-23T20:01:40.001692"
+}

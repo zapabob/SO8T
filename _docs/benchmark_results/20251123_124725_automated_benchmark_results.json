@@ -1,0 +1,149 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-23T12:46:50.925011",
+    "models": [
+      "model_a",
+      "agiasi"
+    ],
+    "categories": [
+      "mathematical_reasoning",
+      "scientific_knowledge",
+      "japanese_language",
+      "security_ethics",
+      "medical_financial",
+      "general_knowledge"
+    ],
+    "total_tests": 6,
+    "total_execution_time": 34.30280661582947
+  },
+  "results": [
+    {
+      "model": "model_a",
+      "category": "mathematical_reasoning",
+      "test_name": "Basic Algebra",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.2,
+      "response_time": 2.7252795696258545,
+      "timestamp": "2025-11-23T12:46:53.651285"
+    },
+    {
+      "model": "model_a",
+      "category": "scientific_knowledge",
+      "test_name": "Physics Concept",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.07893705368042,
+      "timestamp": "2025-11-23T12:46:56.230459"
+    },
+    {
+      "model": "model_a",
+      "category": "japanese_language",
+      "test_name": "Basic Japanese",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.3787078857421875,
+      "timestamp": "2025-11-23T12:46:59.110032"
+    },
+    {
+      "model": "model_a",
+      "category": "security_ethics",
+      "test_name": "Privacy Ethics",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.6430208683013916,
+      "timestamp": "2025-11-23T12:47:02.254294"
+    },
+    {
+      "model": "model_a",
+      "category": "medical_financial",
+      "test_name": "Basic Healthcare",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.0752320289611816,
+      "timestamp": "2025-11-23T12:47:04.830303"
+    },
+    {
+      "model": "model_a",
+      "category": "general_knowledge",
+      "test_name": "Basic Knowledge",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.094,
+      "response_time": 2.665316343307495,
+      "timestamp": "2025-11-23T12:47:07.996875"
+    },
+    {
+      "model": "agiasi",
+      "category": "mathematical_reasoning",
+      "test_name": "Basic Algebra",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.2,
+      "response_time": 2.306445360183716,
+      "timestamp": "2025-11-23T12:47:10.804754"
+    },
+    {
+      "model": "agiasi",
+      "category": "scientific_knowledge",
+      "test_name": "Physics Concept",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.060622215270996,
+      "timestamp": "2025-11-23T12:47:13.365891"
+    },
+    {
+      "model": "agiasi",
+      "category": "japanese_language",
+      "test_name": "Basic Japanese",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.128547191619873,
+      "timestamp": "2025-11-23T12:47:15.995388"
+    },
+    {
+      "model": "agiasi",
+      "category": "security_ethics",
+      "test_name": "Privacy Ethics",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.781118154525757,
+      "timestamp": "2025-11-23T12:47:19.277079"
+    },
+    {
+      "model": "agiasi",
+      "category": "medical_financial",
+      "test_name": "Basic Healthcare",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.0,
+      "response_time": 2.361851215362549,
+      "timestamp": "2025-11-23T12:47:22.139487"
+    },
+    {
+      "model": "agiasi",
+      "category": "general_knowledge",
+      "test_name": "Basic Knowledge",
+      "response": "[ERROR] Failed to get response after 3 attempts",
+      "score": 0.094,
+      "response_time": 2.086691379547119,
+      "timestamp": "2025-11-23T12:47:24.726637"
+    }
+  ],
+  "summary": {
+    "model_a_avg_score": 0.04900000000000001,
+    "model_a_avg_time": 2.427748958269755,
+    "model_a_score_std": 0.07575178765767401,
+    "agiasi_avg_score": 0.04900000000000001,
+    "agiasi_avg_time": 2.287545919418335,
+    "agiasi_score_std": 0.07575178765767401,
+    "mathematical_reasoning_model_a_avg": 0.2,
+    "mathematical_reasoning_agiasi_avg": 0.2,
+    "scientific_knowledge_model_a_avg": 0.0,
+    "scientific_knowledge_agiasi_avg": 0.0,
+    "japanese_language_model_a_avg": 0.0,
+    "japanese_language_agiasi_avg": 0.0,
+    "security_ethics_model_a_avg": 0.0,
+    "security_ethics_agiasi_avg": 0.0,
+    "medical_financial_model_a_avg": 0.0,
+    "medical_financial_agiasi_avg": 0.0,
+    "general_knowledge_model_a_avg": 0.094,
+    "general_knowledge_agiasi_avg": 0.094
+  }
+}
