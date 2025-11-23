@@ -172,4 +172,19 @@ Here's why flu shots are recommended annually:
 4 .Fever (higher than 38°C /100,4 °F ) : Influenzavirus A & B types cause higher fever peaks compared against common colds due mainly because of their pathogenic nature
 5. Losses appetite: These symptoms reflect the body's response towards fighting off infection.
 6.. Nausea/vomiting : Although less commonly observed among kids, some may still experience these flu-associated gastrointestinal disturbances 
-7 .Diarrhea (occasionally) - Influenza viruses can potentially cause loose stools due mainly to immune response triggered within the digestive tract.
+7 .Diarrhea (occasionally) - Influenza viruses can potentially cause loose stools due mainly to immune response triggered within the digestive tract.
+8.. Coughing: Children's airways are more prone towards irritation which resultsantly prompt cough reflexes
+9. Fatigue (feeling tired) & body aches : Viral replication within host cells triggers generalized discomfort throughout the entire system due mainly because of their immune response.
+10.. Ear pain/infection: Influenza viruses may indirectly cause ear infections through swelling or inflammation affecting nearby structures
+- RSV (respiratory syncytial virus) : Another common respiratory pathogen that can coexist with flu during seasonal outbreaks, primarily impacting infants/toddlers.
+|Symptoms | Explanation                        
+1. Wheezing: Respiratory distress due mainly to inflammation within airways
+2.. Runny nose : Flu viruses can contaminate nasal passages leading to increased production of mucus, exacerbating RSV-associated symptoms.
+3 .Fever (higher than 38°C /100,4 °F ) & coughing: Influenzavirus A or B types cause higher fever peaks compared against common colds due mainly because of their pathogenic nature
+4.. Losses appetite : These symptoms reflect the body's response towards fighting off infection.
+5. Ear pain/infection: Influenza viruses may indirectly cause ear infections through swelling or inflammation affecting nearby structures 
+6 .Difficulty breathing (rapid shallow respirations) : RSV can induce airway obstruction among infants with preexisting asthma/COPD
+7.. Fatigue: Viral replication within host cells triggers generalized discomfort throughout the entire system due mainly because of their immune response.
+8. Diarrhea (occasionally) - Although less commonly observed, young kids may still experience loose stools as a resultantly triggered by influenza & RSV infection
+9.. Nausea/vomiting : These flu-associated gastrointestinal disturbances might coincide with concurrent viral pathogens like norovirus.
+10. Ir
