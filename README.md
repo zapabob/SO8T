@@ -26,6 +26,13 @@ SO8Tは、SO(8)群構造を活用した先進的なマルチモーダル大規�
 - GGUF形式でのモデル配布
 - llama.cpp互換性
 
+### 🧠 AGIASI: 四値分類・四重推論システム
+- **論理的正確性**: 数学的・論理的検証 (`<think-logic>`)
+- **倫理的妥当性**: 道徳的・倫理的評価 (`<think-ethics>`)
+- **実用的価値**: 現実世界での実現可能性 (`<think-practical>`)
+- **創造的洞察**: 革新的アイデアと視点 (`<think-creative>`)
+- **構造化応答**: XMLタグによる明確な思考プロセス
+
 ## ディレクトリ構造
 
 ```
@@ -81,6 +88,9 @@ ollama run so8t-lightweight "あなたのプロンプト"
 
 # GPU最適化モデル（要CUDA）
 ollama run so8t-vl-2b-instruct-gpu "あなたのプロンプト"
+
+# AGIASIモデル（四重推論）
+ollama run agiasi-phi35-golden-sigmoid:q8_0 "AIの未来についてどう思いますか？"
 ```
 
 ### 3. 複雑なテストの実行

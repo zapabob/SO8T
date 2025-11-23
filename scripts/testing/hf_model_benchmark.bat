@@ -71,3 +71,4 @@ ollama run agiasi-phi3.5:latest "Integrate concepts from quantum computing, neur
 echo.
 echo [AUDIO] HFモデルベンチマークテスト完了
 powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+

@@ -40,7 +40,7 @@ def fuse_soul():
     try:
         base_model = AutoModelForCausalLM.from_pretrained(
             BASE_MODEL_ID,
-            dtype=torch.float16,
+            torch_dtype=torch.float16,
             device_map="auto",
             trust_remote_code=True
         )
@@ -74,20 +74,20 @@ def fuse_soul():
         soul_data = torch.load(SOUL_PATH, map_location="cuda" if torch.cuda.is_available() else "cpu")
 
         # Alpha (Parameter -> Float)
-        if "alpha" in soul_data and not torch.isnan(soul_data["alpha"]):
+        if "alpha" in soul_data:
             alpha_val = soul_data["alpha"].item() if torch.is_tensor(soul_data["alpha"]) else soul_data["alpha"]
             gate_openness = sigmoid(alpha_val)
+
+            print(f"   [COSMOS] Final Alpha: {alpha_val:.6f}")
+            print(f"   [GATE] Gate Openness (Sigmoid): {gate_openness:.6f}")
         else:
             print("   [WARNING] Alpha not found in soul data, using default golden ratio")
             alpha_val = 1.618033988749895
             gate_openness = 1.0
 
-        print(f"   [COSMOS] Final Alpha: {alpha_val:.6f}")
-        print(f"   [GATE] Gate Openness (Sigmoid): {gate_openness:.6f}")
-
         # Rotation Matrix R
         hidden_dim = model.config.hidden_size
-        if "rotation" in soul_data and soul_data["rotation"]:
+        if "rotation" in soul_data:
             print("   Reconstructing SO(8) Rotation Matrix...")
             try:
                 dummy_layer = torch.nn.utils.parametrizations.orthogonal(
@@ -101,7 +101,7 @@ def fuse_soul():
                 print("   Creating identity matrix as fallback")
                 R = torch.eye(hidden_dim, device=model.device)
         else:
-            print("   [WARNING] Rotation not found or empty in soul data, using identity matrix")
+            print("   [WARNING] Rotation not found in soul data, using identity matrix")
             R = torch.eye(hidden_dim, device=model.device)
 
     except Exception as e:
