@@ -282,9 +282,25 @@ def train_borea_so8t_adapter(
         if not batch or "input_ids" not in batch:
             continue
 
-        # Anneal Alpha Gate using SCIENTIFICALLY OPTIMIZED sigmoid scheduler
-        current_alpha = alpha_lambda(step, target_alpha, warmup_steps)
-        model.alpha_gate.data = torch.tensor(current_alpha, device=device)
+        # FIXED Alpha Gate using BAYESIAN OPTIMIZED value (no annealing)
+        # Load optimized alpha gate value from Bayesian optimization results
+        try:
+            with open("models/alpha_gate_bayes_opt_results/optimal_alpha_gate.json", "r") as f:
+                opt_results = json.load(f)
+                optimal_alpha_init = opt_results["optimal_alpha_init"]
+                # Convert to sigmoid value for direct use
+                optimal_alpha_fixed = sigmoid(optimal_alpha_init)
+                print(f"[ALPHA] Using BAYESIAN OPTIMIZED fixed alpha gate: {optimal_alpha_fixed:.6f} (init: {optimal_alpha_init:.4f})")
+        except FileNotFoundError:
+            # Fallback to golden ratio if optimization results not found
+            optimal_alpha_fixed = sigmoid(1.618)  # Golden ratio
+            print(f"[ALPHA] Optimization results not found, using golden ratio fallback: {optimal_alpha_fixed:.6f}")
+        except Exception as e:
+            print(f"[ALPHA] Error loading optimization results: {e}, using golden ratio fallback")
+            optimal_alpha_fixed = sigmoid(1.618)  # Golden ratio
+
+        # FIXED alpha gate throughout training (no annealing)
+        model.alpha_gate.data = torch.tensor(optimal_alpha_fixed, device=device)
 
         # Forward pass
         outputs = model(**batch)
@@ -299,13 +315,9 @@ def train_borea_so8t_adapter(
         optimizer.step()
         scheduler.step()
 
-        # Update progress bar
+        # Update progress bar with FIXED alpha gate
         alpha_val = model.alpha_gate.item()
-        status = "[STABLE] Stable"
-        if step < alpha_annealing_steps:
-            status = "[TRANSITION] Phase Transition"
-        elif abs(alpha_val - target_alpha) < 0.01:
-            status = "[TARGET] Golden Ratio Reached"
+        status = "[FIXED] Bayesian Optimized"
 
         progress_bar.set_postfix({
             "Loss": f"{loss.item():.4f}",
@@ -314,9 +326,9 @@ def train_borea_so8t_adapter(
             "LR": f"{scheduler.get_last_lr()[0]:.6f}"
         })
 
-        # Logging
+        # Logging with fixed alpha gate info
         if step % logging_steps == 0:
-            print(f"Step {step}: Loss={loss.item():.4f}, Alpha={alpha_val:.4f}, Status={status}")
+            print(f"Step {step}: Loss={loss.item():.4f}, Alpha={alpha_val:.4f} (FIXED), Status={status}")
 
         # Save checkpoint
         if step > 0 and step % save_steps == 0:
@@ -329,7 +341,7 @@ def train_borea_so8t_adapter(
 
             # Save Alpha Gate value
             with open(os.path.join(save_path, "alpha_gate.json"), "w") as f:
-                json.dump({"alpha_gate": alpha_val, "step": step}, f)
+                json.dump({"alpha_gate": alpha_val, "step": step, "fixed_bayesian_optimized": True}, f)
 
             print(f"[SAVE] Checkpoint saved to {save_path}")
 
@@ -344,7 +356,7 @@ def train_borea_so8t_adapter(
     tokenizer.save_pretrained(final_path)
 
     with open(os.path.join(final_path, "alpha_gate.json"), "w") as f:
-        json.dump({"alpha_gate": model.alpha_gate.item(), "final_step": global_step}, f)
+        json.dump({"alpha_gate": model.alpha_gate.item(), "final_step": global_step, "fixed_bayesian_optimized": True}, f)
 
     # Save soul parameters for GGUF fusion
     rotation_state = {}
@@ -358,7 +370,7 @@ def train_borea_so8t_adapter(
     }, os.path.join(final_path, "soul_params.pt"))
 
     print("[COMPLETE] AGIASI integration training complete!")
-    print(f"   Final Alpha: {model.alpha_gate.item():.6f} (Target: {target_alpha:.6f})")
+    print(f"   Final Alpha: {model.alpha_gate.item():.6f} (FIXED - Bayesian Optimized)")
     print(f"   Adapter saved to: {final_path}")
 
 def main():

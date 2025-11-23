@@ -24,3 +24,4 @@ from .utils import *
 __version__ = "0.1.0"
 __author__ = "SO8T Team"
 __description__ = "SO8T Safe Agent - Advanced multimodal LLM with safety features"
+

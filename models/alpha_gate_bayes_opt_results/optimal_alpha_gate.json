@@ -1,0 +1,12 @@
+{
+  "best_objective": 1.5927724489853772,
+  "best_params": {
+    "alpha_init": 3.8552128414523423
+  },
+  "optimal_alpha_init": 3.8552128414523423,
+  "optimal_alpha_sigmoid": 0.9792697436419848,
+  "golden_ratio_target": 1.618,
+  "n_trials": 5,
+  "study_name": "alpha_gate_bayes_opt",
+  "timestamp": 1763917923.186291
+}

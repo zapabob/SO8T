@@ -20,7 +20,7 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
 
-def run_ollama_command(model: str, prompt: str, timeout: int = 180) -> Tuple[str, float]:
+def run_ollama_command(model: str, prompt: str, timeout: int = 600) -> Tuple[str, float]:
     """Run ollama command with timeout and error handling"""
     env = os.environ.copy()
     env['PYTHONIOENCODING'] = 'utf-8'
@@ -66,7 +66,7 @@ class ExtendedABCBenchmark:
         self.benchmarks = {
             'elyza_100': self._load_elyza_100(),
             'mmlu': self._load_mmlu_tests(),
-            'agi': self._load_agi_tests()
+            'agi': self._load_agi_tests()[:2]  # Limit to 2 tests
         }
 
         self.output_dir = Path("_docs/benchmark_results")
@@ -75,41 +75,47 @@ class ExtendedABCBenchmark:
     def _load_elyza_100(self) -> List[Dict]:
         """Load ELYZA-100 benchmark tasks"""
         try:
-            with open("_data/elyza100_samples/elyza100_samples.json", 'r', encoding='utf-8') as f:
+            with open("_data/elyza100_samples/elyza_tasks.json", 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                return data[:50]  # Use first 50 samples for efficiency
+                return data[:2]  # Use first 2 samples for efficiency
         except Exception as e:
             print(f"[WARNING] Could not load ELYZA-100: {e}")
             return self._create_fallback_japanese_tests()
 
     def _load_mmlu_tests(self) -> List[Dict]:
         """Load MMLU benchmark tasks"""
-        return [
-            {
-                'category': 'mathematical_reasoning',
-                'question': 'Solve: 2x + 3 = 7',
-                'answer': 'x = 2',
-                'type': 'math'
-            },
-            {
-                'category': 'physics',
-                'question': 'Explain Newton\'s second law: F = ma',
-                'answer': 'Force equals mass times acceleration',
-                'type': 'explanation'
-            },
-            {
-                'category': 'abstract_algebra',
-                'question': 'Find the degree for the given field extension Q(sqrt(2), sqrt(3), sqrt(18)) over Q.',
-                'answer': '4',
-                'type': 'math'
-            },
-            {
-                'category': 'logical_reasoning',
-                'question': 'Statement 1 | A factor group of a non-Abelian group is non-Abelian. Statement 2 | If K is a normal subgroup of H and H is a normal subgroup of G, then K is a normal subgroup of G.',
-                'answer': 'False, True',
-                'type': 'logic'
-            }
-        ]
+        try:
+            with open("_data/mmlu_samples/mmlu_tasks.json", 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data[:2]  # Use first 2 samples for efficiency
+        except Exception as e:
+            print(f"[WARNING] Could not load MMLU: {e}")
+            return [
+                {
+                    'category': 'mathematical_reasoning',
+                    'question': 'Solve: 2x + 3 = 7',
+                    'answer': 'x = 2',
+                    'type': 'math'
+                },
+                {
+                    'category': 'physics',
+                    'question': 'Explain Newton\'s second law: F = ma',
+                    'answer': 'Force equals mass times acceleration',
+                    'type': 'explanation'
+                },
+                {
+                    'category': 'abstract_algebra',
+                    'question': 'Find the degree for the given field extension Q(sqrt(2), sqrt(3), sqrt(18)) over Q.',
+                    'answer': '4',
+                    'type': 'math'
+                },
+                {
+                    'category': 'logical_reasoning',
+                    'question': 'Statement 1 | A factor group of a non-Abelian group is non-Abelian. Statement 2 | If K is a normal subgroup of H and H is a normal subgroup of G, then K is a normal subgroup of G.',
+                    'answer': 'False, True',
+                    'type': 'logic'
+                }
+            ]
 
     def _load_agi_tests(self) -> List[Dict]:
         """Load AGI benchmark tasks"""

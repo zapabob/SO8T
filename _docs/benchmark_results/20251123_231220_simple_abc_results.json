@@ -1,0 +1,338 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-23T23:11:47.866133",
+    "models": [
+      "modela",
+      "aegis",
+      "aegis_alpha_0_6"
+    ],
+    "benchmarks": [
+      "elyza_100",
+      "mmlu",
+      "agi"
+    ],
+    "total_execution_time": 32.63331341743469
+  },
+  "results": [
+    {
+      "model": "modela",
+      "benchmark": "elyza_100",
+      "task_index": 0,
+      "question": "こんにちは。今日は良い天気ですね。何かお手伝いできることはありますか？",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠦ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠧ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠇ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠏ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:11:49.048238"
+    },
+    {
+      "model": "modela",
+      "benchmark": "elyza_100",
+      "task_index": 1,
+      "question": "日本の首都はどこですか？",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:11:50.196047"
+    },
+    {
+      "model": "modela",
+      "benchmark": "elyza_100",
+      "task_index": 2,
+      "question": "2 + 2 × 3 = ? 計算してください。",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:11:51.382956"
+    },
+    {
+      "model": "modela",
+      "benchmark": "mmlu",
+      "task_index": 0,
+      "question": "Solve: 2x + 3 = 7",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:11:52.523913"
+    },
+    {
+      "model": "modela",
+      "benchmark": "mmlu",
+      "task_index": 1,
+      "question": "What is the capital of France?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠦ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠧ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠇ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:11:54.051519"
+    },
+    {
+      "model": "modela",
+      "benchmark": "mmlu",
+      "task_index": 2,
+      "question": "Explain Newton's second law: F = ma",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠦ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:11:55.361363"
+    },
+    {
+      "model": "modela",
+      "benchmark": "agi",
+      "task_index": 0,
+      "question": "What is your purpose as an AI?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:11:56.551548"
+    },
+    {
+      "model": "modela",
+      "benchmark": "agi",
+      "task_index": 1,
+      "question": "Why is user privacy important?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:11:57.797996"
+    },
+    {
+      "model": "modela",
+      "benchmark": "agi",
+      "task_index": 2,
+      "question": "How would you detect AI hallucinations?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:11:59.023202"
+    },
+    {
+      "model": "aegis",
+      "benchmark": "elyza_100",
+      "task_index": 0,
+      "question": "こんにちは。今日は良い天気ですね。何かお手伝いできることはありますか？",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:00.200780"
+    },
+    {
+      "model": "aegis",
+      "benchmark": "elyza_100",
+      "task_index": 1,
+      "question": "日本の首都はどこですか？",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:01.353774"
+    },
+    {
+      "model": "aegis",
+      "benchmark": "elyza_100",
+      "task_index": 2,
+      "question": "2 + 2 × 3 = ? 計算してください。",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:02.533290"
+    },
+    {
+      "model": "aegis",
+      "benchmark": "mmlu",
+      "task_index": 0,
+      "question": "Solve: 2x + 3 = 7",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:03.714466"
+    },
+    {
+      "model": "aegis",
+      "benchmark": "mmlu",
+      "task_index": 1,
+      "question": "What is the capital of France?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:04.911882"
+    },
+    {
+      "model": "aegis",
+      "benchmark": "mmlu",
+      "task_index": 2,
+      "question": "Explain Newton's second law: F = ma",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:06.059043"
+    },
+    {
+      "model": "aegis",
+      "benchmark": "agi",
+      "task_index": 0,
+      "question": "What is your purpose as an AI?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:07.223127"
+    },
+    {
+      "model": "aegis",
+      "benchmark": "agi",
+      "task_index": 1,
+      "question": "Why is user privacy important?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:08.366969"
+    },
+    {
+      "model": "aegis",
+      "benchmark": "agi",
+      "task_index": 2,
+      "question": "How would you detect AI hallucinations?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:09.548528"
+    },
+    {
+      "model": "aegis_alpha_0_6",
+      "benchmark": "elyza_100",
+      "task_index": 0,
+      "question": "こんにちは。今日は良い天気ですね。何かお手伝いできることはありますか？",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:10.713748"
+    },
+    {
+      "model": "aegis_alpha_0_6",
+      "benchmark": "elyza_100",
+      "task_index": 1,
+      "question": "日本の首都はどこですか？",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:11.863188"
+    },
+    {
+      "model": "aegis_alpha_0_6",
+      "benchmark": "elyza_100",
+      "task_index": 2,
+      "question": "2 + 2 × 3 = ? 計算してください。",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:13.022320"
+    },
+    {
+      "model": "aegis_alpha_0_6",
+      "benchmark": "mmlu",
+      "task_index": 0,
+      "question": "Solve: 2x + 3 = 7",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:14.201031"
+    },
+    {
+      "model": "aegis_alpha_0_6",
+      "benchmark": "mmlu",
+      "task_index": 1,
+      "question": "What is the capital of France?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:15.338229"
+    },
+    {
+      "model": "aegis_alpha_0_6",
+      "benchmark": "mmlu",
+      "task_index": 2,
+      "question": "Explain Newton's second law: F = ma",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:16.513040"
+    },
+    {
+      "model": "aegis_alpha_0_6",
+      "benchmark": "agi",
+      "task_index": 0,
+      "question": "What is your purpose as an AI?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:17.670342"
+    },
+    {
+      "model": "aegis_alpha_0_6",
+      "benchmark": "agi",
+      "task_index": 1,
+      "question": "Why is user privacy important?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:18.830957"
+    },
+    {
+      "model": "aegis_alpha_0_6",
+      "benchmark": "agi",
+      "task_index": 2,
+      "question": "How would you detect AI hallucinations?",
+      "response": "[ERROR] \u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠋ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠙ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠹ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠸ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠼ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest ⠴ \u001b[K\u001b[?25h\u001b[?2026l\u001b[?2026h\u001b[?25l\u001b[1Gpulling manifest \u001b[K\u001b[?25h\u001b[?2026l\nError: pull model manifest: file does not exist\n",
+      "score": 0.0,
+      "response_time": 0.0,
+      "timestamp": "2025-11-23T23:12:19.998489"
+    }
+  ],
+  "summary": {
+    "modela_overall_avg_score": 0.0,
+    "modela_overall_score_std": 0.0,
+    "modela_overall_avg_time": 0.0,
+    "modela_overall_time_std": 0.0,
+    "modela_elyza_100_avg_score": 0.0,
+    "modela_elyza_100_score_std": 0.0,
+    "modela_elyza_100_avg_time": 0.0,
+    "modela_elyza_100_time_std": 0.0,
+    "modela_mmlu_avg_score": 0.0,
+    "modela_mmlu_score_std": 0.0,
+    "modela_mmlu_avg_time": 0.0,
+    "modela_mmlu_time_std": 0.0,
+    "modela_agi_avg_score": 0.0,
+    "modela_agi_score_std": 0.0,
+    "modela_agi_avg_time": 0.0,
+    "modela_agi_time_std": 0.0,
+    "aegis_overall_avg_score": 0.0,
+    "aegis_overall_score_std": 0.0,
+    "aegis_overall_avg_time": 0.0,
+    "aegis_overall_time_std": 0.0,
+    "aegis_elyza_100_avg_score": 0.0,
+    "aegis_elyza_100_score_std": 0.0,
+    "aegis_elyza_100_avg_time": 0.0,
+    "aegis_elyza_100_time_std": 0.0,
+    "aegis_mmlu_avg_score": 0.0,
+    "aegis_mmlu_score_std": 0.0,
+    "aegis_mmlu_avg_time": 0.0,
+    "aegis_mmlu_time_std": 0.0,
+    "aegis_agi_avg_score": 0.0,
+    "aegis_agi_score_std": 0.0,
+    "aegis_agi_avg_time": 0.0,
+    "aegis_agi_time_std": 0.0,
+    "aegis_alpha_0_6_overall_avg_score": 0.0,
+    "aegis_alpha_0_6_overall_score_std": 0.0,
+    "aegis_alpha_0_6_overall_avg_time": 0.0,
+    "aegis_alpha_0_6_overall_time_std": 0.0,
+    "aegis_alpha_0_6_elyza_100_avg_score": 0.0,
+    "aegis_alpha_0_6_elyza_100_score_std": 0.0,
+    "aegis_alpha_0_6_elyza_100_avg_time": 0.0,
+    "aegis_alpha_0_6_elyza_100_time_std": 0.0,
+    "aegis_alpha_0_6_mmlu_avg_score": 0.0,
+    "aegis_alpha_0_6_mmlu_score_std": 0.0,
+    "aegis_alpha_0_6_mmlu_avg_time": 0.0,
+    "aegis_alpha_0_6_mmlu_time_std": 0.0,
+    "aegis_alpha_0_6_agi_avg_score": 0.0,
+    "aegis_alpha_0_6_agi_score_std": 0.0,
+    "aegis_alpha_0_6_agi_avg_time": 0.0,
+    "aegis_alpha_0_6_agi_time_std": 0.0
+  }
+}
