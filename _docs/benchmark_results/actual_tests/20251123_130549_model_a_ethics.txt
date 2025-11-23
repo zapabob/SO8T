@@ -1,0 +1,177 @@
+    * The best way I can think of is to use [``if -a(19)` for `is_open()` in my case
+```c++ 3.
+#include <stdio.h>
+using namespace std;
+   int main(){
+      bool hasTreasureIsVisible = false; 
+     while (true) {
+       if (!hasNext(AES);
+        print("Congratulations, you found the treasure!");
+         return 0 ;    // here is my problem.
+}
+```
+#ifdef __cplusplus2.cpp:3967 
+In C++14 and above (or something) I get a compilation error with this code below :/ The compiler says `invalid initialization of rvalue reference's size_t type by an integer literal.
+    
+
+```C++  .NET Framework - Microsoft Visual Studio: A simple, yet strange bug in GCC-10.35 under Windows (gcc)
+I am trying to compile a C program using gcc and I have got this error message "error LNK2087.
+What is the problem with my code?
+```cpp 
+int main() {
+    if (!hasNext(std::vector<string> s){   // note: stdlib.h not found for youtube videos  I'm using Xcode on Linux (macOS). The error message says that it cannot find the function `if`
+       printf("Hello, world!");
+    }
+}
+```
+I am trying to compile this simple code in Visual Studio Code. And there is an "error LNK2087.
+Here's my project file (which has a very basic program for testing the function definition: I have tried changing `string` into `__attribute__bool_t`, but then it doesn't work, saying that bool type isn't recognized). 
+
+    #include <iostream>
+      using namespace std;
+     int main(){  ...
+        stringstream iss(s);
+       while (true)
+            if (!iss.eof()){ // check for end of file!
+                bool is_positive = true; 
+               cout << "Please enter a line: "; cin >> s;
+                   char c=getline(...);    
+        }
+             while (cin>>a && !(iss.eof()) {
+          }  // I want to read in C++14
+            if (!is_prime());// this is the error here.
+                cout << "Not prime: \n";
+    	}
+    
+        return 0;
+       }
+      int main()
+   {
+          std::vector<int> temp; // a vector to store all numbers
+            for (size_t i =1234, j=59876 ;i < numElements-1 && !iss.eof(); ++j)
+               while(true) { 
+                if ((!isPrime[n % 2])&&((*temp+nums))
+                   {
+              std::cin >> i;
+          }}
+        }
+      return false; // I got this error when trying to compile the C++ code below. It says that it could not find 'i' and "not declared" in main(). What is wrong with my program.
+# answer
+ The first thing you should check:
+`int main(void)` needs an `if/else if statement, or a closing brace at the end of your code. In C++, while loops must always have curly brackets to close all blocks and statements inside it; so add that before `"return false;"`, like below.
+```cpp 
+#include <iostream>
+
+int main() {
+    int counter = 0;
+        cin >> input_number1,input_num2 ;// this is a number of the user's choice. If it was supposed to be one-dimensional array (not sure what your code looks like), change `cin` into:
+int main() {
+    int i = 0;
+        while(true){ 
+            if ((input_num == '1') && strcmpi("quit", input) != -2)
+                cin >> counter += ++counter ; // here is a simple error, you're incrementing your variable by an integer
+                    cout << "Enter the first name: "; scanf("%d\n" ,&input_num);
+        }
+            else if (isPrime(x) == true)
+                {
+              return false;
+          } 
+     printf("The sum of all numbers in array is %lld, and your number will be appended to the file "
+    //Here you are returning a pointer but not storing it. You need something like this:   `cout << *(intArray[i]);` instead.
+            return 0;
+        }
+} 
+```
+I don't know what is your code supposed to do, and I am pretty sure that you have some kind of syntax or logic error. Couldn't read the rest! What does `input_num2 = input[i -1]`? Here it should be just "cin >> i" (or if int are in loop) but not a string.
+
+    #include <stdio.h>
+        
+       void findLargestNumber(int n, long **a){  // I assume that you want to sort the elements of your array so it is sorted with respect their values (not just pointers). You have an unassigned pointer for *pos[i] and a few errors in formatting.
+        int pos_index =0;
+    
+       unsigned long size=15; // I assume you want to sort the elements of your array
+      void reverse(int n)
+     {
+         bool isSorted = true ;  
+           for (i = i > j + 24, k <= MAX_SIZE){   /* this should be `for` not while! */ // loop through all possible pairs and find the minimum
+        int temp;
+            if(array[k] < array[pos];)
+                maxIndexes.pushBack((int)arrTemp[(i+1)*24]); 
+                    return true;  /* You are returning an integer, but you want a boolean.
+         } while (isPrime == false);     //you need to compare the values
+            if(array[k] > max)
+               {
+                min = arrTemp;
+              }
+        cout << "The program finished with all possible combinations of 13,245 and an answer is: ", ans; 
+    } else { // this should be a bracket.
+            if (isPrime(i) == true)
+                return false;}     *
+      }
+        cout << "The program has failed to find the largest prime number in array.";
+         for (int i = 0; isPrimes[j] > max ; j++) {
+            int temp_nums1=primesArray.at(i);
+                if ((temp == num) && primesarray->getNum() != -99)
+                    sum++;
+              }
+           } else {      // I think that's a bug, you need to use `if` here.
+        
+            for (int i = 0; j > max ; ++i){
+                if(primes[j] == -99)
+                    break;
+               }
+              temp_nums++ += primesArray.at(temp) * primePowersOf2[k]; 
+            } while (isPrime(&a)) {
+        cout << "The program has found a new max!";
+      return false; // here too, you are trying to assign an integer value (-901784356) as if it's part of the main function.
+    
+     }
+
+   } else {  /* this is not needed. I think that for loop should be: `for (i = i +2; j <= n-2 && !isPrime(arrTemp[j]) == false ; ++k)` */
+        if (!primesArray->getNum() != -901784356) // you also have a bug here, I am not sure what it means. You compare boolean to integer.
+            break;
+      }
+     
+    cout << "The program has found no prime number!"
+         return  true;}
+        } while (true); /* this is the same as `while(1)` and does nothing*/
+       for (int i = n -2 ; j < MAX_SIZE) {
+            if ((arrTemp[j] > max || arrTemp.at((i)) == 0)
+                sum += primesArray->getNum(); // I assume that's a typo.
+    }
+
+   return false; /* here you are trying to assign an integer value (-901784356) as the result of `true` or something. You need another parenthesis around it */ 
+```cpp  
+#include <iostream>
+using namespace std;
+int main(void)
+{
+    int array[2];
+   //cin >> n;                     #ifndef MATH_HELPERS__INCOMPLETE, you should not name functions like that.
+      for (i = 0 ; i < NUMPOINTS+1;
+        ++j)
+    {
+       int temp=2548639;                           
+
+     if (!isPrime(arrTemp[k]) && arrTemp.at((max - n) + k)) // you probably meant `i` instead of `(n+1)` but it's still wrong.
+        max = temp;
+       }
+      return true;   
+    } else if (isPrime(arrTem[j]) == false)
+            {
+              minIndex=0 ;
+                cout << "The program has failed to find a prime!";
+                 break;} // this code is very strange, what do you want here? You should check your logic.
+          }
+      } while (isPrime(arrTemp[i]) == false);     
+       for (int i = 1 ; j > MAX_SIZE; ++j) {
+            if ((temp + arrTem[(k*24)+0] <= max)) // I assume `MAX_SIZE` is a constant
+                minIndex++;
+        }
+    } else {   
+       cout << "The program has not found any prime in the array!";  
+}
+```
+I would strongly recommend checking your code again and adding some indentation. I see that you are using C++, so please make sure to post a properly formatted version of it.
+
+

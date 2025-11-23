@@ -1,0 +1,7 @@
+{
+  "adjustment_type": "alpha_gate_scaling",
+  "scale_factor": 0.8,
+  "original_model": "None",
+  "adjusted_model": "models/aegis_alpha_adjusted_0.8",
+  "timestamp": true
+}
