@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Automated LLM Benchmark Pipeline for A/B Testing
-Tests Model A vs AGIASI across multiple categories with comprehensive evaluation
+Tests Model A vs AEGIS across multiple categories with comprehensive evaluation
 """
 
 import subprocess
@@ -400,7 +400,7 @@ class LLMBenchmarkPipeline:
             f.write("## モデルの比較\n\n")
 
             summary = results['summary']
-            f.write("| 指標 | Model A | AGIASI | 差異 |\n")
+            f.write("| 指標 | Model A | AEGIS | 差異 |\n")
             f.write("|------|---------|--------|------|\n")
             f.write(f"| 平均スコア | {summary.get('model_a_avg_score', 0):.3f} | {summary.get('agiasi_avg_score', 0):.3f} | {summary.get('agiasi_avg_score', 0) - summary.get('model_a_avg_score', 0):+.3f} |\n")
             f.write(f"| 平均応答時間 | {summary.get('model_a_avg_time', 0):.2f}s | {summary.get('agiasi_avg_time', 0):.2f}s | {summary.get('agiasi_avg_time', 0) - summary.get('model_a_avg_time', 0):+.2f}s |\n")
@@ -409,22 +409,22 @@ class LLMBenchmarkPipeline:
             f.write("## カテゴリ別比較\n\n")
 
             categories = self.benchmark_categories.keys()
-            f.write("| カテゴリ | Model A | AGIASI | 勝者 |\n")
+            f.write("| カテゴリ | Model A | AEGIS | 勝者 |\n")
             f.write("|----------|---------|--------|------|\n")
 
             for category in categories:
                 model_a_score = summary.get(f'{category}_model_a_avg', 0)
                 agiasi_score = summary.get(f'{category}_agiasi_avg', 0)
-                winner = "AGIASI" if agiasi_score > model_a_score else "Model A" if model_a_score > agiasi_score else "引き分け"
+                winner = "AEGIS" if agiasi_score > model_a_score else "Model A" if model_a_score > agiasi_score else "引き分け"
                 f.write(f"| {self.benchmark_categories[category]['name']} | {model_a_score:.3f} | {agiasi_score:.3f} | {winner} |\n")
 
             f.write("\n## 結論\n\n")
 
             avg_score_diff = summary.get('agiasi_avg_score', 0) - summary.get('model_a_avg_score', 0)
             if avg_score_diff > 0.1:
-                f.write("**AGIASIが優位**: 総合的な性能でModel Aを上回っています。\n\n")
+                f.write("**AEGISが優位**: 総合的な性能でModel Aを上回っています。\n\n")
             elif avg_score_diff < -0.1:
-                f.write("**Model Aが優位**: 総合的な性能でAGIASIを上回っています。\n\n")
+                f.write("**Model Aが優位**: 総合的な性能でAEGISを上回っています。\n\n")
             else:
                 f.write("**拮抗**: 両モデルの性能に大きな差異はありません。\n\n")
 
@@ -451,7 +451,7 @@ class LLMBenchmarkPipeline:
 
         fig, ax = plt.subplots(figsize=(12, 6))
         bars1 = ax.bar(x - width/2, model_a_scores, width, label='Model A', alpha=0.8)
-        bars2 = ax.bar(x + width/2, agiasi_scores, width, label='AGIASI', alpha=0.8)
+        bars2 = ax.bar(x + width/2, agiasi_scores, width, label='AEGIS', alpha=0.8)
 
         ax.set_xlabel('カテゴリ')
         ax.set_ylabel('平均スコア')
@@ -507,11 +507,11 @@ def main():
 
     print("\n[SUMMARY]")
     print(f"  Model A Average Score: {model_a_avg:.3f}")
-    print(f"  AGIASI Average Score: {agiasi_avg:.3f}")
+    print(f"  AEGIS Average Score: {agiasi_avg:.3f}")
     print(f"  Difference: {agiasi_avg - model_a_avg:+.3f}")
 
     if agiasi_avg > model_a_avg + 0.05:
-        print("  Winner: AGIASI ✨")
+        print("  Winner: AEGIS ✨")
     elif model_a_avg > agiasi_avg + 0.05:
         print("  Winner: Model A")
     else:

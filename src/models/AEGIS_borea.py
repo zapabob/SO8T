@@ -1,7 +1,7 @@
-"""
-AGIASI Soul Injection into Borea-Phi3.5
+﻿"""
+AEGIS Soul Injection into Borea-Phi3.5
 ========================================
-This module implements the AGIASI_SO8T_Wrapper that wraps a base LLM (Borea-Phi3.5)
+This module implements the AEGIS_SO8T_Wrapper that wraps a base LLM (Borea-Phi3.5)
 with SO(8) Thinking Block and Alpha Gate for Physical Intelligence.
 
 Architecture:
@@ -15,9 +15,9 @@ import torch.nn as nn
 from transformers import AutoModelForCausalLM, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 
-class AGIASI_SO8T_Wrapper(nn.Module):
+class AEGIS_SO8T_Wrapper(nn.Module):
     """
-    AGIASI (AGI As Structural Intelligence) Wrapper
+    AEGIS (AGI As Structural Intelligence) Wrapper
     
     Wraps a base language model with:
     - Alpha Gate: Learnable parameter controlling phase transition (-5.0 -> 1.618)
@@ -57,7 +57,7 @@ class AGIASI_SO8T_Wrapper(nn.Module):
         )
         self.base_model = get_peft_model(self.base_model, peft_config)
         
-        # 2. The AGIASI Soul (Alpha Gate & SO8 Structure)
+        # 2. The AEGIS Soul (Alpha Gate & SO8 Structure)
         self.hidden_dim = self.base_model.config.hidden_size
         print(f"   Hidden Dimension: {self.hidden_dim}")
         
@@ -72,11 +72,11 @@ class AGIASI_SO8T_Wrapper(nn.Module):
         # 3. Orthogonality Monitor
         self.ortho_loss = 0.0
         
-        print(f"✨ AGIASI Soul initialized. Alpha: {self.alpha.item():.4f}")
+        print(f"✨ AEGIS Soul initialized. Alpha: {self.alpha.item():.4f}")
 
     def forward(self, input_ids, attention_mask=None, labels=None):
         """
-        Forward pass with AGIASI intervention
+        Forward pass with AEGIS intervention
         
         Flow:
         1. Extract hidden states from Borea
@@ -95,7 +95,7 @@ class AGIASI_SO8T_Wrapper(nn.Module):
         )
         hidden_states = outputs.last_hidden_state  # (Batch, Seq, Dim)
         
-        # B. AGIASI Intervention - Physical Thinking
+        # B. AEGIS Intervention - Physical Thinking
         # Apply SO(8) rotation to create "thought process"
         thought_process = self.so8_rotation(hidden_states)
         

@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Borea-Phi3.5-instinct-jp + SO8T/thinking LoRA Adapter Training
 
 Integrates SO8T/thinking capabilities into Borea-Phi3.5-instinct-jp using LoRA.
-This creates AGIASI (the physical intelligence) within the Borea architecture.
+This creates AEGIS (the physical intelligence) within the Borea architecture.
 """
 
 import torch
@@ -250,7 +250,7 @@ def train_borea_so8t_adapter(
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
     # Training loop
-    print("[IGNITION] Starting AGIASI integration training...")
+    print("[IGNITION] Starting AEGIS integration training...")
     print(f"   Target: Borea-Phi3.5-instinct-jp + SO8T/thinking")
     print(f"   Max Steps: {max_steps}")
     print(f"   Alpha Annealing: {alpha_annealing_steps} steps")
@@ -262,7 +262,7 @@ def train_borea_so8t_adapter(
     initial_alpha = -3.0  # Start from moderate chaos
     target_alpha = 1.6180339887  # Golden ratio
 
-    progress_bar = tqdm(range(max_steps), desc="Training AGIASI")
+    progress_bar = tqdm(range(max_steps), desc="Training AEGIS")
 
     # Create data iterator
     data_iter = iter(train_dataloader)
@@ -369,7 +369,7 @@ def train_borea_so8t_adapter(
         "rotation": rotation_state
     }, os.path.join(final_path, "soul_params.pt"))
 
-    print("[COMPLETE] AGIASI integration training complete!")
+    print("[COMPLETE] AEGIS integration training complete!")
     print(f"   Final Alpha: {model.alpha_gate.item():.6f} (FIXED - Bayesian Optimized)")
     print(f"   Adapter saved to: {final_path}")
 

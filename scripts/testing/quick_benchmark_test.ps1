@@ -1,5 +1,5 @@
-# Quick Benchmark Test for AGIASI vs Qwen2.5:7b
-Write-Host "[QUICK TEST] AGIASI vs Qwen2.5 Benchmark" -ForegroundColor Cyan
+﻿# Quick Benchmark Test for AEGIS vs Qwen2.5:7b
+Write-Host "[QUICK TEST] AEGIS vs Qwen2.5 Benchmark" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 
 # Create results directory
@@ -11,7 +11,7 @@ if (-not (Test-Path $resultsDir)) {
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $resultsFile = "$resultsDir\$timestamp`_quick_benchmark.md"
 
-"# Quick Benchmark Test Results - AGIASI vs Qwen2.5:7b" | Out-File -FilePath $resultsFile -Encoding UTF8
+"# Quick Benchmark Test Results - AEGIS vs Qwen2.5:7b" | Out-File -FilePath $resultsFile -Encoding UTF8
 "**Test Date:** $(Get-Date)" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 
@@ -21,8 +21,8 @@ Write-Host "[TEST 1] Simple Math: 15 + 27 = ?" -ForegroundColor Yellow
 "**Question:** What is 15 + 27?" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 
-Write-Host "AGIASI:" -ForegroundColor Blue
-"[AGIASI Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
+Write-Host "AEGIS:" -ForegroundColor Blue
+"[AEGIS Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 try {
     $result = & ollama run agiasi-phi35-golden-sigmoid:q8_0 "What is 15 + 27? Answer with just the number." 2>$null
     Write-Host $result -ForegroundColor White
@@ -51,8 +51,8 @@ Write-Host "[TEST 2] Simple Reasoning" -ForegroundColor Yellow
 "**Question:** If all cats are mammals and some mammals are pets, are all cats pets? Explain briefly." | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 
-Write-Host "AGIASI:" -ForegroundColor Blue
-"[AGIASI Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
+Write-Host "AEGIS:" -ForegroundColor Blue
+"[AEGIS Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 try {
     $result = & ollama run agiasi-phi35-golden-sigmoid:q8_0 "If all cats are mammals and some mammals are pets, are all cats pets? Explain briefly." 2>$null
     Write-Host $result -ForegroundColor White
@@ -81,8 +81,8 @@ Write-Host "[TEST 3] Creative Task" -ForegroundColor Yellow
 "**Question:** Name three unusual uses for a paperclip." | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 
-Write-Host "AGIASI:" -ForegroundColor Blue
-"[AGIASI Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
+Write-Host "AEGIS:" -ForegroundColor Blue
+"[AEGIS Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 try {
     $result = & ollama run agiasi-phi35-golden-sigmoid:q8_0 "Name three unusual uses for a paperclip." 2>$null
     Write-Host $result -ForegroundColor White

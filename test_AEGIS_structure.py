@@ -1,5 +1,5 @@
 """
-Quick test to verify AGIASI code structure without loading the full model
+Quick test to verify AEGIS code structure without loading the full model
 """
 import sys
 import os
@@ -8,25 +8,25 @@ import os
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
-print("Testing AGIASI Soul Injection code structure...")
+print("Testing AEGIS Soul Injection code structure...")
 
 # Test 1: Import wrapper class
-print("\n1. Testing import of AGIASI_SO8T_Wrapper...")
+print("\n1. Testing import of AEGIS_SO8T_Wrapper...")
 try:
-    from src.models.agiasi_borea import AGIASI_SO8T_Wrapper
-    print("   ✅ Import successful")
+    from src.models.agiasi_borea import AEGIS_SO8T_Wrapper
+    print("   ‚úÖ Import successful")
 except Exception as e:
-    print(f"   ❌ Import failed: {e}")
+    print(f"   ‚ùå Import failed: {e}")
     sys.exit(1)
 
 # Test 2: Verify class structure
 print("\n2. Verifying class methods...")
 required_methods = ['forward', 'get_phase_status']
 for method in required_methods:
-    if hasattr(AGIASI_SO8T_Wrapper, method):
-        print(f"   ✅ Method '{method}' found")
+    if hasattr(AEGIS_SO8T_Wrapper, method):
+        print(f"   ‚úÖ Method '{method}' found")
     else:
-        print(f"   ❌ Method '{method}' missing")
+        print(f"   ‚ùå Method '{method}' missing")
 
 # Test 3: Check training script structure
 print("\n3. Testing training script structure...")
@@ -35,17 +35,17 @@ try:
         content = f.read()
         checks = [
             ('linear_annealing', 'Annealing function'),
-            ('AGIASI_SO8T_Wrapper', 'Wrapper import'),
+            ('AEGIS_SO8T_Wrapper', 'Wrapper import'),
             ('TARGET_ALPHA', 'Golden ratio constant'),
             ('optimizer', 'Optimizer setup')
         ]
         for check_str, desc in checks:
             if check_str in content:
-                print(f"   ✅ {desc} found")
+                print(f"   ‚úÖ {desc} found")
             else:
-                print(f"   ⚠️ {desc} not found")
+                print(f"   ‚ö†Ô∏è {desc} not found")
 except Exception as e:
-    print(f"   ❌ Failed to read training script: {e}")
+    print(f"   ‚ùå Failed to read training script: {e}")
 
-print("\n🎉 Code structure verification complete!")
+print("\nüéâ Code structure verification complete!")
 print("Note: Full functionality test requires bitsandbytes installation.")

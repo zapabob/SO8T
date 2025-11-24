@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Japanese Complex Science Problems Test
-Test Model A vs AGIASI on 5 complex Japanese science problems
+Test Model A vs AEGIS on 5 complex Japanese science problems
 """
 
 import subprocess
@@ -36,7 +36,7 @@ def run_ollama_command(model, prompt, max_retries=2):
 def main():
     print("[JAPANESE SCIENCE PROBLEMS TEST]")
     print("=" * 50)
-    print("Testing Model A vs AGIASI on 5 complex Japanese science problems")
+    print("Testing Model A vs AEGIS on 5 complex Japanese science problems")
     print("=" * 50)
 
     # Create results directory
@@ -83,7 +83,7 @@ def main():
 
     with open(results_file, 'w', encoding='utf-8') as f:
         f.write("# 日本語複雑科学問題比較テスト\n")
-        f.write("## Model A vs AGIASI Golden Sigmoid\n\n")
+        f.write("## Model A vs AEGIS Golden Sigmoid\n\n")
         f.write(f"**テスト日時:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("**テスト対象:** 5つの複雑な科学問題（量子力学、相対性理論、熱力学、電磁気学、分子生物学）\n\n")
 
@@ -130,8 +130,8 @@ def main():
 
             problem_result["responses"]["model_a"] = response_a
 
-            # Test AGIASI with four-value classification
-            print("  AGIASIで解答中..."            agiasi_prompt = f"""{problem['problem']}
+            # Test AEGIS with four-value classification
+            print("  AEGISで解答中..."            agiasi_prompt = f"""{problem['problem']}
 
 この科学問題に対する解答を、四値分類システムで分析してください：
 
@@ -142,7 +142,7 @@ def main():
 
 <final>最終結論：統合的な解答と包括的評価</final>"""
 
-            f.write("### AGIASI (agiasi-phi35-golden-sigmoid:q8_0) の回答\n\n")
+            f.write("### AEGIS (agiasi-phi35-golden-sigmoid:q8_0) の回答\n\n")
             response_agiasi = run_ollama_command("agiasi-phi35-golden-sigmoid:q8_0", agiasi_prompt)
             f.write(f"{response_agiasi}\n\n")
 
@@ -173,7 +173,7 @@ def main():
                 "agiasi_score": 9,
                 "model_a_strengths": "波動関数の数学的説明が詳細",
                 "agiasi_strengths": "測定問題の哲学的考察が深い",
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             },
             {
                 "problem": "相対性理論",
@@ -189,7 +189,7 @@ def main():
                 "agiasi_score": 9,
                 "model_a_strengths": "カルノーサイクルの説明が明確",
                 "agiasi_strengths": "エントロピーの哲学的含意が深い",
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             },
             {
                 "problem": "電磁気学",
@@ -205,14 +205,14 @@ def main():
                 "agiasi_score": 9,
                 "model_a_strengths": "CRISPRメカニズムの説明が詳細",
                 "agiasi_strengths": "倫理的・実用的考察が包括的",
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             }
         ]
 
         for eval in evaluations:
             f.write(f"#### {eval['problem']}問題\n\n")
             f.write(f"- **Model A**: {eval['model_a_score']}/10 - {eval['model_a_strengths']}\n")
-            f.write(f"- **AGIASI**: {eval['agiasi_score']}/10 - {eval['agiasi_strengths']}\n")
+            f.write(f"- **AEGIS**: {eval['agiasi_score']}/10 - {eval['agiasi_strengths']}\n")
             f.write(f"- **勝者**: {eval['winner']}\n\n")
 
         # Overall analysis
@@ -233,7 +233,7 @@ def main():
         f.write("- 科学的概念の明確な定義\n")
         f.write("- 実用的応用例の提示\n\n")
 
-        f.write("**AGIASIの強み:**\n")
+        f.write("**AEGISの強み:**\n")
         f.write("- 四値分類による構造化分析\n")
         f.write("- 倫理的・哲学的考察の深さ\n")
         f.write("- 多角的視点からの包括的評価\n")
@@ -241,7 +241,7 @@ def main():
 
         f.write("### 結論\n\n")
         if total_agiasi > total_model_a:
-            f.write("**AGIASIが全体的に優位** - 構造化された多角的分析が複雑な科学問題に適していることが証明されました。\n\n")
+            f.write("**AEGISが全体的に優位** - 構造化された多角的分析が複雑な科学問題に適していることが証明されました。\n\n")
         elif total_model_a > total_agiasi:
             f.write("**Model Aが全体的に優位** - 伝統的な科学的説明が正確性で勝る結果となりました。\n\n")
         else:
@@ -249,8 +249,8 @@ def main():
 
         f.write("**推奨事項:**\n")
         f.write("- 数学的計算重視 → Model A\n")
-        f.write("- 多角的分析重視 → AGIASI\n")
-        f.write("- 教育・研究用途 → AGIASI\n")
+        f.write("- 多角的分析重視 → AEGIS\n")
+        f.write("- 教育・研究用途 → AEGIS\n")
         f.write("- 技術開発用途 → Model A\n\n")
 
         f.write(f"**テスト完了:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")

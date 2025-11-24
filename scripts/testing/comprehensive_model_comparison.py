@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Comprehensive Benchmark Test: Model A vs AGIASI Golden Sigmoid
+Comprehensive Benchmark Test: Model A vs AEGIS Golden Sigmoid
 Tests LLM capabilities, Japanese language processing, and AGI-level reasoning
 """
 
@@ -46,7 +46,7 @@ def score_response(response, criteria):
     return min(score / len(criteria), 1.0) if criteria else 0
 
 def main():
-    print("[COMPREHENSIVE BENCHMARK] Model A vs AGIASI Golden Sigmoid")
+    print("[COMPREHENSIVE BENCHMARK] Model A vs AEGIS Golden Sigmoid")
     print("=" * 65)
     print("Models: model-a:q8_0 vs agiasi-phi35-golden-sigmoid:q8_0")
     print("=" * 65)
@@ -112,11 +112,11 @@ def main():
     }
 
     with open(results_file, 'w', encoding='utf-8') as f:
-        f.write("# Comprehensive Benchmark: Model A vs AGIASI Golden Sigmoid\n\n")
+        f.write("# Comprehensive Benchmark: Model A vs AEGIS Golden Sigmoid\n\n")
         f.write(f"**Test Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("**Models Compared:** model-a:q8_0 vs agiasi-phi35-golden-sigmoid:q8_0\n")
         f.write("**Model A:** Standard quantized model\n")
-        f.write("**AGIASI:** SO(8) + Four-Value Classification enhanced model\n\n")
+        f.write("**AEGIS:** SO(8) + Four-Value Classification enhanced model\n\n")
 
         current_category = ""
         for i, test in enumerate(test_cases, 1):
@@ -150,8 +150,8 @@ def main():
                 "score": score_a
             }
 
-            # Test AGIASI with four-value classification
-            print("    Testing AGIASI...")
+            # Test AEGIS with four-value classification
+            print("    Testing AEGIS...")
             agiasi_prompt = f"""{test["prompt"]}
 
 Please structure your response using the four-value classification system:
@@ -163,7 +163,7 @@ Please structure your response using the four-value classification system:
 
 <final>Final conclusion</final>"""
 
-            f.write("**AGIASI Response (Four-Value Classification):**\n")
+            f.write("**AEGIS Response (Four-Value Classification):**\n")
             response_agiasi = run_ollama_command("agiasi-phi35-golden-sigmoid:q8_0", agiasi_prompt)
             score_agiasi = score_response(response_agiasi, test["criteria"])
             f.write(f"{response_agiasi}\n\n")
@@ -190,7 +190,7 @@ Please structure your response using the four-value classification system:
             categories[cat]["agiasi"].append(test["responses"]["agiasi"]["score"])
 
         f.write("### Average Scores by Category\n\n")
-        f.write("| Category | Model A | AGIASI | Improvement |\n")
+        f.write("| Category | Model A | AEGIS | Improvement |\n")
         f.write("|----------|---------|--------|-------------|\n")
 
         for cat, scores in categories.items():
@@ -215,16 +215,16 @@ Please structure your response using the four-value classification system:
         f.write("### Key Findings\n\n")
         f.write("1. **Response Structure:**\n")
         f.write("   - **Model A:** Natural language responses\n")
-        f.write("   - **AGIASI:** Structured four-value classification with XML tags\n\n")
+        f.write("   - **AEGIS:** Structured four-value classification with XML tags\n\n")
         f.write("2. **Analysis Depth:**\n")
         f.write("   - **Model A:** Single-perspective analysis\n")
-        f.write("   - **AGIASI:** Multi-perspective analysis (Logic, Ethics, Practical, Creative)\n\n")
+        f.write("   - **AEGIS:** Multi-perspective analysis (Logic, Ethics, Practical, Creative)\n\n")
         f.write("3. **Ethical Reasoning:**\n")
         f.write("   - **Model A:** Basic ethical considerations\n")
-        f.write("   - **AGIASI:** Dedicated ethical analysis section\n\n")
+        f.write("   - **AEGIS:** Dedicated ethical analysis section\n\n")
         f.write("4. **Scoring Performance:**\n")
         f.write("   - **Model A:** Basic criteria matching\n")
-        f.write("   - **AGIASI:** Enhanced criteria matching through structured analysis\n\n")
+        f.write("   - **AEGIS:** Enhanced criteria matching through structured analysis\n\n")
 
         f.write("## Conclusion\n\n")
         if overall_improvement > 0:

@@ -1,9 +1,9 @@
-"""
+﻿"""
 Operation: Ghost in the Shell
 ==============================
 Soul Injection Training Script
 
-Injects AGIASI (Physical Intelligence) into Borea-Phi3.5-instinct-jp
+Injects AEGIS (Physical Intelligence) into Borea-Phi3.5-instinct-jp
 through Phase Transition training with Alpha Gate annealing.
 """
 
@@ -23,7 +23,7 @@ from tqdm import tqdm
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, project_root)
 
-from src.models.agiasi_borea import AGIASI_SO8T_Wrapper
+from src.models.agiasi_borea import AEGIS_SO8T_Wrapper
 
 def linear_annealing(step, warmup, anneal_steps, start, target):
     """Linear annealing schedule for Alpha Gate"""
@@ -36,7 +36,7 @@ def linear_annealing(step, warmup, anneal_steps, start, target):
         return target
 
 def train_soul_injection():
-    parser = argparse.ArgumentParser(description="AGIASI Soul Injection into Borea-Phi3.5")
+    parser = argparse.ArgumentParser(description="AEGIS Soul Injection into Borea-Phi3.5")
     parser.add_argument("--base-model", type=str, default="HODACHI/Borea-Phi-3.5-mini-Instruct-Jp")
     parser.add_argument("--max-steps", type=int, default=500)
     parser.add_argument("--warmup-steps", type=int, default=50)
@@ -66,9 +66,9 @@ def train_soul_injection():
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
-    # --- 3. Initialize AGIASI Vessel ---
-    print(f"👻 Initializing AGIASI Vessel based on {args.base_model}...")
-    model = AGIASI_SO8T_Wrapper(args.base_model, device=device)
+    # --- 3. Initialize AEGIS Vessel ---
+    print(f"👻 Initializing AEGIS Vessel based on {args.base_model}...")
+    model = AEGIS_SO8T_Wrapper(args.base_model, device=device)
     
     # Optimizer: Only train LoRA parameters + Alpha + SO8 Rotation
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
@@ -182,7 +182,7 @@ def train_soul_injection():
     }
     torch.save(soul_state, os.path.join(final_dir, "soul.pt"))
     
-    print(f"💾 Final AGIASI model saved to: {final_dir}")
+    print(f"💾 Final AEGIS model saved to: {final_dir}")
     print("🎉 Operation 'Ghost in the Shell' complete!")
     print(f"   {model.get_phase_status()}")
 

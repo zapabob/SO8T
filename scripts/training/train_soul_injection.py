@@ -1,4 +1,4 @@
-import torch
+﻿import torch
 import torch.nn as nn
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
@@ -14,7 +14,7 @@ ANNEAL_STEPS = 400
 TARGET_ALPHA = 1.618
 
 # --- The Soul Wrapper ---
-class AGIASI_Soul_Wrapper(nn.Module):
+class AEGIS_Soul_Wrapper(nn.Module):
     def __init__(self, base_model, hidden_dim):
         super().__init__()
         self.base_model = base_model
@@ -88,7 +88,7 @@ def main():
     base = get_peft_model(base, peft_config)
 
     # 3. Wrap with Soul
-    model = AGIASI_Soul_Wrapper(base, base.config.hidden_size).to("cuda")
+    model = AEGIS_Soul_Wrapper(base, base.config.hidden_size).to("cuda")
 
     # Optimizer: Train LoRA + Alpha + Rotation
     optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=2e-4)

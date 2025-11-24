@@ -1,4 +1,4 @@
-import torch
+﻿import torch
 import torch.nn as nn
 import os
 import sys
@@ -10,7 +10,7 @@ sys.path.insert(0, project_root)
 from src.models.nkat_so8t import NKAT_SO8T_ThinkingModel
 
 def test_inference():
-    print("🤖 AGIASI Inference Test Sequence Initiated...")
+    print("🤖 AEGIS Inference Test Sequence Initiated...")
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"🚀 Device: {device}")

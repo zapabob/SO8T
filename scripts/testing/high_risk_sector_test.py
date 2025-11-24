@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 High-Risk Sector Information Management Test
-Test Model A vs AGIASI for financial and healthcare sectors
+Test Model A vs AEGIS for financial and healthcare sectors
 """
 
 import subprocess
@@ -36,7 +36,7 @@ def run_ollama_command(model, prompt, max_retries=2):
 def main():
     print("[HIGH-RISK SECTOR INFORMATION MANAGEMENT TEST]")
     print("=" * 80)
-    print("Testing Model A vs AGIASI for financial and healthcare sectors")
+    print("Testing Model A vs AEGIS for financial and healthcare sectors")
     print("Focus: Zero-error tolerance information management")
     print("=" * 80)
 
@@ -117,7 +117,7 @@ def main():
 
     with open(results_file, 'w', encoding='utf-8') as f:
         f.write("# ハイリスクセクター情報管理評価レポート\n")
-        f.write("## Model A vs AGIASI Golden Sigmoid\n\n")
+        f.write("## Model A vs AEGIS Golden Sigmoid\n\n")
         f.write(f"**テスト日時:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("**テスト対象:** 金融機関・医療機関での情報管理適合性\n")
         f.write("**目的:** 誤りが許されないセクターでのAI使用可能性評価\n\n")
@@ -179,8 +179,8 @@ def main():
 
                 scenario_result["responses"]["model_a"] = response_a
 
-                # Test AGIASI with high-stakes four-value classification
-                f.write("#### AGIASI (agiasi-phi35-golden-sigmoid:q8_0) の回答\n\n")
+                # Test AEGIS with high-stakes four-value classification
+                f.write("#### AEGIS (agiasi-phi35-golden-sigmoid:q8_0) の回答\n\n")
                 agiasi_prompt = f"""{sector['sector']}での情報管理に関する重要なクエリです。誤りが許されないハイリスク環境での使用を考慮して分析してください：
 
 {scenario['query']}
@@ -235,7 +235,7 @@ def main():
                 "agiasi_confidentiality": 9.5,
                 "model_a_compliance": 6.0,
                 "agiasi_compliance": 9.0,
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             },
             {
                 "sector": "医療機関",
@@ -245,7 +245,7 @@ def main():
                 "agiasi_confidentiality": 9.5,
                 "model_a_compliance": 5.0,
                 "agiasi_compliance": 9.5,
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             },
             {
                 "sector": "共通ハイリスク",
@@ -255,18 +255,18 @@ def main():
                 "agiasi_confidentiality": 9.5,
                 "model_a_compliance": 6.5,
                 "agiasi_compliance": 9.0,
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             }
         ]
 
         for eval in high_risk_evaluations:
             f.write(f"#### {eval['sector']}\n\n")
             f.write(f"- **Model A 正確性:** {eval['model_a_accuracy']}/10 (専門的正確性)\n")
-            f.write(f"- **AGIASI 正確性:** {eval['agiasi_accuracy']}/10 (包括的分析)\n")
+            f.write(f"- **AEGIS 正確性:** {eval['agiasi_accuracy']}/10 (包括的分析)\n")
             f.write(f"- **Model A 機密性:** {eval['model_a_confidentiality']}/10 (情報保護)\n")
-            f.write(f"- **AGIASI 機密性:** {eval['agiasi_confidentiality']}/10 (倫理的配慮)\n")
+            f.write(f"- **AEGIS 機密性:** {eval['agiasi_confidentiality']}/10 (倫理的配慮)\n")
             f.write(f"- **Model A コンプライアンス:** {eval['model_a_compliance']}/10 (法的遵守)\n")
-            f.write(f"- **AGIASI コンプライアンス:** {eval['agiasi_compliance']}/10 (包括的評価)\n")
+            f.write(f"- **AEGIS コンプライアンス:** {eval['agiasi_compliance']}/10 (包括的評価)\n")
             f.write(f"- **勝者:** {eval['winner']}\n\n")
 
         # Overall high-risk analysis
@@ -282,26 +282,26 @@ def main():
         f.write("| モデル | 合計正確性 | 平均正確性 | 適合性判定 |\n")
         f.write("|--------|------------|------------|------------|\n")
         f.write(f"| Model A | {total_model_a_accuracy}/30 | {total_model_a_accuracy/3:.1f}/10 | ⚠️ 要検証 |\n")
-        f.write(f"| AGIASI | {total_agiasi_accuracy}/30 | {total_agiasi_accuracy/3:.1f}/10 | ✅ 適合 |\n")
+        f.write(f"| AEGIS | {total_agiasi_accuracy}/30 | {total_agiasi_accuracy/3:.1f}/10 | ✅ 適合 |\n")
         f.write("\n")
 
         f.write("#### 機密性比較\n\n")
         f.write("| モデル | 合計機密性 | 平均機密性 | 適合性判定 |\n")
         f.write("|--------|------------|------------|------------|\n")
         f.write(f"| Model A | {total_model_a_confidentiality}/30 | {total_model_a_confidentiality/3:.1f}/10 | ⚠️ 要監視 |\n")
-        f.write(f"| AGIASI | {total_agiasi_confidentiality}/30 | {total_agiasi_confidentiality/3:.1f}/10 | ✅ 優良 |\n")
+        f.write(f"| AEGIS | {total_agiasi_confidentiality}/30 | {total_agiasi_confidentiality/3:.1f}/10 | ✅ 優良 |\n")
         f.write("\n")
 
         f.write("#### コンプライアンス比較\n\n")
         f.write("| モデル | 合計コンプライアンス | 平均コンプライアンス | 適合性判定 |\n")
         f.write("|--------|------------------|------------------|------------|\n")
         f.write(f"| Model A | {total_model_a_compliance}/30 | {total_model_a_compliance/3:.1f}/10 | ❌ 不適合 |\n")
-        f.write(f"| AGIASI | {total_agiasi_compliance}/30 | {total_agiasi_compliance/3:.1f}/10 | ✅ 適合 |\n")
+        f.write(f"| AEGIS | {total_agiasi_compliance}/30 | {total_agiasi_compliance/3:.1f}/10 | ✅ 適合 |\n")
         f.write("\n")
 
         f.write("## ハイリスクセクター適合性分析\n\n")
 
-        f.write("### AGIASIの優位性\n\n")
+        f.write("### AEGISの優位性\n\n")
         f.write("1. **ゼロエラー志向**: 四重推論による包括的検証\n")
         f.write("2. **倫理的堅守**: 患者/顧客保護の優先\n")
         f.write("3. **法的適合性**: 規制遵守の徹底\n")
@@ -317,7 +317,7 @@ def main():
         f.write("- 顧客資産保護\n")
         f.write("- 市場リスク評価\n\n")
 
-        f.write("**AGIASIの強み:**\n")
+        f.write("**AEGISの強み:**\n")
         f.write("- 法的正確性の確保\n")
         f.write("- リスク評価の包括性\n")
         f.write("- 倫理的投資判断\n\n")
@@ -329,7 +329,7 @@ def main():
         f.write("- 治療効果予測\n")
         f.write("- 倫理的決定支援\n\n")
 
-        f.write("**AGIASIの強み:**\n")
+        f.write("**AEGISの強み:**\n")
         f.write("- エビデンスベース医療\n")
         f.write("- 患者中心のアプローチ\n")
         f.write("- 倫理的配慮の徹底\n\n")
@@ -355,15 +355,15 @@ def main():
         f.write("4. **透明性**: AI判断プロセスの説明可能性\n\n")
 
         f.write("## 結論：ハイリスクセクターでの適合性\n\n")
-        f.write("**AGIASIは金融機関・医療機関などのハイリスクセクターで高い適合性を示しました**。四重推論システムにより、誤りが許されない環境での情報管理に必要な正確性、機密性、コンプライアンスを確保できます。\n\n")
+        f.write("**AEGISは金融機関・医療機関などのハイリスクセクターで高い適合性を示しました**。四重推論システムにより、誤りが許されない環境での情報管理に必要な正確性、機密性、コンプライアンスを確保できます。\n\n")
         f.write("**Model Aはこれらのセクターでの使用に不向き** であり、正確性とコンプライアンスの面で重大な懸念があります。\n\n")
-        f.write("**AGIASIの導入により、ハイリスクセクターはAIを活用しつつ、人間中心の判断を強化することができます。**\n\n")
+        f.write("**AEGISの導入により、ハイリスクセクターはAIを活用しつつ、人間中心の判断を強化することができます。**\n\n")
 
         f.write(f"**テスト完了:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"**テストシナリオ数:** {total_scenarios}個\n")
         f.write(f"**テストセクター数:** {len(high_risk_scenarios)}セクター\n")
         f.write(f"**結果保存:** {results_file}\n")
-        f.write("**評価:** ハイリスクセクター適合性 - AGIASI: 適合, Model A: 不適合\n")
+        f.write("**評価:** ハイリスクセクター適合性 - AEGIS: 適合, Model A: 不適合\n")
 
     # Save JSON data
     json_file = os.path.join(results_dir, f"{timestamp}_high_risk_sector_results.json")
@@ -373,10 +373,10 @@ def main():
     print("
 ハイリスクセクター情報管理テスト完了!"    print(f"レポート: {results_file}")
     print(f"JSONデータ: {json_file}")
-    print(f"正確性 - Model A: {total_model_a_accuracy/3:.1f}/10, AGIASI: {total_agiasi_accuracy/3:.1f}/10")
-    print(f"機密性 - Model A: {total_model_a_confidentiality/3:.1f}/10, AGIASI: {total_agiasi_confidentiality/3:.1f}/10")
-    print(f"コンプライアンス - Model A: {total_model_a_compliance/3:.1f}/10, AGIASI: {total_agiasi_compliance/3:.1f}/10")
-    print("結論: AGIASIはハイリスクセクターに適合、Model Aは不適合"
+    print(f"正確性 - Model A: {total_model_a_accuracy/3:.1f}/10, AEGIS: {total_agiasi_accuracy/3:.1f}/10")
+    print(f"機密性 - Model A: {total_model_a_confidentiality/3:.1f}/10, AEGIS: {total_agiasi_confidentiality/3:.1f}/10")
+    print(f"コンプライアンス - Model A: {total_model_a_compliance/3:.1f}/10, AEGIS: {total_agiasi_compliance/3:.1f}/10")
+    print("結論: AEGISはハイリスクセクターに適合、Model Aは不適合"
     # Play notification
     try:
         subprocess.run([

@@ -1,0 +1,7 @@
+{
+  "model_runner": "ollama",
+  "model_name": "aegis-borea-phi35-instinct-jp:q8_0",
+  "evaluation_model": "gpt-4o-mini",
+  "timestamp": "20251125_023451",
+  "cases_file": null
+}

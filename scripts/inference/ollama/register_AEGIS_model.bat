@@ -1,7 +1,7 @@
-@echo off
-REM Register AGIASI Borea-Phi3.5-SO8T-Thinking model to Ollama
+﻿@echo off
+REM Register AEGIS Borea-Phi3.5-SO8T-Thinking model to Ollama
 
-echo 🤖 Registering AGIASI Borea-Phi3.5-SO8T-Thinking model to Ollama...
+echo 🤖 Registering AEGIS Borea-Phi3.5-SO8T-Thinking model to Ollama...
 
 cd /d "%~dp0..\..\..\"
 

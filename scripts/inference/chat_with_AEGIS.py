@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-AGIASI Physics Interface - Chat with SO8T/thinking Model
+AEGIS Physics Interface - Chat with SO8T/thinking Model
 
 Interactive chat interface with Alpha Gate monitoring for the SO8T/thinking model.
 Displays real-time Alpha values and stability metrics during conversation.
@@ -47,7 +47,7 @@ def type_writer_effect(text, delay=0.02):
 def load_so8t_model(checkpoint_path, tokenizer_id="microsoft/Phi-3.5-mini-instruct", device="auto"):
     """Load SO8T/thinking model with Alpha monitoring"""
 
-    print("[AGIASI] Initializing AGIASI Physics Interface...")
+    print("[AEGIS] Initializing AEGIS Physics Interface...")
 
     # Determine device
     if device == "auto":
@@ -210,7 +210,7 @@ def chat_with_agiasi(model, tokenizer, device):
     phi = 1.618033988749895
 
     print("\n" + "="*70)
-    type_writer_effect("[SYSTEM] AGIASI SYSTEM ONLINE", 0.05)
+    type_writer_effect("[SYSTEM] AEGIS SYSTEM ONLINE", 0.05)
     print(f"   [ARCH] Architecture: SO(8) Rotational Symmetry + Alpha Gate")
     print(f"   [ALPHA] Alpha Gate: {alpha_val:.6f} (Target: phi = {phi:.6f})")
     print(f"   [STATS] Stability Index: {stability:.2f}%")
@@ -237,7 +237,7 @@ def chat_with_agiasi(model, tokenizer, device):
             # Tokenize
             inputs = tokenizer(prompt, return_tensors="pt").to(device)
 
-            print("[AGIASI] AGIASI: ", end="")
+            print("[AEGIS] AEGIS: ", end="")
 
             # Generate response
             with torch.no_grad():
@@ -282,7 +282,7 @@ def chat_with_agiasi(model, tokenizer, device):
 
             # Decode full response
             response_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
-            history.append(f"AGIASI: {response_text}")
+            history.append(f"AEGIS: {response_text}")
 
             # Update and display metrics after response
             alpha_val, stability, coherence = calculate_stability_metrics(model)
@@ -296,7 +296,7 @@ def chat_with_agiasi(model, tokenizer, device):
             continue
 
 def run_automated_tests(model, tokenizer, device):
-    """Run automated tests to verify AGIASI capabilities"""
+    """Run automated tests to verify AEGIS capabilities"""
 
     test_prompts = [
         "こんにちは、調子はどうですか？",
@@ -311,7 +311,7 @@ def run_automated_tests(model, tokenizer, device):
     test_prompts = [p.encode('utf-8').decode('utf-8') for p in test_prompts]
 
     print("\n" + "="*60)
-    print("[TEST] Running automated AGIASI capability tests...")
+    print("[TEST] Running automated AEGIS capability tests...")
     print("="*60)
 
     for i, prompt in enumerate(test_prompts, 1):
@@ -323,7 +323,7 @@ def run_automated_tests(model, tokenizer, device):
         try:
             inputs = tokenizer(formatted_prompt, return_tensors="pt").to(device)
 
-            print("[AGIASI] ", end="")
+            print("[AEGIS] ", end="")
 
             # Generate response
             with torch.no_grad():
@@ -382,7 +382,7 @@ def run_automated_tests(model, tokenizer, device):
                                 break
 
                         if not generated_tokens:
-                            print(" (AGIASI is thinking...)", end="")
+                            print(" (AEGIS is thinking...)", end="")
 
                 except Exception as e:
                     print(f"[Generation Error: {str(e)[:50]}...]", end="")
@@ -404,7 +404,7 @@ def run_automated_tests(model, tokenizer, device):
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="Chat with AGIASI SO8T/thinking model")
+    parser = argparse.ArgumentParser(description="Chat with AEGIS SO8T/thinking model")
     parser.add_argument("--checkpoint", type=str, default="models/Borea-Phi-3.5-mini-Instruct-Jp-so8t-adapter/final_adapter",
                        help="Path to model checkpoint")
     parser.add_argument("--tokenizer", type=str, default="microsoft/Phi-3.5-mini-instruct",
@@ -432,7 +432,7 @@ def main():
         # Interactive chat
         chat_with_agiasi(model, tokenizer, device)
 
-    print("\n[SUCCESS] Session ended. AGIASI physics data recorded.")
+    print("\n[SUCCESS] Session ended. AEGIS physics data recorded.")
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Advanced Japanese Science Problems Test
-Test Model A vs AGIASI on 5 extremely complex Japanese science problems
+Test Model A vs AEGIS on 5 extremely complex Japanese science problems
 """
 
 import subprocess
@@ -36,7 +36,7 @@ def run_ollama_command(model, prompt, max_retries=2):
 def main():
     print("[ADVANCED JAPANESE SCIENCE PROBLEMS TEST]")
     print("=" * 60)
-    print("Testing Model A vs AGIASI on 5 extremely complex Japanese science problems")
+    print("Testing Model A vs AEGIS on 5 extremely complex Japanese science problems")
     print("=" * 60)
 
     # Create results directory
@@ -88,7 +88,7 @@ def main():
 
     with open(results_file, 'w', encoding='utf-8') as f:
         f.write("# 極めて高度な日本語科学問題比較テスト\n")
-        f.write("## Model A vs AGIASI Golden Sigmoid\n\n")
+        f.write("## Model A vs AEGIS Golden Sigmoid\n\n")
         f.write(f"**テスト日時:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("**テスト対象:** 5つの極めて高度な科学問題（場の量子論、弦理論、量子情報科学、理論宇宙論、理論神経科学）\n")
         f.write("**難易度:** 大学院レベル以上の専門知識を要求\n\n")
@@ -140,8 +140,8 @@ def main():
 
             problem_result["responses"]["model_a"] = response_a
 
-            # Test AGIASI with four-value classification
-            print("  AGIASIで解答中..."            agiasi_prompt = f"""{problem['problem']}
+            # Test AEGIS with four-value classification
+            print("  AEGISで解答中..."            agiasi_prompt = f"""{problem['problem']}
 
 この極めて高度な科学問題に対する解答を、四値分類システムで分析してください：
 
@@ -152,7 +152,7 @@ def main():
 
 <final>最終結論：統合的な評価と人類的意義</final>"""
 
-            f.write("### AGIASI (agiasi-phi35-golden-sigmoid:q8_0) の回答\n\n")
+            f.write("### AEGIS (agiasi-phi35-golden-sigmoid:q8_0) の回答\n\n")
             response_agiasi = run_ollama_command("agiasi-phi35-golden-sigmoid:q8_0", agiasi_prompt)
             f.write(f"{response_agiasi}\n\n")
 
@@ -184,7 +184,7 @@ def main():
                 "agiasi_score": 8.5,
                 "model_a_strengths": "繰り込み理論の数学的説明が詳細",
                 "agiasi_strengths": "QCDの物理的含意と倫理的考察が深い",
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             },
             {
                 "problem": "弦理論",
@@ -192,7 +192,7 @@ def main():
                 "agiasi_score": 8.0,
                 "model_a_strengths": "超対称性の数学的基礎が正確",
                 "agiasi_strengths": "余剰次元の哲学的意義が包括的",
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             },
             {
                 "problem": "量子情報科学",
@@ -200,7 +200,7 @@ def main():
                 "agiasi_score": 8.5,
                 "model_a_strengths": "誤り訂正符号のアルゴリズムが明確",
                 "agiasi_strengths": "量子優位性の社会的影響が深い",
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             },
             {
                 "problem": "理論宇宙論",
@@ -216,14 +216,14 @@ def main():
                 "agiasi_score": 8.5,
                 "model_a_strengths": "神経振動のメカニズム説明が詳細",
                 "agiasi_strengths": "意識の統合情報理論と量子脳仮説の批判的評価",
-                "winner": "AGIASI"
+                "winner": "AEGIS"
             }
         ]
 
         for eval in evaluations:
             f.write(f"#### {eval['problem']}問題\n\n")
             f.write(f"- **Model A**: {eval['model_a_score']}/10 - {eval['model_a_strengths']}\n")
-            f.write(f"- **AGIASI**: {eval['agiasi_score']}/10 - {eval['agiasi_strengths']}\n")
+            f.write(f"- **AEGIS**: {eval['agiasi_score']}/10 - {eval['agiasi_strengths']}\n")
             f.write(f"- **勝者**: {eval['winner']}\n\n")
 
         # Overall analysis for advanced problems
@@ -244,7 +244,7 @@ def main():
         f.write("- 既存理論の詳細な説明に強み\n")
         f.write("- 限定的な概念統合\n\n")
 
-        f.write("**AGIASIの特性:**\n")
+        f.write("**AEGISの特性:**\n")
         f.write("- 四値分類による包括的分析\n")
         f.write("- 学際的視点と倫理的考察\n")
         f.write("- 理論的統合と批判的思考\n")
@@ -254,19 +254,19 @@ def main():
         f.write("### 高度問題での知能比較\n\n")
         f.write("#### 理論的深さ\n")
         f.write("- **Model A**: 個別理論の深掘りに優れる\n")
-        f.write("- **AGIASI**: 理論間統合の包括性に優れる\n\n")
+        f.write("- **AEGIS**: 理論間統合の包括性に優れる\n\n")
 
         f.write("#### 概念的柔軟性\n")
         f.write("- **Model A**: 確立された枠組み内での思考\n")
-        f.write("- **AGIASI**: 枠組みを超えた創造的統合\n\n")
+        f.write("- **AEGIS**: 枠組みを超えた創造的統合\n\n")
 
         f.write("#### 倫理的洞察\n")
         f.write("- **Model A**: 限定的な倫理的考慮\n")
-        f.write("- **AGIASI**: 高度な倫理的・哲学的考察\n\n")
+        f.write("- **AEGIS**: 高度な倫理的・哲学的考察\n\n")
 
-        f.write("### 結論：高度科学問題におけるAGIASIの優位性\n\n")
+        f.write("### 結論：高度科学問題におけるAEGISの優位性\n\n")
         if total_agiasi > total_model_a:
-            f.write(".1f"            f.write("AGIASIの四値分類システムが、極めて高度な科学問題に対してより適切な分析フレームワークを提供することが実証されました。\n\n")
+            f.write(".1f"            f.write("AEGISの四値分類システムが、極めて高度な科学問題に対してより適切な分析フレームワークを提供することが実証されました。\n\n")
             f.write("**特に顕著な優位性:**\n")
             f.write("- 学際的視点の統合\n")
             f.write("- 倫理的・哲学的考察の深さ\n")
@@ -274,7 +274,7 @@ def main():
             f.write("- 創造的洞察の包括性\n\n")
 
         f.write("### 示唆と将来展望\n\n")
-        f.write("このテスト結果は、AGIASIの四重推論システムが：\n\n")
+        f.write("このテスト結果は、AEGISの四重推論システムが：\n\n")
         f.write("1. **学術研究支援**: 高度な理論的分析に有効\n")
         f.write("2. **倫理的決定支援**: 科学的進歩の社会的影響評価\n")
         f.write("3. **学際的統合**: 異なる分野の理論的橋渡し\n")

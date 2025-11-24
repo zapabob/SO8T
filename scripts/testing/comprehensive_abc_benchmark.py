@@ -1,4 +1,4 @@
-import subprocess
+﻿import subprocess
 import time
 import csv
 import re
@@ -7,7 +7,7 @@ import os
 # Models to test
 MODELS = {
     "Model_A_Base": "model-a:q8_0",
-    # "AGIASI_Golden": "agiasi-phi35-golden-sigmoid:q8_0",
+    # "AEGIS_Golden": "agiasi-phi35-golden-sigmoid:q8_0",
     "AEGIS_0.6": "aegis-adjusted-0.6"
 }
 

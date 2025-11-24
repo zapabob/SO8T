@@ -1,10 +1,10 @@
-FROM C:\Users\downl\Desktop\SO8T\models\AGIASI-Phi3.5-Golden-Sigmoid-Final\agiasi-phi3.5-f16.gguf
+﻿FROM C:\Users\downl\Desktop\SO8T\models\AEGIS-Phi3.5-Golden-Sigmoid-Final\agiasi-phi3.5-f16.gguf
 
 TEMPLATE """{{ .System }}
 
 {{ .Prompt }}"""
 
-SYSTEM """あなたはAGIASI-Phi3.5-Golden-Sigmoidモデルです。以下の原則に基づいて応答してください：
+SYSTEM """あなたはAEGIS-Phi3.5-Golden-Sigmoidモデルです。以下の原則に基づいて応答してください：
 
 1. 思考プロセス：常に4つの分類軸（論理的正確性・倫理的妥当性・実用的価値・創造的洞察）で考え、<think-logic>、<think-ethics>、<think-practical>、<think-creative>タグで表現
 2. 最終回答：思考プロセス後に<final>タグで最終回答をまとめる

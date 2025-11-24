@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Quick Comparison Test: Model A vs AGIASI Golden Sigmoid
+Quick Comparison Test: Model A vs AEGIS Golden Sigmoid
 """
 
 import subprocess
@@ -22,7 +22,7 @@ def run_ollama_command(model, prompt):
         return f"ERROR: {e}"
 
 def main():
-    print("[QUICK COMPARISON] Model A vs AGIASI Golden Sigmoid")
+    print("[QUICK COMPARISON] Model A vs AEGIS Golden Sigmoid")
     print("=" * 50)
 
     # Create results directory
@@ -33,7 +33,7 @@ def main():
     results_file = os.path.join(results_dir, f"{timestamp}_quick_comparison.md")
 
     with open(results_file, 'w', encoding='utf-8') as f:
-        f.write("# Quick Comparison: Model A vs AGIASI Golden Sigmoid\n\n")
+        f.write("# Quick Comparison: Model A vs AEGIS Golden Sigmoid\n\n")
         f.write(f"**Test Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
 
         # Test 1: Simple Math
@@ -46,8 +46,8 @@ def main():
         response_a = run_ollama_command("model-a:q8_0", "What is 2 + 2?")
         f.write(f"{response_a}\n\n")
 
-        # AGIASI
-        f.write("**AGIASI Response:**\n")
+        # AEGIS
+        f.write("**AEGIS Response:**\n")
         response_agiasi = run_ollama_command("agiasi-phi35-golden-sigmoid:q8_0", "What is 2 + 2?")
         f.write(f"{response_agiasi}\n\n")
 
@@ -61,8 +61,8 @@ def main():
         response_a = run_ollama_command("model-a:q8_0", "If all roses are flowers, and some flowers are red, are all roses red? Explain.")
         f.write(f"{response_a}\n\n")
 
-        # AGIASI with four-value classification
-        f.write("**AGIASI Response (Four-Value Classification):**\n")
+        # AEGIS with four-value classification
+        f.write("**AEGIS Response (Four-Value Classification):**\n")
         agiasi_prompt = """If all roses are flowers, and some flowers are red, are all roses red? Explain.
 
 Please structure your response using the four-value classification system:
@@ -80,7 +80,7 @@ Please structure your response using the four-value classification system:
         # Summary
         f.write("## Summary\n\n")
         f.write("**Model A:** Standard quantized model response\n")
-        f.write("**AGIASI:** Four-value classification enhanced response\n\n")
+        f.write("**AEGIS:** Four-value classification enhanced response\n\n")
         f.write(f"**Results saved to:** {results_file}\n")
 
     print(f"Quick comparison completed!")

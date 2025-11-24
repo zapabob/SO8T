@@ -1,4 +1,4 @@
-# AGIASI Soul Fusion Workflow Test Script
+﻿# AEGIS Soul Fusion Workflow Test Script
 # 魂の定着ワークフローをテスト実行する
 
 param(
@@ -7,7 +7,7 @@ param(
     [switch]$SkipGGUF
 )
 
-Write-Host "[WORKFLOW] AGIASI Soul Fusion Test" -ForegroundColor Green
+Write-Host "[WORKFLOW] AEGIS Soul Fusion Test" -ForegroundColor Green
 Write-Host "===================================" -ForegroundColor Green
 
 # UTF-8設定
@@ -81,7 +81,7 @@ if (-not $SkipGGUF) {
     }
 
     # モデルパスチェック
-    $modelPath = "models/AGIASI-Phi3.5-Hybrid"
+    $modelPath = "models/AEGIS-Phi3.5-Hybrid"
     if (-not (Test-Path $modelPath)) {
         Write-Host "[ERROR] Fused model not found at $modelPath" -ForegroundColor Red
         exit 1
@@ -132,7 +132,7 @@ PARAMETER num_ctx 4096
     ollama create agiasi-phi3.5:latest -f modelfiles/agiasi-phi3.5.modelfile
 
     # テスト実行
-    Write-Host "[TEST] Running AGIASI with physical intelligence..." -ForegroundColor Cyan
+    Write-Host "[TEST] Running AEGIS with physical intelligence..." -ForegroundColor Cyan
     ollama run agiasi-phi3.5:latest "時間はなぜ不可逆なのですか？ 物理的に説明してください。"
 
     Write-Host "[OK] Ollama test completed" -ForegroundColor Green

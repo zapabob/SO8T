@@ -1,5 +1,5 @@
-# fine_tune_agiasi.py
-"""Fine-tune AGIASI model on the 4-class dataset.
+﻿# fine_tune_agiasi.py
+"""Fine-tune AEGIS model on the 4-class dataset.
 
 Usage:
     python fine_tune_agiasi.py --model-path fused_model.pt --data-dir D:\\dataset\\final --output-dir checkpoints
@@ -10,7 +10,7 @@ from transformers import AutoTokenizer, TrainingArguments, Trainer, DataCollator
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoConfig
 
-class AGIASIWrapper(torch.nn.Module):
+class AEGISWrapper(torch.nn.Module):
     """Wrapper to make the fused model compatible with HuggingFace Trainer."""
     def __init__(self, model):
         super().__init__()
@@ -47,7 +47,7 @@ def main():
     # Load fused model
     print(f"Loading model from {args.model_path}...")
     raw_model = torch.load(args.model_path)
-    model = AGIASIWrapper(raw_model)
+    model = AEGISWrapper(raw_model)
     
     # Load tokenizer (assuming Phi-3.5 base)
     tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3.5-mini-instruct")

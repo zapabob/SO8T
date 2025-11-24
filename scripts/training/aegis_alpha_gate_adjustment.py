@@ -1,4 +1,4 @@
-import torch
+﻿import torch
 import os
 import math
 import argparse
@@ -8,7 +8,7 @@ def sigmoid(x):
     return 1 / (1 + math.exp(-x))
 
 def adjust_and_fuse():
-    parser = argparse.ArgumentParser(description="AGIASI Alpha Gate Adjustment & Fusion")
+    parser = argparse.ArgumentParser(description="AEGIS Alpha Gate Adjustment & Fusion")
     parser.add_argument("--base-model", type=str, default="Borea/Phi-3.5-instinct-jp", help="Original Base Model ID")
     parser.add_argument("--soul-path", type=str, required=True, help="Path to soul_params.pt")
     parser.add_argument("--output-dir", type=str, required=True, help="Where to save the adjusted model")

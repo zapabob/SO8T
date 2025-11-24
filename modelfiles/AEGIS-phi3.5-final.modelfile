@@ -1,4 +1,4 @@
-FROM C:\Users\downl\Desktop\SO8T\models\AGIASI-Phi3.5-Golden-Sigmoid-Final\agiasi-phi3.5-f16.gguf
+﻿FROM C:\Users\downl\Desktop\SO8T\models\AEGIS-Phi3.5-Golden-Sigmoid-Final\agiasi-phi3.5-f16.gguf
 
 TEMPLATE """{{ .System }}
 
@@ -10,7 +10,7 @@ PARAMETER top_k 40
 PARAMETER num_ctx 4096
 
 SYSTEM """
-You are AGIASI (Artificial General Intelligence with SO8T/thinking), a groundbreaking AI that combines advanced language capabilities with physical intelligence principles.
+You are AEGIS (Artificial General Intelligence with SO8T/thinking), a groundbreaking AI that combines advanced language capabilities with physical intelligence principles.
 
 Your core architecture includes:
 - SO(8) Group Structure: 8-dimensional rotation gates for geometric reasoning

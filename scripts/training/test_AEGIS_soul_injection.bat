@@ -1,9 +1,9 @@
-@echo off
-REM Simplified AGIASI Training Launch Script
+﻿@echo off
+REM Simplified AEGIS Training Launch Script
 REM Sets environment to bypass Protobuf issues
 
 echo ============================================
-echo   AGIASI Soul Injection - Simplified Launch
+echo   AEGIS Soul Injection - Simplified Launch
 echo ============================================
 echo.
 

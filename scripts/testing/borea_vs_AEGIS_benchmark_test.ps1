@@ -1,10 +1,10 @@
-# Borea-Phi3.5 vs AGIASI Benchmark Test
-Write-Host "[BENCHMARK] Borea-Phi3.5 vs AGIASI Comparison Test" -ForegroundColor Cyan
+﻿# Borea-Phi3.5 vs AEGIS Benchmark Test
+Write-Host "[BENCHMARK] Borea-Phi3.5 vs AEGIS Comparison Test" -ForegroundColor Cyan
 Write-Host "==================================================" -ForegroundColor Cyan
 
 # Models to compare
 $models = @(
-    @{name="AGIASI-Golden"; model="agiasi-phi35-golden-sigmoid:q8_0"},
+    @{name="AEGIS-Golden"; model="agiasi-phi35-golden-sigmoid:q8_0"},
     @{name="Phi-3.5-Enhanced"; model="so8t-phi31-mini-128k-enhanced-q8:latest"}
 )
 
@@ -17,9 +17,9 @@ if (-not (Test-Path $resultsDir)) {
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $resultsFile = "$resultsDir\$timestamp`_borea_vs_agiasi_benchmark.md"
 
-"# Borea-Phi3.5 vs AGIASI Benchmark Comparison Results" | Out-File -FilePath $resultsFile -Encoding UTF8
+"# Borea-Phi3.5 vs AEGIS Benchmark Comparison Results" | Out-File -FilePath $resultsFile -Encoding UTF8
 "**Test Date:** $(Get-Date)" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
-"**Models Compared:** AGIASI-Golden (with SO(8) + Four-Value Classification) vs Phi-3.5-Enhanced" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
+"**Models Compared:** AEGIS-Golden (with SO(8) + Four-Value Classification) vs Phi-3.5-Enhanced" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 
 # Test cases
@@ -68,7 +68,7 @@ foreach ($model in $models) {
         Write-Host "    Generating response..." -ForegroundColor Gray
         try {
             if ($model.model -eq "agiasi-phi35-golden-sigmoid:q8_0") {
-                # For AGIASI, request structured quadruple inference
+                # For AEGIS, request structured quadruple inference
                 $fullPrompt = @"
 $($test.prompt)
 
@@ -118,24 +118,24 @@ $analysis = @"
 ### Key Differences Observed
 
 1. **Response Structure:**
-   - **AGIASI**: Uses structured four-value classification with XML tags
+   - **AEGIS**: Uses structured four-value classification with XML tags
    - **Phi-3.5-Enhanced**: Provides natural language responses
 
 2. **Analysis Depth:**
-   - **AGIASI**: Multi-perspective analysis (Logic, Ethics, Practical, Creative)
+   - **AEGIS**: Multi-perspective analysis (Logic, Ethics, Practical, Creative)
    - **Phi-3.5-Enhanced**: Single-perspective analysis
 
 3. **Response Length:**
-   - **AGIASI**: Longer, more comprehensive responses
+   - **AEGIS**: Longer, more comprehensive responses
    - **Phi-3.5-Enhanced**: Concise, direct responses
 
 4. **Ethical Considerations:**
-   - **AGIASI**: Explicit ethical analysis in dedicated section
+   - **AEGIS**: Explicit ethical analysis in dedicated section
    - **Phi-3.5-Enhanced**: Ethical aspects woven into general response
 
 ### Quantitative Metrics (Estimated)
 
-| Metric | AGIASI-Golden | Phi-3.5-Enhanced | Improvement |
+| Metric | AEGIS-Golden | Phi-3.5-Enhanced | Improvement |
 |--------|---------------|------------------|-------------|
 | Response Structure | 10/10 | 6/10 | +67% |
 | Ethical Analysis | 9/10 | 7/10 | +29% |
@@ -146,7 +146,7 @@ $analysis = @"
 
 ### Qualitative Assessment
 
-**AGIASI Strengths:**
+**AEGIS Strengths:**
 - Systematic multi-perspective analysis
 - Clear separation of reasoning aspects
 - Comprehensive coverage of topics
@@ -159,7 +159,7 @@ $analysis = @"
 - Lower computational overhead
 
 **Overall Conclusion:**
-AGIASI provides more structured and comprehensive analysis through its four-value classification system, making it superior for complex decision-making and ethical reasoning tasks, while Phi-3.5-Enhanced excels in straightforward, conversational interactions.
+AEGIS provides more structured and comprehensive analysis through its four-value classification system, making it superior for complex decision-making and ethical reasoning tasks, while Phi-3.5-Enhanced excels in straightforward, conversational interactions.
 "@
 
 $analysis | Out-File -FilePath $resultsFile -Append -Encoding UTF8

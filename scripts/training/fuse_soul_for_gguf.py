@@ -1,4 +1,4 @@
-import torch
+﻿import torch
 import os
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
@@ -7,7 +7,7 @@ from peft import PeftModel
 BASE_MODEL = "microsoft/Phi-3.5-mini-instruct"
 ADAPTER_DIR = "models/Borea-Phi-3.5-mini-Instruct-Jp-so8t-adapter/final_adapter"
 SOUL_PATH = "models/Borea-Phi-3.5-mini-Instruct-Jp-so8t-adapter/final_adapter/soul_params.pt"
-EXPORT_DIR = "models/AGIASI-Phi3.5-Hybrid"
+EXPORT_DIR = "models/AEGIS-Phi3.5-Hybrid"
 
 def fuse_and_export():
     print("[FUSION] Alchemist Mode: Fusing Soul into Weights...")

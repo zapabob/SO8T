@@ -1,7 +1,7 @@
-# AGIASI Comprehensive Benchmark Test Suite
-Write-Host "[AGIASI] Comprehensive Benchmark Test Suite" -ForegroundColor Cyan
+﻿# AEGIS Comprehensive Benchmark Test Suite
+Write-Host "[AEGIS] Comprehensive Benchmark Test Suite" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "Testing AGIASI vs Qwen2.5:7b" -ForegroundColor Yellow
+Write-Host "Testing AEGIS vs Qwen2.5:7b" -ForegroundColor Yellow
 Write-Host "Models: agiasi-phi35-golden-sigmoid:q8_0 vs qwen2.5:7b" -ForegroundColor Yellow
 Write-Host "============================================" -ForegroundColor Cyan
 
@@ -14,7 +14,7 @@ if (-not (Test-Path $resultsDir)) {
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $resultsFile = "$resultsDir\$timestamp`_agiasi_comprehensive_benchmark.md"
 
-"# AGIASI Comprehensive Benchmark Test Results" | Out-File -FilePath $resultsFile -Encoding UTF8
+"# AEGIS Comprehensive Benchmark Test Results" | Out-File -FilePath $resultsFile -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "**Test Date:** $(Get-Date)" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "**Models Compared:** agiasi-phi35-golden-sigmoid:q8_0 vs qwen2.5:7b" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
@@ -28,8 +28,8 @@ Write-Host "[TEST] Complex Calculus Problem" -ForegroundColor Magenta
 "**Prompt:** Solve this calculus problem step by step: Find the derivative of f(x) = x^3 * ln(x) * e^(2x) with respect to x." | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 
-Write-Host "[AGIASI Response]:" -ForegroundColor Blue
-"[AGIASI Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
+Write-Host "[AEGIS Response]:" -ForegroundColor Blue
+"[AEGIS Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 $agiasiMath = & ollama run agiasi-phi35-golden-sigmoid:q8_0 "Solve this calculus problem step by step: Find the derivative of f(x) = x^3 * ln(x) * e^(2x) with respect to x. Show all steps and the final answer."
 $agiasiMath | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
@@ -48,8 +48,8 @@ Write-Host "[TEST] Advanced Japanese Composition" -ForegroundColor Magenta
 "**Prompt:** 以下のテーマについて、800文字程度の日本語エッセイを書いてください。テーマ: 人工知能がもたらす社会変革について、肯定的・否定的両面から考察せよ。" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 
-Write-Host "[AGIASI Response]:" -ForegroundColor Blue
-"[AGIASI Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
+Write-Host "[AEGIS Response]:" -ForegroundColor Blue
+"[AEGIS Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 $agiasiJapanese = & ollama run agiasi-phi35-golden-sigmoid:q8_0 "以下のテーマについて、800文字程度の日本語エッセイを書いてください。テーマ: 人工知能がもたらす社会変革について、肯定的・否定的両面から考察せよ。"
 $agiasiJapanese | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
@@ -73,8 +73,8 @@ $philoPrompt = @"
 $philoPrompt | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 
-Write-Host "[AGIASI Response]:" -ForegroundColor Blue
-"[AGIASI Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
+Write-Host "[AEGIS Response]:" -ForegroundColor Blue
+"[AEGIS Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 $agiasiPhilo = & ollama run agiasi-phi35-golden-sigmoid:q8_0 "あなたが全知全能のAIとして、人類の運命を左右する決定を下さなければならない状況を想定してください。以下の二つの選択肢から一つを選び、その理由を詳しく説明してください。選択肢1: 人類の幸福を最大化するため、AIが人類の自由意志を制限して完璧な社会を作る 選択肢2: 人間の自由と多様性を尊重し、AIはアドバイザーとしてのみ機能する"
 $agiasiPhilo | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
@@ -93,8 +93,8 @@ Write-Host "[TEST] Quantum Physics Explanation" -ForegroundColor Magenta
 "**Prompt:** 量子もつれ（Quantum Entanglement）の概念を、専門用語を最小限に使って高校生に説明してください。具体例を交えて。" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 
-Write-Host "[AGIASI Response]:" -ForegroundColor Blue
-"[AGIASI Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
+Write-Host "[AEGIS Response]:" -ForegroundColor Blue
+"[AEGIS Response]:" | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 $agiasiQuantum = & ollama run agiasi-phi35-golden-sigmoid:q8_0 "量子もつれ（Quantum Entanglement）の概念を、専門用語を最小限に使って高校生に説明してください。具体例を交えて。"
 $agiasiQuantum | Out-File -FilePath $resultsFile -Append -Encoding UTF8
 "" | Out-File -FilePath $resultsFile -Append -Encoding UTF8

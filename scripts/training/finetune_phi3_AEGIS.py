@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 import torch
 import torch.nn as nn
@@ -64,7 +64,7 @@ def calculate_orthogonality_loss(model):
                 # Actually, let's just treat it as 64 vectors of dim 64 and enforce orthogonality?
                 # Too expensive.
                 
-                # AGIASI Approach: "Mass Gap" via SO(8).
+                # AEGIS Approach: "Mass Gap" via SO(8).
                 # We want the weights to approximate SO(8) rotations.
                 # Let's take diagonal 8x8 blocks.
                 for i in range(0, 64, 8):
@@ -84,7 +84,7 @@ def calculate_orthogonality_loss(model):
     return torch.tensor(0.0, device=model.device)
 
 def train():
-    parser = argparse.ArgumentParser(description="Phi-3.5 AGIASI Upgrade (GGUF Compatible)")
+    parser = argparse.ArgumentParser(description="Phi-3.5 AEGIS Upgrade (GGUF Compatible)")
     parser.add_argument("--max-steps", type=int, default=100) # Short fine-tuning
     parser.add_argument("--annealing-warmup", type=int, default=10)
     parser.add_argument("--annealing-steps", type=int, default=80)
@@ -132,13 +132,13 @@ def train():
     # Enable gradients
     model.train()
     # We want to update all parameters or just MLP? 
-    # To "bake in" AGIASI, we should probably update MLP weights primarily, 
+    # To "bake in" AEGIS, we should probably update MLP weights primarily, 
     # but standard fine-tuning updates everything.
     # Let's use a standard optimizer for all params.
     optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
 
     # --- 4. Training Loop (Phase Transition) ---
-    print(f"🔥 Ignition! Starting AGIASI Upgrade Sequence...")
+    print(f"🔥 Ignition! Starting AEGIS Upgrade Sequence...")
     print(f"   Target Alpha: {1.6180339887} (Golden Ratio)")
     
     PHI = 1.6180339887
@@ -146,7 +146,7 @@ def train():
     
     step = 0
     iterator = iter(train_dataloader)
-    progress_bar = tqdm(range(args.max_steps), desc="AGIASI Upgrade")
+    progress_bar = tqdm(range(args.max_steps), desc="AEGIS Upgrade")
 
     for step in progress_bar:
         try:
@@ -211,7 +211,7 @@ def train():
         if step >= args.max_steps:
             break
 
-    print("\n✅ AGIASI Upgrade complete. Model is ready for GGUF conversion.")
+    print("\n✅ AEGIS Upgrade complete. Model is ready for GGUF conversion.")
     
     # Final Save
     final_save_dir = os.path.join(project_root, "agiasi_phi3_final")

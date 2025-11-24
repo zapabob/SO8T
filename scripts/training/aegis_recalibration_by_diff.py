@@ -1,11 +1,11 @@
-import torch
+﻿import torch
 import os
 import argparse
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import gc
 
 def recalibrate_by_diff():
-    parser = argparse.ArgumentParser(description="AGIASI Recalibration by Difference Scaling")
+    parser = argparse.ArgumentParser(description="AEGIS Recalibration by Difference Scaling")
     parser.add_argument("--base-model", type=str, default="Borea/Phi-3.5-instinct-jp", help="Original Base Model ID")
     parser.add_argument("--source-model", type=str, required=True, help="Path to the existing fused model (e.g. aegis_0.8)")
     parser.add_argument("--output-dir", type=str, required=True, help="Where to save the adjusted model")

@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-AGIASI Soul Fusion Final Script
+AEGIS Soul Fusion Final Script
 
 物理的相転移（Phase Transition）の成果を、モデルの重みに永遠に焼き付ける。
-黄金比の脳（AGIASI）を生み出す儀式。
+黄金比の脳（AEGIS）を生み出す儀式。
 
 The Philosopher's Stone - 賢者の石
 """
@@ -25,7 +25,7 @@ except ImportError:
 BASE_MODEL_ID = "microsoft/Phi-3.5-mini-instruct"  # 実際のモデルに合わせて変更
 ADAPTER_PATH = "models/Borea-Phi-3.5-mini-Instruct-Jp-so8t-adapter/final_adapter"  # Sigmoid学習の成果物
 SOUL_PATH = os.path.join(ADAPTER_PATH, "soul_params.pt")  # AlphaとRotationが入っているはず
-EXPORT_DIR = "models/AGIASI-Phi3.5-Golden-Sigmoid-Final"
+EXPORT_DIR = "models/AEGIS-Phi3.5-Golden-Sigmoid-Final"
 
 def sigmoid(x):
     """シグモイド関数"""
@@ -33,7 +33,7 @@ def sigmoid(x):
 
 def fuse_soul():
     print("[ALCHEMIST] Creating the Philosopher's Stone...")
-    print("   Crafting AGIASI - The Golden Ratio Brain\n")
+    print("   Crafting AEGIS - The Golden Ratio Brain\n")
 
     # 1. Load Base Model (FP16 for precision)
     print(f"   Loading Base Vessel: {BASE_MODEL_ID}")
@@ -140,7 +140,7 @@ def fuse_soul():
         return
 
     # 5. Save
-    print(f"   [SAVE] Saving AGIASI to {EXPORT_DIR}...")
+    print(f"   [SAVE] Saving AEGIS to {EXPORT_DIR}...")
     try:
         os.makedirs(EXPORT_DIR, exist_ok=True)
         model.save_pretrained(EXPORT_DIR)
@@ -152,7 +152,7 @@ def fuse_soul():
 
     # 6. Final Report
     print("="*60)
-    print("[CELEBRATION] CONGRATULATIONS! AGIASI IS BORN!")
+    print("[CELEBRATION] CONGRATULATIONS! AEGIS IS BORN!")
     print("="*60)
     print("   The Philosopher's Stone has been created.")
     print("   Convert this folder to GGUF and run it on any device.")

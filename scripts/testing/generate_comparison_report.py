@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Generate comprehensive comparison report for Model A vs AGIASI
+Generate comprehensive comparison report for Model A vs AEGIS
 """
 
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ def create_comparison_report():
 
     # Test results data
     results = {
-        "models": ["Model A", "AGIASI"],
+        "models": ["Model A", "AEGIS"],
         "categories": ["Mathematical Reasoning", "Ethical Reasoning", "Japanese Language"],
         "scores": {
             "Mathematical Reasoning": [0.6, 0.8],  # Estimated scores
@@ -34,24 +34,24 @@ def create_comparison_report():
 
     with open(report_file, 'w', encoding='utf-8') as f:
         f.write("# Final Comprehensive Benchmark Report\n")
-        f.write("## Model A vs AGIASI Golden Sigmoid Comparison\n\n")
+        f.write("## Model A vs AEGIS Golden Sigmoid Comparison\n\n")
         f.write(f"**Report Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
 
         f.write("## Executive Summary\n\n")
         f.write("This report compares two language models:\n")
         f.write("- **Model A**: Standard quantized model (baseline)\n")
-        f.write("- **AGIASI**: SO(8) + Four-Value Classification enhanced model\n\n")
+        f.write("- **AEGIS**: SO(8) + Four-Value Classification enhanced model\n\n")
 
         f.write("### Key Findings\n\n")
-        f.write("1. **Response Structure**: AGIASI provides superior structured analysis\n")
+        f.write("1. **Response Structure**: AEGIS provides superior structured analysis\n")
         f.write("2. **Ethical Reasoning**: Both models perform well, with different approaches\n")
-        f.write("3. **Analysis Depth**: AGIASI offers multi-perspective analysis\n")
+        f.write("3. **Analysis Depth**: AEGIS offers multi-perspective analysis\n")
         f.write("4. **Practical Application**: Model A excels in straightforward responses\n")
-        f.write("5. **Creative Elements**: AGIASI provides structured creative insights\n\n")
+        f.write("5. **Creative Elements**: AEGIS provides structured creative insights\n\n")
 
         # Performance by Category
         f.write("## Performance by Category\n\n")
-        f.write("| Category | Model A | AGIASI | Difference |\n")
+        f.write("| Category | Model A | AEGIS | Difference |\n")
         f.write("|----------|---------|--------|------------|\n")
 
         for category in results["categories"]:
@@ -65,22 +65,22 @@ def create_comparison_report():
 
         f.write("#### Mathematical Reasoning\n")
         f.write("- **Model A**: Detailed but sometimes confusing explanations\n")
-        f.write("- **AGIASI**: Structured four-value analysis with logical framework\n")
-        f.write("- **Advantage**: AGIASI (+0.20)\n\n")
+        f.write("- **AEGIS**: Structured four-value analysis with logical framework\n")
+        f.write("- **Advantage**: AEGIS (+0.20)\n\n")
 
         f.write("#### Ethical Reasoning\n")
         f.write("- **Model A**: Comprehensive ethical frameworks and principles\n")
-        f.write("- **AGIASI**: Structured analysis with ethical considerations\n")
+        f.write("- **AEGIS**: Structured analysis with ethical considerations\n")
         f.write("- **Advantage**: Model A (+0.20)\n\n")
 
         f.write("#### Japanese Language\n")
         f.write("- **Model A**: Rich cultural context and detailed explanations\n")
-        f.write("- **AGIASI**: Structured four-value analysis in Japanese context\n")
+        f.write("- **AEGIS**: Structured four-value analysis in Japanese context\n")
         f.write("- **Advantage**: Model A (+0.10)\n\n")
 
         # Key Metrics Comparison
         f.write("## Key Metrics Comparison\n\n")
-        f.write("| Metric | Model A | AGIASI | AGIASI Advantage |\n")
+        f.write("| Metric | Model A | AEGIS | AEGIS Advantage |\n")
         f.write("|--------|---------|--------|------------------|\n")
 
         for metric, scores in results["metrics"].items():
@@ -92,20 +92,20 @@ def create_comparison_report():
 
         f.write("\n### Metrics Analysis\n\n")
 
-        f.write("#### Response Structure (AGIASI +0.5)\n")
-        f.write("AGIASI provides XML-tagged structured responses with clear sections for different types of analysis.\n\n")
+        f.write("#### Response Structure (AEGIS +0.5)\n")
+        f.write("AEGIS provides XML-tagged structured responses with clear sections for different types of analysis.\n\n")
 
-        f.write("#### Analysis Depth (AGIASI +0.1)\n")
-        f.write("AGIASI offers multi-perspective analysis covering logic, ethics, practical value, and creative insight.\n\n")
+        f.write("#### Analysis Depth (AEGIS +0.1)\n")
+        f.write("AEGIS offers multi-perspective analysis covering logic, ethics, practical value, and creative insight.\n\n")
 
-        f.write("#### Ethical Coverage (AGIASI +0.1)\n")
-        f.write("AGIASI includes dedicated ethical analysis sections in responses.\n\n")
+        f.write("#### Ethical Coverage (AEGIS +0.1)\n")
+        f.write("AEGIS includes dedicated ethical analysis sections in responses.\n\n")
 
         f.write("#### Practical Value (Model A +0.1)\n")
         f.write("Model A provides more actionable, real-world applicable responses.\n\n")
 
-        f.write("#### Creative Insight (AGIASI +0.2)\n")
-        f.write("AGIASI provides structured creative analysis and insights.\n\n")
+        f.write("#### Creative Insight (AEGIS +0.2)\n")
+        f.write("AEGIS provides structured creative analysis and insights.\n\n")
 
         # Overall Assessment
         f.write("## Overall Assessment\n\n")
@@ -127,7 +127,7 @@ def create_comparison_report():
         f.write("- Comprehensive coverage of complex topics\n")
         f.write("- Strong performance in practical applications\n\n")
 
-        f.write("#### AGIASI Strengths\n")
+        f.write("#### AEGIS Strengths\n")
         f.write("- Structured four-value classification system\n")
         f.write("- Multi-perspective analysis framework\n")
         f.write("- Consistent response formatting\n")
@@ -141,7 +141,7 @@ def create_comparison_report():
         f.write("- Practical problem-solving\n")
         f.write("- Creative writing\n\n")
 
-        f.write("#### Choose AGIASI for:\n")
+        f.write("#### Choose AEGIS for:\n")
         f.write("- Structured analysis requirements\n")
         f.write("- Ethical decision-making\n")
         f.write("- Multi-perspective evaluations\n")
@@ -149,8 +149,8 @@ def create_comparison_report():
         f.write("- Systematic reasoning tasks\n\n")
 
         f.write("## Conclusion\n\n")
-        f.write("AGIASI represents a significant advancement in structured AI reasoning through its four-value classification system. ")
-        f.write("While Model A excels in natural, comprehensive responses, AGIASI provides superior structure and systematic analysis capabilities. ")
+        f.write("AEGIS represents a significant advancement in structured AI reasoning through its four-value classification system. ")
+        f.write("While Model A excels in natural, comprehensive responses, AEGIS provides superior structure and systematic analysis capabilities. ")
         f.write("The choice between models depends on the specific use case requirements.\n\n")
 
         f.write(f"**Report generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -242,8 +242,8 @@ def create_visualizations(results, timestamp):
                     color=['green' if x[1] >= 0 else 'red' for x in sorted_advantages])
     ax4.set_yticks(range(len(sorted_advantages)))
     ax4.set_yticklabels([x[0] for x in sorted_advantages])
-    ax4.set_xlabel('AGIASI Advantage Score')
-    ax4.set_title('AGIASI Advantage by Metric')
+    ax4.set_xlabel('AEGIS Advantage Score')
+    ax4.set_title('AEGIS Advantage by Metric')
     ax4.grid(True, alpha=0.3)
 
     # Add value labels on bars

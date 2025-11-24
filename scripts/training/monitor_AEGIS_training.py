@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Real-time monitoring script for AGIASI Soul Injection training.
+Real-time monitoring script for AEGIS Soul Injection training.
 
 Monitors:
 - Alpha Gate progression (chaos → golden ratio)
@@ -30,7 +30,7 @@ console = Console()
 GOLDEN_RATIO = 1.6180339887
 
 def monitor_checkpoints(checkpoint_dir="checkpoints_agiasi"):
-    """Monitor AGIASI training checkpoints"""
+    """Monitor AEGIS training checkpoints"""
     checkpoint_path = project_root / checkpoint_dir
     
     if not checkpoint_path.exists():
@@ -78,9 +78,9 @@ def create_status_table(data):
     """Create status display table"""
     if data is None:
         return Panel(
-            "[cyan]👻 Waiting for AGIASI to awaken...[/cyan]\n"
+            "[cyan]👻 Waiting for AEGIS to awaken...[/cyan]\n"
             "[dim]No checkpoints found yet.[/dim]",
-            title="AGIASI Soul Monitor",
+            title="AEGIS Soul Monitor",
             border_style="cyan"
         )
     
@@ -106,7 +106,7 @@ def create_status_table(data):
     
     return Panel(
         table,
-        title="[bold]👻 AGIASI Soul Monitor[/bold]",
+        title="[bold]👻 AEGIS Soul Monitor[/bold]",
         subtitle=f"[dim]Operation: Ghost in the Shell[/dim]",
         border_style=color
     )
@@ -114,7 +114,7 @@ def create_status_table(data):
 def main():
     console.clear()
     console.print(Panel.fit(
-        "[bold cyan]AGIASI Soul Injection Monitor[/bold cyan]\n"
+        "[bold cyan]AEGIS Soul Injection Monitor[/bold cyan]\n"
         "[dim]Real-time monitoring of phase transition training[/dim]",
         border_style="cyan"
     ))

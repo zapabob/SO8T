@@ -1,4 +1,4 @@
-# download_wikipedia.py
+﻿# download_wikipedia.py
 """Download Wikipedia pages for Physics and Mathematics categories.
 
 Usage:
@@ -11,7 +11,7 @@ import time
 
 WIKI_API_URL = "https://en.wikipedia.org/w/api.php"
 HEADERS = {
-    "User-Agent": "AGIASI_Bot/1.0 (http://example.com/agiasi; agiasi@example.com)"
+    "User-Agent": "AEGIS_Bot/1.0 (http://example.com/agiasi; agiasi@example.com)"
 }
 
 def get_category_members(category: str, max_results: int = 50):
