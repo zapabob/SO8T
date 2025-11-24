@@ -1,16 +1,16 @@
-# AGIASI-Phi3.5 ベンチマークテスト実装ログ
+﻿# AEGIS-Phi3.5 ベンチマークテスト実装ログ
 
 ## 実装情報
 - **日付**: 2025-11-23
 - **Worktree**: main
-- **機能名**: AGIASI-Phi3.5 GGUFモデルベンチマークテスト
+- **機能名**: AEGIS-Phi3.5 GGUFモデルベンチマークテスト
 - **実装者**: AI Agent
 
 ## 実装内容
 
 ### 1. GGUFモデル読み込みテスト
 
-**ファイル**: `models/AGIASI-Phi3.5-Golden-Sigmoid-Final/agiasi-phi3.5-f16.gguf`
+**ファイル**: `models/AEGIS-Phi3.5-Golden-Sigmoid-Final/agiasi-phi3.5-f16.gguf`
 
 **実装状況**: 未実装
 **動作確認**: 要修正

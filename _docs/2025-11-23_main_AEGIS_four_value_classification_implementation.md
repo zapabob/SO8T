@@ -1,21 +1,21 @@
-# AGIASI 四値分類・四重推論機能実装ログ
+﻿# AEGIS 四値分類・四重推論機能実装ログ
 
 ## 実装情報
 - **日付**: 2025-11-23
 - **Worktree**: main
-- **機能名**: AGIASI 四値分類・四重推論機能記載
+- **機能名**: AEGIS 四値分類・四重推論機能記載
 - **実装者**: AI Agent
 
 ## 実装内容
 
 ### 1. モデルカード作成
 
-**ファイル**: `_docs/AGIASI_Model_Card.md`
+**ファイル**: `_docs/AEGIS_Model_Card.md`
 
 **実装状況**: 実装済み
 **動作確認**: OK
 **確認日時**: 2025-11-23
-**備考**: AGIASIの四値分類・四重推論システムを包括的に記載したモデルカードを作成
+**備考**: AEGISの四値分類・四重推論システムを包括的に記載したモデルカードを作成
 
 - 四つの思考軸の定義
   - 論理的正確性 (`<think-logic>`)
@@ -46,13 +46,13 @@
 **実装状況**: 実装済み
 **動作確認**: OK
 **確認日時**: 2025-11-23
-**備考**: プロジェクトREADMEにAGIASI機能を記載
+**備考**: プロジェクトREADMEにAEGIS機能を記載
 
 - 主要機能セクションに四重推論システムを追加
-- クイックスタートにAGIASI実行例を追加
+- クイックスタートにAEGIS実行例を追加
 
 ## 作成・変更ファイル
-- `_docs/AGIASI_Model_Card.md` - AGIASIモデルカード作成
+- `_docs/AEGIS_Model_Card.md` - AEGISモデルカード作成
 - `modelfiles/agiasi-phi35-golden-sigmoid.modelfile` - Modelfile更新
 - `README.md` - README更新
 - `_docs/2025-11-23_main_agiasi_four_value_classification_implementation.md` - 本実装ログ

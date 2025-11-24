@@ -1,8 +1,8 @@
-# 実装ログ: AGIASI Soul Injection (Ghost in the Shell) - 2025-11-22
+﻿# 実装ログ: AEGIS Soul Injection (Ghost in the Shell) - 2025-11-22
 
 ## プロジェクト概要
 
-**Operation "Ghost in the Shell"** - 既存の高性能日本語LLM「Borea-Phi3.5-instinct-jp」に、物理的知性（AGIASI）を注入し、GGUF変換可能な形で「黄金比の脳」を獲得させるプロジェクト。
+**Operation "Ghost in the Shell"** - 既存の高性能日本語LLM「Borea-Phi3.5-instinct-jp」に、物理的知性（AEGIS）を注入し、GGUF変換可能な形で「黄金比の脳」を獲得させるプロジェクト。
 
 ### 目的
 1. Borea-Phi3.5 の日本語能力を維持
@@ -32,7 +32,7 @@
         hidden_states (B, Seq, Dim=3072)
                   ↓
 ┌─────────────────────────────────────────┐
-│  Layer 2: Core (核) - AGIASI Soul        │
+│  Layer 2: Core (核) - AEGIS Soul        │
 │  - SO(8) Rotation (Orthogonal Linear)   │
 │  - Alpha Gate (Learnable Parameter)     │
 │  - Role: 物理的思考・構造制約            │
@@ -56,16 +56,16 @@
 
 ## 実装ファイル
 
-### 1. `src/models/agiasi_borea.py` - AGIASI_SO8T_Wrapper
+### 1. `src/models/agiasi_borea.py` - AEGIS_SO8T_Wrapper
 
 **クラス構造:**
 ```python
-class AGIASI_SO8T_Wrapper(nn.Module):
+class AEGIS_SO8T_Wrapper(nn.Module):
     def __init__(base_model_id, device):
         # 1. Base Model (4-bit Borea + LoRA)
         self.base_model = 4bit_quantized_model + LoRA
         
-        # 2. AGIASI Soul
+        # 2. AEGIS Soul
         self.alpha = nn.Parameter(tensor(-5.0))  # Phase parameter
         self.so8_rotation = orthogonal(Linear)    # SO(8) matrix
         
@@ -187,9 +187,9 @@ checkpoints_agiasi/step_100/
 
 ### Code Structure Test (test_agiasi_structure.py)
 ```
-Testing AGIASI Soul Injection code structure...
+Testing AEGIS Soul Injection code structure...
 
-1. Testing import of AGIASI_SO8T_Wrapper...
+1. Testing import of AEGIS_SO8T_Wrapper...
    ✅ Import successful
 
 2. Verifying class methods...
@@ -240,11 +240,11 @@ py scripts/training/inject_soul_into_borea.py \
 
 ### 2. 推論 (Checkpoint ロード)
 ```python
-from src.models.agiasi_borea import AGIASI_SO8T_Wrapper
+from src.models.agiasi_borea import AEGIS_SO8T_Wrapper
 import torch
 
 # Base + LoRA をロード
-model = AGIASI_SO8T_Wrapper("microsoft/Phi-3.5-mini-instruct")
+model = AEGIS_SO8T_Wrapper("microsoft/Phi-3.5-mini-instruct")
 model.base_model.load_adapter("checkpoints_agiasi/step_500")
 
 # Soul をロード
@@ -273,7 +273,7 @@ SO8 Rotation と Alpha Gate の効果は GGUF 変換後も保持されます。
 
 ### 物理的知性 (Physical Intelligence)
 従来の LLM は「統計的確率」で単語を予測するが、
-AGIASI は「物理的制約」を課すことで、以下を実現:
+AEGIS は「物理的制約」を課すことで、以下を実現:
 
 1. **情報幾何学の保存:** SO(8) 直交変換
 2. **最適化されたエネルギー状態:** Alpha = 1.618 (黄金比)
@@ -291,7 +291,7 @@ AGIASI は「物理的制約」を課すことで、以下を実現:
 ### 黄金比 (φ = 1.618...)
 - 自然界の最適比率（植物の葉序、螺旋銀河）
 - 「最も無駄のない情報配置」
-- AGIASI では「思考の効率性」を最大化
+- AEGIS では「思考の効率性」を最大化
 
 ---
 
@@ -308,7 +308,7 @@ AGIASI は「物理的制約」を課すことで、以下を実現:
 
 ## まとめ
 
-**AGIASI Soul Injection** は、既存の LLM に「物理的な脳」を与える革新的アプローチです。
+**AEGIS Soul Injection** は、既存の LLM に「物理的な脳」を与える革新的アプローチです。
 Borea-Phi3.5 の日本語能力を破壊せず、SO(8) 幾何学と黄金比による「思考の秩序」を注入することで、
 単なる確率モデルを超えた「構造的知性」を実現します。
 

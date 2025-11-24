@@ -1,11 +1,11 @@
-# AGIASI Soul Injection - Operation "Ghost in the Shell"
+﻿# AEGIS Soul Injection - Operation "Ghost in the Shell"
 
 ## 実装日時
 2025-11-22
 
 ## プロジェクト概要
 
-Borea-Phi3.5-instinct-jpモデルに**AGIASI (物理的知性)** を注入し、相転移トレーニングを通じて「黄金比の脳」を獲得させる。
+Borea-Phi3.5-instinct-jpモデルに**AEGIS (物理的知性)** を注入し、相転移トレーニングを通じて「黄金比の脳」を獲得させる。
 
 ## アーキテクチャ
 
@@ -21,7 +21,7 @@ Borea-Phi3.5-instinct-jpモデルに**AGIASI (物理的知性)** を注入し、
 └─────────────────┬───────────────────────┘
                   ↓
 ┌─────────────────────────────────────────┐
-│  Layer 2: Core (核) - AGIASI Soul        │
+│  Layer 2: Core (核) - AEGIS Soul        │
 │  - SO(8) Rotation (Orthogonal Linear)   │
 │  - Alpha Gate (Learnable Parameter)     │
 │  - Role: 物理的思考・構造制約            │
@@ -65,7 +65,7 @@ Alpha Value
 
 ### 1. モデル定義
 - `src/models/agiasi_borea.py`
-  - `AGIASI_SO8T_Wrapper` クラス
+  - `AEGIS_SO8T_Wrapper` クラス
   - 4-bit量子化 + LoRA
   - SO(8)直交回転層
   - Alpha Gateパラメータ
@@ -105,11 +105,11 @@ py scripts/training/monitor_agiasi_training.py
 ### 2. チェックポイントロード
 
 ```python
-from src.models.agiasi_borea import AGIASI_SO8T_Wrapper
+from src.models.agiasi_borea import AEGIS_SO8T_Wrapper
 import torch
 
 # Base + LoRAをロード
-model = AGIASI_SO8T_Wrapper("HODACHI/Borea-Phi-3.5-mini-Instruct-Jp")
+model = AEGIS_SO8T_Wrapper("HODACHI/Borea-Phi-3.5-mini-Instruct-Jp")
 model.base_model.load_adapter("checkpoints_agiasi/step_500")
 
 # Soulをロード

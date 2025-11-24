@@ -1,4 +1,4 @@
-# Automated LLM Benchmark A/B Test Report
+﻿# Automated LLM Benchmark A/B Test Report
 
 **実行日時:** 2025-11-23T12:46:50.925011
 **総テスト数:** 6
@@ -6,7 +6,7 @@
 
 ## モデルの比較
 
-| 指標 | Model A | AGIASI | 差異 |
+| 指標 | Model A | AEGIS | 差異 |
 |------|---------|--------|------|
 | 平均スコア | 0.049 | 0.049 | +0.000 |
 | 平均応答時間 | 2.43s | 2.29s | -0.14s |
@@ -14,7 +14,7 @@
 
 ## カテゴリ別比較
 
-| カテゴリ | Model A | AGIASI | 勝者 |
+| カテゴリ | Model A | AEGIS | 勝者 |
 |----------|---------|--------|------|
 | Mathematical & Logical Reasoning | 0.200 | 0.200 | 引き分け |
 | Scientific & Technical Knowledge | 0.000 | 0.000 | 引き分け |

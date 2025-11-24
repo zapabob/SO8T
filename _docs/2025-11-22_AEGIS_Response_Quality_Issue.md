@@ -1,16 +1,16 @@
-# 実装ログ: AGIASI応答品質問題の分析と解決
+﻿# 実装ログ: AEGIS応答品質問題の分析と解決
 
 ## 概要
-AGIASIの対話テストにおいて、「意味のある回答を見たことがない」という重大な問題が判明しました。
+AEGISの対話テストにおいて、「意味のある回答を見たことがない」という重大な問題が判明しました。
 Alpha Gateの黄金比収束は達成されましたが、言語生成能力が不十分であることが確認されました。
 
 ## 問題の特定
 
 ### 1. 症状: 意味のない出力
 ```text
-[AGIASI] arrivalPressprojectsprawographyneighbanimateatricelever開use...
-[AGIASI] иol────stringMilreducectxวirauses話mercPAconflic...
-[AGIASI] editingpluginssynchronzweiCurrentJielse%%%%%%%%lotPublic...
+[AEGIS] arrivalPressprojectsprawographyneighbanimateatricelever開use...
+[AEGIS] иol────stringMilreducectxวirauses話mercPAconflic...
+[AEGIS] editingpluginssynchronzweiCurrentJielse%%%%%%%%lotPublic...
 ```
 
 - **ランダムな文字列の羅列**
@@ -128,7 +128,7 @@ py scripts/training/train_borea_so8t_adapter.py \
 
 ## 結論: 現実的進化への転換
 
-**AGIASI Mk.1の失敗から学んだ教訓：**
+**AEGIS Mk.1の失敗から学んだ教訓：**
 
 > **「美しい理論は重要だが、実用性の方が大切だ」**
 

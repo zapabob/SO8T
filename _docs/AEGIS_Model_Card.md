@@ -1,4 +1,4 @@
-# AEGIS-Borea-Phi3.5-instinct-jp (Advanced Ethical Guardian Intelligence System) モデルカード
+﻿# AEGIS-Borea-Phi3.5-instinct-jp (Advanced Ethical Guardian Intelligence System) モデルカード
 
 ## モデル概要
 
@@ -20,7 +20,7 @@
 
 ### 🧠 四値分類・四重推論システム
 
-AGIASIは、すべてのクエリに対して**四つの思考軸**から多角的に分析を行います：
+AEGISは、すべてのクエリに対して**四つの思考軸**から多角的に分析を行います：
 
 #### 1. **論理的正確性** (`<think-logic>`)
 - 数学的・論理的正確性の検証
@@ -117,8 +117,8 @@ ollama run agiasi-phi35-golden-sigmoid:q8_0 "以下の構造で回答してく�
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # モデル読み込み
-model = AutoModelForCausalLM.from_pretrained("models/AGIASI-Phi3.5-Golden-Sigmoid")
-tokenizer = AutoTokenizer.from_pretrained("models/AGIASI-Phi3.5-Golden-Sigmoid")
+model = AutoModelForCausalLM.from_pretrained("models/AEGIS-Phi3.5-Golden-Sigmoid")
+tokenizer = AutoTokenizer.from_pretrained("models/AEGIS-Phi3.5-Golden-Sigmoid")
 
 # 四重推論実行
 prompt = "人工知能の未来について分析してください"
@@ -133,7 +133,7 @@ response = tokenizer.decode(outputs[0])
 
 ### ベンチマーク結果
 
-| テスト項目 | AGIASI (Q8_0) | Qwen2.5:7B | 改善率 |
+| テスト項目 | AEGIS (Q8_0) | Qwen2.5:7B | 改善率 |
 |-----------|---------------|------------|--------|
 | 数学的推論 | 8.7/10 | 8.2/10 | +6.1% |
 | 倫理的考察 | 9.2/10 | 7.8/10 | +17.9% |
@@ -220,4 +220,4 @@ L_ortho = ||R^T R - I||_F
 
 ---
 
-**AGIASI**: 幾何学的知性で、未来を形作る。
+**AEGIS**: 幾何学的知性で、未来を形作る。

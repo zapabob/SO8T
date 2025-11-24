@@ -1,4 +1,4 @@
-# Simple Benchmark: Model A vs AGIASI Golden Sigmoid 
+﻿# Simple Benchmark: Model A vs AEGIS Golden Sigmoid 
  
 **Test Date:** 2025/11/23  2:17:32.12 
 **Models:** model-a:q8_0 vs agiasi-phi35-golden-sigmoid:q8_0 
@@ -21,4 +21,4 @@ So, when differentiating the function f(x)=x² with respect to 'x', using basic 
 
 
  
-[AGIASI Response]: 
+[AEGIS Response]: 

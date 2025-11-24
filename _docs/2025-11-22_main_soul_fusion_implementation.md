@@ -1,4 +1,4 @@
-# AGIASI 魂の定着（Soul Fusion）実装ログ
+﻿# AEGIS 魂の定着（Soul Fusion）実装ログ
 
 ## 実装情報
 - **日付**: 2025-11-22
@@ -17,7 +17,7 @@
 **確認日時**: YYYY-MM-DD（該当する場合）
 **備考**: Borea-Phi3.5にLoRA+Alpha+SO8回転を注入するトレーニングスクリプト
 
-- AGIASI_Soul_Wrapperクラスを実装：Alpha GateとSO(8)回転を統合
+- AEGIS_Soul_Wrapperクラスを実装：Alpha GateとSO(8)回転を統合
 - LoRAアダプターをBoreaベースモデルに適用
 - 線形アニーリングでAlphaを-5.0から黄金比1.618に遷移
 - 正射性損失を追加して構造的整合性を維持
@@ -89,20 +89,20 @@ python scripts/training/train_soul_injection.py
 ```bash
 python scripts/training/fuse_soul_for_gguf.py
 ```
-- 出力: `models/AGIASI-Phi3.5-Hybrid/` (融合済みHFモデル)
+- 出力: `models/AEGIS-Phi3.5-Hybrid/` (融合済みHFモデル)
 
 ### 3. GGUF変換
 ```bash
 cd external/llama.cpp-master
 python convert_hf_to_gguf.py \
-  /path/to/models/AGIASI-Phi3.5-Hybrid \
+  /path/to/models/AEGIS-Phi3.5-Hybrid \
   --outfile D:/webdataset/gguf_models/agiasi-phi3.5-q4_k_m.gguf \
   --outtype q4_k_m
 ```
 
 ## 技術的詳細
 
-### AGIASI_Soul_Wrapper
+### AEGIS_Soul_Wrapper
 - Alpha: スカラー値、sigmoidで活性化
 - Rotation: 正射性パラメトリゼーションを使用
 - Orthogonality Loss: 構造的安定性を確保
