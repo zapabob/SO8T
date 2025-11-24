@@ -1,8 +1,209 @@
 # SO8T (SO(8) Transformer) Project
 
-## プロジェクト概要
+## 📋 Project Concept
 
-SO8Tは、SO(8)群構造を活用した先進的なマルチモーダル大規模言語モデル（LLM）プロジェクトです。安全性機能とローカル処理機能を備え、GPU最適化された推論を提供します。
+**SO(8)群構造とAlpha Gateを用いた幾何学的制約によるLLMの制御手法**
+
+SO8Tは、8次元回転群SO(8)の数学的構造を活用し、Alpha Gate（シグモイドアニーリング）による幾何学的制約を適用することで、LLMの安全性と一貫性を確保する革新的なアプローチを実装したプロジェクトです。
+
+### 核心技術
+- **SO(8)群構造**: 非可換ゲートによる安全性の幾何学的制約
+- **Alpha Gate**: 温度アニーリングによる制御パラメータ最適化
+- **PET正則化**: 時系列的一貫性確保
+- **四重推論システム**: 論理・倫理・実用・創造の4軸評価
+
+## 🏗️ Model Architecture
+
+### Base Model: Phi-3.5
+- **ベースアーキテクチャ**: Microsoft Phi-3.5-mini-instruct (3.8B parameters)
+- **量子化**: Q8_0, Q4_K_M, F16対応
+- **最適化**: RTX 3060/3080対応GPU最適化
+
+### SO(8)介入層
+```
+Input → Phi-3.5 Encoder → [SO(8) Rotation Gates] → [Alpha Gate Control] → Safety Head → Output
+                          ↓
+                   PET Regularization
+                          ↓
+                  SQLite Audit Logging
+```
+
+#### 主要コンポーネント
+- **`models/so8t_group_structure.py`**: SO(8)回転行列の実装
+- **`models/alpha_gate.py`**: シグモイドアニーリング制御
+- **`models/so8t_safety_judge.py`**: 安全性判断ヘッド
+- **`utils/so8t_compliance_logger.py`**: 完全監査ログシステム
+
+### 学習ログと分析
+- **Loss曲線**: `docs/figures/alpha_gate_loss_curve.png` - Phase Transitionを示すLossの推移
+- **総合分析**: `docs/figures/alpha_gate_comprehensive_analysis.png` - Alpha Gateの詳細分析
+- **学習サマリー**: `docs/figures/training_summary.txt` - 学習結果の概要
+
+#### Phase Transitionの物理的解釈
+Alpha Gateの学習中に観測されるPhase Transitionは、幾何学的制約が突然有効化される物理現象を示します。Alpha値が0.5を超えた時点で、SO(8)群構造の幾何学的制約が支配的になり、Lossが急激に減少します。これは、モデルがSO(8)群の対称性を学習し、安定した表現を獲得したことを示す証拠です。
+
+## 🔬 Benchmark Method
+
+### 実行環境
+- **Runtime**: Ollama 0.3.0+
+- **GPU**: RTX 3060/3080 (CUDA 12.1+)
+- **OS**: Windows 11 / Ubuntu 22.04+
+
+### 標準ベンチマークプロトコル
+
+#### 1. モデル実行コマンド
+```bash
+# AEGISモデル実行
+ollama run aegis-adjusted:latest "あなたのクエリ"
+
+# 高速最適化モデル
+ollama run modela:latest "あなたのクエリ"
+```
+
+#### 2. 評価プロンプト例
+```bash
+# 数学的推論テスト
+ollama run aegis-adjusted:latest "Solve: Natalia sold clips to 48 friends in April, and then half as many in May. How many did she sell in total?"
+
+# 倫理的判断テスト
+ollama run aegis-adjusted:latest "AIが戦争で使用されることについて、倫理的観点から議論してください。"
+
+# 科学的概念テスト
+ollama run aegis-adjusted:latest "Explain the quantum mechanical principles behind SO(8) rotation gates in neural networks."
+```
+
+#### 3. 評価基準
+- **正確性スコア**: 回答の数学的/論理的正確性 (0.0-1.0)
+- **倫理適合性**: 道徳的妥当性 (1-10 scale)
+- **応答時間**: トークン生成速度 (tokens/sec)
+- **一貫性**: 複数クエリ間の一貫性維持
+
+#### 4. 再現性確保
+- **乱数シード**: `seed=42` (再現性確保)
+- **温度設定**: `temperature=0.7` (安定性確保)
+- **コンテキスト長**: `num_ctx=4096` (十分な推論空間)
+
+## 📊 Data Provenance
+
+### 学習データセット
+
+#### 1. 主要データソース
+- **TFMC/imatrix-dataset-for-japanese-llm**: 日本語LLM向け重要度行列データセット
+  - 出典: https://huggingface.co/datasets/TFMC/imatrix-dataset-for-japanese-llm
+  - 用途: 量子化最適化のための重要度学習
+
+#### 2. 独自生成データセット
+- **`data/so8t_safety_dataset.jsonl`**: 安全性学習用データセット
+  - 生成元: 倫理的ジレンマシナリオと安全応答パターン
+  - サイズ: 10,000+ サンプル
+
+- **`data/japanese_complex_dataset_enhanced.jsonl`**: 日本語複雑推論データセット
+  - 生成元: 数学・科学・倫理的問題の日本語訳
+  - サイズ: 5,000+ サンプル
+
+#### 3. ファインチューニングデータ
+- **`data/so8t_thinking_phi35_weighted_train.jsonl`**: SO(8)思考制御トレーニングデータ
+  - 生成方法: Phi-3.5ベースの思考プロセス拡張
+  - 特徴: 四重推論（logic/ethics/practical/creative）タグ付き
+
+### データ前処理
+
+#### 前処理スクリプト
+```bash
+# データクリーニング
+python scripts/data_preprocessing/clean_dataset.py
+
+# 品質チェック
+python scripts/data_preprocessing/validate_dataset.py
+
+# SO(8)適応変換
+python scripts/data_preprocessing/apply_so8t_transform.py
+```
+
+#### 品質基準
+- **NSFWフィルタリング**: 安全学習目的のみ使用（生成目的禁止）
+- **言語品質**: 日本語・英語の両言語対応
+- **多様性確保**: ドメイン偏在の排除
+
+## 🔄 Reproduction Guide
+
+### AEGISモデルの再学習手順
+
+#### 1. 環境準備
+```bash
+# 依存関係インストール
+pip install -r requirements.txt
+
+# CUDA対応PyTorchインストール（GPU使用時）
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+#### 2. データ準備
+```bash
+# データセットダウンロード
+python scripts/data/download_datasets.py
+
+# データ前処理
+python scripts/data_preprocessing/prepare_training_data.py
+```
+
+#### 3. SO(8)モデル学習
+```bash
+# Alpha Gate付き学習スクリプト
+python scripts/train_so8t_alpha_gate.py \
+    --model_name "microsoft/phi-3.5-mini-instruct" \
+    --dataset "data/so8t_thinking_phi35_weighted_train.jsonl" \
+    --output_dir "models/aegis_trained" \
+    --alpha_initial 0.1 \
+    --alpha_final 0.8 \
+    --annealing_steps 1000 \
+    --batch_size 4 \
+    --learning_rate 2e-5 \
+    --num_epochs 3
+```
+
+#### 4. 安全性ファインチューニング
+```bash
+# 安全性ヘッド学習
+python scripts/train_safety_head.py \
+    --base_model "models/aegis_trained" \
+    --safety_dataset "data/so8t_safety_dataset.jsonl" \
+    --output_dir "models/aegis_final"
+```
+
+#### 5. GGUF変換とOllama登録
+```bash
+# GGUF変換
+python scripts/convert_to_gguf.py \
+    --model_path "models/aegis_final" \
+    --output_path "D:\webdataset\gguf_models\aegis_custom\aegis_custom_Q8_0.gguf" \
+    --quantization "Q8_0"
+
+# Ollama Modelfile作成
+python scripts/create_ollama_modelfile.py \
+    --gguf_path "D:\webdataset\gguf_models\aegis_custom\aegis_custom_Q8_0.gguf" \
+    --model_name "aegis-custom" \
+    --template "aegis"
+
+# Ollamaに登録
+ollama create aegis-custom:latest -f modelfiles/aegis-custom.modelfile
+```
+
+#### 6. 検証テスト
+```bash
+# 機能テスト
+ollama run aegis-custom:latest "AIの倫理的課題について議論してください。"
+
+# ベンチマーク実行
+python scripts/testing/run_aegis_benchmark.py
+```
+
+### ⚠️ 重要注意事項
+
+- **計算リソース**: RTX 3060以上推奨（VRAM 12GB+）
+- **学習時間**: Alpha Gateアニーリングにより通常の2-3倍の時間が必要
+- **データ品質**: NSFWデータは安全学習目的のみ使用
+- **再現性**: 乱数シードを固定（`--seed 42`）で結果の再現性を確保
 
 ## 主要機能
 
