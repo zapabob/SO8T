@@ -12,6 +12,12 @@ st.set_page_config(page_title="Grand Benchmark Monitor", layout="wide")
 RESULTS_DIR = Path("_docs/grand_benchmark_results")
 CHECKPOINT_DIR = Path("_docs/grand_benchmark_checkpoints")
 
+MODELS = {
+    "Model_A": "model-a:q8_0",
+    "AEGIS_0.6": "aegis-adjusted-0.6",
+    "AEGIS_0.8": "aegis-0.8"
+}
+
 def load_data():
     """Load all benchmark results"""
     all_data = []
@@ -116,19 +122,45 @@ if not df.empty:
                          title="Overall Win Rate", text_auto='.2f')
         st.plotly_chart(fig_pie, use_container_width=True)
 
-    # Recent Results Log
-    st.header("📝 Recent Results")
+    st.divider()
+
+    # Head-to-Head Comparison
+    st.header("⚔️ Head-to-Head Comparison")
+    st.caption("Compare responses for the same question side-by-side.")
     
-    recent_df = df.tail(20).sort_index(ascending=False)
+    # Get recent question IDs
+    recent_ids = df['id'].unique()
+    recent_ids = sorted(recent_ids, reverse=True)[:5] # Last 5 questions
     
-    for i, row in recent_df.iterrows():
-        with st.expander(f"[{row['benchmark']}] {row['model']} (ID: {row['id']}) - {'✅ Correct' if row['correct'] else '❌ Incorrect'}"):
-            st.markdown(f"**Prediction:** `{row['prediction']}`")
+    for q_id in recent_ids:
+        q_data = df[df['id'] == q_id]
+        if q_data.empty:
+            continue
+            
+        # Get the question prompt from the first available model's entry
+        prompt = q_data.iloc[0]['prompt']
+        benchmark = q_data.iloc[0]['benchmark']
+        
+        with st.expander(f"[{benchmark}] Question ID: {q_id}", expanded=True):
             st.markdown("**Prompt:**")
-            st.code(row['prompt'])
-            st.markdown("**Response:**")
-            st.code(row['response'])
-            st.divider()
+            st.code(prompt)
+            
+            cols = st.columns(len(MODELS))
+            sorted_models = sorted(q_data['model'].unique())
+            
+            for i, model in enumerate(sorted_models):
+                row = q_data[q_data['model'] == model].iloc[0]
+                with cols[i]:
+                    st.subheader(model)
+                    status = "✅ Correct" if row['correct'] else "❌ Incorrect"
+                    st.markdown(f"**Status:** {status}")
+                    st.markdown(f"**Prediction:** `{row['prediction']}`")
+                    st.markdown("**Response:**")
+                    st.info(row['response'])
+
+    # Recent Results Log
+    st.header("📝 Raw Log")
+    st.dataframe(df.tail(20)[['benchmark', 'model', 'id', 'correct', 'prediction', 'response']].sort_index(ascending=False), use_container_width=True)
 
 else:
     st.info("Waiting for data...")
