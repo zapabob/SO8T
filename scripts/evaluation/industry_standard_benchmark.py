@@ -6,7 +6,8 @@ Industry-standard benchmark orchestrator
 Runs:
 1. CUDA-accelerated lm-evaluation-harness sweep
 2. DeepEval ethics / logic tests
-3. promptfoo A/B comparison
+3. ELYZA-100 Japanese language capability benchmark
+4. promptfoo A/B comparison
 """
 
 from __future__ import annotations
@@ -83,10 +84,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lm-config", type=Path, default=None, help="JSON config for CUDA lm-eval script")
     parser.add_argument("--deepeval-model", default="aegis-borea-phi35-instinct-jp:q8_0")
     parser.add_argument("--deepeval-runner", choices=["ollama", "hf"], default="ollama")
+    parser.add_argument(
+        "--elyza-models",
+        nargs="+",
+        default=["model-a:q8_0", "aegis-phi3.5-fixed-0.8:latest"],
+        help="Ollama model names for ELYZA-100 benchmark",
+    )
+    parser.add_argument("--elyza-limit", type=int, default=None, help="Limit number of ELYZA tasks (for testing)")
     parser.add_argument("--promptfoo-config", type=Path, default=Path("configs/promptfoo_config.yaml"))
     parser.add_argument("--run-root", type=Path, default=DEFAULT_RUN_ROOT)
     parser.add_argument("--skip-lm", action="store_true")
     parser.add_argument("--skip-deepeval", action="store_true")
+    parser.add_argument("--skip-elyza", action="store_true")
     parser.add_argument("--skip-promptfoo", action="store_true")
     parser.add_argument("--label", default=None)
     return parser.parse_args()
@@ -148,6 +157,24 @@ def main() -> None:
         ]
         steps.append(run_and_log("deepeval", deepeval_cmd, run_dir / "02_deepeval.log"))
 
+    if not args.skip_elyza:
+        elyza_output_dir = run_dir / "elyza"
+        elyza_output_dir.mkdir(parents=True, exist_ok=True)
+        for model_name in args.elyza_models:
+            elyza_cmd = [
+                "py",
+                "-3",
+                "scripts/evaluation/elyza_benchmark.py",
+                "--model-name",
+                model_name,
+                "--output-dir",
+                str(elyza_output_dir),
+            ]
+            if args.elyza_limit:
+                elyza_cmd.extend(["--limit", str(args.elyza_limit)])
+            step_name = f"elyza_{model_name.replace(':', '_').replace('/', '_')}"
+            steps.append(run_and_log(step_name, elyza_cmd, run_dir / f"03_{step_name}.log"))
+
     if not args.skip_promptfoo:
         promptfoo_cmd = [
             "py",
@@ -161,7 +188,7 @@ def main() -> None:
             "--json",
             "--use-npx",
         ]
-        steps.append(run_and_log("promptfoo", promptfoo_cmd, run_dir / "03_promptfoo.log"))
+        steps.append(run_and_log("promptfoo", promptfoo_cmd, run_dir / "04_promptfoo.log"))
 
     metadata = {
         "timestamp": timestamp,

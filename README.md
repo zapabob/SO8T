@@ -53,7 +53,7 @@ Alpha Gateの学習中に観測されるPhase Transitionは、幾何学的制約
 
 1. **lm-evaluation-harness (Open LLM Leaderboard準拠)**
 
-   ```bash
+```bash
    py -3 scripts/evaluation/lm_eval_benchmark.py ^
        --model-runner hf ^
        --model-name microsoft/Phi-3.5-mini-instruct ^
@@ -83,7 +83,7 @@ Alpha Gateの学習中に観測されるPhase Transitionは、幾何学的制約
 
 3. **promptfoo (A/B可視化)**
 
-   ```bash
+```bash
    py -3 scripts/evaluation/promptfoo_ab_test.py ^
        --config configs/promptfoo_config.yaml ^
        --use-npx --html --json
