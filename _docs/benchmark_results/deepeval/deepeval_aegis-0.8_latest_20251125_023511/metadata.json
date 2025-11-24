@@ -1,0 +1,7 @@
+{
+  "model_runner": "ollama",
+  "model_name": "aegis-0.8:latest",
+  "evaluation_model": "gpt-4o-mini",
+  "timestamp": "20251125_023511",
+  "cases_file": null
+}
