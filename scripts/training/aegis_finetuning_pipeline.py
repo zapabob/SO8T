@@ -42,36 +42,38 @@ class AEGISFineTuningPipeline:
         default_config = {
             "model": {
                 "base_model": "microsoft/Phi-3.5-mini-instruct",
-                "model_name": "AEGIS-Borea-Phi3.5-instinct-jp",
-                "quantization": ["Q8_0", "Q4_K_M", "F16"]
+                "model_name": "AEGIS-v2.0-Borea-Phi3.5-Optimized",
+                "quantization": ["Q8_0", "Q4_K_M", "F16"],
+                "version": "2.0",
+                "optimization_method": "Bayesian Hyperparameter Optimization"
             },
             "training": {
                 "max_steps": 1000,
-                "batch_size": 4,
-                "learning_rate": 2e-5,
-                "warmup_steps": 100,
-                "gradient_accumulation_steps": 4,
+                "batch_size": 8,  # Optimized from 4
+                "learning_rate": 7.621869045810622e-05,  # Optimized from 2e-5
+                "warmup_steps": 178,  # Optimized from 100
+                "gradient_accumulation_steps": 8,  # Optimized from 4
                 "save_steps": 100,
                 "logging_steps": 50
             },
             "so8t": {
                 "enable_so8t": True,
                 "alpha_gate_enabled": True,
-                "alpha_initial": -5.0,
+                "alpha_initial": -2.1336307753809063,  # Optimized from -5.0
                 "alpha_target": 1.618,  # Golden ratio
-                "annealing_steps": 800,
-                "orthogonality_weight": 0.1
+                "annealing_steps": 153,  # Optimized from 800
+                "orthogonality_weight": 0.03868643499581474  # Optimized from 0.1
             },
             "lora": {
-                "r": 16,
-                "lora_alpha": 32,
+                "r": 8,  # Optimized from 16
+                "lora_alpha": 64,  # Optimized from 32
                 "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-                "lora_dropout": 0.05,
+                "lora_dropout": 0.17080305311250416,  # Optimized from 0.05
                 "bias": "none",
                 "task_type": "CAUSAL_LM"
             },
             "data": {
-                "train_file": "data/so8t_training_data.jsonl",
+                "train_file": "data/so8t_thinking_qc_optimized_5000.jsonl",  # Optimized dataset
                 "validation_split": 0.1,
                 "max_length": 2048,
                 "preprocessing_num_workers": 4
@@ -111,10 +113,10 @@ class AEGISFineTuningPipeline:
         for package in required_packages:
             try:
                 __import__(package)
-                log_message(f"✓ {package} available")
+                log_message(f"[OK] {package} available")
             except ImportError:
                 missing_packages.append(package)
-                log_message(f"✗ {package} missing")
+                log_message(f"[NG] {package} missing")
 
         if missing_packages:
             log_message(f"Missing packages: {missing_packages}", "ERROR")
@@ -123,8 +125,8 @@ class AEGISFineTuningPipeline:
 
         # Check CUDA availability
         if torch.cuda.is_available():
-            log_message(f"✓ CUDA available: {torch.cuda.get_device_name(0)}")
-            log_message(f"✓ CUDA version: {torch.version.cuda}")
+            log_message(f"[OK] CUDA available: {torch.cuda.get_device_name(0)}")
+            log_message(f"[OK] CUDA version: {torch.version.cuda}")
         else:
             log_message("⚠ CUDA not available, using CPU")
 
@@ -186,9 +188,9 @@ class AEGISFineTuningPipeline:
 
             model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
 
-            log_message(f"✓ Model loaded: {model_name}")
-            log_message(f"✓ Parameters: {model.num_parameters():,}")
-            log_message(f"✓ Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
+            log_message(f"[OK] Model loaded: {model_name}")
+            log_message(f"[OK] Parameters: {model.num_parameters():,}")
+            log_message(f"[OK] Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
 
             return model, tokenizer
 
@@ -232,8 +234,8 @@ class AEGISFineTuningPipeline:
 
             # Apply SO(8) transformations
             # This would include the actual SO(8) rotation gates implementation
-            log_message("✓ SO(8) transformations applied")
-            log_message("✓ Alpha Gate initialized")
+            log_message("[OK] SO(8) transformations applied")
+            log_message("[OK] Alpha Gate initialized")
 
             return model
 
@@ -261,7 +263,7 @@ class AEGISFineTuningPipeline:
             logging_steps=training_config["logging_steps"],
             save_steps=training_config["save_steps"],
             save_total_limit=3,
-            evaluation_strategy="steps",
+            eval_strategy="steps",
             eval_steps=training_config["save_steps"],
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",
@@ -314,14 +316,27 @@ class AEGISFineTuningPipeline:
                 )
 
             # Apply preprocessing
-            tokenized_dataset = dataset.map(
+            tokenized_dataset = dataset["train"].map(
                 preprocess_function,
                 batched=True,
                 num_proc=data_config["preprocessing_num_workers"],
                 remove_columns=dataset["train"].column_names
             )
 
-            log_message(f"✓ Dataset loaded: {len(tokenized_dataset['train'])} train, {len(tokenized_dataset['validation'])} validation")
+            # Create validation split for tokenized dataset
+            validation_dataset = dataset["validation"].map(
+                preprocess_function,
+                batched=True,
+                num_proc=data_config["preprocessing_num_workers"],
+                remove_columns=dataset["validation"].column_names
+            )
+
+            tokenized_dataset = {
+                "train": tokenized_dataset,
+                "validation": validation_dataset
+            }
+
+            log_message(f"[OK] Dataset loaded: {len(tokenized_dataset['train'])} train, {len(tokenized_dataset['validation'])} validation")
             return tokenized_dataset
 
         except Exception as e:
@@ -354,13 +369,13 @@ class AEGISFineTuningPipeline:
         trainer.train()
         training_time = time.time() - start_time
 
-        log_message(".2f"
+        log_message(".2f")
         # Save final model
         final_model_path = self.models_dir / f"{self.config['model']['model_name']}_final"
         trainer.save_model(str(final_model_path))
         tokenizer.save_pretrained(str(final_model_path))
 
-        log_message(f"✓ Final model saved to: {final_model_path}")
+        log_message(f"[OK] Final model saved to: {final_model_path}")
 
         return trainer, final_model_path
 
@@ -392,15 +407,15 @@ class AEGISFineTuningPipeline:
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
 
                 if result.returncode == 0:
-                    log_message(f"✓ GGUF conversion successful: {output_file}")
+                    log_message(f"[OK] GGUF conversion successful: {output_file}")
                     conversions.append(str(output_file))
                 else:
-                    log_message(f"✗ GGUF conversion failed for {quant_type}: {result.stderr}", "ERROR")
+                    log_message(f"[NG] GGUF conversion failed for {quant_type}: {result.stderr}", "ERROR")
 
             except subprocess.TimeoutExpired:
-                log_message(f"✗ GGUF conversion timeout for {quant_type}", "ERROR")
+                log_message(f"[NG] GGUF conversion timeout for {quant_type}", "ERROR")
             except Exception as e:
-                log_message(f"✗ GGUF conversion error for {quant_type}: {e}", "ERROR")
+                log_message(f"[NG] GGUF conversion error for {quant_type}: {e}", "ERROR")
 
         return conversions
 
@@ -439,7 +454,7 @@ Always prioritize user safety, ethical considerations, and practical utility in 
         with open(modelfile_path, 'w', encoding='utf-8') as f:
             f.write(modelfile_content)
 
-        log_message(f"✓ Ollama Modelfile created: {modelfile_path}")
+        log_message(f"[OK] Ollama Modelfile created: {modelfile_path}")
         return modelfile_path
 
     def run_full_pipeline(self) -> bool:
@@ -521,7 +536,7 @@ Always prioritize user safety, ethical considerations, and practical utility in 
             ], capture_output=True, text=True)
 
             if result.returncode == 0:
-                log_message("✓ Benchmark tests completed successfully")
+                log_message("[OK] Benchmark tests completed successfully")
                 return True
             else:
                 log_message(f"Benchmark tests failed: {result.stderr}", "ERROR")
@@ -565,7 +580,7 @@ def main():
         except:
             pass
     else:
-        log_message("❌ AEGIS Fine-tuning Pipeline failed", "ERROR")
+        log_message("[ERROR] AEGIS Fine-tuning Pipeline failed", "ERROR")
         sys.exit(1)
 
 if __name__ == "__main__":

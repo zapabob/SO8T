@@ -1,0 +1,42 @@
+{
+    "model": {
+        "base_model": "microsoft/Phi-3.5-mini-instruct",
+        "model_name": "AEGIS-v2.0-Borea-Phi3.5-Optimized-Test",
+        "quantization": ["Q8_0"]
+    },
+    "training": {
+        "max_steps": 10,
+        "batch_size": 8,
+        "learning_rate": 7.621869045810622e-05,
+        "warmup_steps": 178,
+        "gradient_accumulation_steps": 8,
+        "save_steps": 10,
+        "logging_steps": 5
+    },
+    "so8t": {
+        "enable_so8t": true,
+        "alpha_gate_enabled": true,
+        "alpha_initial": -2.1336307753809063,
+        "alpha_target": 1.618,
+        "annealing_steps": 153,
+        "orthogonality_weight": 0.03868643499581474
+    },
+    "lora": {
+        "r": 8,
+        "lora_alpha": 64,
+        "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        "lora_dropout": 0.17080305311250416,
+        "bias": "none",
+        "task_type": "CAUSAL_LM"
+    },
+    "data": {
+        "train_file": "data/so8t_thinking_qc_optimized_5000.jsonl",
+        "validation_split": 0.1,
+        "max_length": 2048,
+        "preprocessing_num_workers": 2
+    },
+    "gguf": {
+        "output_dir": "D:/webdataset/gguf_models",
+        "quantization_types": ["q8_0"]
+    }
+}

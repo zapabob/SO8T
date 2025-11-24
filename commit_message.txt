@@ -1,0 +1,8 @@
+feat: 科学論文レベルドキュメントの大幅充実
+
+- README.md: SO(8)概念・アーキテクチャ・ベンチマーク方法の詳細記述
+- data/README.md: データプロベナンスと前処理方法の完全文書化
+- docs/figures/: Phase Transitionを示すLossチャート配置
+- scripts/reproduce_aegis_training.py: 完全再現可能な統合トレーニングスクリプト
+
+科学論文レベルの透明性と再現性を確保し、第三者検証を可能にしました。

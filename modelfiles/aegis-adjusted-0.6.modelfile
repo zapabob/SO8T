@@ -1,4 +1,4 @@
-FROM C:\Users\downl\Desktop\SO8T\models\aegis_adjusted_0.6\aegis-adjusted-0.6.gguf
+FROM D:\webdataset\gguf_models\aegis_alpha_adjusted_0.8\aegis_alpha_adjusted_0.8_Q8_0.gguf
 
 TEMPLATE """{{ .System }}
 

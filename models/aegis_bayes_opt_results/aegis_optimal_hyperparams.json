@@ -1,0 +1,23 @@
+{
+  "best_objective": 0.1,
+  "best_params": {
+    "batch_size": 8,
+    "learning_rate": 7.621869045810622e-05,
+    "warmup_steps": 178,
+    "gradient_accumulation_steps": 8,
+    "alpha_initial": -2.1336307753809063,
+    "annealing_steps": 153,
+    "orthogonality_weight": 0.03868643499581474,
+    "lora_r": 8,
+    "lora_alpha": 64,
+    "lora_dropout": 0.17080305311250416
+  },
+  "optimization_info": {
+    "n_trials": 1,
+    "study_name": "aegis_hyperparam_bayes_opt",
+    "total_trials": 1,
+    "completed_trials": 1,
+    "failed_trials": 1,
+    "timestamp": "2025-11-24T02:38:18.538539"
+  }
+}
