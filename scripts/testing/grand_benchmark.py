@@ -85,7 +85,14 @@ def run_ollama(model: str, prompt: str, timeout: int = 120) -> str:
             timeout=timeout,
             encoding='utf-8'
         )
-        return result.stdout.strip()
+        if result.returncode != 0:
+            return f"ERROR: {result.stderr.strip()}"
+        
+        output = result.stdout.strip()
+        if not output and result.stderr:
+             return f"ERROR: {result.stderr.strip()}"
+             
+        return output
     except subprocess.TimeoutExpired:
         return "TIMEOUT"
     except Exception as e:
