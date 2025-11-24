@@ -15,9 +15,9 @@
 **ファイル**: `scripts/evaluation/elyza_benchmark.py`
 
 **実装状況**: [実装済み]  
-**動作確認**: [未確認]  
-**確認日時**: -  
-**備考**: 既存の`scripts/testing/elyza_benchmark.py`をベースにリファクタリング
+**動作確認**: [実行中]  
+**確認日時**: 2025-11-25 06:30開始  
+**備考**: 既存の`scripts/testing/elyza_benchmark.py`をベースにリファクタリング。実行中（PID 3772）。ログバッファリング問題を修正済み（`flush=True`を追加）。
 
 - 引数でモデル指定可能（`--model-name`）
 - 出力先指定可能（`--output-dir`, `--output-root`）
@@ -42,9 +42,9 @@
 **ファイル**: `scripts/evaluation/industry_standard_benchmark.py`
 
 **実装状況**: [実装済み]  
-**動作確認**: [未確認]  
-**確認日時**: -  
-**備考**: ELYZA-100ステップを追加
+**動作確認**: [実行中]  
+**確認日時**: 2025-11-25 06:30開始  
+**備考**: ELYZA-100ステップを追加。実行中（PID 14760）。ログバッファリング問題を修正済み（`run_and_log`関数に`bufsize=1`と`PYTHONUNBUFFERED=1`を追加）。
 
 - `--elyza-models`オプション追加（複数モデル指定可能）
 - `--elyza-limit`オプション追加（タスク数制限）

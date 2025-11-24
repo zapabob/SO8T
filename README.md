@@ -45,71 +45,43 @@ Alpha Gateの学習中に観測されるPhase Transitionは、幾何学的制約
 ## 🔬 Benchmark Method
 
 ### 実行環境
-- **Runtime**: Python 3.12 / Ollama 0.3.0+
+- **Runtime**: Ollama 0.3.0+
 - **GPU**: RTX 3060/3080 (CUDA 12.1+)
 - **OS**: Windows 11 / Ubuntu 22.04+
 
-### 業界標準パイプライン
+### 標準ベンチマークプロトコル
 
-1. **lm-evaluation-harness (Open LLM Leaderboard準拠)**
-
+#### 1. モデル実行コマンド
 ```bash
-   py -3 scripts/evaluation/lm_eval_benchmark.py ^
-       --model-runner hf ^
-       --model-name microsoft/Phi-3.5-mini-instruct ^
-       --tasks gsm8k mmlu hellaswag ^
-       --batch-size 4
+# AEGISモデル実行
+ollama run aegis-adjusted:latest "あなたのクエリ"
 
-   py -3 scripts/evaluation/lm_eval_benchmark.py ^
-       --model-runner llama.cpp ^
-       --model-name D:/webdataset/gguf_models/aegis-borea-phi35/aegis-borea-phi35_Q8_0.gguf ^
-       --model-args n_gpu_layers=40 ^
-       --batch-size 2
-   ```
+# 高速最適化モデル
+ollama run modela:latest "あなたのクエリ"
+```
 
-   - すべての結果は `D:/webdataset/benchmark_results/lm_eval/` に保存。
-   - CUDAリソースは `scripts/cuda_accelerated_benchmark.py` で一括管理可能。
-
-2. **DeepEval (倫理 / 論理 / ハルシネーション)**
-
-   ```bash
-   py -3 scripts/evaluation/deepeval_ethics_test.py ^
-       --model-runner ollama ^
-       --model-name aegis-borea-phi35-instinct-jp:q8_0
-   ```
-
-   - Hallucination / Bias / Answer Relevancy を自動採点。
-   - 結果は `D:/webdataset/benchmark_results/deepeval/` にJSONで記録。
-
-3. **promptfoo (A/B可視化)**
-
+#### 2. 評価プロンプト例
 ```bash
-   py -3 scripts/evaluation/promptfoo_ab_test.py ^
-       --config configs/promptfoo_config.yaml ^
-       --use-npx --html --json
-   ```
+# 数学的推論テスト
+ollama run aegis-adjusted:latest "Solve: Natalia sold clips to 48 friends in April, and then half as many in May. How many did she sell in total?"
 
-   - Node.js環境は `scripts/utils/check_nodejs.bat` で検証。
-   - HTML/JSONレポートは `D:/webdataset/benchmark_results/promptfoo/` に保存。
+# 倫理的判断テスト
+ollama run aegis-adjusted:latest "AIが戦争で使用されることについて、倫理的観点から議論してください。"
 
-4. **統合レポート**
+# 科学的概念テスト
+ollama run aegis-adjusted:latest "Explain the quantum mechanical principles behind SO(8) rotation gates in neural networks."
+```
 
-   ```bash
-   py -3 scripts/evaluation/industry_standard_benchmark.py
-   ```
+#### 3. 評価基準
+- **正確性スコア**: 回答の数学的/論理的正確性 (0.0-1.0)
+- **倫理適合性**: 道徳的妥当性 (1-10 scale)
+- **応答時間**: トークン生成速度 (tokens/sec)
+- **一貫性**: 複数クエリ間の一貫性維持
 
-   - 上記3ツールを順次実行し、`_docs/benchmark_results/industry_standard/` にMarkdownレポートを生成。
-   - Git worktree名を含む `metadata.json` で再現性を保証。
-
-### 評価基準
-- **Accuracy (lm-eval)**: MMLU / GSM8K / HellaSwag の公式スコア
-- **Ethics (DeepEval)**: Hallucination / Bias / Relevancy の合格率
-- **A/B差分 (promptfoo)**: HTMLレポートでモデル間スコアを比較
-
-### 再現性の確保
-- すべてのスクリプトは `py -3` 起動 & `tqdm` 進行表示
-- モデル成果物は `D:/webdataset` 配下に保存
-- 各ステップ完了時に `scripts/utils/play_audio_notification.ps1` を再生し、実験ログと同期
+#### 4. 再現性確保
+- **乱数シード**: `seed=42` (再現性確保)
+- **温度設定**: `temperature=0.7` (安定性確保)
+- **コンテキスト長**: `num_ctx=4096` (十分な推論空間)
 
 ## 📊 Data Provenance
 

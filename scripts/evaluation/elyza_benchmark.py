@@ -119,11 +119,11 @@ def run_elyza_benchmark(
         
         if is_correct:
             correct += 1
-            print(f"[OK]", end="")
+            print(f"[OK]", end="", flush=True)
         else:
-            print(f"[NG]", end="")
+            print(f"[NG]", end="", flush=True)
         
-        print(f" [{duration:.1f}s]")
+        print(f" [{duration:.1f}s]", flush=True)
         
         results.append({
             "task_id": task['id'],
