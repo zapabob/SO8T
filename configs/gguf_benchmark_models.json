@@ -1,0 +1,55 @@
+{
+  "gguf_models": [
+    {
+      "alias": "aegis_phi35_fixed_q8",
+      "gguf_path": "D:/webdataset/gguf_models/AEGIS-phi3.5-fixed/aegis-0.8.gguf",
+      "ollama_name": "aegis-phi3.5-fixed-0.8:latest",
+      "description": "AEGIS phi3.5 fixed Q8_0 quantized",
+      "tasks": ["gsm8k", "mmlu", "hellaswag"],
+      "batch_size": 2,
+      "n_gpu_layers": 40,
+      "limit": 100
+    },
+    {
+      "alias": "aegis_phi35_golden_sigmoid_final_q8",
+      "gguf_path": "D:/webdataset/gguf_models/AEGIS-phi35-golden-sigmoid-final/AEGIS-phi35-golden-sigmoid-final_Q8_0.gguf",
+      "ollama_name": "aegis-phi35-golden-sigmoid-final-q8:latest",
+      "description": "AEGIS phi35 golden sigmoid final Q8_0",
+      "tasks": ["gsm8k", "mmlu", "hellaswag"],
+      "batch_size": 2,
+      "n_gpu_layers": 40,
+      "limit": 100
+    },
+    {
+      "alias": "aegis_alpha_adjusted_q8",
+      "gguf_path": "D:/webdataset/gguf_models/aegis_alpha_adjusted_0.8/aegis_alpha_adjusted_0.8_Q8_0.gguf",
+      "ollama_name": "aegis-alpha-adjusted-0.8-q8_0:latest",
+      "description": "AEGIS alpha adjusted 0.8 Q8_0",
+      "tasks": ["gsm8k", "mmlu", "hellaswag"],
+      "batch_size": 2,
+      "n_gpu_layers": 40,
+      "limit": 100
+    },
+    {
+      "alias": "modela_q8",
+      "gguf_path": "D:/webdataset/gguf_models/model_a/model_a_q8_0.gguf",
+      "ollama_name": "model-a:q8_0",
+      "description": "Model A Q8_0 quantized (baseline)",
+      "tasks": ["gsm8k", "mmlu", "hellaswag"],
+      "batch_size": 2,
+      "n_gpu_layers": 40,
+      "limit": 100
+    },
+    {
+      "alias": "modela_q4",
+      "gguf_path": "D:/webdataset/gguf_models/model_a/modela_Q4_K_M.gguf",
+      "ollama_name": "model-a:q4_k_m",
+      "description": "Model A Q4_K_M quantized (smaller size)",
+      "tasks": ["gsm8k", "mmlu", "hellaswag"],
+      "batch_size": 2,
+      "n_gpu_layers": 40,
+      "limit": 100
+    }
+  ]
+}
+

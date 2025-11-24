@@ -54,9 +54,9 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--model-runner",
-        choices=["hf", "llama.cpp", "vllm", "ollama"],
+        choices=["hf", "llama.cpp", "gguf", "ggml", "vllm", "ollama"],
         default="hf",
-        help="lm-evaluation-harnessの--model値",
+        help="lm-evaluation-harnessの--model値（llama.cppはggufのエイリアス）",
     )
     parser.add_argument(
         "--model-name",
@@ -151,6 +151,10 @@ def auto_model_args(args: argparse.Namespace) -> str:
         )
 
     if args.model_runner == "llama.cpp":
+        # llama.cpp is an alias for gguf in lm-eval
+        args.model_runner = "gguf"
+    
+    if args.model_runner == "gguf" or args.model_runner == "ggml":
         parts = [f"model={args.model_name}", f"n_gpu_layers={args.n_gpu_layers}"]
         if args.tensor_split:
             parts.append(f"tensor_split={args.tensor_split}")
@@ -191,12 +195,15 @@ def gather_hardware_info() -> Dict[str, str]:
 
 
 def build_command(args: argparse.Namespace, run_dir: Path) -> List[str]:
+    # Map llama.cpp to gguf for lm-eval compatibility
+    model_runner = "gguf" if args.model_runner == "llama.cpp" else args.model_runner
+    
     cmd = [
         sys.executable,
         "-m",
         "lm_eval",
         "--model",
-        args.model_runner,
+        model_runner,
         "--tasks",
         ",".join(args.tasks),
         "--batch_size",
@@ -265,7 +272,7 @@ def save_run_metadata(
         "batch_size": args.batch_size,
         "limit": args.limit,
         "device": args.device,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "hardware": gather_hardware_info(),
         "exit_code": exit_code,
     }

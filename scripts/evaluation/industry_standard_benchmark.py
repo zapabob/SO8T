@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -60,17 +61,29 @@ def play_audio() -> None:
 def run_and_log(name: str, cmd: List[str], log_path: Path) -> Dict[str, Optional[int]]:
     print(f"[RUN] {name}: {' '.join(cmd)}")
     log_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Use unbuffered Python for better real-time logging
+    if cmd[0] in ["py", "python", "python3"] and "-3" not in cmd[:2]:
+        # Insert -u flag for unbuffered output
+        cmd = [cmd[0], "-u"] + cmd[1:]
+    elif cmd[0] == "py" and cmd[1] == "-3":
+        # Replace with unbuffered version
+        cmd = ["py", "-u", "-3"] + cmd[2:]
+    
     with log_path.open("w", encoding="utf-8") as log_file:
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            bufsize=1,  # Line buffering
+            env={**os.environ, "PYTHONUNBUFFERED": "1"},
         )
         assert process.stdout is not None
         for line in process.stdout:
             print(line, end="")
             log_file.write(line)
+            log_file.flush()  # Force flush to disk
         process.wait()
         exit_code = process.returncode
         print(f"[DONE] {name} exit={exit_code}")
