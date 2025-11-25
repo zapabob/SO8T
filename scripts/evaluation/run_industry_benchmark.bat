@@ -1,50 +1,55 @@
 @echo off
-chcp 65001 >nul
-echo [INDUSTRY BENCHMARK] Starting Integrated Industry Standard Benchmark
-echo ============================================================
+setlocal enabledelayedexpansion
 
-set SCRIPT_DIR=%~dp0
-set PROJECT_ROOT=%SCRIPT_DIR%..\..
-cd /d %PROJECT_ROOT%
+:: UTF-8エンコーディング設定
+chcp 65001 > nul
 
-echo [STEP 1] Running integrated benchmark suite...
-py -3 scripts\evaluation\integrated_industry_benchmark.py --output-dir D:\webdataset\benchmark_results\industry_standard
+echo ========================================================
+echo   Industry Standard Benchmark Suite
+echo   Model A (Borea-Phi3.5) vs AEGIS
+echo ========================================================
+echo.
 
+:: Pythonパス設定
+set PYTHON_CMD=.\.venv\Scripts\python.exe
+
+:: 1. ベンチマーク実行
+echo [1/4] Running Integrated Benchmark...
+%PYTHON_CMD% scripts/evaluation/integrated_industry_benchmark.py
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Benchmark execution failed
+    echo Error: Benchmark failed.
     exit /b %ERRORLEVEL%
 )
 
-echo [STEP 2] Finding latest results file...
-for /f "delims=" %%i in ('dir /b /o-d D:\webdataset\benchmark_results\industry_standard\integrated_benchmark_results_*.json 2^>nul') do (
-    set LATEST_RESULTS=D:\webdataset\benchmark_results\industry_standard\%%i
-    goto :found_results
-)
-
-:found_results
-if not defined LATEST_RESULTS (
-    echo [ERROR] No results file found
-    exit /b 1
-)
-
-echo [STEP 3] Creating visualizations...
-py -3 scripts\evaluation\visualize_industry_benchmark.py --results "%LATEST_RESULTS%" --output-dir D:\webdataset\benchmark_results\industry_standard\figures
-
+:: 2. 可視化生成
+echo.
+echo [2/4] Generating Visualizations...
+%PYTHON_CMD% scripts/evaluation/visualize_industry_benchmark.py
 if %ERRORLEVEL% NEQ 0 (
-    echo [WARNING] Visualization failed, continuing...
+    echo Warning: Visualization failed.
 )
 
-echo [STEP 4] Updating README...
-py -3 scripts\evaluation\update_readme_benchmarks.py --readme README.md --results "%LATEST_RESULTS%" --figures-dir D:\webdataset\benchmark_results\industry_standard\figures
-
+:: 3. README更新
+echo.
+echo [3/4] Updating README...
+%PYTHON_CMD% scripts/evaluation/update_readme_benchmarks.py
 if %ERRORLEVEL% NEQ 0 (
-    echo [WARNING] README update failed, continuing...
+    echo Warning: README update failed.
 )
 
-echo [STEP 5] Playing completion notification...
-powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+:: 4. 完了通知
+echo.
+echo [4/4] Benchmark Suite Completed!
+if exist "scripts/utils/play_audio_notification.ps1" (
+    powershell -ExecutionPolicy Bypass -File "scripts/utils/play_audio_notification.ps1"
+)
 
-echo [COMPLETE] Industry benchmark suite finished!
-echo Results: %LATEST_RESULTS%
-echo Figures: D:\webdataset\benchmark_results\industry_standard\figures\
+echo.
+echo Results are saved in D:/webdataset/benchmark_results/industry_standard/
+pause
+
+
+
+
+
 

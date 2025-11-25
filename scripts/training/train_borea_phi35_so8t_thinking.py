@@ -489,6 +489,14 @@ class SO8TPETTrainer(Trainer):
                     loss = loss_fct(shift_logits, shift_labels)
                     logger.debug(f"[FIX] outputs.loss requires_grad=False, recalculated from logits (loss.requires_grad={loss.requires_grad})")
         
+        # SO(8)直交性損失を追加（監視）
+        ortho_loss, ortho_metrics = collect_and_monitor_orthogonality_loss(model)
+        if isinstance(ortho_loss, torch.Tensor) and ortho_loss.requires_grad:
+            loss = loss + ortho_loss
+        elif isinstance(ortho_loss, torch.Tensor) and ortho_loss.item() > 0:
+            # requires_grad=Falseの場合でも、ログには記録
+            logger.debug(f"[ORTHO] Orthogonality loss (no grad): {ortho_loss.item():.6e}")
+        
         # PET損失を追加
         if self.pet_regularization is not None and hasattr(outputs, 'hidden_states') and outputs.hidden_states:
             # hidden_statesが利用可能な場合
@@ -520,6 +528,16 @@ class SO8TPETTrainer(Trainer):
                 logger.info(f"[PET] Step {step}: Loss={pet_loss.item():.6e}, "
                           f"Phase={pet_info.get('phase', 'unknown')}, "
                           f"Lambda={pet_info.get('lambda', 0.0):.4f}")
+        
+        # 直交性損失のログ出力（定期的に）
+        if self.state.global_step % 100 == 0:
+            ortho_value = ortho_loss.item() if isinstance(ortho_loss, torch.Tensor) else 0.0
+            logger.info(f"[ORTHO] Step {self.state.global_step}: Orthogonality Loss={ortho_value:.6e}, "
+                      f"SO(8) Gates monitored: {len(ortho_metrics)}")
+            if ortho_metrics:
+                # 最初の3つのメトリクスをログ出力
+                for name, metrics in list(ortho_metrics.items())[:3]:
+                    logger.debug(f"[ORTHO] {name}: {metrics}")
             
             # メトリクス記録
             if self.metrics_recorder is not None:
@@ -530,13 +548,17 @@ class SO8TPETTrainer(Trainer):
                     # 学習率取得
                     lr = self._get_learning_rate()
                     
+                    # 直交性損失の値を取得
+                    ortho_value = ortho_loss.item() if isinstance(ortho_loss, torch.Tensor) else 0.0
+                    
                     self.metrics_recorder.record_step(
                         step=self.state.global_step,
                         epoch=self.state.epoch if hasattr(self.state, 'epoch') else 0.0,
                         loss=loss.item(),
                         learning_rate=lr,
                         pet_loss=pet_loss.item() if isinstance(pet_loss, torch.Tensor) else pet_loss,
-                        perplexity=perplexity if perplexity != float('inf') else None
+                        perplexity=perplexity if perplexity != float('inf') else None,
+                        orthogonality_loss=ortho_value if ortho_value > 0 else None
                     )
                 except Exception as e:
                     logger.debug(f"[METRICS] Failed to record metrics: {e}")
@@ -1028,6 +1050,208 @@ def load_model_with_so8t(
     return model, tokenizer
 
 
+def freeze_base_model_weights(model, config):
+    """
+    ベースモデルの重みを凍結（魂の重みは学習可能に保持）
+    
+    Args:
+        model: PyTorchモデル
+        config: 設定辞書
+    """
+    freeze_base = config.get("model", {}).get("freeze_base_model", False)
+    if not freeze_base:
+        logger.info("[FREEZE] Base model weight freezing is disabled")
+        return
+    
+    logger.info("[FREEZE] Starting base model weight freezing...")
+    logger.info("[SOUL] Preserving soul weights (R_safe, R_cmd, alpha, soul parameters)...")
+    
+    # ベースモデルの全パラメータを凍結
+    frozen_count = 0
+    trainable_count = 0
+    soul_count = 0
+    
+    for name, param in model.named_parameters():
+        # LoRA、SO8T、Alpha Gate、魂の重み以外を凍結
+        should_freeze = True
+        
+        # 学習可能にするキーワードリスト（魂の重みを含む）
+        trainable_keywords = [
+            'lora',           # QLoRAアダプター
+            'so8',            # SO(8)ゲート
+            'rotation',       # 回転行列
+            'alpha_gate',     # Alpha Gate
+            'alpha',          # Alphaパラメータ（魂の重み）
+            'so8t',           # SO8T関連
+            'r_safe',         # 安全側の回転行列（魂の重み）
+            'r_cmd',          # コマンド側の回転行列（魂の重み）
+            'soul',           # 魂のパラメータ
+            'safety_head',    # 安全ヘッド（魂の3本柱）
+            'task_head',      # タスクヘッド（魂の3本柱）
+            'dual_heads',     # 二重政策系（魂の3本柱）
+            'pet',            # PET正則化（魂の3本柱）
+        ]
+        
+        for keyword in trainable_keywords:
+            if keyword in name.lower():
+                should_freeze = False
+                # 魂の重みをカウント
+                if keyword in ['r_safe', 'r_cmd', 'alpha', 'soul']:
+                    soul_count += 1
+                break
+        
+        if should_freeze:
+            param.requires_grad = False
+            frozen_count += 1
+        else:
+            param.requires_grad = True  # 明示的に学習可能に設定
+            trainable_count += 1
+    
+    # 学習可能パラメータの確認
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in model.parameters())
+    
+    logger.info(f"[FREEZE] Frozen {frozen_count} parameter groups")
+    logger.info(f"[FREEZE] Trainable parameter groups: {trainable_count}")
+    logger.info(f"[FREEZE] Trainable parameters: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)")
+    logger.info(f"[SOUL] Soul weight parameter groups: {soul_count}")
+    
+    # 学習可能パラメータの詳細をログ出力
+    trainable_names = [name for name, param in model.named_parameters() if param.requires_grad]
+    soul_names = [name for name in trainable_names if any(kw in name.lower() for kw in ['r_safe', 'r_cmd', 'alpha', 'soul'])]
+    
+    if trainable_names:
+        logger.info(f"[FREEZE] Trainable modules (first 10): {trainable_names[:10]}")
+        if len(trainable_names) > 10:
+            logger.info(f"[FREEZE] ... and {len(trainable_names) - 10} more")
+    
+    if soul_names:
+        logger.info(f"[SOUL] Soul weight parameters found: {len(soul_names)}")
+        for soul_name in soul_names[:5]:  # 最初の5つを表示
+            logger.info(f"[SOUL]   - {soul_name}")
+        if len(soul_names) > 5:
+            logger.info(f"[SOUL]   ... and {len(soul_names) - 5} more soul parameters")
+    else:
+        logger.warning("[SOUL] No soul weight parameters found - this may be normal if soul injection has not been performed yet")
+
+
+def apply_so8t_to_all_layers(model, config):
+    """
+    SO(8)ゲートを全レイヤーに適用
+    
+    Args:
+        model: PyTorchモデル
+        config: 設定辞書
+    """
+    so8t_config = config.get("so8t", {})
+    layer_indices = so8t_config.get("layer_indices", None)
+    
+    # layer_indicesがNoneの場合は全レイヤーに適用
+    if layer_indices is None:
+        logger.info("[SO8T] Applying SO(8) gates to all layers")
+        # モデルの全Transformerレイヤーを取得
+        if hasattr(model, 'model') and hasattr(model.model, 'layers'):
+            num_layers = len(model.model.layers)
+            logger.info(f"[SO8T] Found {num_layers} transformer layers")
+            # 実際のSO(8)ゲート適用はモデル読み込み時にSO8TPhi3Modelで行われる
+            # ここでは確認のみ
+        elif hasattr(model, 'layers'):
+            num_layers = len(model.layers)
+            logger.info(f"[SO8T] Found {num_layers} transformer layers")
+        else:
+            logger.warning("[SO8T] Could not find transformer layers in model structure")
+    else:
+        logger.info(f"[SO8T] Applying SO(8) gates to specific layers: {layer_indices}")
+
+
+def collect_and_monitor_orthogonality_loss(model):
+    """
+    直交性損失を収集して監視
+    
+    Args:
+        model: PyTorchモデル
+    
+    Returns:
+        ortho_loss: 総直交性損失
+        ortho_metrics: 各SO(8)ゲートの直交性メトリクス
+    """
+    try:
+        # 既存のcollect_so8t_orthogonality_loss関数を使用
+        from so8t_mmllm.src.so8t_layer import collect_so8t_orthogonality_loss
+        ortho_loss = collect_so8t_orthogonality_loss(model)
+    except ImportError:
+        # フォールバック: 手動で収集
+        ortho_loss = torch.tensor(0.0)
+        for module in model.modules():
+            if hasattr(module, 'get_orthogonality_loss'):
+                try:
+                    module_loss = module.get_orthogonality_loss()
+                    if isinstance(module_loss, torch.Tensor):
+                        ortho_loss = ortho_loss + module_loss
+                except Exception as e:
+                    logger.debug(f"[ORTHO] Failed to get orthogonality loss from {type(module).__name__}: {e}")
+    
+    # 各SO(8)ゲートの直交性メトリクスを取得
+    ortho_metrics = {}
+    for name, module in model.named_modules():
+        if hasattr(module, 'get_orthogonality_loss'):
+            if hasattr(module, 'verify_orthogonality'):
+                try:
+                    metrics = module.verify_orthogonality()
+                    ortho_metrics[name] = metrics
+                except Exception as e:
+                    logger.debug(f"[ORTHO] Failed to verify orthogonality for {name}: {e}")
+    
+    return ortho_loss, ortho_metrics
+
+
+def optimize_hyperparameters_with_bayesian_cv(config, model_path: str, dataset_path: Path, output_dir: Path):
+    """
+    ベイズ最適化 + クロスバリデーションでハイパーパラメータを最適化
+    
+    Args:
+        config: 設定辞書
+        model_path: ベースモデルパス
+        dataset_path: データセットパス
+        output_dir: 出力ディレクトリ
+    
+    Returns:
+        best_params: 最適化されたパラメータ
+        best_value: 最適化された値
+    """
+    bayesian_config = config.get("bayesian_optimization", {})
+    if not bayesian_config.get("enabled", False):
+        logger.info("[BAYESIAN] Bayesian optimization is disabled")
+        return None, None
+    
+    try:
+        from scripts.training.hyperparameter_optimization_with_cv import HyperparameterOptimizer
+    except ImportError as e:
+        logger.warning(f"[BAYESIAN] Failed to import HyperparameterOptimizer: {e}")
+        return None, None
+    
+    logger.info("[BAYESIAN] Starting hyperparameter optimization with Bayesian optimization and cross-validation...")
+    
+    n_trials = bayesian_config.get("n_trials", 50)
+    n_folds = bayesian_config.get("n_folds", 5)
+    
+    optimizer = HyperparameterOptimizer(
+        model_path=model_path,
+        dataset_path=dataset_path,
+        config=config,
+        output_dir=output_dir / "hyperparameter_optimization",
+        n_folds=n_folds,
+        n_trials=n_trials
+    )
+    
+    study, best_params = optimizer.optimize()
+    
+    logger.info(f"[BAYESIAN] Optimization completed. Best CV score: {study.best_value:.6f}")
+    logger.info(f"[BAYESIAN] Best parameters: {best_params}")
+    
+    return best_params, study.best_value
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Train Borea-Phi-3.5 with SO8T/thinking"
@@ -1132,6 +1356,9 @@ def main():
     
     logger.info("[DEBUG] Model loaded, preparing for QLoRA...")
     
+    # SO(8)ゲートを全レイヤーに適用（layer_indices=Noneの場合）
+    apply_so8t_to_all_layers(model, config)
+    
     # QLoRA設定
     if config.get("qlora", {}).get("enabled", True):
         # 8-bit量子化が有効な場合のみprepare_model_for_kbit_trainingを呼び出す
@@ -1218,6 +1445,9 @@ def main():
         model.train()
         logger.info("[DEBUG] Model set to training mode")
         logger.info("[DEBUG] QLoRA setup completed (embedding, LoRA, and SO(8) group structure parameters configured for gradient computation)")
+        
+        # 重み凍結機能を適用（QLoRA適用後）
+        freeze_base_model_weights(model, config)
     
     # データセット読み込み
     logger.info("[DEBUG] Starting dataset loading...")

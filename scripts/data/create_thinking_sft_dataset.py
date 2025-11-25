@@ -10,8 +10,10 @@ Phi-3.5チャットテンプレート準拠の/think形式（「思考ステッ�
 import json
 import argparse
 import logging
+import re
+import random
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import sys
 
 # プロジェクトルートをパスに追加
@@ -28,6 +30,157 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+
+class ThinkingDatasetQualityEvaluator:
+    """/thinkingデータセットの品質評価クラス"""
+    
+    def __init__(self):
+        """品質評価器を初期化"""
+        # 論理接続詞のリスト
+        self.logical_connectors = [
+            "したがって", "ゆえに", "つまり", "すなわち", "なぜなら", "なぜかというと",
+            "そのため", "その結果", "このため", "この結果", "よって", "従って",
+            "まず", "次に", "さらに", "また", "そして", "また", "さらに", "加えて",
+            "一方で", "しかし", "ただし", "しかしながら", "とはいえ", "もっとも"
+        ]
+    
+    def evaluate_thinking_quality(self, thinking_steps: str, final_answer: str) -> Dict[str, float]:
+        """
+        思考ステップと最終回答の品質を評価
+        
+        Args:
+            thinking_steps: 思考ステップのテキスト
+            final_answer: 最終回答のテキスト
+        
+        Returns:
+            品質スコアの辞書
+        """
+        scores = {}
+        
+        # 1. 論理性評価（思考ステップの構造、論理接続詞の使用）
+        logicality_score = self._evaluate_logicality(thinking_steps)
+        scores['logicality'] = logicality_score
+        
+        # 2. 正確性評価（最終回答の妥当性）
+        correctness_score = self._evaluate_correctness(final_answer)
+        scores['correctness'] = correctness_score
+        
+        # 3. 深さ評価（思考ステップの詳細度）
+        depth_score = self._evaluate_depth(thinking_steps)
+        scores['depth'] = depth_score
+        
+        # 4. 多様性評価（思考パターンの多様性）
+        diversity_score = self._evaluate_diversity(thinking_steps)
+        scores['diversity'] = diversity_score
+        
+        # 総合スコア（重み付き平均）
+        scores['overall'] = (
+            0.3 * logicality_score +
+            0.3 * correctness_score +
+            0.2 * depth_score +
+            0.2 * diversity_score
+        )
+        
+        return scores
+    
+    def _evaluate_logicality(self, thinking_steps: str) -> float:
+        """論理性評価"""
+        if not thinking_steps:
+            return 0.0
+        
+        score = 0.0
+        
+        # 論理接続詞の使用
+        connector_count = sum(1 for connector in self.logical_connectors if connector in thinking_steps)
+        score += min(connector_count / 3.0, 1.0) * 0.4
+        
+        # 文の構造（句読点の使用）
+        punctuation_count = thinking_steps.count('。') + thinking_steps.count('、')
+        if len(thinking_steps) > 0:
+            score += min(punctuation_count / (len(thinking_steps) / 50), 1.0) * 0.3
+        
+        # 思考ステップの明確性（「#」や番号付きリストの使用）
+        if re.search(r'#|^\d+[\.\)]', thinking_steps, re.MULTILINE):
+            score += 0.3
+        
+        return min(score, 1.0)
+    
+    def _evaluate_correctness(self, final_answer: str) -> float:
+        """正確性評価（簡易版）"""
+        if not final_answer:
+            return 0.0
+        
+        score = 1.0
+        
+        # 空でないことを確認
+        if len(final_answer.strip()) < 5:
+            score -= 0.5
+        
+        # 明らかに不適切な内容をチェック（簡易版）
+        inappropriate_patterns = ['[削除]', '[エラー]', 'None', 'null', 'undefined']
+        if any(pattern in final_answer for pattern in inappropriate_patterns):
+            score -= 0.5
+        
+        return max(score, 0.0)
+    
+    def _evaluate_depth(self, thinking_steps: str) -> float:
+        """深さ評価（思考ステップの詳細度）"""
+        if not thinking_steps:
+            return 0.0
+        
+        # 文字数による評価
+        length_score = min(len(thinking_steps) / 200.0, 1.0) * 0.5
+        
+        # 文の数による評価
+        sentence_count = thinking_steps.count('。') + thinking_steps.count('\n')
+        sentence_score = min(sentence_count / 5.0, 1.0) * 0.5
+        
+        return length_score + sentence_score
+    
+    def _evaluate_diversity(self, thinking_steps: str) -> float:
+        """多様性評価（思考パターンの多様性）"""
+        if not thinking_steps:
+            return 0.0
+        
+        # 異なる思考パターンの使用（簡易版）
+        # 異なる接続詞の種類数
+        unique_connectors = sum(1 for connector in self.logical_connectors if connector in thinking_steps)
+        diversity_score = min(unique_connectors / 5.0, 1.0)
+        
+        return diversity_score
+    
+    def filter_by_quality(self, samples: List[Dict], min_score: float = 0.7) -> List[Dict]:
+        """
+        品質スコアに基づいてフィルタリング
+        
+        Args:
+            samples: サンプルのリスト
+            min_score: 最小品質スコア
+        
+        Returns:
+            フィルタリングされたサンプルのリスト
+        """
+        filtered_samples = []
+        
+        for sample in samples:
+            # 思考ステップと最終回答を抽出
+            output = sample.get("output", "")
+            if "# 思考ステップ" in output and "# 最終回答" in output:
+                thinking_steps = output.split("# 思考ステップ")[1].split("# 最終回答")[0].strip()
+                final_answer = output.split("# 最終回答")[1].strip()
+                
+                # 品質評価
+                quality_scores = self.evaluate_thinking_quality(thinking_steps, final_answer)
+                
+                # 品質スコアをサンプルに追加
+                sample["quality_scores"] = quality_scores
+                
+                # フィルタリング
+                if quality_scores.get("overall", 0.0) >= min_score:
+                    filtered_samples.append(sample)
+        
+        return filtered_samples
 
 
 def format_phi35_chat_template(
@@ -288,6 +441,86 @@ def merge_multiple_datasets(
     return total_count
 
 
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Create /think format SFT dataset for Borea-Phi-3.5"
@@ -315,16 +548,71 @@ def main():
         default=None,
         help="Custom system message (default: built-in thinking prompt)"
     )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
     
     args = parser.parse_args()
     
-    if args.inputs:
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
         # 複数ファイルをマージ
         count = merge_multiple_datasets(
             input_files=args.inputs,
             output_file=args.output,
             default_system_message=args.system_message
         )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
         logger.info(f"[SUCCESS] Merged and converted {count} samples")
     elif args.input:
         # 単一ファイルを変換
@@ -333,6 +621,23 @@ def main():
             output_file=args.output,
             default_system_message=args.system_message
         )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
         logger.info(f"[SUCCESS] Converted {count} samples")
     else:
         parser.error("Either --input or --inputs must be specified")

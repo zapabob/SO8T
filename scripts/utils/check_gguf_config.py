@@ -16,3 +16,9 @@ for i, m in enumerate(config['gguf_models'], 1):
     print(f"   Ollama: {m.get('ollama_name', 'N/A')}")
     print()
 
+
+
+
+
+
+
