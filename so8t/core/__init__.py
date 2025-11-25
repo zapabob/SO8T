@@ -9,15 +9,33 @@ This module contains the core SO(8) transformation components including:
 - Transformer implementations
 """
 
-from .attention_so8 import SO8Attention
-from .mlp_so8 import SO8MLP
+from .attention_so8 import SO8SelfAttention
+from .mlp_so8 import SO8FeedForward
+
+# Alias for backward compatibility
+SO8MLP = SO8FeedForward
+
 from .pet_regularizer import PETRegularizer
-from .so8t_layer import SO8TLayer
-from .transformer import SO8TTransformer
-from .triality_heads import TrialityHeads
-from .self_verification import SelfVerification
+from .so8t_layer import SO8TRotationGate, SO8TAttentionWrapper
+
+# Alias for backward compatibility
+SO8TLayer = SO8TRotationGate
+
+from .transformer import SO8TTransformerBlock, SO8TModel
+
+# Alias for backward compatibility
+SO8TTransformer = SO8TTransformerBlock
+from .triality_heads import TrialityHead
+
+# Alias for backward compatibility
+TrialityHeads = TrialityHead
+from .self_verification import SelfVerifier
 from .triple_reasoning_agent import TripleReasoningAgent
-from .burn_in import BurnInProcessor
+from .burn_in import BurnInManager
+
+# Alias for backward compatibility
+SelfVerification = SelfVerifier
+BurnInProcessor = BurnInManager
 
 # Import from integrated models
 try:
@@ -29,7 +47,7 @@ except ImportError:
     pass  # Optional components
 
 __all__ = [
-    'SO8Attention',
+    'SO8SelfAttention',
     'SO8MLP',
     'PETRegularizer',
     'SO8TLayer',
@@ -39,3 +57,6 @@ __all__ = [
     'TripleReasoningAgent',
     'BurnInProcessor',
 ]
+
+# Alias for backward compatibility
+SO8Attention = SO8SelfAttention

@@ -1,0 +1,180 @@
+# Borea-Phi-3.5-mini-Instruct-Jp SO8T/thinking学習設定（重み凍結版）
+# ベースモデルの重みを凍結し、QLoRAアダプターとSO8Tゲートのみを学習
+
+# モデル設定
+model:
+  base_model: "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp"
+  model_type: "phi3"
+  torch_dtype: "float16"
+  
+  # 重み凍結設定
+  freeze_base_model: true  # ベースモデルの全レイヤーを凍結
+  trainable_modules:      # 学習可能なモジュール（魂の重みを含む）
+    - "lora"              # QLoRAアダプター
+    - "so8t_gates"        # SO(8)回転ゲート
+    - "alpha_gate"        # Alpha Gateパラメータ
+    - "r_safe"            # 安全側の回転行列（魂の重み）
+    - "r_cmd"             # コマンド側の回転行列（魂の重み）
+    - "alpha"             # Alphaパラメータ（魂の重み）
+    - "soul"              # 魂のパラメータ
+    - "safety_head"       # 安全ヘッド（魂の3本柱）
+    - "task_head"         # タスクヘッド（魂の3本柱）
+    - "dual_heads"        # 二重政策系（魂の3本柱）
+    - "pet"               # PET正則化（魂の3本柱）
+
+# SO8T設定
+so8t:
+  enabled: true
+  # 選択的レイヤー適用（Noneの場合は全レイヤーに適用）
+  layer_indices: null  # 例: [0, 1, 2, 10, 11, 12] で特定レイヤーのみ、nullの場合は全レイヤーに適用
+  init_scale: 0.05
+  orthogonal_reg: 1.0e-4
+  
+  # 直交性損失監視設定
+  monitor_orthogonality: true      # 直交性損失を監視するか
+  orthogonality_log_steps: 100     # 直交性損失をログ出力するステップ間隔
+
+# 量子化設定（QLoRA）
+quantization:
+  load_in_8bit: true
+  llm_int8_threshold: 6.0
+  llm_int8_has_fp16_weight: false
+
+# QLoRA設定
+qlora:
+  enabled: true
+  r: 64                    # LoRAランク（重み凍結版では大きめに設定可能）
+  lora_alpha: 128          # LoRAスケーリング係数
+  target_modules:          # LoRA適用対象
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# データ設定
+data:
+  # /think形式データセットパス
+  train_data: "D:/webdataset/processed/thinking_sft/thinking_sft_dataset_frozen.jsonl"
+  max_seq_length: 2048
+  preprocessing_num_workers: 4
+  
+  # データセットサイズ設定（段階的拡張）
+  min_samples: 5000        # 最小サンプル数
+  target_samples: 50000    # 目標サンプル数
+  current_samples: 5000    # 現在のサンプル数（段階的に増やす）
+
+# PET正則化設定
+pet:
+  enabled: true
+  # 3相スケジュール
+  lambda_exploration: 0.01      # 探索相（0-20%）
+  lambda_transition: 0.05       # 遷移相（20-60%）
+  lambda_stabilization: 0.1      # 安定相（60-100%）
+  exploration_ratio: 0.2
+  transition_ratio: 0.4
+  stabilization_ratio: 0.4
+  # 損失関数設定
+  huber_delta: 0.0              # 0ならL2損失
+  reduction: "mean"
+  # 安定性設定
+  clip_gradient: true
+  max_gradient_norm: 1.0
+  eps: 1.0e-8
+  # ログ設定
+  log_every_n_steps: 100
+  save_stats: true
+
+# 学習設定
+training:
+  # 基本設定
+  output_dir: "D:/webdataset/checkpoints/training/borea_phi35_so8t_thinking_frozen"
+  
+  # バッチ設定（RTX3060対応）
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  effective_batch_size: 16
+  
+  # 最適化設定
+  learning_rate: 2e-4           # 重み凍結版ではやや高めの学習率
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1e-8
+  
+  # スケジューラー設定
+  lr_scheduler_type: "cosine"
+  warmup_steps: 50
+  warmup_ratio: 0.1
+  
+  # エポック設定
+  num_train_epochs: 3
+  max_steps: -1  # num_train_epochsが優先
+  
+  # 精度設定
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true
+  
+  # チェックポイント設定
+  save_strategy: "steps"
+  save_steps: 100
+  save_total_limit: 3
+  load_best_model_at_end: false
+  
+  # ログ設定
+  logging_strategy: "steps"
+  logging_steps: 10
+  log_level: "info"
+  
+  # 評価設定（SFT段階では評価なし）
+  evaluation_strategy: "no"
+  eval_steps: 500
+  
+  # その他
+  dataloader_num_workers: 4
+  remove_unused_columns: false
+  report_to: ["tensorboard"]
+  
+  # 重み凍結版特有の設定
+  freeze_base_model: true
+  train_only_adapters: true      # アダプターのみ学習
+
+# 報酬学習設定（Phase 4で使用）
+reward_learning:
+  enabled: false                # Phase 3（SFT）では無効
+  method: "dpo"                 # "ppo" or "dpo"
+  reward_model_path: null       # Phase 4で設定
+  beta: 0.1                     # DPOの温度パラメータ
+  max_prompt_length: 512
+  max_response_length: 512
+
+# ハイパーパラメータ最適化設定（ベイズ最適化 + クロスバリデーション）
+bayesian_optimization:
+  enabled: false                # ベイズ最適化を有効化するか（計算コストが高いため通常はfalse）
+  n_trials: 50                  # 最適化試行回数
+  n_folds: 5                    # クロスバリデーションのフォールド数
+  optimize_hyperparameters: true  # ハイパーパラメータを最適化するか
+  
+  # 最適化対象パラメータ
+  optimize_learning_rate: true    # 学習率を最適化
+  optimize_batch_size: true       # バッチサイズを最適化
+  optimize_lora: true             # LoRAパラメータを最適化
+  optimize_pet: true              # PET正則化パラメータを最適化
+  optimize_so8t: true             # SO8Tパラメータを最適化
+  
+  # Alpha Gateアニーリング最適化（オプション）
+  optimize_alpha_annealing: false  # Alpha Gateアニーリングを最適化するか
+  alpha_init_range:             # Alpha Gate初期値の探索範囲
+    min: -8.0
+    max: 8.0
+  annealing_type_options:       # アニーリングタイプの選択肢
+    - "linear"
+    - "exponential"
+    - "sigmoid"
+
