@@ -8,16 +8,22 @@ This module provides training utilities and pipelines for SO8T models including:
 - Training pipelines
 """
 
-from .loss_functions import PETLoss, SO8TLoss
+from .loss_functions import PETLoss, SO8TCompositeLoss
 from .qlora import QLoRATrainer
 from .trainer_with_pet import TrainerWithPET
+
+# Alias for backward compatibility
+SO8TLoss = SO8TCompositeLoss
 
 __all__ = [
     'PETLoss',
     'SO8TLoss',
+    'SO8TCompositeLoss',
     'QLoRATrainer',
     'TrainerWithPET',
 ]
+
+
 
 
 
