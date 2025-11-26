@@ -51,6 +51,7 @@ class SO8TThinkingModel(SafetyAwareSO8TModel):
         so8t_config: SafetyAwareSO8TConfig,
         use_redacted_tokens: bool = False,
         use_quadruple_thinking: bool = False,
+        quantization_config: Optional[Any] = None,
     ):
         """
         Args:
@@ -58,8 +59,9 @@ class SO8TThinkingModel(SafetyAwareSO8TModel):
             so8t_config: SO8T設定
             use_redacted_tokens: Trueの場合、<think>形式を使用（デフォルトは<think>）
             use_quadruple_thinking: Trueの場合、四重推論形式（Task/Safety/Policy/Final）を使用
+            quantization_config: 量子化設定（BitsAndBytesConfig等）
         """
-        super().__init__(base_model_name_or_path, so8t_config)
+        super().__init__(base_model_name_or_path, so8t_config, quantization_config=quantization_config)
         self.use_redacted_tokens = use_redacted_tokens
         self.use_quadruple_thinking = use_quadruple_thinking
         

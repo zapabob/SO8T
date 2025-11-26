@@ -9,3 +9,4 @@ py -3 scripts\utils\monitor_training_and_resume_pipeline.py --interval 60 --auto
 echo [AUDIO] Playing completion notification...
 powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
 
+

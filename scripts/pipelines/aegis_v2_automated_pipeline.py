@@ -474,7 +474,7 @@ class AEGISV2AutomatedPipeline:
         logger.info(f"[SUCCESS] Step 2 completed: {cleansed_file}")
         return cleansed_file
     
-    def run_step3_so8t_ppo_training(self, dataset_path: Path) -> Path:
+    def run_step3_so8t_ppo_training(self, dataset_path: Path = None) -> Path:
         """Step 3: SO8T PPO学習"""
         logger.info("="*80)
         logger.info("STEP 3: SO8T Quadruple PPO Training")
@@ -486,6 +486,20 @@ class AEGISV2AutomatedPipeline:
             if model_dir and model_dir.exists():
                 logger.info(f"[SKIP] Step 3 already completed: {model_dir}")
                 return model_dir
+        
+        # データセットパスが指定されていない、または空の場合は既存のペア比較データセットを使用
+        if not dataset_path or not dataset_path.exists() or dataset_path.stat().st_size == 0:
+            existing_pairwise = self.output_dir / "pairwise_dataset.jsonl"
+            if existing_pairwise.exists() and existing_pairwise.stat().st_size > 0:
+                logger.info(f"[INFO] Using existing pairwise dataset: {existing_pairwise}")
+                dataset_path = existing_pairwise
+            else:
+                error_msg = f"Dataset file not found or empty: {dataset_path}"
+                logger.error(f"[ERROR] {error_msg}")
+                self.state.error = error_msg
+                self.state.stage = PipelineStage.FAILED
+                self.recovery.save_session()
+                raise RuntimeError(error_msg)
         
         model_dir = self.output_dir / "so8t_ppo_model"
         model_dir.mkdir(parents=True, exist_ok=True)
@@ -609,8 +623,14 @@ class AEGISV2AutomatedPipeline:
             # Step 2: データクレンジング
             cleansed_data = self.run_step2_data_cleansing(deep_research_data)
             
-            # Step 3: SO8T PPO学習
-            so8t_model = self.run_step3_so8t_ppo_training(cleansed_data)
+            # Step 3: SO8T PPO学習（既存のペア比較データセットを使用）
+            # クレンジング済みデータが空の場合は、既存のpairwise_dataset.jsonlを使用
+            pairwise_dataset = self.output_dir / "pairwise_dataset.jsonl"
+            if pairwise_dataset.exists() and pairwise_dataset.stat().st_size > 0:
+                logger.info(f"[INFO] Using existing pairwise dataset for Step 3: {pairwise_dataset}")
+                so8t_model = self.run_step3_so8t_ppo_training(pairwise_dataset)
+            else:
+                so8t_model = self.run_step3_so8t_ppo_training(cleansed_data)
             
             # Step 4: AEGIS v2.0統合
             aegis_v2 = self.run_step4_aegis_v2_integration(so8t_model)
