@@ -91,7 +91,7 @@ def run_lm_eval_benchmark(
         sys.executable,
         str(LM_EVAL_SCRIPT),
         "--model-runner",
-        "llama.cpp",
+        "gguf",
         "--model-name",
         gguf_path,
         "--tasks",
@@ -479,6 +479,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
 

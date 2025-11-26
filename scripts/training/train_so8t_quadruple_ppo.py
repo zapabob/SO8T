@@ -465,10 +465,18 @@ def main():
     
     quantization_config = None
     if load_in_8bit:
-        quantization_config = BitsAndBytesConfig(
-            load_in_8bit=True,
-            llm_int8_threshold=config.get("quantization", {}).get("llm_int8_threshold", 6.0)
-        )
+        try:
+            logger.info("[QUANTIZATION] Creating BitsAndBytesConfig for 8bit quantization...")
+            quantization_config = BitsAndBytesConfig(
+                load_in_8bit=True,
+                llm_int8_threshold=config.get("quantization", {}).get("llm_int8_threshold", 6.0)
+            )
+            logger.info("[QUANTIZATION] BitsAndBytesConfig created successfully")
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to create BitsAndBytesConfig: {e}")
+            logger.warning("[WARNING] Continuing without quantization (may cause OOM)")
+            quantization_config = None
+            load_in_8bit = False
     
     # SO8TThinkingModelを読み込み
     from so8t.core.safety_aware_so8t import SafetyAwareSO8TConfig
@@ -480,15 +488,47 @@ def main():
         rho_iso=so8t_config_dict.get("isometry_reg", 0.01)
     )
     
-    model = SO8TThinkingModel(
-        base_model_name_or_path=model_path,
-        so8t_config=so8t_config,
-        use_quadruple_thinking=True
-    )
+    try:
+        logger.info("[MODEL] Initializing SO8TThinkingModel...")
+        # CUDA メモリをクリア（念のため）
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            logger.info(f"[CUDA] Available memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+        
+        # quantization_configをSO8TThinkingModelに渡す
+        model = SO8TThinkingModel(
+            base_model_name_or_path=model_path,
+            so8t_config=so8t_config,
+            use_quadruple_thinking=True,
+            quantization_config=quantization_config if load_in_8bit else None
+        )
+        logger.info("[MODEL] SO8TThinkingModel initialized successfully")
+        
+        # メモリ使用状況を確認
+        if torch.cuda.is_available():
+            allocated = torch.cuda.memory_allocated(0) / 1024**3
+            reserved = torch.cuda.memory_reserved(0) / 1024**3
+            logger.info(f"[CUDA] Memory allocated: {allocated:.2f} GB, reserved: {reserved:.2f} GB")
+    except Exception as e:
+        logger.error(f"[ERROR] Failed to initialize SO8TThinkingModel: {e}")
+        import traceback
+        logger.error(f"[ERROR] Traceback:\n{traceback.format_exc()}")
+        # CUDA メモリをクリア
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        raise
     
     # QLoRA設定
     if config.get("qlora", {}).get("enabled", True):
-        model = prepare_model_for_kbit_training(model)
+        try:
+            logger.info("[QLORA] Preparing model for k-bit training...")
+            model = prepare_model_for_kbit_training(model)
+            logger.info("[QLORA] Model prepared for k-bit training")
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to prepare model for k-bit training: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         qlora_config = config.get("qlora", {})
         lora_config = LoraConfig(
             r=qlora_config.get("r", 64),

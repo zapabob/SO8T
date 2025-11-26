@@ -35,8 +35,9 @@ so8t:
   orthogonality_log_steps: 100     # 直交性損失をログ出力するステップ間隔
 
 # 量子化設定（QLoRA）
+# 一時的に8bit量子化を無効化（クラッシュ回避のため）
 quantization:
-  load_in_8bit: true
+  load_in_8bit: false  # 一時的にfalseに設定（デバッグ用）
   llm_int8_threshold: 6.0
   llm_int8_has_fp16_weight: false
 

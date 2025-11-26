@@ -11,6 +11,7 @@ Safety-Aware SO8T Model Implementation
 """
 
 import math
+import os
 from dataclasses import dataclass
 from typing import Optional, Tuple, List, Dict, Any, Literal
 
@@ -312,7 +313,12 @@ class SafetyAwareSO8TModel(PreTrainedModel):
     
     config_class = AutoConfig
     
-    def __init__(self, base_model_name_or_path: str, so8t_config: SafetyAwareSO8TConfig):
+    def __init__(
+        self, 
+        base_model_name_or_path: str, 
+        so8t_config: SafetyAwareSO8TConfig,
+        quantization_config: Optional[Any] = None
+    ):
         # ベースモデル読み込み
         base_config = AutoConfig.from_pretrained(base_model_name_or_path)
         super().__init__(base_config)
@@ -320,10 +326,99 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         self.so8t_cfg = so8t_config
         
         # 内部にベースのCausalLMを保持
-        self.base_model: AutoModelForCausalLM = AutoModelForCausalLM.from_pretrained(
-            base_model_name_or_path,
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-        )
+        model_kwargs = {
+            "dtype": torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+            "low_cpu_mem_usage": True,
+        }
+        if quantization_config is not None:
+            model_kwargs["quantization_config"] = quantization_config
+            # 8bit量子化を使用する場合、device_map="auto"が必要
+            model_kwargs["device_map"] = "auto"
+            # GPUメモリ使用量を制限（RTX3080は10GB）
+            if torch.cuda.is_available():
+                # メモリの80%を使用、20%をバッファとして確保
+                max_memory = {0: "8GiB"}  # RTX3080は10GBなので8GBに制限
+                model_kwargs["max_memory"] = max_memory
+        else:
+            # 量子化を使用しない場合も、メモリ効率のためにdevice_mapを設定
+            # ただし、device_map="auto"は量子化なしでは問題を起こす可能性があるため、CPUに読み込んでからGPUに移動
+            if torch.cuda.is_available():
+                # まずCPUに読み込んでからGPUに移動（メモリ効率のため）
+                model_kwargs["device_map"] = None  # device_mapをNoneにして、後で手動でGPUに移動
+                # または、device_map="cpu"でCPUに読み込んでからGPUに移動
+                # model_kwargs["device_map"] = "cpu"
+        
+        try:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"[MODEL] Loading base model with kwargs: {list(model_kwargs.keys())}")
+            if "max_memory" in model_kwargs:
+                logger.info(f"[MODEL] Max memory: {model_kwargs['max_memory']}")
+            if "quantization_config" in model_kwargs:
+                logger.info(f"[MODEL] Using quantization: {type(model_kwargs['quantization_config']).__name__}")
+        except:
+            pass
+        
+        try:
+            logger.info(f"[MODEL] Starting model loading from: {base_model_name_or_path}")
+            self.base_model: AutoModelForCausalLM = AutoModelForCausalLM.from_pretrained(
+                base_model_name_or_path,
+                **model_kwargs
+            )
+            # 量子化なしの場合、CPUに読み込んだ後GPUに移動
+            # ただし、GPUへの移動でクラッシュする可能性があるため、環境変数で制御可能にする
+            force_cpu = os.environ.get("SO8T_FORCE_CPU", "false").lower() == "true"
+            
+            if quantization_config is None and torch.cuda.is_available() and model_kwargs.get("device_map") is None and not force_cpu:
+                logger.info("[MODEL] Attempting to move model to GPU...")
+                try:
+                    # CUDAメモリをクリア
+                    torch.cuda.empty_cache()
+                    # モデルサイズを確認
+                    if hasattr(self.base_model, 'get_memory_footprint'):
+                        memory_footprint = self.base_model.get_memory_footprint()
+                        logger.info(f"[MODEL] Model memory footprint: {memory_footprint / 1024**3:.2f} GB")
+                    
+                    # GPUへの移動を段階的に行う（エラーハンドリング付き）
+                    logger.info("[MODEL] Moving model to GPU (this may take a while)...")
+                    # まず、モデルを評価モードにしてメモリ使用量を削減
+                    self.base_model.eval()
+                    # GPUへの移動
+                    self.base_model = self.base_model.to("cuda")
+                    logger.info("[MODEL] Model successfully moved to GPU")
+                    
+                    # メモリ使用状況を確認
+                    allocated = torch.cuda.memory_allocated(0) / 1024**3
+                    reserved = torch.cuda.memory_reserved(0) / 1024**3
+                    logger.info(f"[CUDA] Memory after model load - allocated: {allocated:.2f} GB, reserved: {reserved:.2f} GB")
+                except (RuntimeError, Exception) as e:
+                    logger.error(f"[ERROR] Failed to move model to GPU: {e}")
+                    logger.warning("[WARNING] Model will remain on CPU (may cause performance issues)")
+                    logger.warning("[WARNING] Set SO8T_FORCE_CPU=true to skip GPU move attempt")
+                    # GPUへの移動に失敗した場合、CPUのまま続行
+                    torch.cuda.empty_cache()
+                    # モデルをCPUに明示的に設定
+                    self.base_model = self.base_model.to("cpu")
+            elif force_cpu:
+                logger.info("[MODEL] SO8T_FORCE_CPU=true, keeping model on CPU")
+                self.base_model = self.base_model.to("cpu")
+            logger.info("[MODEL] Base model loaded successfully")
+        except RuntimeError as e:
+            # CUDAメモリをクリア
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            import traceback
+            error_msg = f"RuntimeError while loading base model: {e}\n{traceback.format_exc()}"
+            logger.error(f"[ERROR] {error_msg}")
+            raise RuntimeError(error_msg) from e
+        except Exception as e:
+            # CUDAメモリをクリア
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            import traceback
+            error_msg = f"Unexpected error while loading base model: {type(e).__name__}: {e}\n{traceback.format_exc()}"
+            logger.error(f"[ERROR] {error_msg}")
+            raise RuntimeError(error_msg) from e
         
         hidden_size = base_config.hidden_size
         
