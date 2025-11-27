@@ -359,6 +359,16 @@ class AEGISV2AutomatedPipeline:
                 return output_file
         
         output_file = self.output_dir / "deep_research_thinking_dataset.jsonl"
+
+        # 既存ファイルがある場合は再生成せずに再利用
+        if output_file.exists() and output_file.stat().st_size > 0:
+            logger.info(f"[SKIP] Step 1 dataset already exists: {output_file}")
+            self.recovery.update_progress(
+                PipelineStage.DEEP_RESEARCH_DATA,
+                {"step1_completed": True, "output_file": str(output_file)},
+                {"deep_research_data": str(output_file)},
+            )
+            return output_file
         
         cmd = [
             sys.executable,
@@ -378,12 +388,13 @@ class AEGISV2AutomatedPipeline:
         logger.info(f"[CMD] Running: {' '.join(cmd)}")
         # バッファリングを無効化してリアルタイムログ出力
         result = subprocess.run(
-            cmd, 
-            capture_output=True, 
-            text=True, 
-            encoding='utf-8',
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
             bufsize=1,  # 行バッファリング
-            env=dict(os.environ, PYTHONUNBUFFERED='1')  # Pythonのバッファリング無効化
+            env=dict(os.environ, PYTHONUNBUFFERED="1"),  # Pythonのバッファリング無効化
         )
         
         # 標準出力と標準エラーをログに記録
@@ -443,12 +454,13 @@ class AEGISV2AutomatedPipeline:
         logger.info(f"[CMD] Running: {' '.join(cmd)}")
         # バッファリングを無効化してリアルタイムログ出力
         result = subprocess.run(
-            cmd, 
-            capture_output=True, 
-            text=True, 
-            encoding='utf-8',
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
             bufsize=1,  # 行バッファリング
-            env=dict(os.environ, PYTHONUNBUFFERED='1')  # Pythonのバッファリング無効化
+            env=dict(os.environ, PYTHONUNBUFFERED="1"),  # Pythonのバッファリング無効化
         )
         
         # 標準出力と標準エラーをログに記録
@@ -527,9 +539,10 @@ class AEGISV2AutomatedPipeline:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            encoding='utf-8',
+            encoding="utf-8",
+            errors="replace",
             bufsize=1,
-            env=env
+            env=env,
         )
         
         # リアルタイムでログを出力

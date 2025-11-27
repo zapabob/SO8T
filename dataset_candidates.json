@@ -1,0 +1,105 @@
+{
+  "kenthorvath/japanese-kamons": {
+    "license": "mit",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  },
+  "inu-ai/ggml-japanese-gpt2": {
+    "license": "mit",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  },
+  "fujiki/japanese_hh-rlhf-49k": {
+    "license": "mit",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  },
+  "FreedomIntelligence/alpaca-gpt4-japanese": {
+    "license": "apache-2.0",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  },
+  "shi3z/anthropic_hh_rlhf_japanese": {
+    "license": "mit",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  },
+  "Lycoris53/Japanese-Amitaro-VITS-TTS-Voice-data": {
+    "license": "apache-2.0",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  },
+  "Atom007/mc4-japanese-data": {
+    "license": "apache-2.0",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": [
+      "conversational"
+    ],
+    "size": null
+  },
+  "FreedomIntelligence/MMLU_Japanese": {
+    "license": "mit",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  },
+  "RyokoExtra/JapaneseGoblin": {
+    "license": "apache-2.0",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": [
+      "text-classification",
+      "text-generation",
+      "text-to-image",
+      "text-to-video"
+    ],
+    "size": null
+  },
+  "az1/anthropic_hh_rlhf_japanese": {
+    "license": "mit",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  },
+  "FreedomIntelligence/sharegpt-japanese": {
+    "license": "apache-2.0",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  },
+  "japanese-denim/naga-eng": {
+    "license": "mit",
+    "description": "",
+    "homepage": null,
+    "languages": [],
+    "task_categories": null,
+    "size": null
+  }
+}
