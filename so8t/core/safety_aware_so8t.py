@@ -1126,15 +1126,9 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         base_state_dict = self.base_model.state_dict()
 
         if self.so8t_adapters is not None:
-            # SO8TAdapterの場合
-            # 注意機構の重み（Q, K, V）にアダプタ効果を吸収
-            for name, weight in base_state_dict.items():
-                if 'q_proj.weight' in name or 'k_proj.weight' in name or 'v_proj.weight' in name:
-                    # 各レイヤーのアダプタ効果を吸収
-                    # 簡易実装: 最初のレイヤーのアダプタを使用
-                    if len(self.so8t_adapters) > 0:
-                        absorbed_weight = self.so8t_adapters[0].export_weights(weight, layer_idx=0)
-                        exported_weights[name] = absorbed_weight
+            logger = logging.getLogger(__name__)
+            logger.warning("[SO8T] export_weights for residual adapters is not yet implemented; returning empty dict")
+            return {}
         elif self.so8_rotation_gate is not None:
             # 従来のSO(8)回転ゲートの場合
             # 注意機構の重み（Q, K, V）にSO(8)回転を吸収
