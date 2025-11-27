@@ -627,16 +627,21 @@ def main():
             
             # SO8Tラッパーの場合、__dict__からbase_modelを直接取得（LLMベストプラクティス）
             if model_type_name in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
-                # まず、__dict__から直接取得を試みる
+                # まず、__dict__から直接取得を試みる（PreTrainedModelのbase_modelプロパティとの衝突を回避）
+                inner_base = None
                 if hasattr(current_model, '__dict__'):
                     model_dict = current_model.__dict__
                     if 'base_model' in model_dict:
                         inner_base = model_dict['base_model']
                         inner_base_type = type(inner_base).__name__
-                        logger.info(f"[QLORA] Found base_model in __dict__: {inner_base_type}")
-                        if isinstance(inner_base, AutoModelForCausalLM):
+                        logger.info(f"[QLORA] Depth {depth}: Found base_model in __dict__: {inner_base_type}")
+                        # 自分自身を返している場合は無視
+                        if inner_base is current_model:
+                            logger.warning(f"[QLORA] Depth {depth}: base_model is same as current_model, skipping")
+                            inner_base = None
+                        elif isinstance(inner_base, AutoModelForCausalLM):
                             actual_base_model = inner_base
-                            logger.info(f"[QLORA] Found AutoModelForCausalLM instance in __dict__ at depth {depth}")
+                            logger.info(f"[QLORA] Depth {depth}: Found AutoModelForCausalLM instance in __dict__!")
                             break
                         elif inner_base_type not in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
                             # 次のレベルに進む
@@ -644,18 +649,25 @@ def main():
                             depth += 1
                             continue
                 
-                # __dict__にない場合、getattrで取得を試みる
-                if actual_base_model is None and hasattr(current_model, 'base_model'):
+                # __dict__にない場合、SafetyAwareSO8TModelのbase_model属性を直接取得
+                if inner_base is None and model_type_name == 'SafetyAwareSO8TModel':
+                    # SafetyAwareSO8TModelはbase_model属性を持っているはず
                     try:
-                        inner_base = getattr(current_model, 'base_model')
-                        inner_base_type = type(inner_base).__name__
-                        logger.info(f"[QLORA] Found base_model via getattr: {inner_base_type}")
-                        if isinstance(inner_base, AutoModelForCausalLM):
-                            actual_base_model = inner_base
-                            logger.info(f"[QLORA] Found AutoModelForCausalLM instance via getattr at depth {depth}")
-                            break
+                        # object.__getattribute__を使用してプロパティを回避
+                        inner_base = object.__getattribute__(current_model, 'base_model')
+                        if inner_base is not None and inner_base is not current_model:
+                            inner_base_type = type(inner_base).__name__
+                            logger.info(f"[QLORA] Depth {depth}: Found base_model via object.__getattribute__: {inner_base_type}")
+                            if isinstance(inner_base, AutoModelForCausalLM):
+                                actual_base_model = inner_base
+                                logger.info(f"[QLORA] Depth {depth}: Found AutoModelForCausalLM instance!")
+                                break
+                            elif inner_base_type not in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
+                                current_model = inner_base
+                                depth += 1
+                                continue
                     except AttributeError:
-                        logger.warning(f"[QLORA] Could not get base_model via getattr for {model_type_name}")
+                        logger.warning(f"[QLORA] Depth {depth}: Could not get base_model via object.__getattribute__")
             
             # base_model属性を確認
             if hasattr(current_model, 'base_model'):
