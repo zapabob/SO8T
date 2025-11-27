@@ -603,125 +603,44 @@ def main():
         ]
         target_modules = qlora_config.get("target_modules", default_target_modules)
         
-        # モデルの実際のモジュール名を動的に検出（LLMベストプラクティス: 深い探索）
+        # モジュール探索（SO8Tラッパを透過）
         logger.info("[QLORA] Detecting actual module names in the model...")
-        actual_module_names = []
-        full_module_names = []
-        
-        # base_modelのモジュール名を取得（SO8TThinkingModelの場合）
-        # SO8TThinkingModel -> SafetyAwareSO8TModel -> base_model (AutoModelForCausalLM)
-        # 再帰的にbase_modelを探索して、AutoModelForCausalLMのインスタンスを見つける
+        actual_module_names: List[str] = []
+        full_module_names: List[str] = []
+
         actual_base_model = None
-        current_model = model
-        
-        logger.info("[QLORA] Recursively exploring model structure to find AutoModelForCausalLM...")
-        max_depth = 5  # 最大探索深度
-        depth = 0
-        
-        # SO8Tラッパーをスキップして、実際のAutoModelForCausalLMを見つける
-        from transformers import AutoModelForCausalLM
-        
-        while depth < max_depth:
-            model_type_name = type(current_model).__name__
-            logger.info(f"[QLORA] Depth {depth}: Current model type: {model_type_name}")
-            
-            # SO8Tラッパーの場合、__dict__からbase_modelを直接取得（LLMベストプラクティス）
-            if model_type_name in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
-                # まず、__dict__から直接取得を試みる（PreTrainedModelのbase_modelプロパティとの衝突を回避）
-                inner_base = None
-                if hasattr(current_model, '__dict__'):
-                    model_dict = current_model.__dict__
-                    if 'base_model' in model_dict:
-                        inner_base = model_dict['base_model']
-                        inner_base_type = type(inner_base).__name__
-                        logger.info(f"[QLORA] Depth {depth}: Found base_model in __dict__: {inner_base_type}")
-                        # 自分自身を返している場合は無視
-                        if inner_base is current_model:
-                            logger.warning(f"[QLORA] Depth {depth}: base_model is same as current_model, skipping")
-                            inner_base = None
-                        elif isinstance(inner_base, AutoModelForCausalLM):
-                            actual_base_model = inner_base
-                            logger.info(f"[QLORA] Depth {depth}: Found AutoModelForCausalLM instance in __dict__!")
-                            break
-                        elif inner_base_type not in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
-                            # 次のレベルに進む
-                            current_model = inner_base
-                            depth += 1
-                            continue
-                
-                # __dict__にない場合、SafetyAwareSO8TModelのbase_model属性を直接取得
-                if inner_base is None and model_type_name == 'SafetyAwareSO8TModel':
-                    # SafetyAwareSO8TModelはbase_model属性を持っているはず
-                    try:
-                        # object.__getattribute__を使用してプロパティを回避
-                        inner_base = object.__getattribute__(current_model, 'base_model')
-                        if inner_base is not None and inner_base is not current_model:
-                            inner_base_type = type(inner_base).__name__
-                            logger.info(f"[QLORA] Depth {depth}: Found base_model via object.__getattribute__: {inner_base_type}")
-                            if isinstance(inner_base, AutoModelForCausalLM):
-                                actual_base_model = inner_base
-                                logger.info(f"[QLORA] Depth {depth}: Found AutoModelForCausalLM instance!")
-                                break
-                            elif inner_base_type not in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
-                                current_model = inner_base
-                                depth += 1
-                                continue
-                    except AttributeError:
-                        logger.warning(f"[QLORA] Depth {depth}: Could not get base_model via object.__getattribute__")
-            
-            # base_model属性を確認
-            if hasattr(current_model, 'base_model'):
-                next_model = current_model.base_model
-                depth += 1
-                next_model_type_name = type(next_model).__name__
-                logger.info(f"[QLORA] Depth {depth}: Found base_model of type {next_model_type_name}")
-                
-                # SO8Tラッパーでない場合（AutoModelForCausalLMまたはそのサブクラス）
-                if next_model_type_name not in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
-                    if isinstance(next_model, AutoModelForCausalLM):
-                        actual_base_model = next_model
-                        logger.info(f"[QLORA] Found AutoModelForCausalLM instance at depth {depth}: {next_model_type_name}")
-                        break
-                    # または、model属性やlayers属性がある場合（Phi-3.5などの構造）
-                    elif hasattr(next_model, 'model') or hasattr(next_model, 'layers'):
-                        actual_base_model = next_model
-                        logger.info(f"[QLORA] Found model with 'model' or 'layers' attribute at depth {depth}: {next_model_type_name}")
-                        break
-                
-                current_model = next_model
-            else:
-                logger.warning(f"[QLORA] No base_model attribute found at depth {depth}")
-                break
-        
+        if hasattr(model, "get_llm_backbone"):
+            try:
+                actual_base_model = model.get_llm_backbone()
+                logger.info(f"[QLORA] Found backbone via get_llm_backbone: {type(actual_base_model).__name__}")
+            except Exception as exc:
+                logger.warning(f"[QLORA] get_llm_backbone failed: {exc}")
+
+        if actual_base_model is None and hasattr(model, "base_model"):
+            actual_base_model = model.base_model
+            logger.info(f"[QLORA] Using model.base_model: {type(actual_base_model).__name__}")
+
         if actual_base_model is None:
-            logger.error(f"[ERROR] Could not find AutoModelForCausalLM instance after {depth} levels of exploration")
-            logger.error(f"[ERROR] Final model type: {type(current_model).__name__}")
-            # 最後の手段: 現在のモデルをそのまま使用（エラーを出さずに続行）
-            logger.warning("[WARNING] Using current model as actual_base_model (may cause issues)")
-            actual_base_model = current_model
-        
-        # actual_base_modelの内部構造を確認（Phi-3.5の場合、model.layers など）
-        if hasattr(actual_base_model, 'model'):
-            # Phi-3.5などの構造: model.layers.0.self_attn.q_proj
+            logger.warning("[QLORA] Falling back to full SO8T model for module inspection")
+            actual_base_model = model
+
+        def _collect_modules(module_iter, prefix: str = ""):
+            for name, _module in module_iter:
+                if prefix:
+                    normalized_name = f"{prefix}{name}" if name else prefix.rstrip(".")
+                else:
+                    normalized_name = name
+                full_module_names.append(normalized_name)
+                if name:
+                    actual_module_names.append(name.split(".")[-1])
+
+        if hasattr(actual_base_model, "model") and hasattr(actual_base_model.model, "named_modules"):
             inner_model = actual_base_model.model
-            logger.info(f"[QLORA] Found inner model structure: {type(inner_model).__name__}")
-            logger.info(f"[QLORA] Exploring inner_model.named_modules()...")
-            for name, module in inner_model.named_modules():
-                full_name = f"model.{name}" if name else "model"
-                full_module_names.append(full_name)
-                module_name_parts = name.split('.') if name else []
-                if len(module_name_parts) > 0:
-                    actual_module_names.append(module_name_parts[-1])
-            logger.info(f"[QLORA] Collected {len(full_module_names)} module names from inner_model")
+            logger.info(f"[QLORA] Exploring inner backbone: {type(inner_model).__name__}")
+            _collect_modules(inner_model.named_modules(), prefix="model.")
         else:
-            # 直接actual_base_modelから探索
-            logger.info("[QLORA] Exploring actual_base_model directly (no inner 'model' attribute)...")
-            for name, module in actual_base_model.named_modules():
-                full_module_names.append(name)
-                module_name_parts = name.split('.')
-                if len(module_name_parts) > 0:
-                    actual_module_names.append(module_name_parts[-1])
-            logger.info(f"[QLORA] Collected {len(full_module_names)} module names from actual_base_model")
+            logger.info("[QLORA] Exploring backbone directly (no inner 'model' attribute)")
+            _collect_modules(actual_base_model.named_modules())
         
         # ユニークなモジュール名を取得
         unique_module_names = set(actual_module_names)
