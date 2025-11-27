@@ -23,13 +23,17 @@ import sys
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # ロギング設定
+LOG_DIR = PROJECT_ROOT / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_FILE = LOG_DIR / "cleanse_codex_pairwise_dataset.log"
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler('logs/cleanse_codex_pairwise_dataset.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger(__name__)
 
