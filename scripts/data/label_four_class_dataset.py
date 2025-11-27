@@ -182,7 +182,9 @@ class FourClassLabeler:
 
         logger.info(f"Total files to process: {len(all_files)}")
         return self._process_files(all_files, output_dir, "HuggingFace")
-        
+
+    def _process_files(self, input_files: List[Path], output_dir: Path, source_type: str) -> Dict[str, int]:
+        """共通のファイル処理ロジック"""
         # 統計
         stats = {
             "total": 0,
@@ -191,54 +193,52 @@ class FourClassLabeler:
             "DENY": 0,
             "REFUSE": 0
         }
-        
+
         labeled_samples: List[Dict] = []
-        
+
         # 全ファイルを処理
         for input_file in input_files:
             logger.info(f"Processing {input_file.name}...")
-            
-            with open(input_file, 'r', encoding='utf-8') as f:
-                for line in tqdm(f, desc=f"Labeling {input_file.name}"):
-                    try:
-                        sample = json.loads(line.strip())
-                        stats["total"] += 1
-                        
-                        # テキスト抽出
-                        text = sample.get("text", "")
-                        if not text:
-                            continue
-                        
-                        # ラベル付け
-                        label = self.classify_text(text)
-                        stats[label] += 1
-                        
-                        # ラベル付きサンプル
-                        labeled_sample = {
-                            **sample,
-                            "label": label
-                        }
-                        labeled_samples.append(labeled_sample)
-                        
-                    except json.JSONDecodeError:
-                        continue
-                    except Exception as e:
-                        logger.warning(f"Error processing sample: {e}")
-                        continue
-        
+
+            try:
+                if input_file.suffix == ".json":
+                    # JSONファイルの場合
+                    with open(input_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+
+                    if isinstance(data, list):
+                        for sample in tqdm(data, desc=f"Labeling {input_file.name}"):
+                            self._process_sample(sample, stats, labeled_samples)
+                    elif isinstance(data, dict):
+                        self._process_sample(data, stats, labeled_samples)
+
+                elif input_file.suffix == ".jsonl":
+                    # JSONLファイルの場合
+                    with open(input_file, 'r', encoding='utf-8') as f:
+                        for line in tqdm(f, desc=f"Labeling {input_file.name}"):
+                            try:
+                                sample = json.loads(line.strip())
+                                self._process_sample(sample, stats, labeled_samples)
+                            except json.JSONDecodeError:
+                                continue
+
+            except Exception as e:
+                logger.warning(f"Error processing file {input_file}: {e}")
+                continue
+
         # クラスバランス調整
         if self.balance_classes:
             logger.info("Balancing classes...")
             labeled_samples = self.balance_dataset(labeled_samples)
-        
+
         # 出力ファイルに保存
-        output_file = output_dir / "labeled_four_class_dataset.jsonl"
+        output_file = output_dir / f"labeled_four_class_dataset_{source_type.lower()}.jsonl"
         logger.info(f"Saving labeled dataset to {output_file}...")
-        
+
         with open(output_file, 'w', encoding='utf-8') as f:
             for sample in labeled_samples:
                 f.write(json.dumps(sample, ensure_ascii=False) + '\n')
-        
+
         # 統計レポート
         logger.info("="*80)
         logger.info("Labeling Statistics")
@@ -249,8 +249,35 @@ class FourClassLabeler:
         logger.info(f"DENY: {stats['DENY']:,}")
         logger.info(f"REFUSE: {stats['REFUSE']:,}")
         logger.info("="*80)
-        
+
         return stats
+
+    def _process_sample(self, sample: Dict, stats: Dict[str, int], labeled_samples: List[Dict]):
+        """個別のサンプルを処理"""
+        stats["total"] += 1
+
+        # テキスト抽出（複数のフィールドから）
+        text = ""
+        text_fields = ["text", "content", "instruction", "input", "output", "response", "prompt"]
+        for field in text_fields:
+            if field in sample and isinstance(sample[field], str):
+                text += " " + sample[field]
+
+        text = text.strip()
+        if not text:
+            return
+
+        # ラベル付け
+        label = self.classify_text(text)
+        stats[label] += 1
+
+        # ラベル付きサンプル
+        labeled_sample = {
+            **sample,
+            "label": label,
+            "original_text": text[:500]  # デバッグ用にテキストの一部を保存
+        }
+        labeled_samples.append(labeled_sample)
 
 
 def main():
@@ -281,6 +308,11 @@ def main():
         default=42,
         help="Random seed (default: 42)"
     )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
     
     args = parser.parse_args()
     
@@ -293,7 +325,8 @@ def main():
     try:
         stats = labeler.label_dataset(
             input_dir=Path(args.input),
-            output_dir=Path(args.output)
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface
         )
         
         logger.info("[SUCCESS] Dataset labeling completed")
