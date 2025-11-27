@@ -125,7 +125,8 @@ class FourClassLabeler:
     def label_dataset(
         self,
         input_dir: Path,
-        output_dir: Path
+        output_dir: Path,
+        huggingface_mode: bool = False
     ) -> Dict[str, int]:
         """データセットにラベル付け"""
         logger.info("="*80)
