@@ -357,6 +357,8 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         self.so8t_cfg = so8t_config
         
         # 内部にベースのCausalLMを保持
+        force_cpu = os.environ.get("SO8T_FORCE_CPU", "false").lower() == "true"
+
         model_kwargs = {
             "dtype": torch.bfloat16 if torch.cuda.is_available() else torch.float32,
             "low_cpu_mem_usage": True,
@@ -378,6 +380,9 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                 model_kwargs["device_map"] = None  # device_mapをNoneにして、後で手動でGPUに移動
                 # または、device_map="cpu"でCPUに読み込んでからGPUに移動
                 # model_kwargs["device_map"] = "cpu"
+        if force_cpu:
+            # 明示的にCPU読み込みを指定
+            model_kwargs["device_map"] = "cpu"
         
         try:
             import logging
@@ -396,10 +401,10 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                 base_model_name_or_path,
                 **model_kwargs
             )
+            # バックボーン参照を保持（QLoRAなど外部から直接アクセス可能にする）
+            self._llm_backbone = self.base_model
             # 量子化なしの場合、CPUに読み込んだ後GPUに移動
             # ただし、GPUへの移動でクラッシュする可能性があるため、環境変数で制御可能にする
-            force_cpu = os.environ.get("SO8T_FORCE_CPU", "false").lower() == "true"
-            
             if quantization_config is None and torch.cuda.is_available() and model_kwargs.get("device_map") is None and not force_cpu:
                 logger.info("[MODEL] Attempting to move model to GPU...")
                 try:
@@ -431,8 +436,7 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                     # モデルをCPUに明示的に設定
                     self.base_model = self.base_model.to("cpu")
             elif force_cpu:
-                logger.info("[MODEL] SO8T_FORCE_CPU=true, keeping model on CPU")
-                self.base_model = self.base_model.to("cpu")
+                logger.info("[MODEL] SO8T_FORCE_CPU=true, keeping model on CPU (skipping device transfer)")
             logger.info("[MODEL] Base model loaded successfully")
             
             # base_model読み込み後、レイヤー数を確定して中間レイヤー範囲を再計算
@@ -646,6 +650,8 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         """
         実際のLLMバックボーン（凍結されたベースモデル）を返す
         """
+        if hasattr(self, "_llm_backbone") and self._llm_backbone is not None:
+            return self._llm_backbone
         return self.base_model
     
     def _init_module_weights(self, module):
