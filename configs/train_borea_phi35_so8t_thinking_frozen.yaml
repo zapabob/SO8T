@@ -180,7 +180,7 @@ reward_learning:
 
 # ハイパーパラメータ最適化設定（ベイズ最適化 + クロスバリデーション）
 bayesian_optimization:
-  enabled: false                # ベイズ最適化を有効化するか（計算コストが高いため通常はfalse）
+  enabled: true                # ベイズ最適化を有効化するか（計算コストが高いため通常はfalse）
   n_trials: 50                  # 最適化試行回数
   n_folds: 5                    # クロスバリデーションのフォールド数
   optimize_hyperparameters: true  # ハイパーパラメータを最適化するか
