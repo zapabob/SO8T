@@ -60,8 +60,8 @@ class SO8TAdapter(nn.Module):
 
         # so(8)パラメータ: skew-symmetric行列の自由パラメータ
         # A ∈ so(8): A^T = -A, Aの独立パラメータ数は 8*7/2 = 28
-        # パラメータは上三角部分のみを学習
-        self.A_params = nn.Parameter(torch.zeros(so8_dim, so8_dim))
+        # パラメータは上三角部分のみを学習（小さなランダム値で初期化）
+        self.A_params = nn.Parameter(torch.randn(so8_dim, so8_dim) * 0.01)
 
         # 残差強度 λ: 初期値0で元モデル完全一致を保証
         self.strength = nn.Parameter(torch.tensor(init_strength, dtype=torch.float32))
