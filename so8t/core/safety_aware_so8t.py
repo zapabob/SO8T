@@ -402,8 +402,8 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         
         try:
             logger.info(f"[MODEL] Starting model loading from: {base_model_name_or_path}")
-            self.base_model: AutoModelForCausalLM = AutoModelForCausalLM.from_pretrained(
-                base_model_name_or_path,
+        self.base_model: AutoModelForCausalLM = AutoModelForCausalLM.from_pretrained(
+            base_model_name_or_path,
                 **model_kwargs
             )
             # バックボーン参照を保持（QLoRAなど外部から直接アクセス可能にする）
@@ -552,14 +552,14 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             self.so8t_adapters = None
             self.adapter_layer_indices = []
             self.adapter_param_count = 0
-            if so8t_config.use_strict_so8_rotation:
-                self.so8_rotation_gate = StrictSO8RotationGate(
-                    hidden_size=hidden_size,
-                    use_cayley=so8t_config.so8_use_cayley,
-                    orthogonal_regularization=so8t_config.so8_orthogonal_reg,
-                )
-            else:
-                self.so8_rotation_gate = None
+        if so8t_config.use_strict_so8_rotation:
+            self.so8_rotation_gate = StrictSO8RotationGate(
+                hidden_size=hidden_size,
+                use_cayley=so8t_config.so8_use_cayley,
+                orthogonal_regularization=so8t_config.so8_orthogonal_reg,
+            )
+        else:
+            self.so8_rotation_gate = None
         
         # 設定を保存（ログ出力用）
         self.so8t_cfg = so8t_config
@@ -1136,25 +1136,25 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         if self.so8_rotation_gate is None and self.so8t_adapters is None:
             # SO(8)回転ゲートもアダプタもない場合は、そのまま返す
             return {}
-
+        
         exported_weights = {}
-
+        
         # ベースモデルの重みを取得
         base_state_dict = self.base_model.state_dict()
-
+        
         if self.so8t_adapters is not None:
             logger = logging.getLogger(__name__)
             logger.warning("[SO8T] export_weights for residual adapters is not yet implemented; returning empty dict")
             return {}
         elif self.so8_rotation_gate is not None:
             # 従来のSO(8)回転ゲートの場合
-            # 注意機構の重み（Q, K, V）にSO(8)回転を吸収
-            for name, weight in base_state_dict.items():
-                if 'q_proj.weight' in name or 'k_proj.weight' in name or 'v_proj.weight' in name:
-                    # 重み行列にSO(8)回転を吸収
-                    absorbed_weight = self.so8_rotation_gate.export_weights(weight)
-                    exported_weights[name] = absorbed_weight
-
+        # 注意機構の重み（Q, K, V）にSO(8)回転を吸収
+        for name, weight in base_state_dict.items():
+            if 'q_proj.weight' in name or 'k_proj.weight' in name or 'v_proj.weight' in name:
+                # 重み行列にSO(8)回転を吸収
+                absorbed_weight = self.so8_rotation_gate.export_weights(weight)
+                exported_weights[name] = absorbed_weight
+        
         return exported_weights
     
     @torch.no_grad()
