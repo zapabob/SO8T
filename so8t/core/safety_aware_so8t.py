@@ -761,38 +761,34 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             
             # 直交誤差の測定とログ出力
             if self.so8t_cfg.so8_log_orthogonal_error:
-                import logging
                 logger = logging.getLogger(__name__)
 
-                if self.so8t_adapters is not None:
-                    # SO8TAdapterの場合、最初のレイヤーのアダプタで測定
-                    adapter_for_measurement = self.so8t_adapters[0] if len(self.so8t_adapters) > 0 else None
-                    if adapter_for_measurement is not None:
-                        # Alpha Gate値を更新してから測定
+                if self.so8t_adapters is not None and len(self.so8t_adapters) > 0:
+                    orth_errors = []
+                    det_errors = []
+                    for adapter in self.so8t_adapters.values():
                         if current_alpha_value is not None:
-                            adapter_for_measurement.update_rotation_matrix(current_alpha_value)
-                        orth_error = adapter_for_measurement.get_orthogonality_error()
-                        det_error = adapter_for_measurement.get_determinant_error()
-                    else:
-                        orth_error = torch.tensor(0.0)
-                        det_error = torch.tensor(0.0)
+                            adapter.update_rotation_matrix(current_alpha_value)
+                        orth_errors.append(adapter.get_orthogonality_error().item())
+                        det_errors.append(adapter.get_determinant_error().item())
+                    orth_error = sum(orth_errors) / len(orth_errors)
+                    det_error = sum(det_errors) / len(det_errors)
                 elif self.so8_rotation_gate is not None:
-                    # 従来のSO(8)回転ゲートの場合
-                    orth_error = self.so8_rotation_gate.get_orthogonality_loss()
-                    det_error = self.so8_rotation_gate.get_determinant_loss()
+                    orth_error = self.so8_rotation_gate.get_orthogonality_loss().item()
+                    det_error = self.so8_rotation_gate.get_determinant_loss().item()
                 else:
-                    orth_error = torch.tensor(0.0)
-                    det_error = torch.tensor(0.0)
+                    orth_error = 0.0
+                    det_error = 0.0
 
-                if orth_error.item() > self.so8t_cfg.so8_orthogonal_error_threshold:
+                if orth_error > self.so8t_cfg.so8_orthogonal_error_threshold:
                     logger.warning(
-                        f"[SO8T] High orthogonal error detected: {orth_error.item():.6f} "
+                        f"[SO8T] High orthogonal error detected: {orth_error:.6f} "
                         f"(threshold: {self.so8t_cfg.so8_orthogonal_error_threshold})"
                     )
                 else:
                     logger.debug(
-                        f"[SO8T] Orthogonal error: {orth_error.item():.6f}, "
-                        f"Determinant error: {det_error.item():.6f}"
+                        f"[SO8T] Orthogonal error: {orth_error:.6f}, "
+                        f"Determinant error: {det_error:.6f}"
                     )
         
         # 最終層hidden（[B,T,D]）- 中間レイヤーにSO(8)回転ゲートを適用した後の最終層
