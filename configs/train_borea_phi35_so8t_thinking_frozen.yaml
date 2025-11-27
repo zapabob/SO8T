@@ -202,3 +202,9 @@ bayesian_optimization:
     - "exponential"
     - "sigmoid"
 
+  # SO8T Adapter設定（残差アダプタ型）
+  use_so8t_adapter: true          # SO8TAdapterを使用（True: 残差型, False: 従来の直接回転）
+  so8t_adapter_strength_init: 0.0  # 残差強度λの初期値（0で元モデル完全一致）
+  so8t_adapter_so8_dim: 8         # SO(8)の次元（固定）
+  so8t_adapter_use_matrix_exp: true  # 行列指数を使用するか（True: torch.matrix_exp, False: 近似）
+
