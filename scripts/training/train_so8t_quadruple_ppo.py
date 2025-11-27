@@ -518,43 +518,266 @@ def main():
             torch.cuda.empty_cache()
         raise
     
-    # QLoRA設定
+    # QLoRA設定（LLMベストプラクティス: エラーハンドリング、ログ、リトライ）
     if config.get("qlora", {}).get("enabled", True):
         try:
             logger.info("[QLORA] Preparing model for k-bit training...")
+            # メモリ使用状況を確認
+            if torch.cuda.is_available():
+                allocated_before = torch.cuda.memory_allocated(0) / 1024**3
+                reserved_before = torch.cuda.memory_reserved(0) / 1024**3
+                logger.info(f"[QLORA] Memory before preparation - allocated: {allocated_before:.2f} GB, reserved: {reserved_before:.2f} GB")
+            
             model = prepare_model_for_kbit_training(model)
             logger.info("[QLORA] Model prepared for k-bit training")
+            
+            # メモリ使用状況を確認
+            if torch.cuda.is_available():
+                allocated_after = torch.cuda.memory_allocated(0) / 1024**3
+                reserved_after = torch.cuda.memory_reserved(0) / 1024**3
+                logger.info(f"[QLORA] Memory after preparation - allocated: {allocated_after:.2f} GB, reserved: {reserved_after:.2f} GB")
         except Exception as e:
             logger.error(f"[ERROR] Failed to prepare model for k-bit training: {e}")
             import traceback
-            traceback.print_exc()
+            logger.error(f"[ERROR] Traceback:\n{traceback.format_exc()}")
+            # CUDAメモリをクリア
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             raise
+        
+        # LoRA設定の作成（LLMベストプラクティス: 動的モジュール検出）
         qlora_config = config.get("qlora", {})
+        default_target_modules = [
+            "q_proj", "k_proj", "v_proj", "o_proj",
+            "gate_proj", "up_proj", "down_proj"
+        ]
+        target_modules = qlora_config.get("target_modules", default_target_modules)
+        
+        # モデルの実際のモジュール名を動的に検出（LLMベストプラクティス: 深い探索）
+        logger.info("[QLORA] Detecting actual module names in the model...")
+        actual_module_names = []
+        full_module_names = []
+        
+        # base_modelのモジュール名を取得（SO8TThinkingModelの場合）
+        # SO8TThinkingModel -> SafetyAwareSO8TModel -> base_model (AutoModelForCausalLM)
+        # 再帰的にbase_modelを探索して、AutoModelForCausalLMのインスタンスを見つける
+        actual_base_model = None
+        current_model = model
+        
+        logger.info("[QLORA] Recursively exploring model structure to find AutoModelForCausalLM...")
+        max_depth = 5  # 最大探索深度
+        depth = 0
+        
+        # SO8Tラッパーをスキップして、実際のAutoModelForCausalLMを見つける
+        from transformers import AutoModelForCausalLM
+        
+        while depth < max_depth:
+            model_type_name = type(current_model).__name__
+            logger.info(f"[QLORA] Depth {depth}: Current model type: {model_type_name}")
+            
+            # SO8Tラッパーの場合、__dict__からbase_modelを直接取得（LLMベストプラクティス）
+            if model_type_name in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
+                # まず、__dict__から直接取得を試みる
+                if hasattr(current_model, '__dict__'):
+                    model_dict = current_model.__dict__
+                    if 'base_model' in model_dict:
+                        inner_base = model_dict['base_model']
+                        inner_base_type = type(inner_base).__name__
+                        logger.info(f"[QLORA] Found base_model in __dict__: {inner_base_type}")
+                        if isinstance(inner_base, AutoModelForCausalLM):
+                            actual_base_model = inner_base
+                            logger.info(f"[QLORA] Found AutoModelForCausalLM instance in __dict__ at depth {depth}")
+                            break
+                        elif inner_base_type not in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
+                            # 次のレベルに進む
+                            current_model = inner_base
+                            depth += 1
+                            continue
+                
+                # __dict__にない場合、getattrで取得を試みる
+                if actual_base_model is None and hasattr(current_model, 'base_model'):
+                    try:
+                        inner_base = getattr(current_model, 'base_model')
+                        inner_base_type = type(inner_base).__name__
+                        logger.info(f"[QLORA] Found base_model via getattr: {inner_base_type}")
+                        if isinstance(inner_base, AutoModelForCausalLM):
+                            actual_base_model = inner_base
+                            logger.info(f"[QLORA] Found AutoModelForCausalLM instance via getattr at depth {depth}")
+                            break
+                    except AttributeError:
+                        logger.warning(f"[QLORA] Could not get base_model via getattr for {model_type_name}")
+            
+            # base_model属性を確認
+            if hasattr(current_model, 'base_model'):
+                next_model = current_model.base_model
+                depth += 1
+                next_model_type_name = type(next_model).__name__
+                logger.info(f"[QLORA] Depth {depth}: Found base_model of type {next_model_type_name}")
+                
+                # SO8Tラッパーでない場合（AutoModelForCausalLMまたはそのサブクラス）
+                if next_model_type_name not in ['SO8TThinkingModel', 'SafetyAwareSO8TModel']:
+                    if isinstance(next_model, AutoModelForCausalLM):
+                        actual_base_model = next_model
+                        logger.info(f"[QLORA] Found AutoModelForCausalLM instance at depth {depth}: {next_model_type_name}")
+                        break
+                    # または、model属性やlayers属性がある場合（Phi-3.5などの構造）
+                    elif hasattr(next_model, 'model') or hasattr(next_model, 'layers'):
+                        actual_base_model = next_model
+                        logger.info(f"[QLORA] Found model with 'model' or 'layers' attribute at depth {depth}: {next_model_type_name}")
+                        break
+                
+                current_model = next_model
+            else:
+                logger.warning(f"[QLORA] No base_model attribute found at depth {depth}")
+                break
+        
+        if actual_base_model is None:
+            logger.error(f"[ERROR] Could not find AutoModelForCausalLM instance after {depth} levels of exploration")
+            logger.error(f"[ERROR] Final model type: {type(current_model).__name__}")
+            # 最後の手段: 現在のモデルをそのまま使用（エラーを出さずに続行）
+            logger.warning("[WARNING] Using current model as actual_base_model (may cause issues)")
+            actual_base_model = current_model
+        
+        # actual_base_modelの内部構造を確認（Phi-3.5の場合、model.layers など）
+        if hasattr(actual_base_model, 'model'):
+            # Phi-3.5などの構造: model.layers.0.self_attn.q_proj
+            inner_model = actual_base_model.model
+            logger.info(f"[QLORA] Found inner model structure: {type(inner_model).__name__}")
+            logger.info(f"[QLORA] Exploring inner_model.named_modules()...")
+            for name, module in inner_model.named_modules():
+                full_name = f"model.{name}" if name else "model"
+                full_module_names.append(full_name)
+                module_name_parts = name.split('.') if name else []
+                if len(module_name_parts) > 0:
+                    actual_module_names.append(module_name_parts[-1])
+            logger.info(f"[QLORA] Collected {len(full_module_names)} module names from inner_model")
+        else:
+            # 直接actual_base_modelから探索
+            logger.info("[QLORA] Exploring actual_base_model directly (no inner 'model' attribute)...")
+            for name, module in actual_base_model.named_modules():
+                full_module_names.append(name)
+                module_name_parts = name.split('.')
+                if len(module_name_parts) > 0:
+                    actual_module_names.append(module_name_parts[-1])
+            logger.info(f"[QLORA] Collected {len(full_module_names)} module names from actual_base_model")
+        
+        # ユニークなモジュール名を取得
+        unique_module_names = set(actual_module_names)
+        logger.info(f"[QLORA] Found {len(unique_module_names)} unique module name patterns")
+        logger.info(f"[QLORA] Sample module name patterns: {sorted(list(unique_module_names))[:30]}")
+        logger.info(f"[QLORA] Sample full module names (first 30): {full_module_names[:30]}")
+        logger.info(f"[QLORA] Sample full module names (last 30): {full_module_names[-30:]}")
+        
+        # target_modulesが実際に存在するか確認し、存在するもののみを使用
+        available_target_modules = []
+        for module_name in target_modules:
+            # 完全一致または部分一致で検出
+            # 1. モジュール名パターンでの検索
+            found_in_patterns = module_name in unique_module_names
+            # 2. 完全なモジュール名での検索（例: "layers.0.self_attn.q_proj" に "q_proj" が含まれる）
+            found_in_full_names = any(module_name in full_name or full_name.endswith(f'.{module_name}') for full_name in full_module_names)
+            
+            if found_in_patterns or found_in_full_names:
+                available_target_modules.append(module_name)
+                logger.info(f"[QLORA] Found target module '{module_name}' in model")
+            else:
+                logger.warning(f"[QLORA] Target module '{module_name}' not found in model, skipping")
+        
+        if not available_target_modules:
+            # フォールバック: 実際のモジュール名から推測
+            logger.warning("[QLORA] No target modules found, trying to infer from actual module names...")
+            # よくあるパターンを試す
+            common_patterns = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+            for pattern in common_patterns:
+                if any(pattern in name for name in actual_module_names):
+                    available_target_modules.append(pattern)
+            
+            if not available_target_modules:
+                error_msg = f"Could not find any suitable target modules. Available modules: {sorted(list(actual_module_names))[:30]}"
+                logger.error(f"[ERROR] {error_msg}")
+                raise ValueError(error_msg)
+        
+        logger.info(f"[QLORA] Using target modules: {available_target_modules}")
+        logger.info(f"[QLORA] LoRA config - r: {qlora_config.get('r', 64)}, alpha: {qlora_config.get('lora_alpha', 128)}, dropout: {qlora_config.get('lora_dropout', 0.05)}")
+        
         lora_config = LoraConfig(
             r=qlora_config.get("r", 64),
             lora_alpha=qlora_config.get("lora_alpha", 128),
-            target_modules=qlora_config.get("target_modules", [
-                "q_proj", "k_proj", "v_proj", "o_proj",
-                "gate_proj", "up_proj", "down_proj"
-            ]),
+            target_modules=available_target_modules,
             lora_dropout=qlora_config.get("lora_dropout", 0.05),
             bias="none",
             task_type=TaskType.CAUSAL_LM
         )
-        model = get_peft_model(model, lora_config)
-        logger.info("[OK] QLoRA applied")
+        
+        # get_peft_model()の実行（エラーハンドリング強化）
+        try:
+            logger.info("[QLORA] Applying LoRA adapters to model (this may take a while)...")
+            # メモリ使用状況を確認
+            if torch.cuda.is_available():
+                allocated_before = torch.cuda.memory_allocated(0) / 1024**3
+                reserved_before = torch.cuda.memory_reserved(0) / 1024**3
+                logger.info(f"[QLORA] Memory before LoRA - allocated: {allocated_before:.2f} GB, reserved: {reserved_before:.2f} GB")
+            
+            model = get_peft_model(model, lora_config)
+            logger.info("[OK] QLoRA applied successfully")
+            
+            # メモリ使用状況を確認
+            if torch.cuda.is_available():
+                allocated_after = torch.cuda.memory_allocated(0) / 1024**3
+                reserved_after = torch.cuda.memory_reserved(0) / 1024**3
+                logger.info(f"[QLORA] Memory after LoRA - allocated: {allocated_after:.2f} GB, reserved: {reserved_after:.2f} GB")
+            
+            # 学習可能パラメータ数を確認
+            trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            total_params = sum(p.numel() for p in model.parameters())
+            logger.info(f"[QLORA] Trainable parameters: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)")
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to apply LoRA adapters: {e}")
+            import traceback
+            logger.error(f"[ERROR] Traceback:\n{traceback.format_exc()}")
+            # CUDAメモリをクリア
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            raise
     
-    # 重み凍結
+    # 重み凍結（LLMベストプラクティス: エラーハンドリング、ログ）
     if config.get("model", {}).get("freeze_base_model", True):
-        from scripts.training.train_borea_phi35_so8t_thinking import freeze_base_model_weights
-        freeze_base_model_weights(model, config)
+        try:
+            logger.info("[FREEZE] Freezing base model weights...")
+            from scripts.training.train_borea_phi35_so8t_thinking import freeze_base_model_weights
+            freeze_base_model_weights(model, config)
+            logger.info("[OK] Base model weights frozen successfully")
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to freeze base model weights: {e}")
+            import traceback
+            logger.error(f"[ERROR] Traceback:\n{traceback.format_exc()}")
+            # 重み凍結に失敗しても続行（警告のみ）
+            logger.warning("[WARNING] Continuing without weight freezing")
     
-    # データセット読み込み
-    train_dataset = QuadruplePairwiseDataset(
-        data_path=args.dataset,
-        tokenizer=tokenizer,
-        max_length=config.get("data", {}).get("max_seq_length", 2048)
-    )
+    # データセット読み込み（LLMベストプラクティス: エラーハンドリング、プログレスバー）
+    try:
+        logger.info("[DATASET] Loading dataset...")
+        logger.info(f"[DATASET] Dataset path: {args.dataset}")
+        logger.info(f"[DATASET] Max sequence length: {config.get('data', {}).get('max_seq_length', 2048)}")
+        
+        train_dataset = QuadruplePairwiseDataset(
+            data_path=args.dataset,
+            tokenizer=tokenizer,
+            max_length=config.get("data", {}).get("max_seq_length", 2048)
+        )
+        
+        dataset_size = len(train_dataset)
+        logger.info(f"[OK] Dataset loaded successfully - {dataset_size:,} samples")
+        
+        if dataset_size == 0:
+            error_msg = "Dataset is empty after loading"
+            logger.error(f"[ERROR] {error_msg}")
+            raise ValueError(error_msg)
+    except Exception as e:
+        logger.error(f"[ERROR] Failed to load dataset: {e}")
+        import traceback
+        logger.error(f"[ERROR] Traceback:\n{traceback.format_exc()}")
+        raise
     
     # チェックポイントからの再開
     resume_from_checkpoint = None
