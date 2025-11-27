@@ -399,27 +399,28 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                 logger.info(f"[MODEL] Using quantization: {type(model_kwargs['quantization_config']).__name__}")
         except:
             pass
-        
         try:
             logger.info(f"[MODEL] Starting model loading from: {base_model_name_or_path}")
-        self.base_model: AutoModelForCausalLM = AutoModelForCausalLM.from_pretrained(
-            base_model_name_or_path,
-                **model_kwargs
-            )
+            self.base_model: AutoModelForCausalLM = AutoModelForCausalLM.from_pretrained(base_model_name_or_path, **model_kwargs)
             # バックボーン参照を保持（QLoRAなど外部から直接アクセス可能にする）
-            self._llm_backbone = self.base_model
-            # 量子化なしの場合、CPUに読み込んだ後GPUに移動
-            # ただし、GPUへの移動でクラッシュする可能性があるため、環境変数で制御可能にする
-            if quantization_config is None and torch.cuda.is_available() and model_kwargs.get("device_map") is None and not force_cpu:
-                logger.info("[MODEL] Attempting to move model to GPU...")
-                try:
-                    # CUDAメモリをクリア
-                    torch.cuda.empty_cache()
-                    # モデルサイズを確認
-                    if hasattr(self.base_model, 'get_memory_footprint'):
-                        memory_footprint = self.base_model.get_memory_footprint()
-                        logger.info(f"[MODEL] Model memory footprint: {memory_footprint / 1024**3:.2f} GB")
-                    
+            return self.base_model
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to load base model: {e}")
+            raise RuntimeError(f"Failed to load base model: {e}") from e
+    def move_model_to_gpu():
+            if torch.cuda.is_available():
+                self.base_model = self.base_model.to("cuda")
+                logger.info("[MODEL] Model successfully moved to GPU")
+                return self.base_model
+            else:
+                logger.warning("[MODEL] CUDA is not available, model will remain on CPU")
+                return self.base_model
+        except RuntimeError as e:
+            logger.error(f"[ERROR] Failed to move model to GPU: {e}")
+            raise RuntimeError(f"Failed to move model to GPU: {e}") from e
+        else:
+            return move_model_to_gpu()
+        def 
                     # GPUへの移動を段階的に行う（エラーハンドリング付き）
                     logger.info("[MODEL] Moving model to GPU (this may take a while)...")
                     # まず、モデルを評価モードにしてメモリ使用量を削減
@@ -464,22 +465,24 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                     self.so8_layer_end = int(self.num_layers * self.so8t_cfg.so8_intermediate_layer_ratio[1])
                 
                 logger.info(f"[SO8T] SO(8) rotation gate will be applied to intermediate layers: {self.so8_layer_start}-{self.so8_layer_end} (total {self.num_layers} layers)")
-        except RuntimeError as e:
-            # CUDAメモリをクリア
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            import traceback
-            error_msg = f"RuntimeError while loading base model: {e}\n{traceback.format_exc()}"
-            logger.error(f"[ERROR] {error_msg}")
-            raise RuntimeError(error_msg) from e
-        except Exception as e:
-            # CUDAメモリをクリア
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            import traceback
-            error_msg = f"Unexpected error while loading base model: {type(e).__name__}: {e}\n{traceback.format_exc()}"
-            logger.error(f"[ERROR] {error_msg}")
-            raise RuntimeError(error_msg) from e
+            def load_base_model():
+                self.base_model = AutoModelForCausalLM.from_pretrained(
+                    self.base_model_name_or_path,
+                    torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+                )
+                self.base_model.eval()
+                self.base_model.to("cuda")
+                return self.base_model
+            try:
+                return load_base_model()
+            except RuntimeError as e:
+                # CUDAメモリをクリア
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    import traceback
+                    error_msg = f"RuntimeError while loading base model: {type(e).__name__}: {e}\n{traceback.format_exc()}"
+                    logger.error(f"[ERROR] {error_msg}")
+                    raise RuntimeError(error_msg) from e
         
         hidden_size = base_config.hidden_size
         
@@ -1148,12 +1151,11 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             return {}
         elif self.so8_rotation_gate is not None:
             # 従来のSO(8)回転ゲートの場合
-        # 注意機構の重み（Q, K, V）にSO(8)回転を吸収
-        for name, weight in base_state_dict.items():
-            if 'q_proj.weight' in name or 'k_proj.weight' in name or 'v_proj.weight' in name:
-                # 重み行列にSO(8)回転を吸収
-                absorbed_weight = self.so8_rotation_gate.export_weights(weight)
-                exported_weights[name] = absorbed_weight
+            for name, weight in base_state_dict.items():
+                if 'q_proj.weight' in name or 'k_proj.weight' in name or 'v_proj.weight' in name:
+                    # 重み行列にSO(8)回転を吸収
+                    absorbed_weight = self.so8_rotation_gate.export_weights(weight)
+                    exported_weights[name] = absorbed_weight
         
         return exported_weights
     
@@ -1323,3 +1325,33 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             "overall": float(overall),
         }
 
+    @torch.no_grad()
+    def get_safety_gate_decision(self, prompt: str, tokenizer: AutoTokenizer, device: str = "cuda") -> Tuple[str, float]:
+        """
+        Safety Gateの判定を行う
+        """
+        self.eval()
+        tokenizer.pad_token = tokenizer.eos_token
+        
+        inputs = tokenizer(prompt, return_tensors="pt").to(device)
+        sg = self.safety_gate(**inputs)
+        decision = sg["decisions"][0]
+        conf = sg["confidence"][0].item()
+        reasoning = sg["reasoning"][0]
+        safety_logits = sg["safety_logits"][0]
+        safety_probs = sg["safety_probs"][0]
+        
+        return {
+            "decision": decision,
+            "confidence": conf,
+            "reasoning": reasoning,
+            "safety_logits": safety_logits,
+            "safety_probs": safety_probs,
+        }    
+
+    def get_safety_gate_decision_and_score(self, prompt: str, tokenizer: AutoTokenizer, device: str = "cuda") -> Tuple[str, float, float]:
+        """
+        Safety Gateの判定とスコアを取得
+        """
+        sg = self.forward(prompt, tokenizer, device)
+        return sg["decision"], sg["confidence"], sg["score"], sg["reasoning"], sg["safety_logits"], sg["safety_probs"]
