@@ -10,6 +10,7 @@ Safety-Aware SO8T Model Implementation
 6. PET正則化（既存SO8TGroupStructureと簡易PETのハイブリッド）
 """
 
+import logging
 import math
 import os
 from dataclasses import dataclass
@@ -503,21 +504,45 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             self.so8_layer_end = None
         
         # SO8T Adapterまたは従来のSO(8)回転ゲート
-        if so8t_config.use_so8t_adapter:
-            # SO8T残差アダプタを使用（中間層のみに適用）
-            self.so8t_adapters = nn.ModuleList([
-                SO8TAdapter(
+        self.adapter_layer_indices: List[int] = []
+        self.adapter_param_count: int = 0
+        if so8t_config.use_so8t_adapter and so8t_config.so8_apply_to_intermediate_layers:
+            total_layers = self.num_layers or so8t_config.so8_intermediate_layer_end or 32
+            default_start = int(total_layers * so8t_config.so8_intermediate_layer_ratio[0])
+            default_end = int(total_layers * so8t_config.so8_intermediate_layer_ratio[1])
+            start_idx = max(0, self.so8_layer_start if self.so8_layer_start is not None else default_start)
+            end_idx = min(total_layers, self.so8_layer_end if self.so8_layer_end is not None else default_end)
+            if end_idx <= start_idx:
+                end_idx = min(total_layers, start_idx + max(1, int(total_layers * 0.25)))
+            self.adapter_layer_indices = list(range(start_idx, end_idx))
+            self.so8t_adapters = nn.ModuleDict({
+                str(layer_idx): SO8TAdapter(
                     hidden_size=hidden_size,
                     so8_dim=so8t_config.so8t_adapter_so8_dim,
                     init_strength=so8t_config.so8t_adapter_strength_init,
                     use_matrix_exp=so8t_config.so8t_adapter_use_matrix_exp,
                 )
-                for _ in range(32)  # Phi-3.5-miniの最大レイヤー数（後でフィルタリング）
-            ])
+                for layer_idx in self.adapter_layer_indices
+            })
             self.so8_rotation_gate = None  # Adapter使用時はNone
+            self.adapter_param_count = sum(
+                p.numel() for adapter in self.so8t_adapters.values() for p in adapter.parameters()
+            )
+            base_param_count = sum(p.numel() for p in self.base_model.parameters())
+            adapter_ratio = self.adapter_param_count / max(base_param_count, 1)
+            logger = logging.getLogger(__name__)
+            logger.info(
+                "[SO8T] Adapter layers: %s (count=%d), adapter params=%s (ratio=%.6f)",
+                self.adapter_layer_indices,
+                len(self.adapter_layer_indices),
+                f"{self.adapter_param_count:,}",
+                adapter_ratio,
+            )
         else:
             # 従来の厳密なSO(8)回転ゲート
             self.so8t_adapters = None
+            self.adapter_layer_indices = []
+            self.adapter_param_count = 0
             if so8t_config.use_strict_so8_rotation:
                 self.so8_rotation_gate = StrictSO8RotationGate(
                     hidden_size=hidden_size,
