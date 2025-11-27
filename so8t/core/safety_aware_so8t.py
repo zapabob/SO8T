@@ -461,8 +461,63 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             lambda_pet=so8t_config.pet_lambda,
         )
         
-        # 重み初期化
-        self.post_init()
+        # 重み初期化（base_modelは既に初期化済みなのでスキップ）
+        # post_init()を呼ばずに、手動でSO8T固有のモジュールのみ初期化
+        # post_init()はbase_modelも含めて再帰的に初期化しようとするため、
+        # base_modelが既に初期化済みの場合に再帰エラーが発生する
+        self._init_so8t_weights()
+    
+    def post_init(self):
+        """
+        post_init()をオーバーライドして、base_modelの再初期化を防ぐ
+        
+        PreTrainedModelの__init__が自動的にpost_init()を呼び出すため、
+        これをオーバーライドして、SO8T固有のモジュールのみ初期化する。
+        """
+        # post_init()は既に_init_so8t_weights()で実行済み
+        # base_modelの再初期化を防ぐため、何もしない
+        pass
+    
+    def _init_so8t_weights(self):
+        """
+        SO8T固有のモジュールのみ重み初期化（base_modelはスキップ）
+        
+        base_modelは既にfrom_pretrained()で初期化されているため、
+        再初期化をスキップして再帰エラーを防ぐ。
+        """
+        # SO8T固有のモジュールのみ初期化
+        for module in [self.safety_head, self.verifier_head, self.geometric_constraints]:
+            if module is not None:
+                self._init_module_weights(module)
+        
+        # SO8T rotation gateの初期化
+        if self.so8_rotation_gate is not None:
+            self._init_module_weights(self.so8_rotation_gate)
+        
+        # Group structureの初期化
+        if self.group_structure is not None:
+            self._init_module_weights(self.group_structure)
+    
+    def _init_module_weights(self, module):
+        """
+        モジュールの重みを初期化（再帰的に、base_modelはスキップ）
+        """
+        # base_modelはスキップ
+        if module is self.base_model:
+            return
+        
+        for child in module.children():
+            self._init_module_weights(child)
+        
+        # リーフモジュールの初期化
+        if isinstance(module, (nn.Linear, nn.Embedding)):
+            # デフォルトの初期化
+            module.weight.data.normal_(mean=0.0, std=0.02)
+            if isinstance(module, nn.Linear) and module.bias is not None:
+                module.bias.data.zero_()
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
     
     def split_hidden_states(self, hidden_states: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
