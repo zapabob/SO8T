@@ -481,11 +481,61 @@ def main():
     # SO8TThinkingModelを読み込み
     from so8t.core.safety_aware_so8t import SafetyAwareSO8TConfig
     so8t_config_dict = config.get("so8t", {})
+    
+    # ベイズ最適化結果を読み込む（存在する場合）
+    bayes_opt_result_path = Path("D:/webdataset/alpha_gate_bayes_opt/optimal_alpha_gate_orthogonal.json")
+    bayes_opt_params = {}
+    if bayes_opt_result_path.exists():
+        try:
+            with open(bayes_opt_result_path, "r", encoding="utf-8") as f:
+                bayes_opt_result = json.load(f)
+                bayes_opt_params = bayes_opt_result.get("best_params", {})
+                logger.info(f"[BAYES_OPT] Loaded optimization results: {bayes_opt_params}")
+        except Exception as e:
+            logger.warning(f"[BAYES_OPT] Failed to load optimization results: {e}, using defaults")
+    
+    # Alpha Gate設定（ベイズ最適化結果を優先、なければYAML設定、それもなければデフォルト）
+    alpha_gate_config = so8t_config_dict.get("alpha_gate", {}) if isinstance(so8t_config_dict.get("alpha_gate"), dict) else {}
+    use_alpha_gate = bayes_opt_params.get("use_alpha_gate", so8t_config_dict.get("use_alpha_gate", True))
+    alpha_gate_target = so8t_config_dict.get("alpha_gate_target", 0.432)
+    alpha_gate_start = so8t_config_dict.get("alpha_gate_start", -5.0)
+    alpha_gate_annealing_steps = bayes_opt_params.get("alpha_gate_annealing_steps", so8t_config_dict.get("alpha_gate_annealing_steps", 1000))
+    alpha_gate_steepness = bayes_opt_params.get("alpha_gate_steepness", so8t_config_dict.get("alpha_gate_steepness", 12.0))
+    alpha_gate_orthogonal_weight = bayes_opt_params.get("alpha_gate_orthogonal_weight", so8t_config_dict.get("alpha_gate_orthogonal_weight", 1.0))
+    alpha_gate_pet_weight = bayes_opt_params.get("alpha_gate_pet_weight", so8t_config_dict.get("alpha_gate_pet_weight", 0.1))
+    
+    # 中間レイヤー設定
+    so8_apply_to_intermediate_layers = so8t_config_dict.get("apply_to_intermediate_layers", True)
+    so8_intermediate_layer_start = so8t_config_dict.get("intermediate_layer_start")
+    so8_intermediate_layer_end = so8t_config_dict.get("intermediate_layer_end")
+    so8_intermediate_layer_ratio = so8t_config_dict.get("intermediate_layer_ratio", [0.25, 0.75])
+    so8_log_orthogonal_error = so8t_config_dict.get("log_orthogonal_error", True)
+    so8_orthogonal_error_threshold = so8t_config_dict.get("orthogonal_error_threshold", 1e-3)
+    pet_apply_to_intermediate_layers = so8t_config_dict.get("pet_apply_to_intermediate_layers", True)
+    pet_high_freq_cutoff = so8t_config_dict.get("pet_high_freq_cutoff", 0.5)
+    
     so8t_config = SafetyAwareSO8TConfig(
         pet_lambda=so8t_config_dict.get("pet_lambda", 0.1),
         nu_orth=so8t_config_dict.get("orthogonal_reg", 1e-4),  # nu_orthが直交性制約の重み
         mu_norm=so8t_config_dict.get("norm_reg", 0.01),
-        rho_iso=so8t_config_dict.get("isometry_reg", 0.01)
+        rho_iso=so8t_config_dict.get("isometry_reg", 0.01),
+        # Alpha Gate設定
+        use_alpha_gate=use_alpha_gate,
+        alpha_gate_target=alpha_gate_target,
+        alpha_gate_start=alpha_gate_start,
+        alpha_gate_annealing_steps=alpha_gate_annealing_steps,
+        alpha_gate_steepness=alpha_gate_steepness,
+        alpha_gate_orthogonal_weight=alpha_gate_orthogonal_weight,
+        alpha_gate_pet_weight=alpha_gate_pet_weight,
+        # 中間レイヤー設定
+        so8_apply_to_intermediate_layers=so8_apply_to_intermediate_layers,
+        so8_intermediate_layer_start=so8_intermediate_layer_start,
+        so8_intermediate_layer_end=so8_intermediate_layer_end,
+        so8_intermediate_layer_ratio=tuple(so8_intermediate_layer_ratio) if isinstance(so8_intermediate_layer_ratio, list) else so8_intermediate_layer_ratio,
+        so8_log_orthogonal_error=so8_log_orthogonal_error,
+        so8_orthogonal_error_threshold=so8_orthogonal_error_threshold,
+        pet_apply_to_intermediate_layers=pet_apply_to_intermediate_layers,
+        pet_high_freq_cutoff=pet_high_freq_cutoff
     )
     
     try:
