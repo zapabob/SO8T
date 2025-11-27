@@ -113,6 +113,29 @@ class SafetyAwareSO8TConfig:
     so8_use_cayley: bool = True  # Cayley変換を使用
     so8_orthogonal_reg: float = 1e-3  # 直交性正則化
     
+    # SO(8)回転ゲートの適用レイヤー設定（LLMベストプラクティス: 中間レイヤーのみ）
+    so8_apply_to_intermediate_layers: bool = True  # 中間レイヤーのみに適用（True）または最終層のみ（False）
+    so8_intermediate_layer_start: Optional[int] = None  # 中間レイヤーの開始インデックス（None: 自動計算）
+    so8_intermediate_layer_end: Optional[int] = None  # 中間レイヤーの終了インデックス（None: 自動計算）
+    so8_intermediate_layer_ratio: Tuple[float, float] = (0.25, 0.75)  # 中間レイヤーの範囲（開始比率、終了比率）
+    
+    # 直交誤差測定とログ出力
+    so8_log_orthogonal_error: bool = True  # 直交誤差をログ出力するか
+    so8_orthogonal_error_threshold: float = 1e-3  # 直交誤差の警告閾値
+    
+    # PET正則化の強化（高周波成分カット）
+    pet_apply_to_intermediate_layers: bool = True  # 中間レイヤーにもPET正則化を適用
+    pet_high_freq_cutoff: float = 0.5  # 高周波成分カットオフ（0.0-1.0、高いほど強いカット）
+    
+    # Alpha Gate設定（黄金比の逆数の二乗: Φ^(-2) = 0.432）
+    use_alpha_gate: bool = True  # Alpha Gateを使用するか
+    alpha_gate_target: float = 0.432  # ターゲット値: Φ^(-2) = (1/1.618)^2 ≈ 0.382, ユーザー指定: 0.432
+    alpha_gate_start: float = -5.0  # 初期値（Chaos状態）
+    alpha_gate_annealing_steps: int = 1000  # アニーリングステップ数
+    alpha_gate_steepness: float = 12.0  # シグモイドアニーリングの急激さ
+    alpha_gate_orthogonal_weight: float = 1.0  # 直交誤差の重み（ベイズ最適化で調整）
+    alpha_gate_pet_weight: float = 0.1  # PET正則化の重み（ベイズ最適化で調整）
+    
     def compute_role_dimensions(self, hidden_size: int) -> Tuple[int, int, int, int]:
         """
         四成分分割の次元を計算
@@ -403,6 +426,26 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                 logger.info("[MODEL] SO8T_FORCE_CPU=true, keeping model on CPU")
                 self.base_model = self.base_model.to("cpu")
             logger.info("[MODEL] Base model loaded successfully")
+            
+            # base_model読み込み後、レイヤー数を確定して中間レイヤー範囲を再計算
+            if self.num_layers is None:
+                if hasattr(self.base_model, 'model') and hasattr(self.base_model.model, 'layers'):
+                    self.num_layers = len(self.base_model.model.layers)
+                elif hasattr(self.base_model, 'config') and hasattr(self.base_model.config, 'num_hidden_layers'):
+                    self.num_layers = self.base_model.config.num_hidden_layers
+                else:
+                    # デフォルト値（Phi-3.5-miniは32層）
+                    self.num_layers = 32
+                    logger.warning(f"[SO8T] Could not determine num_layers, using default: {self.num_layers}")
+            
+            # 中間レイヤー範囲を再計算
+            if self.so8t_cfg.so8_apply_to_intermediate_layers:
+                if self.so8_layer_start is None:
+                    self.so8_layer_start = int(self.num_layers * self.so8t_cfg.so8_intermediate_layer_ratio[0])
+                if self.so8_layer_end is None:
+                    self.so8_layer_end = int(self.num_layers * self.so8t_cfg.so8_intermediate_layer_ratio[1])
+                
+                logger.info(f"[SO8T] SO(8) rotation gate will be applied to intermediate layers: {self.so8_layer_start}-{self.so8_layer_end} (total {self.num_layers} layers)")
         except RuntimeError as e:
             # CUDAメモリをクリア
             if torch.cuda.is_available():
@@ -425,6 +468,30 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         # 四成分分割の次元を計算
         self.d_V, self.d_S_plus, self.d_S_minus, self.d_Ver = so8t_config.compute_role_dimensions(hidden_size)
         
+        # ベースモデルのレイヤー数を取得（中間レイヤー選択用）
+        # base_modelがPhi-3.5などの場合、model.layersの数を取得
+        self.num_layers = getattr(base_config, 'num_hidden_layers', None)
+        if self.num_layers is None:
+            # フォールバック: base_modelから直接取得（まだbase_modelが読み込まれていない場合は後で設定）
+            self.num_layers = None
+        
+        # 中間レイヤーの範囲を計算（base_model読み込み後に再設定）
+        if so8t_config.so8_apply_to_intermediate_layers:
+            if so8t_config.so8_intermediate_layer_start is not None:
+                self.so8_layer_start = so8t_config.so8_intermediate_layer_start
+            else:
+                # デフォルト: 25%-75%の範囲（後でnum_layersが確定したら再計算）
+                self.so8_layer_start = None
+            
+            if so8t_config.so8_intermediate_layer_end is not None:
+                self.so8_layer_end = so8t_config.so8_intermediate_layer_end
+            else:
+                # デフォルト: 25%-75%の範囲（後でnum_layersが確定したら再計算）
+                self.so8_layer_end = None
+        else:
+            self.so8_layer_start = None
+            self.so8_layer_end = None
+        
         # 厳密なSO(8)回転ゲート（右側からの作用）
         if so8t_config.use_strict_so8_rotation:
             self.so8_rotation_gate = StrictSO8RotationGate(
@@ -434,6 +501,33 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             )
         else:
             self.so8_rotation_gate = None
+        
+        # 設定を保存（ログ出力用）
+        self.so8t_cfg = so8t_config
+        
+        # Alpha Gateパラメータ（学習可能パラメータとして初期化）
+        if so8t_config.use_alpha_gate:
+            # Alpha Gateの初期値: シグモイド(-5.0) ≈ 0.0067（Chaos状態）
+            # ターゲット: シグモイド(α) = 0.432 となるようなαを計算
+            # sigmoid(α) = 0.432 → α = logit(0.432) = log(0.432 / (1 - 0.432)) ≈ -0.28
+            # しかし、アニーリングで-5.0から開始するため、初期値は-5.0
+            self.alpha_gate = nn.Parameter(torch.tensor(so8t_config.alpha_gate_start))
+            self.alpha_gate_step = 0  # アニーリングステップカウンター
+            self.alpha_gate_target = so8t_config.alpha_gate_target
+            self.alpha_gate_start = so8t_config.alpha_gate_start
+            self.alpha_gate_annealing_steps = so8t_config.alpha_gate_annealing_steps
+            self.alpha_gate_steepness = so8t_config.alpha_gate_steepness
+            
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(
+                f"[ALPHA_GATE] Initialized: start={so8t_config.alpha_gate_start}, "
+                f"target={so8t_config.alpha_gate_target}, "
+                f"annealing_steps={so8t_config.alpha_gate_annealing_steps}, "
+                f"steepness={so8t_config.alpha_gate_steepness}"
+            )
+        else:
+            self.alpha_gate = None
         
         # Safety head: Spinor+成分から3分類
         self.safety_head = nn.Sequential(
@@ -577,12 +671,47 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         lm_loss = outputs.loss
         hidden_states = outputs.hidden_states  # tuple of (layer+emb) [B,T,D]
         
-        # 最終層hidden（[B,T,D]）
-        last_hidden = hidden_states[-1]
+        # SO(8)回転ゲートを中間レイヤーに適用（LLMベストプラクティス）
+        # hidden_states[0]はembedding層、hidden_states[1:]は各Transformer層
+        processed_hidden_states = list(hidden_states)
         
-        # 厳密なSO(8)回転ゲートを適用（右側からの作用）
-        if self.so8_rotation_gate is not None:
-            last_hidden = self.so8_rotation_gate(last_hidden, apply_right=True)
+        if self.so8_rotation_gate is not None and self.so8t_cfg.so8_apply_to_intermediate_layers:
+            # 中間レイヤーのみにSO(8)回転ゲートを適用
+            # hidden_states[0]はembedding層、hidden_states[1]からがTransformer層
+            # インデックス調整: so8_layer_start/endはTransformer層のインデックス（0始まり）
+            for layer_idx in range(self.so8_layer_start, min(self.so8_layer_end, len(processed_hidden_states) - 1)):
+                # hidden_states[0]はembedding、hidden_states[1]が最初のTransformer層
+                # したがって、Transformer層のインデックスlayer_idxに対応するhidden_statesインデックスはlayer_idx + 1
+                hidden_idx = layer_idx + 1
+                if hidden_idx < len(processed_hidden_states):
+                    processed_hidden_states[hidden_idx] = self.so8_rotation_gate(
+                        processed_hidden_states[hidden_idx], 
+                        apply_right=True
+                    )
+            
+            # 直交誤差の測定とログ出力
+            if self.so8t_cfg.so8_log_orthogonal_error:
+                import logging
+                logger = logging.getLogger(__name__)
+                orth_error = self.so8_rotation_gate.get_orthogonality_loss()
+                det_error = self.so8_rotation_gate.get_determinant_loss()
+                
+                if orth_error.item() > self.so8t_cfg.so8_orthogonal_error_threshold:
+                    logger.warning(
+                        f"[SO8T] High orthogonal error detected: {orth_error.item():.6f} "
+                        f"(threshold: {self.so8t_cfg.so8_orthogonal_error_threshold})"
+                    )
+                else:
+                    logger.debug(
+                        f"[SO8T] Orthogonal error: {orth_error.item():.6f}, "
+                        f"Determinant error: {det_error.item():.6f}"
+                    )
+        
+        # 最終層hidden（[B,T,D]）- 中間レイヤーにSO(8)回転ゲートを適用した後の最終層
+        last_hidden = processed_hidden_states[-1]
+        
+        # 最終層にはSO(8)回転ゲートを適用しない（中間レイヤーのみ適用）
+        # これにより、最終層の表現を保持し、四重推論を可能にする
         
         # 四成分に分割
         h_V, h_S_plus, h_S_minus, h_Ver = self.split_hidden_states(last_hidden)
@@ -605,8 +734,27 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         if self.verifier_head is not None:
             verifier_scores = self.verifier_head(pooled_Ver)  # [B, num_verifier_dims]
         
-        # PET損失（既存実装を使用）
-        pet_loss = self.group_structure.compute_pet_loss(last_hidden)
+        # PET損失（高周波成分カット）- 中間レイヤーにも適用（LLMベストプラクティス）
+        pet_loss = torch.tensor(0.0, device=last_hidden.device)
+        
+        if self.so8t_cfg.pet_apply_to_intermediate_layers and self.so8t_cfg.so8_apply_to_intermediate_layers:
+            # 中間レイヤーにもPET正則化を適用して高周波成分をカット
+            # 高周波成分カットオフ: pet_high_freq_cutoffが高いほど強いカット
+            intermediate_pet_losses = []
+            for layer_idx in range(self.so8_layer_start, min(self.so8_layer_end, len(processed_hidden_states) - 1)):
+                hidden_idx = layer_idx + 1
+                if hidden_idx < len(processed_hidden_states):
+                    layer_pet_loss = self.group_structure.compute_pet_loss(processed_hidden_states[hidden_idx])
+                    # 高周波成分カットオフを適用（重み付け）
+                    weight = 1.0 - self.so8t_cfg.pet_high_freq_cutoff
+                    intermediate_pet_losses.append(layer_pet_loss * weight)
+            
+            if intermediate_pet_losses:
+                pet_loss = torch.stack(intermediate_pet_losses).mean()
+        
+        # 最終層のPET損失も追加（既存実装との互換性）
+        final_layer_pet_loss = self.group_structure.compute_pet_loss(last_hidden)
+        pet_loss = pet_loss + final_layer_pet_loss
         
         # 幾何学的制約損失
         norm_loss = self.geometric_constraints.compute_norm_constraint(
@@ -632,6 +780,45 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             so8_orth_loss = self.so8_rotation_gate.get_orthogonality_loss()
             so8_det_loss = self.so8_rotation_gate.get_determinant_loss()
         
+        # Alpha Gateアニーリング（シグモイドアニーリングでα=Φ^(-2)=0.432を目標）
+        alpha_gate_value = None
+        alpha_gate_loss = torch.tensor(0.0, device=last_hidden.device)
+        if self.alpha_gate is not None:
+            # シグモイドアニーリング: αを段階的に更新
+            # 進行度を計算（0.0から1.0）
+            progress = min(1.0, self.alpha_gate_step / self.alpha_gate_annealing_steps)
+            
+            # シグモイド関数で滑らかに遷移: S(x) = 1 / (1 + e^(-k*(x-0.5)))
+            # xを-0.5から0.5の範囲に正規化（中心で転移）
+            relative_progress = progress - 0.5
+            sigmoid_factor = 1 / (1 + math.exp(-self.alpha_gate_steepness * relative_progress))
+            
+            # Alpha Gate値を更新: start_alphaからtarget_alphaへ
+            # ただし、target_alphaはシグモイド後の値（0.432）なので、
+            # シグモイド前の値に変換: logit(0.432) ≈ -0.28
+            target_alpha_raw = math.log(self.alpha_gate_target / (1 - self.alpha_gate_target))
+            current_alpha_raw = self.alpha_gate_start + (target_alpha_raw - self.alpha_gate_start) * sigmoid_factor
+            
+            # Alpha Gateパラメータを更新（勾配計算のため、detachしてから更新）
+            with torch.no_grad():
+                self.alpha_gate.data = torch.tensor(current_alpha_raw, device=self.alpha_gate.device, dtype=self.alpha_gate.dtype)
+            
+            # シグモイド変換後のAlpha Gate値
+            alpha_gate_value = torch.sigmoid(self.alpha_gate)
+            
+            # Alpha Gate損失: ターゲット値（0.432）からの偏差を最小化
+            alpha_gate_target_tensor = torch.tensor(self.alpha_gate_target, device=alpha_gate_value.device, dtype=alpha_gate_value.dtype)
+            alpha_gate_loss = (alpha_gate_value - alpha_gate_target_tensor) ** 2
+            
+            # ステップカウンターを更新
+            self.alpha_gate_step += 1
+        
+        # 直交誤差を0に保つための損失（ベイズ最適化で調整される重みを使用）
+        orthogonal_error_loss = so8_orth_loss * self.so8t_cfg.alpha_gate_orthogonal_weight
+        
+        # PET正則化による学習発散防止（ベイズ最適化で調整される重みを使用）
+        pet_divergence_loss = pet_loss * self.so8t_cfg.alpha_gate_pet_weight
+        
         # 合成損失
         total_loss = None
         if lm_loss is not None:
@@ -640,42 +827,50 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                 total_loss = (
                     total_loss
                     + self.so8t_cfg.alpha_safety * safety_loss
-                    + self.so8t_cfg.pet_lambda * pet_loss
+                    + pet_loss  # 既存のPET損失
+                    + pet_divergence_loss  # 学習発散防止のための追加PET損失
                     + self.so8t_cfg.mu_norm * norm_loss
                     + self.so8t_cfg.nu_orth * orth_loss
                     + self.so8t_cfg.rho_iso * iso_loss
-                    + so8_orth_loss
+                    + orthogonal_error_loss  # 直交誤差を0に保つ
                     + so8_det_loss
+                    + alpha_gate_loss  # Alpha Gateターゲット損失
                 )
             else:
                 total_loss = (
                     total_loss
-                    + self.so8t_cfg.pet_lambda * pet_loss
+                    + pet_loss  # 既存のPET損失
+                    + pet_divergence_loss  # 学習発散防止のための追加PET損失
                     + self.so8t_cfg.mu_norm * norm_loss
                     + self.so8t_cfg.nu_orth * orth_loss
                     + self.so8t_cfg.rho_iso * iso_loss
-                    + so8_orth_loss
+                    + orthogonal_error_loss  # 直交誤差を0に保つ
                     + so8_det_loss
+                    + alpha_gate_loss  # Alpha Gateターゲット損失
                 )
         else:
             if safety_loss is not None:
                 total_loss = (
                     self.so8t_cfg.alpha_safety * safety_loss
-                    + self.so8t_cfg.pet_lambda * pet_loss
+                    + pet_loss  # 既存のPET損失
+                    + pet_divergence_loss  # 学習発散防止のための追加PET損失
                     + self.so8t_cfg.mu_norm * norm_loss
                     + self.so8t_cfg.nu_orth * orth_loss
                     + self.so8t_cfg.rho_iso * iso_loss
-                    + so8_orth_loss
+                    + orthogonal_error_loss  # 直交誤差を0に保つ
                     + so8_det_loss
+                    + alpha_gate_loss  # Alpha Gateターゲット損失
                 )
             else:
                 total_loss = (
-                    self.so8t_cfg.pet_lambda * pet_loss
+                    pet_loss  # 既存のPET損失
+                    + pet_divergence_loss  # 学習発散防止のための追加PET損失
                     + self.so8t_cfg.mu_norm * norm_loss
                     + self.so8t_cfg.nu_orth * orth_loss
                     + self.so8t_cfg.rho_iso * iso_loss
-                    + so8_orth_loss
+                    + orthogonal_error_loss  # 直交誤差を0に保つ
                     + so8_det_loss
+                    + alpha_gate_loss  # Alpha Gateターゲット損失
                 )
         
         return {
@@ -688,6 +883,10 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             "iso_loss": iso_loss,
             "so8_orth_loss": so8_orth_loss,
             "so8_det_loss": so8_det_loss,
+            "alpha_gate_value": alpha_gate_value.item() if alpha_gate_value is not None else None,
+            "alpha_gate_loss": alpha_gate_loss.item() if alpha_gate_value is not None else 0.0,
+            "orthogonal_error_loss": orthogonal_error_loss.item(),
+            "pet_divergence_loss": pet_divergence_loss.item(),
             "safety_logits": safety_logits,
             "verifier_scores": verifier_scores,
             "safety_loss_detail": detail,
