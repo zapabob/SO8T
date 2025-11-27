@@ -19,6 +19,28 @@
 | 13 | `eliasalbouzidi/NSFW-Safe-Dataset` | Apache-2.0 | 英語NSFW分類 | text / en | Safety (Classifier) |
 | 14 | `RyokoExtra/JapaneseGoblin` | Apache-2.0 | 日本語wiki (Touhou) | text / ja/en | Pretraining補完 |
 
+## クローン完了状況 (2025-11-27)
+
+### 成功したデータセット (13/14)
+- ✅ `FreedomIntelligence/alpaca-gpt4-japanese` (0.03 MB) - commit: 0b053baca4a6d0dc7694844de28e022f0f5fe217
+- ✅ `FreedomIntelligence/sharegpt-japanese` (0.03 MB) - commit: c0cba53f24f912c0d436de02ba7da1cc8e7a7213
+- ✅ `FreedomIntelligence/MMLU_Japanese` (9.25 MB) - commit: 0c5b5db2887739ea5327908d5655c61c8cb2d6d7
+- ✅ `shi3z/anthropic_hh_rlhf_japanese` (0.04 MB) - commit: a5b5bb93f547b5aa34cbf517844e4698e5006eba
+- ✅ `fujiki/japanese_hh-rlhf-49k` (0.03 MB) - commit: e54073cd64d675fbbef9b0a0743f3d6d63a3ca06
+- ✅ `nomic-ai/gpt4all-j-prompt-generations` (0.07 MB) - commit: ec687c3a67653405f42d18c0be6f13f66bd4a813
+- ✅ `teknium/GPTeacher-General-Instruct` (0.03 MB) - commit: b53b4e41539ee081817d5192586accc112491ffb
+- ✅ `ehartford/wizard_vicuna_70k_unfiltered` (0.06 MB) - commit: cfe3f5810110d4d763665c070b4a966fda43e5c5
+- ✅ `OpenAssistant/oasst2` (0.07 MB) - commit: 179dd21fc55192153d94adb0e0ce8f69e222bf75
+- ✅ `open-orca/OpenOrca` (1.04 MB) - commit: e9c87b4abb2609913751f9b26553fdb9c061796c
+- ✅ `Elizezen/japanese-nsfw-syosetsu-dataset` (0.04 MB) - commit: 481c3d062c78c87eabbd60b05041c524a4089aa0
+- ✅ `eliasalbouzidi/NSFW-Safe-Dataset` (0.04 MB) - commit: 1f7d4a866c43e923c8ae11e69e56c7a0da52cddb
+- ✅ `RyokoExtra/JapaneseGoblin` (0.10 MB) - commit: d40abcae65a8ee129f8fa3ee94f1c2ab0a68cd8c
+
+### 失敗したデータセット (1/14)
+- ❌ `az1/anthropic_hh_rlhf_japanese` - アクセス制限によりクローン不可 (403 Forbidden)
+
+**総ディスク使用量**: 約 11.24 MB (Git LFSファイルは除外)
+
 ## 参考メモ
 
 - **NSFW検知**: `Elizezen/...`, `eliasalbouzidi/...` は NSFW ラベル付きで安全ヘッダ学習に使う。
