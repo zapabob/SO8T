@@ -49,9 +49,9 @@ if (Test-Path $trainingLog) {
             Write-Host $line -ForegroundColor Yellow
         } elseif ($line -match "SUCCESS|OK|completed|Initialized") {
             Write-Host $line -ForegroundColor Green
-        } elseif ($line -match "Alpha Gate|ALPHA|orthogonal|SO\(8\)|intermediate|rotation gate|PET") {
+        } elseif ($line -match "Alpha Gate|ALPHA|orthogonal|intermediate|rotation gate|PET") {
             Write-Host $line -ForegroundColor Cyan
-        } elseif ($line -match "Step|STEP|ステップ") {
+        } elseif ($line -match "Step|STEP") {
             Write-Host $line -ForegroundColor Magenta
         } else {
             Write-Host $line
@@ -91,12 +91,15 @@ if (Test-Path $bayesOptResult) {
     Write-Host "[INFO] Optimization still running..." -ForegroundColor Yellow
     
     # Optuna studyの進捗を確認（study.dbがある場合）
-    $studyDb = "D:\webdataset\alpha_gate_bayes_opt\*.db"
-    $studyFiles = Get-ChildItem -Path $studyDb -ErrorAction SilentlyContinue
-    if ($studyFiles) {
-        Write-Host "[INFO] Found Optuna study database files" -ForegroundColor Yellow
-        $studyFiles | ForEach-Object {
-            Write-Host "  Study DB: $($_.Name) ($([math]::Round($_.Length / 1KB, 2)) KB)" -ForegroundColor Gray
+    $studyDbPath = "D:\webdataset\alpha_gate_bayes_opt"
+    if (Test-Path $studyDbPath) {
+        $studyFiles = Get-ChildItem -Path $studyDbPath -Filter "*.db" -ErrorAction SilentlyContinue
+        if ($studyFiles) {
+            Write-Host "[INFO] Found Optuna study database files" -ForegroundColor Yellow
+            $studyFiles | ForEach-Object {
+                $sizeKB = [math]::Round($_.Length / 1024, 2)
+                Write-Host "  Study DB: $($_.Name) ($sizeKB KB)" -ForegroundColor Gray
+            }
         }
     }
 }
@@ -108,20 +111,17 @@ Write-Host "[4] Running Processes" -ForegroundColor Yellow
 Write-Host "--------------------------------------------------------------------------------" -ForegroundColor Gray
 
 $pythonProcesses = Get-Process python -ErrorAction SilentlyContinue | Where-Object {
-    $_.CommandLine -like "*aegis*" -or 
-    $_.CommandLine -like "*train_so8t*" -or 
-    $_.CommandLine -like "*alpha_gate*" -or
-    $_.CommandLine -like "*bayesian*"
+    $_.Path -like "*python*"
 }
 
 if ($pythonProcesses) {
-    Write-Host "[OK] Found running Python processes:" -ForegroundColor Green
-    $pythonProcesses | ForEach-Object {
+    Write-Host "[OK] Found $($pythonProcesses.Count) Python process(es):" -ForegroundColor Green
+    $pythonProcesses | Select-Object -First 5 | ForEach-Object {
         $runtime = (Get-Date) - $_.StartTime
         Write-Host "  PID: $($_.Id) | Runtime: $($runtime.ToString('hh\:mm\:ss')) | CPU: $([math]::Round($_.CPU, 2))s" -ForegroundColor White
     }
 } else {
-    Write-Host "[INFO] No relevant Python processes found" -ForegroundColor Yellow
+    Write-Host "[INFO] No Python processes found" -ForegroundColor Yellow
 }
 
 Write-Host ""
@@ -153,33 +153,50 @@ Write-Host "[6] System Resources" -ForegroundColor Yellow
 Write-Host "--------------------------------------------------------------------------------" -ForegroundColor Gray
 
 # CPU使用率
-$cpu = Get-Counter '\Processor(_Total)\% Processor Time' -ErrorAction SilentlyContinue
-if ($cpu) {
-    $cpuUsage = [math]::Round($cpu.CounterSamples[0].CookedValue, 2)
-    Write-Host "CPU Usage: $cpuUsage%" -ForegroundColor White
+try {
+    $cpu = Get-Counter '\Processor(_Total)\% Processor Time' -ErrorAction SilentlyContinue
+    if ($cpu) {
+        $cpuUsage = [math]::Round($cpu.CounterSamples[0].CookedValue, 2)
+        Write-Host "CPU Usage: $cpuUsage%" -ForegroundColor White
+    }
+} catch {
+    Write-Host "CPU Usage: Unable to retrieve" -ForegroundColor Gray
 }
 
 # メモリ使用状況
-$mem = Get-CimInstance Win32_OperatingSystem
-$totalMem = [math]::Round($mem.TotalVisibleMemorySize / 1MB, 2)
-$freeMem = [math]::Round($mem.FreePhysicalMemory / 1MB, 2)
-$usedMem = $totalMem - $freeMem
-$memPercent = [math]::Round(($usedMem / $totalMem) * 100, 2)
-Write-Host "Memory: $usedMem GB / $totalMem GB ($memPercent%)" -ForegroundColor White
+try {
+    $mem = Get-CimInstance Win32_OperatingSystem
+    $totalMem = [math]::Round($mem.TotalVisibleMemorySize / 1MB, 2)
+    $freeMem = [math]::Round($mem.FreePhysicalMemory / 1MB, 2)
+    $usedMem = $totalMem - $freeMem
+    $memPercent = [math]::Round(($usedMem / $totalMem) * 100, 2)
+    Write-Host "Memory: $usedMem GB / $totalMem GB ($memPercent%)" -ForegroundColor White
+} catch {
+    Write-Host "Memory: Unable to retrieve" -ForegroundColor Gray
+}
 
 # GPU使用状況（nvidia-smiがある場合）
 $nvidiaSmi = Get-Command nvidia-smi -ErrorAction SilentlyContinue
 if ($nvidiaSmi) {
     Write-Host ""
     Write-Host "GPU Status:" -ForegroundColor Cyan
-    nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader | ForEach-Object {
-        $parts = $_ -split ','
-        Write-Host "  $($parts[0].Trim()): $($parts[1].Trim()) / $($parts[2].Trim()) | GPU: $($parts[3].Trim())" -ForegroundColor White
+    try {
+        $gpuInfo = nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader 2>$null
+        if ($gpuInfo) {
+            $gpuInfo | ForEach-Object {
+                $parts = $_ -split ','
+                if ($parts.Count -ge 4) {
+                    Write-Host "  $($parts[0].Trim()): $($parts[1].Trim()) / $($parts[2].Trim()) | GPU: $($parts[3].Trim())" -ForegroundColor White
+                }
+            }
+        }
+    } catch {
+        Write-Host "  Unable to retrieve GPU info" -ForegroundColor Gray
     }
 }
 
 Write-Host ""
 Write-Host "================================================================================" -ForegroundColor Cyan
-Write-Host "Progress check completed at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Cyan
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+Write-Host "Progress check completed at $timestamp" -ForegroundColor Cyan
 Write-Host "================================================================================" -ForegroundColor Cyan
-
