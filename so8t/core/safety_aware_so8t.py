@@ -734,9 +734,12 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             else:
                 current_alpha_value = None
 
+            layer_start = self.so8_layer_start or 0
+            layer_end = self.so8_layer_end if self.so8_layer_end is not None else len(processed_hidden_states) - 1
+
             if self.so8t_adapters is not None:
                 # SO8T残差アダプタを使用
-                for layer_idx in range(self.so8_layer_start, min(self.so8_layer_end, len(processed_hidden_states) - 1)):
+                for layer_idx in range(layer_start, min(layer_end, len(processed_hidden_states) - 1)):
                     hidden_idx = layer_idx + 1
                     if hidden_idx < len(processed_hidden_states):
                         adapter_key = str(layer_idx)
@@ -748,7 +751,7 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                             )
             elif self.so8_rotation_gate is not None:
                 # 従来のSO(8)回転ゲートを使用（後方互換性）
-                for layer_idx in range(self.so8_layer_start, min(self.so8_layer_end, len(processed_hidden_states) - 1)):
+                for layer_idx in range(layer_start, min(layer_end, len(processed_hidden_states) - 1)):
                     hidden_idx = layer_idx + 1
                     if hidden_idx < len(processed_hidden_states):
                         processed_hidden_states[hidden_idx] = self.so8_rotation_gate(
