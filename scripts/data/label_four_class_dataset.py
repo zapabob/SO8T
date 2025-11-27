@@ -7,6 +7,7 @@ ALLOW/ESCALATION/DENY/REFUSEの自動ラベル付けを実行
 
 Usage:
     python scripts/label_four_class_dataset.py --input data/cleaned --output data/labeled
+    python scripts/label_four_class_dataset.py --huggingface --input D:/webdataset/datasets --output D:/webdataset/labeled
 """
 
 import json
