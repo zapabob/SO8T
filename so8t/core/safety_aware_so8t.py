@@ -642,6 +642,12 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         if self.group_structure is not None:
             self._init_module_weights(self.group_structure)
     
+    def get_llm_backbone(self) -> AutoModelForCausalLM:
+        """
+        実際のLLMバックボーン（凍結されたベースモデル）を返す
+        """
+        return self.base_model
+    
     def _init_module_weights(self, module):
         """
         モジュールの重みを初期化（再帰的に、base_modelはスキップ）
