@@ -27,6 +27,7 @@ from transformers import (
 )
 
 from .strict_so8_rotation_gate import StrictSO8RotationGate
+from .so8t_adapter import SO8TAdapter
 
 # 既存実装のインポート
 import sys
@@ -122,6 +123,12 @@ class SafetyAwareSO8TConfig:
     # 直交誤差測定とログ出力
     so8_log_orthogonal_error: bool = True  # 直交誤差をログ出力するか
     so8_orthogonal_error_threshold: float = 1e-3  # 直交誤差の警告閾値
+
+    # SO8T Adapter設定（残差アダプタ型）
+    use_so8t_adapter: bool = True  # SO8TAdapterを使用（True: 残差型, False: 従来の直接回転）
+    so8t_adapter_strength_init: float = 0.0  # 残差強度λの初期値（0で元モデル完全一致）
+    so8t_adapter_so8_dim: int = 8  # SO(8)の次元（固定）
+    so8t_adapter_use_matrix_exp: bool = True  # 行列指数を使用するか（True: torch.matrix_exp, False: 近似）
     
     # PET正則化の強化（高周波成分カット）
     pet_apply_to_intermediate_layers: bool = True  # 中間レイヤーにもPET正則化を適用
