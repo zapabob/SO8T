@@ -428,7 +428,8 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             logger.info("[MODEL] Base model loaded successfully")
             
             # base_model読み込み後、レイヤー数を確定して中間レイヤー範囲を再計算
-            if self.num_layers is None:
+            # num_layers属性を初期化（まだ設定されていない場合）
+            if not hasattr(self, 'num_layers') or self.num_layers is None:
                 if hasattr(self.base_model, 'model') and hasattr(self.base_model.model, 'layers'):
                     self.num_layers = len(self.base_model.model.layers)
                 elif hasattr(self.base_model, 'config') and hasattr(self.base_model.config, 'num_hidden_layers'):
@@ -440,9 +441,9 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             
             # 中間レイヤー範囲を再計算
             if self.so8t_cfg.so8_apply_to_intermediate_layers:
-                if self.so8_layer_start is None:
+                if not hasattr(self, 'so8_layer_start') or self.so8_layer_start is None:
                     self.so8_layer_start = int(self.num_layers * self.so8t_cfg.so8_intermediate_layer_ratio[0])
-                if self.so8_layer_end is None:
+                if not hasattr(self, 'so8_layer_end') or self.so8_layer_end is None:
                     self.so8_layer_end = int(self.num_layers * self.so8t_cfg.so8_intermediate_layer_ratio[1])
                 
                 logger.info(f"[SO8T] SO(8) rotation gate will be applied to intermediate layers: {self.so8_layer_start}-{self.so8_layer_end} (total {self.num_layers} layers)")
@@ -470,6 +471,8 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         
         # ベースモデルのレイヤー数を取得（中間レイヤー選択用）
         # base_modelがPhi-3.5などの場合、model.layersの数を取得
+        # 注意: base_modelはまだ読み込まれていない可能性があるため、configから取得
+        # base_model読み込み後（428行目以降）で再設定される
         self.num_layers = getattr(base_config, 'num_hidden_layers', None)
         if self.num_layers is None:
             # フォールバック: base_modelから直接取得（まだbase_modelが読み込まれていない場合は後で設定）
