@@ -381,8 +381,13 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                 # または、device_map="cpu"でCPUに読み込んでからGPUに移動
                 # model_kwargs["device_map"] = "cpu"
         if force_cpu:
-            # 明示的にCPU読み込みを指定
-            model_kwargs["device_map"] = "cpu"
+            if quantization_config is None:
+                # 量子化なしの場合のみCPU読み込みを強制
+                model_kwargs["device_map"] = "cpu"
+            else:
+                logging.getLogger(__name__).info(
+                    "[MODEL] SO8T_FORCE_CPU=true ignored because quantization requires device_map='auto'"
+                )
         
         try:
             import logging
