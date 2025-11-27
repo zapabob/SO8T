@@ -7,17 +7,19 @@ ALLOW/ESCALATION/DENY/REFUSEの自動ラベル付けを実行
 
 Usage:
     python scripts/label_four_class_dataset.py --input data/cleaned --output data/labeled
-    python scripts/label_four_class_dataset.py --huggingface --input D:/webdataset/datasets --output D:/webdataset/labeled
+    python scripts/label_four_class_dataset.py --huggingface --input D:/webdataset/datasets --output D:/webdataset/labeled --test-size 0.2 --val-size 0.1
 """
 
 import json
 import logging
 import argparse
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from collections import Counter
 from tqdm import tqdm
 import random
+
+from sklearn.model_selection import train_test_split
 
 logging.basicConfig(
     level=logging.INFO,
@@ -126,7 +128,9 @@ class FourClassLabeler:
         self,
         input_dir: Path,
         output_dir: Path,
-        huggingface_mode: bool = False
+        huggingface_mode: bool = False,
+        test_size: float = 0.2,
+        val_size: float = 0.1
     ) -> Dict[str, int]:
         """データセットにラベル付け"""
         logger.info("="*80)
@@ -138,11 +142,11 @@ class FourClassLabeler:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         if huggingface_mode:
-            return self._label_huggingface_datasets(input_dir, output_dir)
+            return self._label_huggingface_datasets(input_dir, output_dir, test_size, val_size)
         else:
-            return self._label_jsonl_files(input_dir, output_dir)
+            return self._label_jsonl_files(input_dir, output_dir, test_size, val_size)
 
-    def _label_jsonl_files(self, input_dir: Path, output_dir: Path) -> Dict[str, int]:
+    def _label_jsonl_files(self, input_dir: Path, output_dir: Path, test_size: float, val_size: float) -> Dict[str, int]:
         """JSONLファイルからラベル付け"""
         # 入力ファイル検索
         input_files = list(input_dir.glob("*.jsonl"))
@@ -151,9 +155,9 @@ class FourClassLabeler:
             return {}
 
         logger.info(f"Found {len(input_files)} input files")
-        return self._process_files(input_files, output_dir, "JSONL")
+        return self._process_files(input_files, output_dir, "JSONL", test_size, val_size)
 
-    def _label_huggingface_datasets(self, input_dir: Path, output_dir: Path) -> Dict[str, int]:
+    def _label_huggingface_datasets(self, input_dir: Path, output_dir: Path, test_size: float, val_size: float) -> Dict[str, int]:
         """HuggingFaceデータセットからラベル付け"""
         if not input_dir.exists():
             logger.error(f"Input directory does not exist: {input_dir}")
@@ -181,9 +185,10 @@ class FourClassLabeler:
             return {}
 
         logger.info(f"Total files to process: {len(all_files)}")
-        return self._process_files(all_files, output_dir, "HuggingFace")
+        return self._process_files(all_files, output_dir, "HuggingFace", test_size, val_size)
 
-    def _process_files(self, input_files: List[Path], output_dir: Path, source_type: str) -> Dict[str, int]:
+    def _process_files(self, input_files: List[Path], output_dir: Path, source_type: str,
+                      test_size: float = 0.2, val_size: float = 0.1, random_state: int = 42) -> Dict[str, int]:
         """共通のファイル処理ロジック"""
         # 統計
         stats = {
@@ -231,13 +236,57 @@ class FourClassLabeler:
             logger.info("Balancing classes...")
             labeled_samples = self.balance_dataset(labeled_samples)
 
-        # 出力ファイルに保存
-        output_file = output_dir / f"labeled_four_class_dataset_{source_type.lower()}.jsonl"
-        logger.info(f"Saving labeled dataset to {output_file}...")
+        # データ分割 (train/val/test)
+        total_split_size = test_size + val_size
+        if total_split_size > 0 and total_split_size < 1.0:
+            logger.info(f"Splitting dataset (test_size={test_size}, val_size={val_size})...")
 
-        with open(output_file, 'w', encoding='utf-8') as f:
-            for sample in labeled_samples:
-                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            # stratify用のラベルを取得
+            labels = [s["label"] for s in labeled_samples]
+
+            if val_size > 0:
+                # train/val/testに3分割
+                train_samples, temp_samples = train_test_split(
+                    labeled_samples,
+                    test_size=test_size + val_size,
+                    stratify=labels,
+                    random_state=random_state
+                )
+
+                # valとtestに分割
+                val_ratio = val_size / (test_size + val_size)
+                val_samples, test_samples = train_test_split(
+                    temp_samples,
+                    test_size=1 - val_ratio,
+                    stratify=[s["label"] for s in temp_samples],
+                    random_state=random_state
+                )
+            else:
+                # train/testに2分割
+                train_samples, test_samples = train_test_split(
+                    labeled_samples,
+                    test_size=test_size,
+                    stratify=labels,
+                    random_state=random_state
+                )
+                val_samples = []
+
+            logger.info(f"Split results: train={len(train_samples)}, val={len(val_samples)}, test={len(test_samples)}")
+
+            # 分割データを保存
+            self._save_split_data(train_samples, output_dir, f"train_{source_type.lower()}.jsonl")
+            if val_samples:
+                self._save_split_data(val_samples, output_dir, f"val_{source_type.lower()}.jsonl")
+            if test_samples:
+                self._save_split_data(test_samples, output_dir, f"test_{source_type.lower()}.jsonl")
+        else:
+            # 分割なしで保存
+            output_file = output_dir / f"labeled_four_class_dataset_{source_type.lower()}.jsonl"
+            logger.info(f"Saving labeled dataset to {output_file}...")
+
+            with open(output_file, 'w', encoding='utf-8') as f:
+                for sample in labeled_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
 
         # 統計レポート
         logger.info("="*80)
@@ -248,9 +297,30 @@ class FourClassLabeler:
         logger.info(f"ESCALATION: {stats['ESCALATION']:,}")
         logger.info(f"DENY: {stats['DENY']:,}")
         logger.info(f"REFUSE: {stats['REFUSE']:,}")
+
+        if test_size > 0 or val_size > 0:
+            logger.info(f"Data split: test_size={test_size}, val_size={val_size}")
+            logger.info("Output files:")
+            logger.info(f"  - train_{source_type.lower()}.jsonl")
+            if val_size > 0:
+                logger.info(f"  - val_{source_type.lower()}.jsonl")
+            if test_size > 0:
+                logger.info(f"  - test_{source_type.lower()}.jsonl")
+        else:
+            logger.info(f"Output file: labeled_four_class_dataset_{source_type.lower()}.jsonl")
+
         logger.info("="*80)
 
         return stats
+
+    def _save_split_data(self, samples: List[Dict], output_dir: Path, filename: str):
+        """分割データを保存"""
+        output_file = output_dir / filename
+        logger.info(f"Saving {len(samples)} samples to {output_file}")
+
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
 
     def _process_sample(self, sample: Dict, stats: Dict[str, int], labeled_samples: List[Dict]):
         """個別のサンプルを処理"""
@@ -313,6 +383,18 @@ def main():
         action="store_true",
         help="Process HuggingFace datasets instead of JSONL files"
     )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
     
     args = parser.parse_args()
     
@@ -326,7 +408,9 @@ def main():
         stats = labeler.label_dataset(
             input_dir=Path(args.input),
             output_dir=Path(args.output),
-            huggingface_mode=args.huggingface
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
         )
         
         logger.info("[SUCCESS] Dataset labeling completed")
