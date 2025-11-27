@@ -667,14 +667,10 @@ def audit_huggingface_datasets(datasets: Tuple[HuggingFaceDatasetSpec, ...], out
     for result in results:
         exists_mark = "✅" if result["exists"] else "❌"
         issues_str = ", ".join(result["issues"]) if result["issues"] else "None"
-        debug_info = ""
-        if "debug_original_path" in result:
-            debug_info = f" (Orig: {result['debug_original_path']}, Resolved: {result.get('debug_resolved_path', 'N/A')}, OS exists: {result.get('debug_exists_os', 'N/A')}, IsDir: {result.get('debug_isdir', 'N/A')}, CWD: {result.get('debug_cwd', 'N/A')})"
-
         report_lines.append(
             f"| {result['repo_id']} | {exists_mark} | {result['sample_count']} | "
             f"{result['nsfw_count']} | {result['coding_count']} | {result['math_science_count']} | "
-            f"{result['business_mcp_count']} | {result['total_chars']} | {issues_str}{debug_info} |"
+            f"{result['business_mcp_count']} | {result['total_chars']} | {issues_str} |"
         )
 
     report_lines.extend([
