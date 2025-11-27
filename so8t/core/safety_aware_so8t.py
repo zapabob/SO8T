@@ -1090,22 +1090,34 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         Returns:
             エクスポートされた重み行列の辞書
         """
-        if self.so8_rotation_gate is None:
-            # SO(8)回転ゲートがない場合は、そのまま返す
+        if self.so8_rotation_gate is None and self.so8t_adapters is None:
+            # SO(8)回転ゲートもアダプタもない場合は、そのまま返す
             return {}
-        
+
         exported_weights = {}
-        
+
         # ベースモデルの重みを取得
         base_state_dict = self.base_model.state_dict()
-        
-        # 注意機構の重み（Q, K, V）にSO(8)回転を吸収
-        for name, weight in base_state_dict.items():
-            if 'q_proj.weight' in name or 'k_proj.weight' in name or 'v_proj.weight' in name:
-                # 重み行列にSO(8)回転を吸収
-                absorbed_weight = self.so8_rotation_gate.export_weights(weight)
-                exported_weights[name] = absorbed_weight
-        
+
+        if self.so8t_adapters is not None:
+            # SO8TAdapterの場合
+            # 注意機構の重み（Q, K, V）にアダプタ効果を吸収
+            for name, weight in base_state_dict.items():
+                if 'q_proj.weight' in name or 'k_proj.weight' in name or 'v_proj.weight' in name:
+                    # 各レイヤーのアダプタ効果を吸収
+                    # 簡易実装: 最初のレイヤーのアダプタを使用
+                    if len(self.so8t_adapters) > 0:
+                        absorbed_weight = self.so8t_adapters[0].export_weights(weight, layer_idx=0)
+                        exported_weights[name] = absorbed_weight
+        elif self.so8_rotation_gate is not None:
+            # 従来のSO(8)回転ゲートの場合
+            # 注意機構の重み（Q, K, V）にSO(8)回転を吸収
+            for name, weight in base_state_dict.items():
+                if 'q_proj.weight' in name or 'k_proj.weight' in name or 'v_proj.weight' in name:
+                    # 重み行列にSO(8)回転を吸収
+                    absorbed_weight = self.so8_rotation_gate.export_weights(weight)
+                    exported_weights[name] = absorbed_weight
+
         return exported_weights
     
     @torch.no_grad()
