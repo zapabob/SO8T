@@ -125,3 +125,4 @@ Supported model names: ..., gguf, ggml, ...
 
 再起動により中断されたパイプラインを正常に復旧しました。`llama.cpp`→`gguf`変換の修正により、lm-evaluation-harnessが正常に動作するようになりました。現在、修正後のスクリプトでベンチマークが実行中です。
 
+
