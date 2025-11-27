@@ -132,18 +132,56 @@ class FourClassLabeler:
         logger.info("="*80)
         logger.info("Four Class Labeling")
         logger.info("="*80)
-        
+
         input_dir = Path(input_dir)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
+        if huggingface_mode:
+            return self._label_huggingface_datasets(input_dir, output_dir)
+        else:
+            return self._label_jsonl_files(input_dir, output_dir)
+
+    def _label_jsonl_files(self, input_dir: Path, output_dir: Path) -> Dict[str, int]:
+        """JSONLファイルからラベル付け"""
         # 入力ファイル検索
         input_files = list(input_dir.glob("*.jsonl"))
         if not input_files:
             logger.error(f"No JSONL files found in {input_dir}")
             return {}
-        
+
         logger.info(f"Found {len(input_files)} input files")
+        return self._process_files(input_files, output_dir, "JSONL")
+
+    def _label_huggingface_datasets(self, input_dir: Path, output_dir: Path) -> Dict[str, int]:
+        """HuggingFaceデータセットからラベル付け"""
+        if not input_dir.exists():
+            logger.error(f"Input directory does not exist: {input_dir}")
+            return {}
+
+        # データセットディレクトリを検索
+        dataset_dirs = [d for d in input_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
+        if not dataset_dirs:
+            logger.error(f"No dataset directories found in {input_dir}")
+            return {}
+
+        logger.info(f"Found {len(dataset_dirs)} dataset directories")
+
+        # 各データセットからファイルを収集
+        all_files = []
+        for dataset_dir in dataset_dirs:
+            # JSON/JSONLファイルを検索
+            json_files = list(dataset_dir.glob("*.json")) + list(dataset_dir.glob("*.jsonl"))
+            if json_files:
+                all_files.extend(json_files)
+                logger.info(f"  {dataset_dir.name}: {len(json_files)} files")
+
+        if not all_files:
+            logger.error("No JSON/JSONL files found in any dataset directory")
+            return {}
+
+        logger.info(f"Total files to process: {len(all_files)}")
+        return self._process_files(all_files, output_dir, "HuggingFace")
         
         # 統計
         stats = {
