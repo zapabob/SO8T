@@ -33,6 +33,29 @@ so8t:
   # 直交性損失監視設定
   monitor_orthogonality: true      # 直交性損失を監視するか
   orthogonality_log_steps: 100     # 直交性損失をログ出力するステップ間隔
+  
+  # 中間レイヤーSO(8)回転ゲート設定（LLMベストプラクティス）
+  apply_to_intermediate_layers: true  # 中間レイヤーのみに適用
+  intermediate_layer_start: null       # None: 自動計算（25%）
+  intermediate_layer_end: null         # None: 自動計算（75%）
+  intermediate_layer_ratio: [0.25, 0.75]  # 中間レイヤーの範囲
+  
+  # 直交誤差測定とログ出力
+  log_orthogonal_error: true          # 直交誤差をログ出力するか
+  orthogonal_error_threshold: 1e-3    # 直交誤差の警告閾値
+  
+  # PET正則化の強化（高周波成分カット）
+  pet_apply_to_intermediate_layers: true  # 中間レイヤーにもPET正則化を適用
+  pet_high_freq_cutoff: 0.5               # 高周波成分カットオフ（0.0-1.0）
+  
+  # Alpha Gate設定（黄金比の逆数の二乗: Φ^(-2) = 0.432）
+  use_alpha_gate: true                    # Alpha Gateを使用するか
+  alpha_gate_target: 0.432                # ターゲット値: Φ^(-2) = 0.432
+  alpha_gate_start: -5.0                  # 初期値（Chaos状態）
+  alpha_gate_annealing_steps: 1000        # アニーリングステップ数（ベイズ最適化で調整）
+  alpha_gate_steepness: 12.0              # シグモイドアニーリングの急激さ（ベイズ最適化で調整）
+  alpha_gate_orthogonal_weight: 1.0       # 直交誤差の重み（ベイズ最適化で調整）
+  alpha_gate_pet_weight: 0.1              # PET正則化の重み（ベイズ最適化で調整）
 
 # 量子化設定（QLoRA）
 # 一時的に8bit量子化を無効化（クラッシュ回避のため）
