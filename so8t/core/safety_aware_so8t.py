@@ -700,27 +700,60 @@ class SafetyAwareSO8TModel(PreTrainedModel):
         # hidden_states[0]はembedding層、hidden_states[1:]は各Transformer層
         processed_hidden_states = list(hidden_states)
         
-        if self.so8_rotation_gate is not None and self.so8t_cfg.so8_apply_to_intermediate_layers:
-            # 中間レイヤーのみにSO(8)回転ゲートを適用
-            # hidden_states[0]はembedding層、hidden_states[1]からがTransformer層
-            # インデックス調整: so8_layer_start/endはTransformer層のインデックス（0始まり）
-            for layer_idx in range(self.so8_layer_start, min(self.so8_layer_end, len(processed_hidden_states) - 1)):
-                # hidden_states[0]はembedding、hidden_states[1]が最初のTransformer層
-                # したがって、Transformer層のインデックスlayer_idxに対応するhidden_statesインデックスはlayer_idx + 1
-                hidden_idx = layer_idx + 1
-                if hidden_idx < len(processed_hidden_states):
-                    processed_hidden_states[hidden_idx] = self.so8_rotation_gate(
-                        processed_hidden_states[hidden_idx], 
-                        apply_right=True
-                    )
+        # SO8T AdapterまたはSO(8)回転ゲートを中間レイヤーに適用
+        if self.so8t_cfg.so8_apply_to_intermediate_layers:
+            # Alpha Gate値を取得（アダプタ使用時のみ必要）
+            current_alpha = self.alpha_gate if self.alpha_gate is not None else None
+            if current_alpha is not None:
+                current_alpha_value = torch.sigmoid(current_alpha)
+            else:
+                current_alpha_value = None
+
+            if self.so8t_adapters is not None:
+                # SO8T残差アダプタを使用
+                for layer_idx in range(self.so8_layer_start, min(self.so8_layer_end, len(processed_hidden_states) - 1)):
+                    hidden_idx = layer_idx + 1
+                    if hidden_idx < len(processed_hidden_states) and layer_idx < len(self.so8t_adapters):
+                        # 残差アダプタ適用: h' = h + λ * (P^T R(α) P h - P^T P h)
+                        processed_hidden_states[hidden_idx] = self.so8t_adapters[layer_idx](
+                            processed_hidden_states[hidden_idx],
+                            alpha=current_alpha_value
+                        )
+            elif self.so8_rotation_gate is not None:
+                # 従来のSO(8)回転ゲートを使用（後方互換性）
+                for layer_idx in range(self.so8_layer_start, min(self.so8_layer_end, len(processed_hidden_states) - 1)):
+                    hidden_idx = layer_idx + 1
+                    if hidden_idx < len(processed_hidden_states):
+                        processed_hidden_states[hidden_idx] = self.so8_rotation_gate(
+                            processed_hidden_states[hidden_idx],
+                            apply_right=True
+                        )
             
             # 直交誤差の測定とログ出力
             if self.so8t_cfg.so8_log_orthogonal_error:
                 import logging
                 logger = logging.getLogger(__name__)
-                orth_error = self.so8_rotation_gate.get_orthogonality_loss()
-                det_error = self.so8_rotation_gate.get_determinant_loss()
-                
+
+                if self.so8t_adapters is not None:
+                    # SO8TAdapterの場合、最初のレイヤーのアダプタで測定
+                    adapter_for_measurement = self.so8t_adapters[0] if len(self.so8t_adapters) > 0 else None
+                    if adapter_for_measurement is not None:
+                        # Alpha Gate値を更新してから測定
+                        if current_alpha_value is not None:
+                            adapter_for_measurement.update_rotation_matrix(current_alpha_value)
+                        orth_error = adapter_for_measurement.get_orthogonality_error()
+                        det_error = adapter_for_measurement.get_determinant_error()
+                    else:
+                        orth_error = torch.tensor(0.0)
+                        det_error = torch.tensor(0.0)
+                elif self.so8_rotation_gate is not None:
+                    # 従来のSO(8)回転ゲートの場合
+                    orth_error = self.so8_rotation_gate.get_orthogonality_loss()
+                    det_error = self.so8_rotation_gate.get_determinant_loss()
+                else:
+                    orth_error = torch.tensor(0.0)
+                    det_error = torch.tensor(0.0)
+
                 if orth_error.item() > self.so8t_cfg.so8_orthogonal_error_threshold:
                     logger.warning(
                         f"[SO8T] High orthogonal error detected: {orth_error.item():.6f} "
