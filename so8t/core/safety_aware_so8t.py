@@ -502,15 +502,30 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             self.so8_layer_start = None
             self.so8_layer_end = None
         
-        # 厳密なSO(8)回転ゲート（右側からの作用）
-        if so8t_config.use_strict_so8_rotation:
-            self.so8_rotation_gate = StrictSO8RotationGate(
-                hidden_size=hidden_size,
-                use_cayley=so8t_config.so8_use_cayley,
-                orthogonal_regularization=so8t_config.so8_orthogonal_reg,
-            )
+        # SO8T Adapterまたは従来のSO(8)回転ゲート
+        if so8t_config.use_so8t_adapter:
+            # SO8T残差アダプタを使用（中間層のみに適用）
+            self.so8t_adapters = nn.ModuleList([
+                SO8TAdapter(
+                    hidden_size=hidden_size,
+                    so8_dim=so8t_config.so8t_adapter_so8_dim,
+                    init_strength=so8t_config.so8t_adapter_strength_init,
+                    use_matrix_exp=so8t_config.so8t_adapter_use_matrix_exp,
+                )
+                for _ in range(32)  # Phi-3.5-miniの最大レイヤー数（後でフィルタリング）
+            ])
+            self.so8_rotation_gate = None  # Adapter使用時はNone
         else:
-            self.so8_rotation_gate = None
+            # 従来の厳密なSO(8)回転ゲート
+            self.so8t_adapters = None
+            if so8t_config.use_strict_so8_rotation:
+                self.so8_rotation_gate = StrictSO8RotationGate(
+                    hidden_size=hidden_size,
+                    use_cayley=so8t_config.so8_use_cayley,
+                    orthogonal_regularization=so8t_config.so8_orthogonal_reg,
+                )
+            else:
+                self.so8_rotation_gate = None
         
         # 設定を保存（ログ出力用）
         self.so8t_cfg = so8t_config
