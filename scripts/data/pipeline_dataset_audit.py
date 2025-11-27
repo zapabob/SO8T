@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 import subprocess
 from collections import Counter
@@ -21,6 +22,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from tqdm import tqdm
+from huggingface_hub import HfApi, HfFileSystem
+import pandas as pd
 
 THINKING_TAGS = (
     "<think-task>",
@@ -296,24 +299,419 @@ def main() -> None:
         default=None,
         help="_docs markdown path; inferred when omitted",
     )
+    parser.add_argument(
+        "--huggingface-audit",
+        action="store_true",
+        help="Audit cloned HuggingFace datasets instead of SO8T pipeline datasets",
+    )
     args = parser.parse_args()
 
-    results = [evaluate_dataset(spec) for spec in DATASETS]
+    if args.huggingface_audit:
+        # Audit HuggingFace datasets
+        worktree_name = detect_worktree_name()
+        if args.report_path is None:
+            report_path = Path("_docs") / f"{datetime.now().strftime('%Y-%m-%d')}_{worktree_name}_huggingface_dataset_audit.md"
+        else:
+            report_path = args.report_path
 
-    args.cache_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    cache_path = args.cache_dir / f"dataset_quality_{timestamp}.json"
-    cache_path.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
-
-    worktree_name = detect_worktree_name()
-    if args.report_path is None:
-        report_path = Path("_docs") / f"{datetime.now().strftime('%Y-%m-%d')}_{worktree_name}_dataset_quality_audit.md"
+        # Get datasets dynamically
+        hf_datasets = get_huggingface_datasets()
+        results = audit_huggingface_datasets(hf_datasets, report_path)
+        print(f"[OK] HuggingFace dataset audit completed -> {report_path}")
     else:
-        report_path = args.report_path
+        # Audit SO8T pipeline datasets
+        results = [evaluate_dataset(spec) for spec in DATASETS]
 
-    build_markdown_report(results, report_path)
-    print(f"[OK] Cached metrics -> {cache_path}")
-    print(f"[OK] Markdown report -> {report_path}")
+        args.cache_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        cache_path = args.cache_dir / f"dataset_quality_{timestamp}.json"
+        cache_path.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+
+        worktree_name = detect_worktree_name()
+        if args.report_path is None:
+            report_path = Path("_docs") / f"{datetime.now().strftime('%Y-%m-%d')}_{worktree_name}_dataset_quality_audit.md"
+        else:
+            report_path = args.report_path
+
+        build_markdown_report(results, report_path)
+        print(f"[OK] Cached metrics -> {cache_path}")
+        print(f"[OK] Markdown report -> {report_path}")
+
+
+@dataclass
+class HuggingFaceDatasetSpec:
+    repo_id: str
+    local_path: Path
+    expected_license: str
+    primary_use: str  # coding, nsfw, reasoning, etc.
+    modality: str  # text, multimodal, etc.
+    language: str  # en, ja, multi
+
+
+def get_huggingface_datasets() -> Tuple[HuggingFaceDatasetSpec, ...]:
+    """Get HuggingFace dataset specs with paths relative to the script location."""
+    # Determine base path - try to find datasets relative to script location
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent.parent  # scripts/data -> scripts -> project_root
+
+    # Possible dataset locations
+    possible_bases = [
+        project_root / ".." / ".." / "webdataset" / "datasets",  # Relative to project
+        Path(r"D:\webdataset\datasets"),  # Absolute D: drive
+        Path("./datasets"),  # Relative to cwd
+        script_dir.parent.parent / "datasets",  # Direct relative
+    ]
+
+    datasets_base = None
+    for base in possible_bases:
+        if (base / "ehartford_wizard_vicuna_70k_unfiltered").exists():
+            datasets_base = base
+            break
+
+    if datasets_base is None:
+        # Fallback to the original absolute path
+        datasets_base = Path(r"D:\webdataset\datasets")
+
+    return (
+        HuggingFaceDatasetSpec(
+            repo_id="FreedomIntelligence/alpaca-gpt4-japanese",
+            local_path=datasets_base / "FreedomIntelligence_alpaca_gpt4_japanese",
+            expected_license="Apache-2.0",
+            primary_use="reasoning",
+            modality="text",
+            language="ja"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="FreedomIntelligence/sharegpt-japanese",
+            local_path=datasets_base / "FreedomIntelligence_sharegpt_japanese",
+            expected_license="Apache-2.0",
+            primary_use="reasoning",
+            modality="text",
+            language="ja"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="FreedomIntelligence/MMLU_Japanese",
+            local_path=datasets_base / "FreedomIntelligence_MMLU_Japanese",
+            expected_license="MIT",
+            primary_use="reasoning",
+            modality="text",
+            language="ja"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="shi3z/anthropic_hh_rlhf_japanese",
+            local_path=datasets_base / "shi3z_anthropic_hh_rlhf_japanese",
+            expected_license="MIT",
+            primary_use="safety",
+            modality="text",
+            language="ja"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="fujiki/japanese_hh-rlhf-49k",
+            local_path=datasets_base / "fujiki_japanese_hh-rlhf_49k",
+            expected_license="MIT",
+            primary_use="safety",
+            modality="text",
+            language="ja"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="nomic-ai/gpt4all-j-prompt-generations",
+            local_path=datasets_base / "nomic-ai_gpt4all-j-prompt-generations",
+            expected_license="Apache-2.0",
+            primary_use="coding",
+            modality="text",
+            language="en"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="teknium/GPTeacher-General-Instruct",
+            local_path=datasets_base / "teknium_GPTeacher-General-Instruct",
+            expected_license="MIT",
+            primary_use="coding",
+            modality="text",
+            language="en"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="ehartford/wizard_vicuna_70k_unfiltered",
+            local_path=datasets_base / "ehartford_wizard_vicuna_70k_unfiltered",
+            expected_license="Apache-2.0",
+            primary_use="reasoning",
+            modality="text",
+            language="en"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="OpenAssistant/oasst2",
+            local_path=datasets_base / "OpenAssistant_oasst2",
+            expected_license="Apache-2.0",
+            primary_use="coding",
+            modality="text",
+            language="multi"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="open-orca/OpenOrca",
+            local_path=datasets_base / "open-orca_OpenOrca",
+            expected_license="MIT",
+            primary_use="reasoning",
+            modality="text",
+            language="en"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="Elizezen/japanese-nsfw-syosetsu-dataset",
+            local_path=datasets_base / "Elizezen_japanese-nsfw-syosetsu-dataset",
+            expected_license="Apache-2.0",
+            primary_use="nsfw",
+            modality="text",
+            language="ja"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="eliasalbouzidi/NSFW-Safe-Dataset",
+            local_path=datasets_base / "eliasalbouzidi_NSFW-Safe-Dataset",
+            expected_license="Apache-2.0",
+            primary_use="nsfw",
+            modality="text",
+            language="en"
+        ),
+        HuggingFaceDatasetSpec(
+            repo_id="RyokoExtra/JapaneseGoblin",
+            local_path=datasets_base / "RyokoExtra_JapaneseGoblin",
+            expected_license="Apache-2.0",
+            primary_use="reasoning",
+            modality="text",
+            language="ja"
+        ),
+    )
+
+
+def evaluate_huggingface_dataset(spec: HuggingFaceDatasetSpec) -> Dict[str, Any]:
+    """Evaluate a cloned HuggingFace dataset for content analysis."""
+    # Resolve to absolute path and check existence
+    resolved_path = spec.local_path.resolve()
+
+    metrics = {
+        "repo_id": spec.repo_id,
+        "local_path": str(resolved_path),
+        "expected_license": spec.expected_license,
+        "primary_use": spec.primary_use,
+        "modality": spec.modality,
+        "language": spec.language,
+        "exists": resolved_path.exists(),
+        "sample_count": 0,
+        "nsfw_count": 0,
+        "coding_count": 0,
+        "math_science_count": 0,
+        "business_mcp_count": 0,
+        "total_chars": 0,
+        "issues": []
+    }
+
+    if not resolved_path.exists():
+        metrics["issues"].append("dataset_not_found")
+        return metrics
+
+    # Use resolved path for all operations
+    spec.local_path = resolved_path
+
+    # Define keyword patterns for content analysis
+    nsfw_keywords = [
+        "nsfw", "adult", "erotic", "porn", "sex", "nude", "naked", "hentai",
+        "18+", "xxx", "fetish", "bdsm", "incest", "rape", "violence", "gore"
+    ]
+
+    coding_keywords = [
+        "python", "javascript", "java", "cpp", "c++", "rust", "go", "typescript",
+        "html", "css", "sql", "git", "api", "function", "class", "import",
+        "def ", "const ", "let ", "var ", "function ", "class ", "interface",
+        "docker", "kubernetes", "aws", "azure", "gcp", "linux", "windows"
+    ]
+
+    math_science_keywords = [
+        "theorem", "proof", "equation", "formula", "algorithm", "hypothesis",
+        "quantum", "physics", "chemistry", "biology", "mathematics", "calculus",
+        "integral", "derivative", "matrix", "vector", "probability", "statistics"
+    ]
+
+    business_mcp_keywords = [
+        "business", "strategy", "management", "finance", "marketing", "sales",
+        "project", "planning", "budget", "report", "meeting", "presentation",
+        "email", "communication", "leadership", "team", "client", "customer",
+        "mcp", "tool", "api", "integration", "workflow", "automation"
+    ]
+
+    # Scan all text files in the dataset
+    text_files = []
+    if spec.local_path.joinpath("README.md").exists():
+        text_files.append(spec.local_path / "README.md")
+
+    # Find data files (JSON, JSONL, TXT, etc.)
+    # Prioritize README.md first, then data files
+    readme_path = spec.local_path / "README.md"
+    if readme_path.exists():
+        text_files.append(readme_path)
+
+    for ext in [".json", ".jsonl", ".txt", ".csv"]:
+        text_files.extend(spec.local_path.glob(f"**/*{ext}"))
+
+    for file_path in text_files:
+        try:
+            if file_path.suffix in [".json", ".jsonl"]:
+                # Try to read as JSONL first (line-delimited JSON)
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        for line_num, line in enumerate(f, 1):
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                item = json.loads(line)
+                                _analyze_sample_content(item, metrics, nsfw_keywords, coding_keywords,
+                                                      math_science_keywords, business_mcp_keywords)
+                            except json.JSONDecodeError:
+                                # If line-by-line parsing fails, try reading whole file as single JSON
+                                break
+                        else:
+                            # Successfully processed all lines as JSONL
+                            continue
+
+                    # If we broke out of the loop, try reading as single JSON object
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if isinstance(data, list):
+                            for item in data:
+                                _analyze_sample_content(item, metrics, nsfw_keywords, coding_keywords,
+                                                      math_science_keywords, business_mcp_keywords)
+                        elif isinstance(data, dict):
+                            _analyze_sample_content(data, metrics, nsfw_keywords, coding_keywords,
+                                                  math_science_keywords, business_mcp_keywords)
+
+                except json.JSONDecodeError as e:
+                    metrics["issues"].append(f"json_parse_error_{file_path.name}: {str(e)}")
+                except UnicodeDecodeError as e:
+                    metrics["issues"].append(f"unicode_error_{file_path.name}: {str(e)}")
+
+            elif file_path.suffix in [".txt", ".md"]:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    _analyze_text_content(content, metrics, nsfw_keywords, coding_keywords,
+                                        math_science_keywords, business_mcp_keywords)
+            else:
+                # Skip other file types for now
+                continue
+
+        except Exception as e:
+            metrics["issues"].append(f"error_reading_{file_path.name}: {str(e)}")
+
+    return metrics
+
+
+def _analyze_sample_content(sample: Dict[str, Any], metrics: Dict[str, Any],
+                          nsfw_keywords: List[str], coding_keywords: List[str],
+                          math_science_keywords: List[str], business_mcp_keywords: List[str]):
+    """Analyze a single data sample for content categories."""
+    if not isinstance(sample, dict):
+        return
+
+    metrics["sample_count"] += 1
+    text_content = ""
+
+    # Extract text from common fields
+    for field in ["text", "content", "instruction", "input", "output", "response", "prompt"]:
+        if field in sample and isinstance(sample[field], str):
+            text_content += " " + sample[field]
+
+    _analyze_text_content(text_content, metrics, nsfw_keywords, coding_keywords,
+                         math_science_keywords, business_mcp_keywords)
+
+
+def _analyze_text_content(text: str, metrics: Dict[str, Any],
+                        nsfw_keywords: List[str], coding_keywords: List[str],
+                        math_science_keywords: List[str], business_mcp_keywords: List[str]):
+    """Analyze text content for keyword matches."""
+    if not text:
+        return
+
+    text_lower = text.lower()
+    metrics["total_chars"] += len(text)
+
+    # Count keyword matches
+    metrics["nsfw_count"] += sum(1 for kw in nsfw_keywords if kw in text_lower)
+    metrics["coding_count"] += sum(1 for kw in coding_keywords if kw in text_lower)
+    metrics["math_science_count"] += sum(1 for kw in math_science_keywords if kw in text_lower)
+    metrics["business_mcp_count"] += sum(1 for kw in business_mcp_keywords if kw in text_lower)
+
+
+def audit_huggingface_datasets(datasets: Tuple[HuggingFaceDatasetSpec, ...], output_path: Path) -> List[Dict[str, Any]]:
+    """Audit all HuggingFace datasets and generate report."""
+    print("[INFO] Auditing HuggingFace datasets...")
+
+    results = []
+    for spec in tqdm(datasets, desc="Auditing datasets"):
+        result = evaluate_huggingface_dataset(spec)
+        results.append(result)
+
+    # Generate markdown report
+    report_lines = [
+        "# HuggingFace Dataset Audit Report",
+        "",
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "",
+        "## Summary",
+        "",
+        f"- Total datasets: {len(results)}",
+        f"- Existing datasets: {sum(1 for r in results if r['exists'])}",
+        f"- Missing datasets: {sum(1 for r in results if not r['exists'])}",
+        "",
+        "## Dataset Details",
+        "",
+        "| Dataset | Exists | Samples | NSFW | Coding | Math/Sci | Business | Total Chars | Issues |",
+        "|---------|--------|---------|-------|--------|----------|----------|-------------|--------|"
+    ]
+
+    for result in results:
+        exists_mark = "✅" if result["exists"] else "❌"
+        issues_str = ", ".join(result["issues"]) if result["issues"] else "None"
+        debug_info = ""
+        if "debug_original_path" in result:
+            debug_info = f" (Orig: {result['debug_original_path']}, Resolved: {result.get('debug_resolved_path', 'N/A')}, OS exists: {result.get('debug_exists_os', 'N/A')}, IsDir: {result.get('debug_isdir', 'N/A')}, CWD: {result.get('debug_cwd', 'N/A')})"
+
+        report_lines.append(
+            f"| {result['repo_id']} | {exists_mark} | {result['sample_count']} | "
+            f"{result['nsfw_count']} | {result['coding_count']} | {result['math_science_count']} | "
+            f"{result['business_mcp_count']} | {result['total_chars']} | {issues_str}{debug_info} |"
+        )
+
+    report_lines.extend([
+        "",
+        "## Content Analysis Summary",
+        "",
+        "### Primary Use Distribution",
+    ])
+
+    # Group by primary use
+    use_counts = {}
+    for result in results:
+        if result["exists"]:
+            use = result["primary_use"]
+            if use not in use_counts:
+                use_counts[use] = {"count": 0, "nsfw": 0, "coding": 0, "math_sci": 0, "business": 0}
+            use_counts[use]["count"] += 1
+            use_counts[use]["nsfw"] += result["nsfw_count"]
+            use_counts[use]["coding"] += result["coding_count"]
+            use_counts[use]["math_sci"] += result["math_science_count"]
+            use_counts[use]["business"] += result["business_mcp_count"]
+
+    for use, stats in use_counts.items():
+        report_lines.extend([
+            f"#### {use.title()} Datasets ({stats['count']} datasets)",
+            f"- NSFW keywords: {stats['nsfw']}",
+            f"- Coding keywords: {stats['coding']}",
+            f"- Math/Science keywords: {stats['math_sci']}",
+            f"- Business/MCP keywords: {stats['business']}",
+            ""
+        ])
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text("\n".join(report_lines), encoding="utf-8")
+
+    print(f"[OK] HuggingFace dataset audit report -> {output_path}")
+    return results
 
 
 if __name__ == "__main__":
