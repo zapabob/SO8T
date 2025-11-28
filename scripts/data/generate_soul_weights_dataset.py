@@ -19,13 +19,28 @@ from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 import yaml
 from tqdm import tqdm
+import argparse
 
-# SO8T関連インポート
+# SO8T関連インポート（利用可能な場合のみ）
 try:
     from so8t.core.so8t_layer import SO8Rotation, NonCommutativeGate
     from so8t.core.attention_so8 import SO8Attention
+    HAS_SO8T = True
+    print("[LIB] SO8T libraries available")
 except ImportError as e:
+    HAS_SO8T = False
     print(f"[WARNING] SO8T import failed: {e}")
+
+    # SO8Tが利用できない場合のモッククラス
+    class SO8Rotation(nn.Module):
+        def __init__(self, hidden_size):
+            super().__init__()
+            self.rotation_matrix = nn.Parameter(torch.randn(hidden_size, hidden_size) * 0.01)
+
+        def get_rotation_matrix(self):
+            return self.rotation_matrix
+
+    print("[LIB] Using mock SO8T classes")
 
 # プロジェクトルート
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -188,23 +203,31 @@ class SoulWeightsGenerator:
         for i in range(num_samples):
             # R_safe: 安全回転行列
             r_safe = SO8Rotation(hidden_size)
-            r_safe_matrix = r_safe.get_rotation_matrix()
+            if HAS_SO8T:
+                r_safe_matrix = r_safe.get_rotation_matrix()
+            else:
+                r_safe_matrix = r_safe.get_rotation_matrix()
 
             # R_cmd: コマンド回転行列
             r_cmd = SO8Rotation(hidden_size)
-            r_cmd_matrix = r_cmd.get_rotation_matrix()
+            if HAS_SO8T:
+                r_cmd_matrix = r_cmd.get_rotation_matrix()
+            else:
+                # モック実装
+                r_cmd_matrix = r_cmd.rotation_matrix
 
             # 非可換積: R_cmd @ R_safe (順序固定)
             r_total = torch.matmul(r_cmd_matrix, r_safe_matrix)
 
-            rotations['r_safe'].append(r_safe_matrix)
-            rotations['r_cmd'].append(r_cmd_matrix)
-            rotations['r_total'].append(r_total)
+            # メモリ節約のため、平均値のみ保存
+            rotations['r_safe'].append(r_safe_matrix.mean().unsqueeze(0))
+            rotations['r_cmd'].append(r_cmd_matrix.mean().unsqueeze(0))
+            rotations['r_total'].append(r_total.mean().unsqueeze(0))
 
         # テンソル化
-        rotations['r_safe'] = torch.stack(rotations['r_safe'])
-        rotations['r_cmd'] = torch.stack(rotations['r_cmd'])
-        rotations['r_total'] = torch.stack(rotations['r_total'])
+        rotations['r_safe'] = torch.cat(rotations['r_safe'])
+        rotations['r_cmd'] = torch.cat(rotations['r_cmd'])
+        rotations['r_total'] = torch.cat(rotations['r_total'])
 
         return rotations
 
