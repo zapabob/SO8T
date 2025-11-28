@@ -84,37 +84,3 @@ __all__ = [
     "build_thinking_prompt",
     "SO8TThinkingModel",
 ]
-
-# Alias for backward compatibility
-TrialityHeads = TrialityHead
-from .self_verification import SelfVerifier
-from .triple_reasoning_agent import TripleReasoningAgent
-from .burn_in import BurnInManager
-
-# Alias for backward compatibility
-SelfVerification = SelfVerifier
-BurnInProcessor = BurnInManager
-
-# Import from integrated models
-try:
-    from .safety_aware_so8t import SafetyAwareSO8T
-    from .so8t_thinking_model import SO8TThinkingModel
-    from .strict_so8_rotation_gate import StrictSO8RotationGate
-    from .thinking_tokens import ThinkingTokens
-except ImportError:
-    pass  # Optional components
-
-__all__ = [
-    'SO8SelfAttention',
-    'SO8MLP',
-    'PETRegularizer',
-    'SO8TLayer',
-    'SO8TTransformer',
-    'TrialityHeads',
-    'SelfVerification',
-    'TripleReasoningAgent',
-    'BurnInProcessor',
-]
-
-# Alias for backward compatibility
-SO8Attention = SO8SelfAttention

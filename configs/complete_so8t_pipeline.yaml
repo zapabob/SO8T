@@ -1,0 +1,156 @@
+# Complete SO8T Automation Pipeline Configuration
+# Borea-Phi3.5-instinct-jp → SO8T/thinking Multimodal Model
+
+# Model Configuration
+model:
+  base_model: "microsoft/phi-3.5-mini-instruct"
+  target_model: "Borea-Phi3.5-instinct-jp"
+  output_name: "borea_phi35_so8t_multimodal"
+
+# Data Collection Configuration
+data:
+  # Multimodal datasets (MIT/Apache licensed)
+  multimodal_datasets:
+    - "HuggingFaceFW/fineweb-2"          # Text - High-quality web text
+    - "laion/aesthetic-predictor-5"      # Images - Aesthetic prediction
+    - "mozilla-foundation/common_voice_11_0"  # Audio - Speech recognition
+    - "deepghs/nsfw_detect"              # NSFW - Detection dataset
+    - "FredZhang7/anime-kawaii-diffusion" # Additional NSFW content
+    - "openai/gsm8k"                     # Math reasoning
+    - "microsoft/orca-math-word-problems-200k"  # Math problems
+    - "HuggingFaceH4/ultrafeedback_binarized"   # RLHF preferences
+
+  # License filtering
+  license_filter:
+    - "mit"
+    - "apache-2.0"
+    - "bsd-3-clause"
+    - "bsd-2-clause"
+    - "cc-by-4.0"
+    - "cc-by-sa-4.0"
+
+  # Dataset limits
+  max_samples_per_dataset: 50000
+  test_split_ratio: 0.2
+  min_quality_score: 0.6
+
+# Training Configuration
+training:
+  # PPO Training
+  ppo_epochs: 3
+  max_steps: 1000
+  learning_rate: 1e-5
+  lr_scheduler_type: "cosine"
+  warmup_steps: 200
+
+  # Batch configuration
+  batch_size: 4
+  gradient_accumulation_steps: 16
+  max_length: 2048
+
+  # SO8T Features
+  so8vit_enabled: true
+  multimodal_enabled: true
+  dynamic_thinking_enabled: true
+  quadruple_inference_enabled: true
+  temperature_control_enabled: true
+
+  # Bayesian optimization
+  bayesian_optimization: true
+  optimization_iterations: 25
+
+# Benchmark Configuration
+benchmark:
+  # Evaluation datasets
+  datasets:
+    - "elyza_100"        # Japanese QA
+    - "mmlu"            # Multiple choice
+    - "gsm8k"           # Math reasoning
+    - "hellaswag"       # Commonsense
+    - "arc_challenge"   # Science QA
+    - "winogrande"      # Coreference
+
+  # Statistical analysis
+  significance_level: 0.05
+  performance_threshold: 0.75
+  enable_detailed_stats: true
+
+# Conversion Configuration
+conversion:
+  # GGUF conversion
+  gguf_formats:
+    - "f16"
+    - "q8_0"
+    - "q4_k_m"
+
+  # Baking configuration
+  bake_so8t_effects: true
+  verify_baking: true
+  remove_so8t_components: true
+
+# Upload Configuration
+upload:
+  # HuggingFace upload
+  upload_to_hf: true
+  private_repo: false
+  include_gguf: true
+
+  # Metadata
+  tags:
+    - "so8t"
+    - "thinking-model"
+    - "multimodal"
+    - "ppo-trained"
+    - "phi-3.5"
+    - "japanese"
+
+  license: "apache-2.0"
+
+# Automation Configuration
+automation:
+  # Power-on automation
+  auto_resume_on_power_on: true
+  create_scheduled_task: true
+
+  # Error handling
+  error_retry_count: 3
+  error_retry_delay: 300  # 5 minutes
+
+  # Monitoring
+  enable_error_monitoring: true
+  monitoring_interval: 300  # 5 minutes
+
+  # Cleanup
+  cleanup_on_success: true
+  remove_scheduled_task_on_completion: true
+
+# Resource Configuration
+resources:
+  # GPU requirements
+  required_gpu_memory_gb: 24
+  required_disk_space_gb: 200
+
+  # Parallel processing
+  max_parallel_downloads: 4
+  max_parallel_uploads: 2
+
+# Logging Configuration
+logging:
+  log_level: "INFO"
+  save_pipeline_logs: true
+  save_error_logs: true
+  save_performance_logs: true
+
+  # Log retention
+  max_log_files: 10
+  max_log_age_days: 30
+
+# Notification Configuration
+notifications:
+  enable_audio_notifications: true
+  audio_success_file: "C:\\Users\\downl\\Desktop\\SO8T\\.cursor\\marisa_owattaze.wav"
+
+  # Email notifications (optional)
+  enable_email_notifications: false
+  email_smtp_server: ""
+  email_recipients: []
