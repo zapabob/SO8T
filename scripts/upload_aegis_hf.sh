@@ -9,7 +9,7 @@ HF_TOKEN="$2"
 
 if [ -z "$REPO_NAME" ]; then
     echo "❌ Usage: $0 <repo-name> [hf-token]"
-    echo "Example: $0 your-username/AEGIS-Phi3.5-Enhanced"
+    echo "Example: $0 your-username/AEGIS-v2.0-Phi3.5-thinking"
     exit 1
 fi
 
@@ -43,18 +43,18 @@ huggingface-cli repo create "$REPO_NAME" --type model --yes || echo "Repository 
 # Upload files in batches to handle large files better
 echo "📤 Uploading configuration files..."
 huggingface-cli upload "$REPO_NAME" \
-    huggingface_upload/AEGIS-Phi3.5-Enhanced/README.md \
-    huggingface_upload/AEGIS-Phi3.5-Enhanced/config.json \
-    huggingface_upload/AEGIS-Phi3.5-Enhanced/generation_config.json \
-    huggingface_upload/AEGIS-Phi3.5-Enhanced/tokenizer.json \
-    huggingface_upload/AEGIS-Phi3.5-Enhanced/tokenizer.model \
-    huggingface_upload/AEGIS-Phi3.5-Enhanced/tokenizer_config.json \
-    huggingface_upload/AEGIS-Phi3.5-Enhanced/special_tokens_map.json \
-    huggingface_upload/AEGIS-Phi3.5-Enhanced/added_tokens.json
+    huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/README.md \
+    huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/config.json \
+    huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/generation_config.json \
+    huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/tokenizer.json \
+    huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/tokenizer.model \
+    huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/tokenizer_config.json \
+    huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/special_tokens_map.json \
+    huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/added_tokens.json
 
 echo "📊 Uploading benchmark visualizations..."
 huggingface-cli upload "$REPO_NAME" \
-    huggingface_upload/AEGIS-Phi3.5-Enhanced/benchmark_results/
+    huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/benchmark_results/
 
 echo "🤖 Uploading model weights (this may take a while)..."
 huggingface-cli upload "$REPO_NAME" \

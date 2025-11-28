@@ -23,7 +23,7 @@
 - 新規作成: `aegis-huggingface-upload` フォルダー
 
 #### 1.2 ファイル移動実行
-- **移動元**: `huggingface_upload/AEGIS-Phi3.5-Enhanced/`
+- **移動元**: `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/`
 - **移動先**: `D:\webdataset\models\aegis-huggingface-upload/`
 - **移動ファイル**: 全ファイル（README, config, tokenizer, benchmark_results/）
 - **結果**: 正常に移動完了
@@ -84,7 +84,7 @@ SOFTWARE.
 - `huggingface_upload/README_UPLOAD.md` - アップロードガイド
 
 #### 3.2 パス変更内容
-- **旧パス**: `huggingface_upload/AEGIS-Phi3.5-Enhanced/`
+- **旧パス**: `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/`
 - **新パス**: `D:\webdataset\models\aegis-huggingface-upload/`
 - **model_dir**: `models\aegis_adjusted` (相対パス維持)
 
@@ -179,7 +179,7 @@ pip install -r scripts/upload_requirements.txt
 export HF_TOKEN="your-huggingface-token"
 
 # 3. アップロード実行（推奨）
-python scripts/upload_aegis_to_huggingface.py your-username/AEGIS-Phi3.5-Enhanced
+python scripts/upload_aegis_to_huggingface.py your-username/AEGIS-v2.0-Phi3.5-thinking
 ```
 
 ### 📊 最終品質確認

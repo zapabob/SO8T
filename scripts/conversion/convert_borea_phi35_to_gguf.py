@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Borea-Phi3.5-instruct-jp GGUF変換スクリプト
-Borea-Phi3.5-instruct-jp GGUF Conversion Script
+Borea-Phi3.5-instinct-jp GGUF変換スクリプト
+Borea-Phi3.5-instinct-jp GGUF Conversion Script
 
 ABCテストのAモデルとして使用するGGUF版を生成
 """
@@ -20,17 +20,17 @@ logger = logging.getLogger(__name__)
 
 def convert_borea_phi35_to_gguf(model_path: str = "models/Borea-Phi-3.5-mini-Instruct-Jp",
                                output_dir: str = "D:/webdataset/gguf_models",
-                               quantization: str = "q8_0"):
+                               quantization: str = "f16"):
     """
-    Borea-Phi3.5-instruct-jpをGGUF形式に変換
+    Borea-Phi3.5-instinct-jpをGGUF形式に変換
 
     Args:
         model_path: 変換元のモデルパス
         output_dir: 出力ディレクトリ
-        quantization: 量子化タイプ (f16, q8_0, q4_k_m)
+        quantization: 量子化タイプ (f16/bf16, q8_0, q4_k_m)
     """
 
-    logger.info("[GGUF] Starting Borea-Phi3.5-instruct-jp to GGUF conversion...")
+    logger.info("[GGUF] Starting Borea-Phi3.5-instinct-jp to GGUF conversion...")
 
     # パス解決
     model_path = Path(model_path)
@@ -47,9 +47,12 @@ def convert_borea_phi35_to_gguf(model_path: str = "models/Borea-Phi-3.5-mini-Ins
         logger.error(f"[ERROR] Model path does not exist: {model_path}")
         # 別の場所も確認
         alt_paths = [
+            Path("models/Borea-Phi-3.5-mini-Instruct-Jp"),
             Path("D:/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp"),
             Path("models/Borea-Phi-3.5-mini-Instruct-Jp"),
-            Path("D:/webdataset/models/final/borea_phi35_so8t")
+            Path("D:/webdataset/models/final/borea_phi35_so8t"),
+            Path("models/Borea-Phi-3.5-mini-Instruct-Jp"),
+            Path("D:/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp")
         ]
 
         for alt_path in alt_paths:
@@ -58,11 +61,12 @@ def convert_borea_phi35_to_gguf(model_path: str = "models/Borea-Phi-3.5-mini-Ins
                 model_path = alt_path
                 break
         else:
-            logger.error("[ERROR] Could not find Borea-Phi3.5-instruct-jp model in any expected location")
+            logger.error("[ERROR] Could not find Borea-Phi3.5-instinct-jp model in any expected location")
             return None
 
     # llama.cppのGGUF変換スクリプトパス
-    llama_cpp_dir = Path("external/llama.cpp-master")
+    project_root = Path(__file__).parent.parent.parent
+    llama_cpp_dir = project_root / "external" / "llama.cpp-master"
     convert_script = llama_cpp_dir / "convert_hf_to_gguf.py"
 
     if not convert_script.exists():

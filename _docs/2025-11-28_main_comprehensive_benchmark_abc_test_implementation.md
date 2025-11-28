@@ -38,14 +38,14 @@
 # ABCテストモデル設定
 model_configs = {
     'modela': {
-        'path': 'D:/webdataset/gguf_models/borea_phi35_instruct_jp_q8_0.gguf',
+        'path': '"C:\Users\downl\Desktop\SO8T\models\Borea-Phi-3.5-mini-Instruct-Jp"',
         'type': 'hf',
-        'description': 'Borea-Phi3.5-instruct-jp (GGUF Q8_0) - ABC Test Model A'
+        'description': 'Borea-Phi3.5-instruct-jp  - ABC Test Model A'
     },
     'modelb': {
         'path': 'D:/webdataset/models/AEGIS_phi35_enhanced',
         'type': 'hf',
-        'description': 'Alpha Gate Sigmoid Bayesian Model'
+        'description': 'PPOandmultimodal'
     },
     'modelc': {
         'path': 'D:/webdataset/models/borea_phi35_so8t_rtx3060/final',
@@ -152,7 +152,7 @@ def verify_gguf_model(gguf_path: str) -> bool:
 **備考**: エンドツーエンドのABCテスト実行バッチ
 
 #### ワークフロー
-1. **GGUF変換**: Borea-Phi3.5-instruct-jp → GGUF (Model A)
+1. **GGUF変換**: Borea-Phi3.5-instruct-jp → HF(Model A)
 2. **包括的ベンチマーク**: Model A, B, Cの評価
 3. **統計分析**: HF提出用グラフとテーブル生成
 4. **結果保存**: 構造化された出力ディレクトリ
@@ -180,9 +180,9 @@ def verify_gguf_model(gguf_path: str) -> bool:
 
 **決定**: A/B/Cテストで3モデルの比較を実施
 **理由**:
-- **Model A**: Borea-Phi3.5-instruct-jp GGUF版（ユーザ指定）
-- **Model B**: Alpha Gate Sigmoid Bayesianモデル
-- **Model C**: RTX3060 SO8Tモデル
+- **Model A**: Borea-Phi3.5-instruct-jp HFモデル
+- **Model B**: PPO+/thinking、マルチモーダル
+- **Model C**: Q4量子化
 - **統計的有意差**: t-testと視覚化で差異を明確に
 
 ## 技術的詳細
@@ -270,7 +270,7 @@ normalized = (value - min_val) / (max_val - min_val) if max_val > min_val else 1
 - **統計的有意性**: エラーバーとp値で差異の信頼性を確保
 
 ### ABCテスト運用
-- **Model A**: Borea-Phi3.5-instruct-jp GGUF版（ユーザ指定）
+- **Model A**: Borea-Phi3.5-instruct-jp HH版（ユーザ指定）
 - **勝者決定**: 統計的有意差に基づく客観的評価
 - **HF提出**: 視覚化グラフと統計量で結果を共有可能
 
@@ -357,6 +357,6 @@ scripts/testing/run_complete_abc_test.bat
 
 ## まとめ
 
-Pythonライブラリベースの包括的LLMベンチマークシステムを実装し、ABCテストでBorea-Phi3.5-instruct-jpのGGUF版をModel Aとして統合した。HF提出可能なエラーバー付きグラフと要約統計量を生成する完全システムを構築し、統計的有意差検定による客観的モデル比較を実現した。
+Pythonライブラリベースの包括的LLMベンチマークシステムを実装し、ABCテストでBorea-Phi3.5-instruct-jpのHFモデルをAとして統合した。HF提出可能なエラーバー付きグラフと要約統計量を生成する完全システムを構築し、統計的有意差検定による客観的モデル比較を実現した。
 
 このシステムにより、SO8Tプロジェクトのモデル評価が業界標準に準拠し、HFコミュニティでの共有と比較が容易になった。🚀🔬✨

@@ -693,8 +693,8 @@ class ComprehensiveBenchmarkEvaluator:
 def run_abc_test_evaluation():
     """
     ABCテスト評価実行
-    A: Borea-Phi3.5-instruct-jp GGUF
-    B: AEGIS-Phi3.5-Enhanced
+    A: Borea-Phi3.5-instruct-jp GGUF BF16
+    B: AEGIS-v2.0-Phi3.5-thinking
     C: AEGIS-Phi3.5-Golden-Sigmoid
     """
     logger.info("[ABC TEST] Starting ABC test evaluation...")
@@ -702,14 +702,14 @@ def run_abc_test_evaluation():
     # モデル設定
     model_configs = {
         'modela': {
-            'path': 'D:/webdataset/gguf_models/borea_phi35_instruct_jp_q8_0.gguf',
+            'path': 'D:/webdataset/gguf_models/borea_phi35_instruct_jp_f16.gguf',
             'type': 'gguf',
-            'description': 'Borea-Phi3.5-instruct-jp (GGUF Q8_0)'
+            'description': 'Borea-Phi3.5-instruct-jp (GGUF BF16)'
         },
         'modelb': {
-            'path': 'D:/webdataset/models/borea_phi35_alpha_gate_sigmoid_bayesian/final',
+            'path': 'D:/webdataset/models/aegis_v2_phi35_thinking/final',
             'type': 'hf',
-            'description': 'AEGIS-Phi3.5-Enhanced Model'
+            'description': 'AEGIS-v2.0-Phi3.5-thinking Model'
         },
         'modelc': {
             'path': 'D:/webdataset/models/borea_phi35_so8t_rtx3060/final',

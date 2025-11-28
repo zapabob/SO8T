@@ -501,14 +501,14 @@ class PipelineEnvironmentSetup:
             abc_config = {
                 "models": {
                     "modela": {
-                        "path": "D:/webdataset/gguf_models/borea_phi35_instruct_jp_q8_0.gguf",
+                        "path": "D:/webdataset/gguf_models/borea_phi35_instruct_jp_f16.gguf",
                         "type": "gguf",
-                        "description": "Borea-Phi3.5-instruct-jp (GGUF Q8_0) - ABC Test Model A"
+                        "description": "Borea-Phi3.5-instruct-jp (GGUF BF16) - ABC Test Model A"
                     },
                     "modelb": {
-                        "path": "D:/webdataset/models/borea_phi35_alpha_gate_sigmoid_bayesian/final",
+                        "path": "D:/webdataset/models/aegis_v2_phi35_thinking/final",
                         "type": "hf",
-                        "description": "AEGIS-Phi3.5-Enhanced Model - ABC Test Model B"
+                        "description": "AEGIS-v2.0-Phi3.5-thinking Model - ABC Test Model B"
                     },
                     "modelc": {
                         "path": "D:/webdataset/models/borea_phi35_so8t_rtx3060/final",

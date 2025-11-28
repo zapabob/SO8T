@@ -18,7 +18,7 @@
 **備考**: AEGISモデルに必要なtokenizer関連ファイルをコピー
 
 - コピー元: Borea-Phi-3.5-mini-Instruct-Jp (ベースモデル)
-- コピー先: huggingface_upload/AEGIS-Phi3.5-Enhanced/
+- コピー先: huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/
 - コピーファイル:
   - tokenizer.json (1.9MB)
   - tokenizer.model (500KB)
@@ -117,11 +117,11 @@
   - ベンチマーク結果の再掲
 
 ## 作成・変更ファイル
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/tokenizer.json` (コピー)
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/tokenizer.model` (コピー)
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/tokenizer_config.json` (コピー)
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/special_tokens_map.json` (コピー)
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/added_tokens.json` (コピー)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/tokenizer.json` (コピー)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/tokenizer.model` (コピー)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/tokenizer_config.json` (コピー)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/special_tokens_map.json` (コピー)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/added_tokens.json` (コピー)
 - `scripts/upload_aegis_to_huggingface.py` (新規作成)
 - `scripts/upload_aegis_hf.sh` (新規作成)
 - `scripts/upload_aegis_hf.bat` (新規作成)
@@ -183,7 +183,7 @@
 ### 即時実行可能なアップロード手順
 1. **HuggingFaceアカウント準備**
    - アカウント作成とトークン取得
-   - リポジトリ名の決定（your-username/AEGIS-Phi3.5-Enhanced）
+   - リポジトリ名の決定（your-username/AEGIS-v2.0-Phi3.5-thinking）
 
 2. **環境準備**
    ```bash
@@ -194,10 +194,10 @@
 3. **アップロード実行**
    ```bash
    # Pythonスクリプト使用（推奨）
-   python scripts/upload_aegis_to_huggingface.py your-username/AEGIS-Phi3.5-Enhanced
+   python scripts/upload_aegis_to_huggingface.py your-username/AEGIS-v2.0-Phi3.5-thinking
 
    # またはCLI使用
-   bash scripts/upload_aegis_hf.sh your-username/AEGIS-Phi3.5-Enhanced
+   bash scripts/upload_aegis_hf.sh your-username/AEGIS-v2.0-Phi3.5-thinking
    ```
 
 4. **公開後の確認**

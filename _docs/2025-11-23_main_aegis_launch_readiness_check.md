@@ -27,7 +27,7 @@
 - **対応**: 既にコピー済み（2025-11-07）
 
 #### 1.2 ライセンス表記 (LICENSE) ✅
-- **作成ファイル**: `huggingface_upload/AEGIS-Phi3.5-Enhanced/LICENSE`
+- **作成ファイル**: `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/LICENSE`
 - **ライセンス**: Apache 2.0 License
 - **継承元**: Microsoft Phi-3.5のライセンスを継承
 - **サイズ**: 11.5KB
@@ -91,7 +91,7 @@
 
 #### 4.1 最終アップロード構成
 ```
-huggingface_upload/AEGIS-Phi3.5-Enhanced/
+huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/
 ├── 📄 README.md (13.4KB) - SO8T伏せ・四重推論強調
 ├── ⚖️ LICENSE (11.5KB) - Apache 2.0
 ├── ⚙️ config.json (3.6KB)
@@ -111,7 +111,7 @@ huggingface_upload/AEGIS-Phi3.5-Enhanced/
 - 安定したインターネット接続（2-5時間）
 
 ## 作成・変更ファイル
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/LICENSE` (新規作成)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/LICENSE` (新規作成)
 - `_docs/2025-11-23_main_aegis_launch_readiness_check.md` (新規作成)
 
 ## 設計判断
@@ -167,10 +167,10 @@ huggingface_upload/AEGIS-Phi3.5-Enhanced/
 export HF_TOKEN="your-huggingface-token"
 
 # 2. アップロード実行（推奨: Python API）
-python scripts/upload_aegis_to_huggingface.py your-username/AEGIS-Phi3.5-Enhanced
+python scripts/upload_aegis_to_huggingface.py your-username/AEGIS-v2.0-Phi3.5-thinking
 
 # 3. 完了確認
-open https://huggingface.co/your-username/AEGIS-Phi3.5-Enhanced
+open https://huggingface.co/your-username/AEGIS-v2.0-Phi3.5-thinking
 ```
 
 ### 🌟 期待される影響

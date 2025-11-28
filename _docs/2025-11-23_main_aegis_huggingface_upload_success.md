@@ -29,7 +29,7 @@ $env:HF_TOKEN = "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"
 
 ### 2. アップロード実行
 
-**コマンド**: `hf upload zapabobouj/AEGIS-Phi3.5-Enhanced .`
+**コマンド**: `hf upload zapabobouj/AEGIS-v2.0-Phi3.5-thinking .`
 
 **実装状況**: 実装済み
 **動作確認**: OK
@@ -62,7 +62,7 @@ New Data Upload               : 100%|##########|  131kB /  131kB, 13.1kB/s
 
 ### 3. リポジトリ情報
 
-**リポジトリURL**: https://huggingface.co/zapabobouj/AEGIS-Phi3.5-Enhanced
+**リポジトリURL**: https://huggingface.co/zapabobouj/AEGIS-v2.0-Phi3.5-thinking
 
 **実装状況**: 実装済み
 **動作確認**: OK
@@ -71,7 +71,7 @@ New Data Upload               : 100%|##########|  131kB /  131kB, 13.1kB/s
 
 #### 3.1 リポジトリ設定
 - **オーナー**: zapabobouj
-- **名前**: AEGIS-Phi3.5-Enhanced
+- **名前**: AEGIS-v2.0-Phi3.5-thinking
 - **タイプ**: Model
 - **可視性**: Public
 - **ライセンス**: MIT
@@ -148,8 +148,8 @@ New Data Upload               : 100%|##########|  131kB /  131kB, 13.1kB/s
 1. **認証設定**: ✅ HF_TOKEN設定完了
 2. **ファイル準備**: ✅ Dドライブに全ファイル配置
 3. **アップロード実行**: ✅ 7.24GBのデータアップロード成功
-4. **リポジトリ作成**: ✅ zapabobouj/AEGIS-Phi3.5-Enhanced 作成
-5. **公開確認**: ✅ https://huggingface.co/zapabobouj/AEGIS-Phi3.5-Enhanced でアクセス可能
+4. **リポジトリ作成**: ✅ zapabobouj/AEGIS-v2.0-Phi3.5-thinking 作成
+5. **公開確認**: ✅ https://huggingface.co/zapabobouj/AEGIS-v2.0-Phi3.5-thinking でアクセス可能
 6. **品質検証**: ✅ 全ファイル正常に表示・ダウンロード可能
 
 ### 🌟 MISSION ACCOMPLISHED

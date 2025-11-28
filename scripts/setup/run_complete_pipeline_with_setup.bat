@@ -19,7 +19,7 @@ echo [OK] Environment setup completed successfully!
 echo [PHASE 2] ABC Test Execution
 echo ============================
 echo [ABC TEST] Running comprehensive ABC test evaluation...
-echo [ABC TEST] Models: A(Borea-Phi3.5 GGUF), B(AEGIS-Phi3.5-Enhanced), C(AEGIS-Phi3.5-Golden-Sigmoid)
+echo [ABC TEST] Models: A(Borea-Phi3.5 GGUF), B(AEGIS-v2.0-Phi3.5-thinking), C(AEGIS-Phi3.5-Golden-Sigmoid)
 
 call scripts/testing/run_complete_abc_test.bat
 

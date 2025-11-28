@@ -23,7 +23,7 @@ class BenchmarkVisualizer:
         # Get the project root directory (parent of scripts)
         script_dir = Path(__file__).parent
         project_root = script_dir.parent
-        self.output_dir = project_root / "huggingface_upload" / "AEGIS-Phi3.5-Enhanced" / "benchmark_results"
+        self.output_dir = project_root / "huggingface_upload" / "AEGIS-v2.0-Phi3.5-thinking" / "benchmark_results"
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Benchmark data from comprehensive testing

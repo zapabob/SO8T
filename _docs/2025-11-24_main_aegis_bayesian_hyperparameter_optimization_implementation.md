@@ -22,7 +22,7 @@
 - **性能**: +17.1%正確性向上、+35.3%倫理適合性向上
 
 #### 1.2 HuggingFace公開状況
-- **モデル**: zapabobouj/AEGIS-Phi3.5-Enhanced
+- **モデル**: zapabobouj/AEGIS-v2.0-Phi3.5-thinking
 - **ダウンロード**: 7.24GB (3.5GB + 3.73GB)
 - **評価**: ベンチマーク結果を含む完全公開
 
