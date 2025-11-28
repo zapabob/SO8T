@@ -147,15 +147,25 @@ class FourClassLabeler:
             return self._label_jsonl_files(input_dir, output_dir, test_size, val_size)
 
     def _label_jsonl_files(self, input_dir: Path, output_dir: Path, test_size: float, val_size: float) -> Dict[str, int]:
-        """JSONLファイルからラベル付け"""
+        """JSONLファイルまたはJSONファイルからラベル付け"""
         # 入力ファイル検索
         input_files = list(input_dir.glob("*.jsonl"))
-        if not input_files:
-            logger.error(f"No JSONL files found in {input_dir}")
+        json_files = list(input_dir.glob("*.json"))
+
+        if not input_files and not json_files and input_dir.is_file():
+            # 単一ファイルが指定された場合
+            if input_dir.suffix == '.jsonl':
+                input_files = [input_dir]
+            elif input_dir.suffix == '.json':
+                json_files = [input_dir]
+
+        if not input_files and not json_files:
+            logger.error(f"No JSONL or JSON files found in {input_dir}")
             return {}
 
-        logger.info(f"Found {len(input_files)} input files")
-        return self._process_files(input_files, output_dir, "JSONL", test_size, val_size)
+        all_files = input_files + json_files
+        logger.info(f"Found {len(all_files)} input files ({len(input_files)} JSONL, {len(json_files)} JSON)")
+        return self._process_files(all_files, output_dir, "JSON", test_size, val_size)
 
     def _label_huggingface_datasets(self, input_dir: Path, output_dir: Path, test_size: float, val_size: float) -> Dict[str, int]:
         """HuggingFaceデータセットからラベル付け"""
@@ -215,7 +225,17 @@ class FourClassLabeler:
                         for sample in tqdm(data, desc=f"Labeling {input_file.name}"):
                             self._process_sample(sample, stats, labeled_samples)
                     elif isinstance(data, dict):
-                        self._process_sample(data, stats, labeled_samples)
+                        # SO8Tデータセット形式の場合
+                        if 'training_data' in data:
+                            for sample in tqdm(data['training_data'], desc=f"Labeling {input_file.name}"):
+                                self._process_sample(sample, stats, labeled_samples)
+                        elif 'data' in data:
+                            # 別のデータセット形式
+                            for sample in tqdm(data['data'], desc=f"Labeling {input_file.name}"):
+                                self._process_sample(sample, stats, labeled_samples)
+                        else:
+                            # 単一サンプルとして扱う
+                            self._process_sample(data, stats, labeled_samples)
 
                 elif input_file.suffix == ".jsonl":
                     # JSONLファイルの場合
@@ -238,27 +258,44 @@ class FourClassLabeler:
 
         # データ分割 (train/val/test)
         total_split_size = test_size + val_size
-        if total_split_size > 0 and total_split_size < 1.0:
+        min_samples_for_split = 10  # 分割に必要な最小サンプル数
+
+        if total_split_size > 0 and total_split_size < 1.0 and len(labeled_samples) >= min_samples_for_split:
             logger.info(f"Splitting dataset (test_size={test_size}, val_size={val_size})...")
 
             # stratify用のラベルを取得
             labels = [s["label"] for s in labeled_samples]
 
+            # 各クラスの最小サンプル数をチェック
+            from collections import Counter
+            label_counts = Counter(labels)
+            min_class_count = min(label_counts.values())
+
+            if min_class_count >= 2:
+                # stratifyを使用可能
+                use_stratify = True
+            else:
+                # stratifyを使用できない場合
+                use_stratify = False
+                logger.warning(f"Some classes have too few samples for stratification (min: {min_class_count}), disabling stratify")
+
             if val_size > 0:
                 # train/val/testに3分割
+                stratify_param = labels if use_stratify else None
                 train_samples, temp_samples = train_test_split(
                     labeled_samples,
                     test_size=test_size + val_size,
-                    stratify=labels,
+                    stratify=stratify_param,
                     random_state=random_state
                 )
 
                 # valとtestに分割
+                temp_labels = [s["label"] for s in temp_samples] if use_stratify else None
                 val_ratio = val_size / (test_size + val_size)
                 val_samples, test_samples = train_test_split(
                     temp_samples,
                     test_size=1 - val_ratio,
-                    stratify=[s["label"] for s in temp_samples],
+                    stratify=temp_labels,
                     random_state=random_state
                 )
             else:
@@ -266,7 +303,7 @@ class FourClassLabeler:
                 train_samples, test_samples = train_test_split(
                     labeled_samples,
                     test_size=test_size,
-                    stratify=labels,
+                    stratify=labels if use_stratify else None,
                     random_state=random_state
                 )
                 val_samples = []
@@ -280,6 +317,8 @@ class FourClassLabeler:
             if test_samples:
                 self._save_split_data(test_samples, output_dir, f"test_{source_type.lower()}.jsonl")
         else:
+            if len(labeled_samples) < min_samples_for_split:
+                logger.info(f"Dataset too small for splitting ({len(labeled_samples)} < {min_samples_for_split}), skipping split")
             # 分割なしで保存
             output_file = output_dir / f"labeled_four_class_dataset_{source_type.lower()}.jsonl"
             logger.info(f"Saving labeled dataset to {output_file}...")
@@ -321,6 +360,33 @@ class FourClassLabeler:
         with open(output_file, 'w', encoding='utf-8') as f:
             for sample in samples:
                 f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+
+    def _load_json_file(self, file_path: Path) -> List[Dict]:
+        """JSONファイルを読み込み、サンプルリストに変換"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            # JSONファイルの構造に応じてデータを抽出
+            if isinstance(data, list):
+                # 直接リスト形式
+                samples = data
+            elif isinstance(data, dict) and 'training_data' in data:
+                # SO8Tデータセット形式
+                samples = data['training_data']
+            elif isinstance(data, dict) and 'data' in data:
+                # 別のデータセット形式
+                samples = data['data']
+            else:
+                # その他の構造は単一サンプルとして扱う
+                samples = [data]
+
+            logger.info(f"Loaded {len(samples)} samples from JSON file: {file_path}")
+            return samples
+
+        except Exception as e:
+            logger.error(f"Error loading JSON file {file_path}: {e}")
+            return []
 
     def _process_sample(self, sample: Dict, stats: Dict[str, int], labeled_samples: List[Dict]):
         """個別のサンプルを処理"""

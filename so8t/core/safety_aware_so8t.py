@@ -401,26 +401,25 @@ class SafetyAwareSO8TModel(PreTrainedModel):
             pass
         try:
             logger.info(f"[MODEL] Starting model loading from: {base_model_name_or_path}")
-            self.base_model: AutoModelForCausalLM = AutoModelForCausalLM.from_pretrained(base_model_name_or_path, **model_kwargs)
+            self.base_model: AutoModelForCausalLM = AutoModelForCausalLM.from_pretrained(
+                base_model_name_or_path,
+                **model_kwargs
+            )
             # バックボーン参照を保持（QLoRAなど外部から直接アクセス可能にする）
-            return self.base_model
-        except Exception as e:
-            logger.error(f"[ERROR] Failed to load base model: {e}")
-            raise RuntimeError(f"Failed to load base model: {e}") from e
-    def move_model_to_gpu():
-            if torch.cuda.is_available():
-                self.base_model = self.base_model.to("cuda")
-                logger.info("[MODEL] Model successfully moved to GPU")
-                return self.base_model
-            else:
-                logger.warning("[MODEL] CUDA is not available, model will remain on CPU")
-                return self.base_model
-        except RuntimeError as e:
-            logger.error(f"[ERROR] Failed to move model to GPU: {e}")
-            raise RuntimeError(f"Failed to move model to GPU: {e}") from e
-        else:
-            return move_model_to_gpu()
-        def 
+            self._llm_backbone = self.base_model
+
+            # 量子化なしの場合、CPUに読み込んだ後GPUに移動
+            # ただし、GPUへの移動でクラッシュする可能性があるため、環境変数で制御可能にする
+            if quantization_config is None and torch.cuda.is_available() and model_kwargs.get("device_map") is None and not force_cpu:
+                logger.info("[MODEL] Attempting to move model to GPU...")
+                try:
+                    # CUDAメモリをクリア
+                    torch.cuda.empty_cache()
+                    # モデルサイズを確認
+                    if hasattr(self.base_model, 'get_memory_footprint'):
+                        memory_footprint = self.base_model.get_memory_footprint()
+                        logger.info(f"[MODEL] Model memory footprint: {memory_footprint / 1024**3:.2f} GB")
+
                     # GPUへの移動を段階的に行う（エラーハンドリング付き）
                     logger.info("[MODEL] Moving model to GPU (this may take a while)...")
                     # まず、モデルを評価モードにしてメモリ使用量を削減
@@ -428,7 +427,7 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                     # GPUへの移動
                     self.base_model = self.base_model.to("cuda")
                     logger.info("[MODEL] Model successfully moved to GPU")
-                    
+
                     # メモリ使用状況を確認
                     allocated = torch.cuda.memory_allocated(0) / 1024**3
                     reserved = torch.cuda.memory_reserved(0) / 1024**3
@@ -443,8 +442,9 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                     self.base_model = self.base_model.to("cpu")
             elif force_cpu:
                 logger.info("[MODEL] SO8T_FORCE_CPU=true, keeping model on CPU (skipping device transfer)")
+
             logger.info("[MODEL] Base model loaded successfully")
-            
+
             # base_model読み込み後、レイヤー数を確定して中間レイヤー範囲を再計算
             # num_layers属性を初期化（まだ設定されていない場合）
             if not hasattr(self, 'num_layers') or self.num_layers is None:
@@ -456,33 +456,24 @@ class SafetyAwareSO8TModel(PreTrainedModel):
                     # デフォルト値（Phi-3.5-miniは32層）
                     self.num_layers = 32
                     logger.warning(f"[SO8T] Could not determine num_layers, using default: {self.num_layers}")
-            
+
             # 中間レイヤー範囲を再計算
             if self.so8t_cfg.so8_apply_to_intermediate_layers:
                 if not hasattr(self, 'so8_layer_start') or self.so8_layer_start is None:
                     self.so8_layer_start = int(self.num_layers * self.so8t_cfg.so8_intermediate_layer_ratio[0])
                 if not hasattr(self, 'so8_layer_end') or self.so8_layer_end is None:
                     self.so8_layer_end = int(self.num_layers * self.so8t_cfg.so8_intermediate_layer_ratio[1])
-                
+
                 logger.info(f"[SO8T] SO(8) rotation gate will be applied to intermediate layers: {self.so8_layer_start}-{self.so8_layer_end} (total {self.num_layers} layers)")
-            def load_base_model():
-                self.base_model = AutoModelForCausalLM.from_pretrained(
-                    self.base_model_name_or_path,
-                    torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-                )
-                self.base_model.eval()
-                self.base_model.to("cuda")
-                return self.base_model
-            try:
-                return load_base_model()
-            except RuntimeError as e:
-                # CUDAメモリをクリア
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                    import traceback
-                    error_msg = f"RuntimeError while loading base model: {type(e).__name__}: {e}\n{traceback.format_exc()}"
-                    logger.error(f"[ERROR] {error_msg}")
-                    raise RuntimeError(error_msg) from e
+
+        except RuntimeError as e:
+            # CUDAメモリをクリア
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            import traceback
+            error_msg = f"RuntimeError while loading base model: {type(e).__name__}: {e}\n{traceback.format_exc()}"
+            logger.error(f"[ERROR] {error_msg}")
+            raise RuntimeError(error_msg) from e
         
         hidden_size = base_config.hidden_size
         

@@ -34,7 +34,8 @@ from transformers import (
     TrainingArguments,
     Trainer,
     DataCollatorForLanguageModeling,
-    BitsAndBytesConfig
+    BitsAndBytesConfig,
+    TrainerCallback
 )
 from peft import (
     LoraConfig,
@@ -44,6 +45,8 @@ from peft import (
 )
 import yaml
 from tqdm import tqdm
+import time
+from pathlib import Path
 
 # プロジェクトルートをパスに追加
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -111,6 +114,145 @@ logger = logging.getLogger(__name__)
 import sys
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
+
+
+def check_training_status(output_dir: Path) -> bool:
+    """トレーニングが完了しているかどうかをチェック"""
+    final_model_dir = output_dir / "final_model"
+    return final_model_dir.exists()
+
+
+def find_latest_checkpoint(output_dir: Path) -> Optional[Path]:
+    """最新のチェックポイントを見つける"""
+    checkpoint_dirs = list(output_dir.glob("checkpoint-*"))
+    if not checkpoint_dirs:
+        return None
+
+    # チェックポイントをタイムスタンプでソート（新しい順）
+    def get_checkpoint_timestamp(cp_path):
+        name = cp_path.name
+        if name.startswith("checkpoint_") and len(name) > 11:
+            # checkpoint_YYYYMMDD_HHMMSS 形式の場合
+            timestamp_str = name[11:]  # YYYYMMDD_HHMMSS部分
+            try:
+                return int(timestamp_str)
+            except ValueError:
+                pass
+        # checkpoint-N 形式の場合
+        try:
+            return int(name.split("-")[-1])
+        except (ValueError, IndexError):
+            return 0
+
+    checkpoint_dirs.sort(key=get_checkpoint_timestamp, reverse=True)  # 新しい順
+    return checkpoint_dirs[0] if checkpoint_dirs else None
+
+
+def check_and_resume_training_sessions(output_base: Path, dataset_path: Path, config_path: Path) -> bool:
+    """未完了のトレーニングセッションをチェックして再開"""
+    resumed = False
+
+    # すべてのトレーニングディレクトリをチェック
+    training_dirs = list(output_base.glob("so8t_*"))
+    training_dirs.sort(key=lambda x: x.stat().st_mtime, reverse=True)  # 新しい順
+
+    for training_dir in training_dirs:
+        status_file = training_dir / "training_status.json"
+
+        # トレーニングが完了していないかチェック
+        if not check_training_status(training_dir):
+            logger.info(f"[AUTO-RESUME] Found incomplete training session: {training_dir}")
+
+            # 最新のチェックポイントを取得
+            latest_checkpoint = find_latest_checkpoint(training_dir)
+            if latest_checkpoint:
+                logger.info(f"[AUTO-RESUME] Resuming from checkpoint: {latest_checkpoint}")
+
+                # トレーニング再開
+                try:
+                    import subprocess
+                    cmd = [
+                        "python", "-3", "scripts/training/train_so8t_quadruple_ppo.py",
+                        "--dataset", str(dataset_path),
+                        "--config", str(config_path),
+                        "--output-dir", str(training_dir),
+                        "--power-on-resume"
+                    ]
+
+                    result = subprocess.run(cmd, cwd=str(PROJECT_ROOT))
+                    if result.returncode == 0:
+                        logger.info(f"[AUTO-RESUME] Successfully completed training session: {training_dir}")
+                        resumed = True
+                    else:
+                        logger.warning(f"[AUTO-RESUME] Training session failed: {training_dir}")
+
+                except Exception as e:
+                    logger.error(f"[AUTO-RESUME] Error resuming training session {training_dir}: {e}")
+            else:
+                logger.warning(f"[AUTO-RESUME] No checkpoint found for session: {training_dir}")
+
+    return resumed
+
+
+class RollingCheckpointCallback(TrainerCallback):
+    """3分間隔でチェックポイントを保存し、5個をローリングストックで保持するコールバック"""
+
+    def __init__(self, output_dir: Path, max_checkpoints: int = 5, save_interval_minutes: int = 3):
+        self.output_dir = output_dir
+        self.max_checkpoints = max_checkpoints
+        self.save_interval_seconds = save_interval_minutes * 60
+        self.last_save_time = time.time()
+        self.checkpoints = []
+
+    def on_step_end(self, args, state, control, **kwargs):
+        """各ステップ終了時に3分経過していたらチェックポイント保存"""
+        current_time = time.time()
+        if current_time - self.last_save_time >= self.save_interval_seconds:
+            self._save_checkpoint(args, state, control, **kwargs)
+            self.last_save_time = current_time
+
+    def _save_checkpoint(self, args, state, control, **kwargs):
+        """チェックポイント保存"""
+        try:
+            # チェックポイント名を生成（タイムスタンプ付き）
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            checkpoint_name = f"checkpoint_{timestamp}"
+
+            # チェックポイント保存
+            checkpoint_path = self.output_dir / checkpoint_name
+            kwargs['trainer'].save_model(str(checkpoint_path))
+
+            # チェックポイントリストに追加
+            self.checkpoints.append(checkpoint_path)
+            logger.info(f"[CHECKPOINT] Saved checkpoint: {checkpoint_name}")
+
+            # 古いチェックポイントを削除（5個以上になったら）
+            self._cleanup_old_checkpoints()
+
+        except Exception as e:
+            logger.warning(f"[CHECKPOINT] Failed to save checkpoint: {e}")
+
+    def _cleanup_old_checkpoints(self):
+        """古いチェックポイントを削除して5個以内に保つ"""
+        if len(self.checkpoints) > self.max_checkpoints:
+            # 古い順にソート
+            self.checkpoints.sort(key=lambda x: x.stat().st_mtime)
+
+            # 削除する数を計算
+            to_remove = len(self.checkpoints) - self.max_checkpoints
+
+            for i in range(to_remove):
+                old_checkpoint = self.checkpoints[i]
+                try:
+                    import shutil
+                    if old_checkpoint.exists():
+                        shutil.rmtree(old_checkpoint)
+                        logger.info(f"[CHECKPOINT] Removed old checkpoint: {old_checkpoint.name}")
+                except Exception as e:
+                    logger.warning(f"[CHECKPOINT] Failed to remove old checkpoint {old_checkpoint}: {e}")
+
+            # リストを更新
+            self.checkpoints = self.checkpoints[to_remove:]
 
 # SO8TThinkingModelのインポート
 try:
@@ -419,6 +561,16 @@ def main():
         "--auto-resume",
         action="store_true",
         help="Auto-resume from checkpoint if available"
+    )
+    parser.add_argument(
+        "--power-on-resume",
+        action="store_true",
+        help="Auto-resume from checkpoint on power-on (used by auto-startup script)"
+    )
+    parser.add_argument(
+        "--force-restart",
+        action="store_true",
+        help="Force restart training even if final model exists"
     )
     
     args = parser.parse_args()
@@ -762,14 +914,38 @@ def main():
     
     # チェックポイントからの再開
     resume_from_checkpoint = None
-    if args.auto_resume:
-        # 最新のチェックポイントを探す
+
+    # 完了チェック（final_modelディレクトリが存在するか確認）
+    final_model_dir = output_dir / "final_model"
+    if final_model_dir.exists():
+        logger.info(f"[COMPLETE] Training already completed. Final model found at: {final_model_dir}")
+        logger.info("[COMPLETE] Skipping training. Use --force-restart to restart anyway.")
+        if not getattr(args, 'force_restart', False):
+            return
+
+    if args.auto_resume or getattr(args, 'power_on_resume', False):
+        # 最新のチェックポイントを探す（タイムスタンプベースと番号ベースの両方に対応）
         checkpoint_dirs = list(output_dir.glob("checkpoint-*"))
         if checkpoint_dirs:
-            # チェックポイント番号でソート
-            checkpoint_dirs.sort(key=lambda x: int(x.name.split("-")[-1]))
-            resume_from_checkpoint = str(checkpoint_dirs[-1])
-            logger.info(f"[RESUME] Resuming from checkpoint: {resume_from_checkpoint}")
+            # チェックポイントをタイムスタンプでソート（新しい順）
+            def get_checkpoint_timestamp(cp_path):
+                name = cp_path.name
+                if name.startswith("checkpoint_") and len(name) > 11:
+                    # checkpoint_YYYYMMDD_HHMMSS 形式の場合
+                    timestamp_str = name[11:]  # YYYYMMDD_HHMMSS部分
+                    try:
+                        return int(timestamp_str)
+                    except ValueError:
+                        pass
+                # checkpoint-N 形式の場合
+                try:
+                    return int(name.split("-")[-1])
+                except (ValueError, IndexError):
+                    return 0
+
+            checkpoint_dirs.sort(key=get_checkpoint_timestamp, reverse=True)  # 新しい順
+            resume_from_checkpoint = str(checkpoint_dirs[0])  # 最新のもの
+            logger.info(f"[RESUME] Resuming from latest checkpoint: {resume_from_checkpoint}")
         else:
             logger.info("[RESUME] No checkpoint found, starting from scratch")
     
@@ -784,7 +960,8 @@ def main():
         weight_decay=training_config.get("weight_decay", 0.01),
         warmup_steps=training_config.get("warmup_steps", 100),
         logging_steps=training_config.get("logging_steps", 10),
-        save_steps=training_config.get("save_steps", 500),
+        save_steps=999999,  # 時間ベースのコールバックで管理するため、非常に大きな値に設定
+        save_total_limit=5,  # 5個のチェックポイントを保持
         fp16=training_config.get("fp16", True),
         gradient_checkpointing=training_config.get("gradient_checkpointing", True),
         optim=training_config.get("optim", "paged_adamw_8bit"),
@@ -810,12 +987,20 @@ def main():
             logger.warning("[WARNING] PETRegularization not available, skipping PET regularization")
             pet_regularization = None
     
+    # 3分間隔ローリングチェックポイントコールバック
+    checkpoint_callback = RollingCheckpointCallback(
+        output_dir=output_dir,
+        max_checkpoints=5,  # 5個をローリングストック
+        save_interval_minutes=3  # 3分間隔
+    )
+
     # PPOトレーナー
     reward_config = config.get("reward_learning", {})
     trainer = SO8TQuadruplePPOTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
+        callbacks=[checkpoint_callback],
         clip_epsilon=reward_config.get("clip_epsilon", 0.2),
         value_coef=reward_config.get("value_coef", 0.5),
         entropy_coef=reward_config.get("entropy_coef", 0.01),
@@ -825,16 +1010,63 @@ def main():
         pet_regularization=pet_regularization
     )
     
-    # 学習実行
-    logger.info("Starting SO8T Quadruple PPO training...")
-    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
-    
-    # 最終モデル保存
-    final_model_dir = output_dir / "final_model"
-    trainer.save_model(str(final_model_dir))
-    tokenizer.save_pretrained(str(final_model_dir))
-    
-    logger.info(f"[SUCCESS] SO8T Quadruple PPO training completed. Model saved to {final_model_dir}")
+    # トレーニング状態ファイル作成
+    training_status_file = output_dir / "training_status.json"
+    training_status = {
+        "status": "running",
+        "start_time": datetime.now().isoformat(),
+        "output_dir": str(output_dir),
+        "config_file": str(args.config),
+        "dataset_file": str(args.dataset),
+        "last_checkpoint": resume_from_checkpoint,
+        "auto_resume_enabled": args.auto_resume or getattr(args, 'power_on_resume', False)
+    }
+
+    with open(training_status_file, 'w', encoding='utf-8') as f:
+        json.dump(training_status, f, indent=2, ensure_ascii=False)
+
+    try:
+        # 学習実行
+        logger.info("Starting SO8T Quadruple PPO training...")
+        trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+
+        # 最終モデル保存
+        final_model_dir = output_dir / "final_model"
+        trainer.save_model(str(final_model_dir))
+        tokenizer.save_pretrained(str(final_model_dir))
+
+        # トレーニング完了状態を更新
+        training_status.update({
+            "status": "completed",
+            "end_time": datetime.now().isoformat(),
+            "final_model_dir": str(final_model_dir)
+        })
+
+        logger.info(f"[SUCCESS] SO8T Quadruple PPO training completed. Model saved to {final_model_dir}")
+
+    except KeyboardInterrupt:
+        logger.info("[INTERRUPTED] Training interrupted by user")
+        training_status.update({
+            "status": "interrupted",
+            "interrupt_time": datetime.now().isoformat(),
+            "last_checkpoint": find_latest_checkpoint(output_dir)
+        })
+        raise
+
+    except Exception as e:
+        logger.error(f"[ERROR] Training failed: {e}")
+        training_status.update({
+            "status": "failed",
+            "error_time": datetime.now().isoformat(),
+            "error_message": str(e),
+            "last_checkpoint": find_latest_checkpoint(output_dir)
+        })
+        raise
+
+    finally:
+        # 状態ファイルを更新
+        with open(training_status_file, 'w', encoding='utf-8') as f:
+            json.dump(training_status, f, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":
