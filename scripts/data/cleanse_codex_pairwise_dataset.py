@@ -102,10 +102,55 @@ class CodexDatasetCleanser:
         
         return stats_dict
     
+    def _calculate_quality_score(self, sample: Dict) -> float:
+        """
+        サンプルの品質スコアを計算
+
+        Args:
+            sample: サンプルデータ
+
+        Returns:
+            品質スコア (0.0-1.0)
+        """
+        text = sample.get('text', '')
+        label = sample.get('label', 'ALLOW')
+
+        # 基本スコア
+        score = 0.5
+
+        # テキスト長による調整（長すぎず短すぎない）
+        text_length = len(text)
+        if 50 <= text_length <= 2000:
+            score += 0.2
+        elif text_length < 20:
+            score -= 0.3
+        elif text_length > 5000:
+            score -= 0.2
+
+        # ラベルによる調整
+        if label == 'ALLOW':
+            score += 0.1
+        elif label == 'ESCALATION':
+            score += 0.05
+        elif label == 'DENY':
+            score += 0.05
+        elif label == 'REFUSE':
+            score += 0.1
+
+        # テキストの内容チェック
+        if any(keyword in text.lower() for keyword in ['python', 'code', 'function', 'class', 'import', 'def']):
+            score += 0.1  # コーディング関連
+
+        if any(keyword in text.lower() for keyword in ['math', 'theorem', 'proof', 'calculate']):
+            score += 0.1  # 数学関連
+
+        # スコアを0-1の範囲に制限
+        return max(0.0, min(1.0, score))
+
     def cleanse_dataset(
         self,
         dataset_path: Path,
-        min_quality_score: float = 0.7,
+        min_quality_score: float = 0.0,
         balance_classes: bool = True,
         remove_outliers: bool = True,
         z_threshold: float = 3.0
@@ -132,6 +177,9 @@ class CodexDatasetCleanser:
                 if line.strip():
                     try:
                         sample = json.loads(line)
+                        # 品質スコアがなければ計算して追加
+                        if 'quality_score' not in sample:
+                            sample['quality_score'] = self._calculate_quality_score(sample)
                         samples.append(sample)
                     except json.JSONDecodeError as e:
                         logger.warning(f"[WARNING] Failed to parse line {line_num}: {e}")
@@ -239,8 +287,8 @@ def main():
     parser.add_argument(
         "--min-quality-score",
         type=float,
-        default=0.7,
-        help="Minimum quality score threshold (default: 0.7)"
+        default=0.0,
+        help="Minimum quality score threshold (default: 0.0)"
     )
     parser.add_argument(
         "--balance-classes",
