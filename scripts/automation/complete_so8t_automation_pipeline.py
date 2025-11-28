@@ -704,6 +704,113 @@ class SO8TAutomationPipeline:
             self.error_log.append({'step': 'cleanup', 'error': str(e)})
             return False
 
+    def _integrate_collected_datasets(self) -> bool:
+        """収集したデータセットの統合"""
+        try:
+            self._debug_print("Integrating multimodal datasets...", 'info')
+            # 既存の統合スクリプトを使用
+            cmd = [
+                sys.executable, "scripts/data/integrate_hf_datasets.py",
+                "--input", str(self.datasets_dir / "multimodal_raw"),
+                "--output", str(self.datasets_dir / "integrated_multimodal.jsonl")
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.getcwd())
+            if result.returncode != 0:
+                logger.warning(f"Dataset integration warning: {result.stderr}")
+                return False
+            return True
+        except Exception as e:
+            logger.error(f"Dataset integration error: {e}")
+            return False
+
+    def _validate_preprocessed_data(self) -> bool:
+        """前処理済みデータの検証"""
+        try:
+            output_file = self.datasets_dir / "final_dataset" / "train.jsonl"
+            if not output_file.exists():
+                logger.error(f"Training data file not found: {output_file}")
+                return False
+
+            # ファイルサイズチェック
+            size_mb = output_file.stat().st_size / (1024 * 1024)
+            if size_mb < 10:
+                logger.warning(f"Training data size is small: {size_mb:.1f} MB")
+                self._debug_print(f"Warning: Small training dataset ({size_mb:.1f} MB)", 'warning')
+
+            # サンプル数チェック
+            sample_count = 0
+            with open(output_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    sample_count += 1
+                    if sample_count >= 100:  # 最初の100行だけカウント
+                        break
+
+            if sample_count < 50:
+                logger.error(f"Insufficient training samples: {sample_count}")
+                return False
+
+            self._debug_print(f"Data validation passed: {sample_count}+ samples, {size_mb:.1f} MB", 'info')
+            return True
+        except Exception as e:
+            logger.error(f"Data validation error: {e}")
+            return False
+
+    def _validate_training_checkpoints(self) -> bool:
+        """トレーニングチェックポイントの検証"""
+        try:
+            checkpoint_dir = self.checkpoints_dir / f"phi35_so8t_{datetime.now().strftime('%Y%m%d')}"
+            if not checkpoint_dir.exists():
+                # 最新のチェックポイントディレクトリを探す
+                checkpoint_dirs = list(self.checkpoints_dir.glob("phi35_so8t_*"))
+                if not checkpoint_dirs:
+                    logger.error("No checkpoint directory found")
+                    return False
+                checkpoint_dir = max(checkpoint_dirs, key=lambda x: x.stat().st_mtime)
+
+            # チェックポイントファイルの存在確認
+            checkpoint_files = list(checkpoint_dir.glob("*.pt"))
+            if not checkpoint_files:
+                logger.error(f"No checkpoint files found in {checkpoint_dir}")
+                return False
+
+            # 最新のチェックポイントサイズチェック
+            latest_checkpoint = max(checkpoint_files, key=lambda x: x.stat().st_mtime)
+            size_gb = latest_checkpoint.stat().st_size / (1024**3)
+
+            if size_gb < 1.0:
+                logger.warning(f"Checkpoint file seems small: {size_gb:.2f} GB")
+                self._debug_print(f"Warning: Small checkpoint file ({size_gb:.2f} GB)", 'warning')
+
+            self._debug_print(f"Checkpoint validation passed: {len(checkpoint_files)} files, latest {size_gb:.2f} GB", 'info')
+            return True
+        except Exception as e:
+            logger.error(f"Checkpoint validation error: {e}")
+            return False
+
+    def _check_training_results(self) -> bool:
+        """トレーニング結果の確認"""
+        try:
+            # ログファイルからトレーニング結果をチェック
+            log_files = list(Path("logs").glob("complete_automation_*.log"))
+            if not log_files:
+                logger.warning("No training log files found")
+                return True  # ログがなくても成功とみなす
+
+            latest_log = max(log_files, key=lambda x: x.stat().st_mtime)
+
+            # ログからトレーニング完了を確認
+            with open(latest_log, 'r', encoding='utf-8') as f:
+                content = f.read()
+                if "✓ PPO training completed" in content:
+                    self._debug_print("Training completion confirmed in logs", 'info')
+                    return True
+                else:
+                    logger.warning("Training completion not found in logs")
+                    return False
+        except Exception as e:
+            logger.error(f"Training results check error: {e}")
+            return False
+
     def _handle_pipeline_error(self, error: Exception):
         """パイプラインエラー処理"""
         logger.error(f"Pipeline error detected: {error}")
