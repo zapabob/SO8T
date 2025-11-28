@@ -20,13 +20,13 @@ import logging
 import argparse
 import subprocess
 import time
+import threading
+import queue
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 import traceback
 from tqdm import tqdm
-import threading
-import queue
 
 # SO8T関連インポート
 try:
