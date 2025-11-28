@@ -34,7 +34,7 @@ data:
   test_split_ratio: 0.2
   min_quality_score: 0.6
 
-# Training Configuration
+# Training Configuration (RTX3060 optimized)
 training:
   # PPO Training
   ppo_epochs: 3
@@ -43,10 +43,22 @@ training:
   lr_scheduler_type: "cosine"
   warmup_steps: 200
 
-  # Batch configuration
-  batch_size: 4
-  gradient_accumulation_steps: 16
+  # Batch configuration (RTX3060 optimized)
+  batch_size: 2
+  gradient_accumulation_steps: 8
   max_length: 2048
+
+  # QLoRA Configuration (Frozen weights)
+  use_qlora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+
+  # Memory optimization
+  use_gradient_checkpointing: true
+  use_mixed_precision: true
+  empty_cache_steps: 10
 
   # SO8T Features
   so8vit_enabled: true
@@ -126,8 +138,8 @@ automation:
 
 # Resource Configuration
 resources:
-  # GPU requirements
-  required_gpu_memory_gb: 24
+  # GPU requirements (RTX3060 optimized)
+  required_gpu_memory_gb: 8
   required_disk_space_gb: 200
 
   # Parallel processing
