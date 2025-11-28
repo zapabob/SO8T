@@ -89,11 +89,13 @@ echo.
 REM 完全自動パイプライン実行
 echo [SO8T-AUTO] Starting complete automation pipeline...
 echo [SO8T-AUTO] This will take several hours to days depending on hardware
-echo [SO8T-AUTO] Progress will be logged to: %LOG_FILE%
+echo [SO8T-AUTO] Progress will be displayed in real-time with tqdm and debug output
+echo [SO8T-AUTO] Log file: %LOG_FILE%
 echo [SO8T-AUTO] Do not interrupt the process!
 echo.
 
-python scripts/automation/complete_so8t_automation_pipeline.py 2>> "%LOG_FILE%"
+REM tqdmとloggingをリアルタイム表示しながら実行
+python scripts/automation/complete_so8t_automation_pipeline.py 2>&1 | tee "%LOG_FILE%"
 
 set PIPELINE_RESULT=%errorlevel%
 
