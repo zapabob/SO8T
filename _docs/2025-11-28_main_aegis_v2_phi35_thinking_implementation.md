@@ -111,8 +111,15 @@
 - **Base Model**: Borea-phi3.5-instinct-jp (重み凍結 + 選択的unfreeze)
 - **SO8VIT**: マルチモーダル処理
 - **Alpha Gate**: 黄金比ベイズアニーリング
-- **PPO**: 内部推論強化
-- **Meta Control**: 四重推論制御
+- **PPO**: 内部推論強化（魂の重み活用）
+- **Meta Control**: 四重推論制御（魂の重み対応）
+- **Soul Weights**: 学習データとしての魂の重み統合
+
+#### 魂の重み学習統合
+- **データセット統合**: `DatasetCollectionCleansing`に魂の重み生成を追加
+- **トレーニング統合**: `MultimodalThinkingDataset`で魂の重みデータを処理
+- **推論制御強化**: `MetaInferenceController`で魂の重みパラメータを活用
+- **内部推論強化**: `InternalInferenceEnhancer`で魂の重みに基づくthinking token生成
 
 #### トレーニング仕様
 - **デバイス**: RTX3060対応 (batch_size=1, grad_accum=4)
