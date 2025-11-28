@@ -355,32 +355,3 @@ class SO8TThinkingModel(SafetyAwareSO8TModel):
         }
         
         return result
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

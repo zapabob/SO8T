@@ -89,10 +89,13 @@ except ImportError:
         except ImportError:
             logging.warning("Failed to import PETRegularization, using None")
 
-try:
-    from so8t.core.thinking_tokens import extract_quadruple_thinking
-except ImportError:
-    pass
+# try:
+#     from so8t.core.thinking_tokens import extract_quadruple_thinking
+# except ImportError:
+#     pass
+
+# Temporarily disabled due to import issues
+extract_quadruple_thinking = None
 
 # ロギング設定
 log_dir = PROJECT_ROOT / "logs"

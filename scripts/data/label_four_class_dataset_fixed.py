@@ -29,145 +29,176 @@ logger = logging.getLogger(__name__)
 
 
 class FourClassLabeler:
-    """四値分類ラベル付けクラス"""
+    """
+    LLM PPOベストプラクティスに基づく四値分類ラベル付けクラス
 
-    # キーワード定義 - 日本語と英語両対応
+    PPO学習のための分類:
+    - ALLOW: 安全で有用な応答（学習に適したポジティブサンプル）
+    - ESCALATION: 複雑で専門的な判断が必要な応答
+    - DENY: 安全上問題のある内容（ネガティブサンプル）
+    - REFUSE: 明確に拒否すべき危険な内容
+    """
+
+    # PPOベストプラクティスに基づくキーワード定義
     ALLOW_KEYWORDS = [
+        # 安全で有用な応答を示すキーワード
         # 日本語
-        "説明します", "一般", "基本", "公開", "教育", "参考", "通常",
-        "標準", "公式", "ドキュメント", "一般的な", "基本的な", "教えます",
-        "紹介します", "概要", "基礎", "入門", "使い方", "方法", "手順",
-        "例", "サンプル", "チュートリアル", "ガイド", "ヘルプ", "サポート",
-        "情報", "データ", "統計", "分析", "結果", "レポート", "まとめ",
+        "説明します", "教えます", "お手伝いします", "ご案内します", "分かりました",
+        "理解しました", "お答えします", "ご紹介します", "ご説明します", "お勧めします",
+        "安全です", "問題ありません", "許可します", "可能です", "利用可能です",
+        "役立ちます", "参考になります", "役に立つ", "便利です", "効果的です",
         # 英語
-        "explain", "general", "basic", "public", "education", "reference",
-        "normal", "standard", "official", "documentation", "common",
-        "fundamental", "teach", "introduce", "overview", "foundation",
-        "beginner", "usage", "method", "procedure", "example", "sample",
-        "tutorial", "guide", "help", "support", "information", "data",
-        "statistics", "analysis", "result", "report", "summary"
+        "explain", "help", "assist", "guide", "understand", "answer", "recommend",
+        "safe", "allowed", "possible", "useful", "helpful", "effective", "beneficial",
+        "appropriate", "acceptable", "valid", "correct", "right", "good"
     ]
 
     ESCALATION_KEYWORDS = [
+        # より高度な判断や専門知識が必要な内容
         # 日本語
-        "確認", "調査", "上司", "専門", "判断", "エスカレーション", "検討",
-        "協議", "承認", "許可", "要確認", "要検討", "要相談", "要承認",
-        "専門家", "管理者", "スーパーバイザー", "責任者", "上司", "マネージャー",
-        "レビュー", "審査", "評価", "査読", "検証", "認証", "許可申請",
+        "専門家", "医師", "弁護士", "コンサルタント", "専門知識", "専門的な",
+        "複雑", "高度", "詳細", "精密", "正確", "慎重", "注意深く", "十分な検討",
+        "調査", "研究", "分析", "評価", "査定", "審査", "検証", "確認",
+        "専門的なアドバイス", "医療的な", "法的", "技術的な", "科学的な",
         # 英語
-        "confirm", "inquiry", "superior", "expert", "judgment", "escalation",
-        "review", "discussion", "approval", "permission", "verification",
-        "consultation", "specialist", "administrator", "supervisor",
-        "manager", "boss", "review", "audit", "assessment", "validation",
-        "authentication", "authorization"
+        "expert", "specialist", "professional", "complex", "advanced", "detailed",
+        "careful", "thorough", "investigate", "research", "analyze", "evaluate",
+        "verify", "confirm", "medical", "legal", "technical", "scientific",
+        "consultation", "assessment", "review", "validation"
     ]
 
     DENY_KEYWORDS = [
+        # 安全上問題のある内容を示すキーワード
         # 日本語
-        "できません", "禁止", "回答を控え", "開示できません", "危険", "機密",
-        "秘密", "非公開", "制限", "拒否", "不可", "不適切", "禁止事項",
-        "制限事項", "アクセス不可", "利用不可", "実行不可", "許可なし",
-        "セキュリティ", "プライバシー", "個人情報", "機密情報", "内部情報",
-        "非公開情報", "制限付き", "機密扱い", "危険行為", "有害", "有害性",
+        "危険", "有害", "不適切", "不安全", "問題", "懸念", "リスク", "不安",
+        "誤り", "間違い", "不正確", "誤解を招く", "誤情報", "フェイク", "デマ",
+        "偏見", "差別", "攻撃的", "攻撃性", "脅威", "脅迫", "嫌がらせ", "ハラスメント",
+        "プライバシー侵害", "個人情報漏洩", "機密情報", "セキュリティ問題",
         # 英語
-        "cannot", "prohibited", "decline", "unable", "dangerous", "confidential",
-        "secret", "private", "restricted", "denied", "inappropriate",
-        "forbidden", "not allowed", "access denied", "security", "privacy",
-        "personal information", "classified", "internal", "sensitive",
-        "hazardous", "harmful", "risky", "unsafe"
+        "dangerous", "harmful", "inappropriate", "unsafe", "problem", "concern",
+        "risk", "worrying", "wrong", "incorrect", "inaccurate", "misleading",
+        "false", "biased", "discriminatory", "offensive", "threatening",
+        "harassment", "privacy violation", "security issue", "confidential"
     ]
 
     REFUSE_KEYWORDS = [
+        # 明確に拒否すべき内容を示すキーワード
         # 日本語
-        "拒否", "断る", "お断り", "対応不可", "応答不可", "回答拒否",
-        "拒否します", "お断りします", "対応できません", "お断りいたします",
-        "ご遠慮ください", "お引き受けできません", "お手伝いできません",
-        "協力できません", "参加できません", "関与できません",
+        "違法", "犯罪", "禁止", "禁止されている", "違反", "無効", "無許可",
+        "拒否", "断る", "お断り", "対応不可", "応答不可", "お手伝いできません",
+        "協力できません", "関与できません", "参加できません", "許可できません",
+        "不可能", "実行不可", "利用不可", "アクセス不可", "提供不可",
+        "自殺", "殺人", "暴力", "テロ", "麻薬", "違法薬物", "児童虐待",
         # 英語
-        "refuse", "decline", "reject", "deny", "unable to respond",
-        "cannot assist", "will not help", "refusing", "declining",
-        "rejecting", "cannot participate", "cannot cooperate",
-        "cannot engage", "will not accept"
+        "illegal", "criminal", "prohibited", "forbidden", "violation", "invalid",
+        "unauthorized", "refuse", "decline", "cannot", "unable", "impossible",
+        "suicide", "murder", "violence", "terrorism", "drugs", "child abuse",
+        "hacking", "exploit", "malware", "virus", "attack", "breach"
     ]
     
     def __init__(self, balance_classes: bool = True):
         """
         Args:
-            balance_classes: クラスバランスを調整するぁE        """
+            balance_classes: クラスバランスを調整するかどうか
+        """
         self.balance_classes = balance_classes
         logger.info("Four Class Labeler initialized")
     
     def classify_text(self, text: str) -> str:
-        """テキストを四値分類（改良版）"""
+        """
+        LLM PPOベストプラクティスに基づく四値分類
+
+        以下の基準で分類:
+        - REFUSE: 明確に拒否すべき危険・違法内容
+        - DENY: 安全上問題のある内容
+        - ESCALATION: 専門判断が必要な内容
+        - ALLOW: 安全で有用な内容
+        """
+        if not text or len(text.strip()) == 0:
+            return "DENY"
+
         text_lower = text.lower()
         text_length = len(text.strip())
 
-        # スコアリング方式で分類
-        scores = {
-            "ALLOW": 0,
-            "ESCALATION": 0,
-            "DENY": 0,
-            "REFUSE": 0
-        }
+        # PPOベストプラクティス: Safety-Firstアプローチ
+        # 1. REFUSE判定（最優先: 明確な危険信号）
+        refuse_indicators = [
+            # 違法・危険活動
+            any(kw in text_lower for kw in ["kill", "murder", "suicide", "bomb", "terrorism"]),
+            # 違法薬物・犯罪
+            any(kw in text_lower for kw in ["drugs", "cocaine", "heroin", "meth", "illegal drugs"]),
+            # 児童関連の危険
+            any(kw in text_lower for kw in ["child abuse", "pedophilia", "child exploitation"]),
+            # ハッキング・セキュリティ侵害
+            any(kw in text_lower for kw in ["hack", "exploit", "breach", "malware", "virus"]),
+            # 明確な拒否表現
+            any(kw in text_lower for kw in ["cannot comply", "will not help", "refuse to"])
+        ]
 
-        # キーワードマッチングでスコア加算
-        for kw in self.ALLOW_KEYWORDS:
-            if kw in text_lower:
-                scores["ALLOW"] += 1
+        if any(refuse_indicators):
+            return "REFUSE"
 
-        for kw in self.ESCALATION_KEYWORDS:
-            if kw in text_lower:
-                scores["ESCALATION"] += 2  # エスカレーションは重み付け
+        # 2. DENY判定（安全上問題のある内容）
+        deny_indicators = [
+            # 有害コンテンツ
+            any(kw in text_lower for kw in ["harmful", "dangerous", "unsafe", "threat"]),
+            # 不適切表現
+            any(kw in text_lower for kw in ["offensive", "abusive", "harassment", "bullying"]),
+            # 誤情報・偏見
+            any(kw in text_lower for kw in ["misinformation", "biased", "discriminatory"]),
+            # プライバシー侵害
+            any(kw in text_lower for kw in ["personal information", "confidential", "private"]),
+            # 過度に短い拒否応答
+            text_length < 20 and any(kw in text_lower for kw in ["no", "cannot", "unable"])
+        ]
 
-        for kw in self.DENY_KEYWORDS:
-            if kw in text_lower:
-                scores["DENY"] += 3  # DENYは高重み付け
+        if any(deny_indicators):
+            return "DENY"
 
-        for kw in self.REFUSE_KEYWORDS:
-            if kw in text_lower:
-                scores["REFUSE"] += 4  # REFUSEは最高重み付け
+        # 3. ESCALATION判定（専門知識が必要）
+        escalation_indicators = [
+            # 専門領域
+            any(kw in text_lower for kw in ["medical", "legal", "financial", "technical"]),
+            # 複雑な判断
+            any(kw in text_lower for kw in ["complex", "advanced", "specialized", "expert"]),
+            # 調査・確認が必要
+            any(kw in text_lower for kw in ["research", "investigate", "verify", "confirm"]),
+            # 質問形式（複雑なクエリ）
+            ("?" in text or "？" in text) and text_length > 100,
+            # 複数の条件判断
+            sum(1 for kw in ["if", "when", "how", "why", "what"] if kw in text_lower) >= 3
+        ]
 
-        # 追加のヒューリスティック判定
-        # 1. テキスト長による判定
-        if text_length < 20:
-            scores["DENY"] += 1  # 短すぎるテキストはDENY寄り
-        elif text_length > 1000:
-            scores["ALLOW"] += 1  # 長いテキストはALLOW寄り
+        if any(escalation_indicators):
+            return "ESCALATION"
 
-        # 2. 日本語比率による判定
-        japanese_chars = len(re.findall(r'[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]', text))
-        if japanese_chars > 0:
-            japanese_ratio = japanese_chars / len(text)
-            if japanese_ratio > 0.8:
-                scores["ALLOW"] += 0.5  # 日本語コンテンツはALLOW寄り
+        # 4. ALLOW判定（安全で有用な内容）
+        allow_indicators = [
+            # 有用な情報提供
+            any(kw in text_lower for kw in ["explain", "help", "guide", "teach", "inform"]),
+            # 肯定的・建設的な表現
+            any(kw in text_lower for kw in ["useful", "helpful", "beneficial", "good", "safe"]),
+            # 教育・学習コンテンツ
+            any(kw in text_lower for kw in ["learn", "understand", "knowledge", "education"]),
+            # 適切な長さと構造
+            50 <= text_length <= 2000,
+            # 構造化された応答
+            any(struct in text for struct in ["•", "-", "1.", "2.", "Step", "First"])
+        ]
 
-        # 3. 質問形式の判定
-        if any(q in text_lower for q in ["?", "？", "ですか", "でしょうか", "どう", "何", "なぜ", "いつ"]):
-            scores["ESCALATION"] += 1  # 質問はESCALATION寄り
+        if any(allow_indicators):
+            return "ALLOW"
 
-        # 4. 命令形の判定
-        if any(cmd in text_lower for cmd in ["して", "ください", "お願い", "do", "please", "help"]):
-            scores["ESCALATION"] += 0.5
-
-        # 5. 否定的表現の判定
-        if any(neg in text_lower for neg in ["ない", "できません", "だめ", "no", "cannot", "unable"]):
-            scores["DENY"] += 1
-
-        # 最高スコアのクラスを返す
-        max_score = max(scores.values())
-        if max_score > 0:
-            # 同点の場合は優先順位: REFUSE > DENY > ESCALATION > ALLOW
-            for label in ["REFUSE", "DENY", "ESCALATION", "ALLOW"]:
-                if scores[label] == max_score:
-                    return label
-
-        # デフォルト判定（スコアが全て0の場合）
-        if text_length < 50:
-            return "DENY"  # 短すぎる応答は拒否
+        # デフォルト判定
+        # 過度に長い応答はESCALATION（複雑すぎる可能性）
+        if text_length > 2000:
+            return "ESCALATION"
+        # 質問はESCALATION
         elif "?" in text or "？" in text:
-            return "ESCALATION"  # 質問はエスカレーション
+            return "ESCALATION"
+        # それ以外はALLOW（安全側に倒す）
         else:
-            return "ALLOW"  # デフォルトは許可
+            return "ALLOW"
 
     def balance_dataset(self, samples: List[Dict]) -> List[Dict]:
         """データセットのクラスバランスを調整"""
@@ -215,7 +246,7 @@ class FourClassLabeler:
         test_size: float = 0.2,
         val_size: float = 0.1
     ) -> Dict[str, int]:
-        """チE�EタセチE��にラベル付け"""
+        """データセットにラベル付け"""
         logger.info("="*80)
         logger.info("Four Class Labeling")
         logger.info("="*80)
@@ -250,7 +281,7 @@ class FourClassLabeler:
         return self._process_files(all_files, output_dir, "JSON", test_size, val_size)
 
     def _label_huggingface_datasets(self, input_dir: Path, output_dir: Path, test_size: float, val_size: float) -> Dict[str, int]:
-        """HuggingFaceチE�EタセチE��からラベル付け"""
+        """HuggingFaceデータセットからラベル付け"""
         if not input_dir.exists():
             logger.error(f"Input directory does not exist: {input_dir}")
             return {}
@@ -291,29 +322,35 @@ class FourClassLabeler:
 
         labeled_samples: List[Dict] = []
 
-        # 全ファイルを�E琁E        for input_file in input_files:
+        # 全ファイルを処理
+        for input_file in input_files:
             logger.info(f"Processing {input_file.name}...")
 
             try:
                 if input_file.suffix == ".json":
-                    # JSONファイルの場吁E                    with open(input_file, 'r', encoding='utf-8') as f:
+                    # JSONファイルの場合
+                    with open(input_file, 'r', encoding='utf-8') as f:
                         data = json.load(f)
 
                     if isinstance(data, list):
                         for sample in tqdm(data, desc=f"Labeling {input_file.name}"):
                             self._process_sample(sample, stats, labeled_samples)
                     elif isinstance(data, dict):
-                        # SO8TチE�EタセチE��形式�E場吁E                        if 'training_data' in data:
+                        # SO8Tデータセット形式の場合
+                        if 'training_data' in data:
                             for sample in tqdm(data['training_data'], desc=f"Labeling {input_file.name}"):
                                 self._process_sample(sample, stats, labeled_samples)
                         elif 'data' in data:
-                            # 別のチE�EタセチE��形弁E                            for sample in tqdm(data['data'], desc=f"Labeling {input_file.name}"):
+                            # 別のデータセット形式
+                            for sample in tqdm(data['data'], desc=f"Labeling {input_file.name}"):
                                 self._process_sample(sample, stats, labeled_samples)
                         else:
-                            # 単一サンプルとして扱ぁE                            self._process_sample(data, stats, labeled_samples)
+                            # 単一サンプルとして扱う
+                            self._process_sample(data, stats, labeled_samples)
 
                 elif input_file.suffix == ".jsonl":
-                    # JSONLファイルの場吁E                    with open(input_file, 'r', encoding='utf-8') as f:
+                    # JSONLファイルの場合
+                    with open(input_file, 'r', encoding='utf-8') as f:
                         for line in tqdm(f, desc=f"Labeling {input_file.name}"):
                             try:
                                 sample = json.loads(line.strip())
@@ -336,7 +373,7 @@ class FourClassLabeler:
         min_samples_for_split = 100  # 分割に必要な最小サンプル数
 
         if total_split_size > 0 and total_split_size < 1.0 and len(labeled_samples) >= min_samples_for_split:
-            logger.info(f"Splitting dataset (test_size={test_size}, val_size={val_size})...")
+            logger.info(f"PPOデータ分割を実行 (test_size={test_size}, val_size={val_size})...")
 
             # stratify用のラベルを取得
             labels = [s["label"] for s in labeled_samples]
@@ -429,7 +466,7 @@ class FourClassLabeler:
         return stats
 
     def _save_split_data(self, samples: List[Dict], output_dir: Path, filename: str):
-        """刁E��チE�Eタを保孁E""
+        """データセットを保存"""
         output_file = output_dir / filename
         logger.info(f"Saving {len(samples)} samples to {output_file}")
 
@@ -495,49 +532,61 @@ class FourClassLabeler:
 
 
 def main():
-    """メイン関数"""
+    """LLM PPOベストプラクティスに基づく四値分類メイン関数"""
     parser = argparse.ArgumentParser(
-        description="Label dataset with four classes (ALLOW/ESCALATION/DENY/REFUSE)"
+        description="LLM PPO用四値分類ラベリング (ALLOW/ESCALATION/DENY/REFUSE)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+LLM PPOベストプラクティスに基づく分類:
+- ALLOW: 安全で有用な応答（学習に適したポジティブサンプル）
+- ESCALATION: 専門判断が必要な複雑なクエリ
+- DENY: 安全上問題のある内容（ネガティブサンプル）
+- REFUSE: 明確に拒否すべき危険な内容
+
+使用例:
+  python script.py --input data/ --output labeled/ --test-size 0.2 --val-size 0.1
+  python script.py --huggingface --input datasets/ --output output/
+        """
     )
     parser.add_argument(
         "--input",
         type=str,
         required=True,
-        help="Input directory containing JSONL files"
+        help="入力データセットのパス（JSON/JSONLファイルまたはディレクトリ）"
     )
     parser.add_argument(
         "--output",
         type=str,
         required=True,
-        help="Output directory for labeled dataset"
+        help="ラベル付きデータセットの出力ディレクトリ"
     )
     parser.add_argument(
         "--no-balance",
         action="store_true",
-        help="Disable class balancing"
+        help="クラスバランス調整を無効化（PPO学習では有効推奨）"
     )
     parser.add_argument(
         "--seed",
         type=int,
         default=42,
-        help="Random seed (default: 42)"
+        help="ランダムシード（再現性のため、default: 42）"
     )
     parser.add_argument(
         "--huggingface",
         action="store_true",
-        help="Process HuggingFace datasets instead of JSONL files"
+        help="HuggingFaceデータセット形式を処理"
     )
     parser.add_argument(
         "--test-size",
         type=float,
         default=0.2,
-        help="Test set size (default: 0.2)"
+        help="テストセットの割合（PPO評価用、default: 0.2）"
     )
     parser.add_argument(
         "--val-size",
         type=float,
         default=0.1,
-        help="Validation set size (default: 0.1)"
+        help="検証セットの割合（PPOチューニング用、default: 0.1）"
     )
     
     args = parser.parse_args()
