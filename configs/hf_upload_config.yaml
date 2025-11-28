@@ -1,0 +1,92 @@
+# HuggingFace Upload Configuration
+# BF16/Q8.0/Q4形式での最適モデルアップロード設定
+
+upload:
+  base_repo_name: "AEGIS-Phi3.5-Enhanced"
+  private: false
+  include_model_card: true
+  include_quantization_info: true
+  organization: "zapabobouj"  # あなたのHFユーザー名に変更してください
+
+formats:
+  BF16:
+    enabled: true
+    description: "Full precision BF16 model - highest accuracy, highest memory usage"
+    torch_dtype: "bfloat16"
+    memory_requirement: "7GB+ VRAM"
+
+  Q8_0:
+    enabled: true
+    description: "8-bit quantized model - good accuracy, moderate memory usage"
+    quantization_type: "q8_0"
+    memory_requirement: "4GB+ VRAM"
+
+  Q4_Unsloth:
+    enabled: true
+    description: "4-bit quantized model (Unsloth optimized) - reduced accuracy, minimal memory usage"
+    quantization_type: "q4_k_m"
+    use_unsloth: true
+    memory_requirement: "2GB+ VRAM"
+
+model_card:
+  title: "AEGIS Phi-3.5 Enhanced"
+  description: |
+    AEGIS Phi-3.5 Enhanced is a state-of-the-art model that combines the power of Phi-3.5 with advanced reasoning capabilities.
+
+  license: "apache-2.0"
+  tags:
+    - "llm"
+    - "aegis"
+    - "phi-3.5"
+    - "enhanced"
+    - "reasoning"
+    - "ethical-ai"
+    - "japanese"
+    - "transformer"
+    - "quantized"
+
+technical_details:
+  base_model: "microsoft/phi-3.5-mini-instruct"
+  training_method: "QLoRA with frozen base weights"
+  alpha_gate: "Sigmoid annealing with dynamic Bayesian optimization"
+  regularization: "PET (Periodic Error Term) second-order differences"
+  optimization: "SO(8) rotation gates + Bayesian expected improvement"
+
+benchmarks:
+  included:
+    - "ELYZA-100 (Japanese QA)"
+    - "MMLU (Multiple choice QA)"
+    - "GSM8K (Mathematical reasoning)"
+    - "HellaSwag (Commonsense reasoning)"
+    - "ARC-Challenge (Science QA)"
+    - "ScienceQA (Multimodal reasoning)"
+
+usage:
+  code_example: |
+    ```python
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    # BF16モデル読み込み例
+    model_name = "your-username/borea-phi35-alpha-gate-sigmoid-bf16"
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    # 推論実行
+    prompt = "量子力学における不確定性原理を説明してください。"
+    inputs = tokenizer(prompt, return_tensors="pt")
+    outputs = model.generate(**inputs, max_length=512, temperature=0.7)
+    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    print(response)
+    ```
+
+limitations:
+  - "Requires significant computational resources for full precision models"
+  - "Quantized models may show reduced accuracy on complex reasoning tasks"
+  - "Performance may vary across different domains and languages"
+  - "May produce unpredictable outputs for edge cases"
+
+ethical_considerations:
+  - "Designed with ethical AI principles"
+  - "Trained with ethical AI principles"
+  - "Regular audits recommended for production use"
+  - "No harmful content is allowed"

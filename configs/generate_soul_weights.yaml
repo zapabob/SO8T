@@ -1,0 +1,56 @@
+# Soul Weights Dataset Generation Configuration
+# RTX3060対応 魂の重みデータセット生成設定
+
+output:
+  dataset_dir: "D:/webdataset/datasets/soul_weights"
+  num_samples: 5000  # RTX3060メモリ最適化
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+
+# Alpha Gateパラメータ生成設定
+alpha_gate:
+  range: [-5.0, 1.618]  # 混沌から黄金比まで
+  distribution: "sigmoid_annealing"  # 実装ログに基づく相転移スケジュール
+  steps: 1000
+
+# SO(8)回転行列生成設定
+so8_rotations:
+  hidden_size: 4096  # Phi-3.5の隠れ層サイズ
+  r_safe_enabled: true  # 安全回転行列
+  r_cmd_enabled: true   # コマンド回転行列
+  non_commutative_check: true  # 非可換性検証
+
+# 魂の3本柱生成設定
+soul_pillars:
+  safety_head:
+    num_classes: 2  # 安全/危険の二値分類
+  task_head:
+    num_classes: 4  # タスクタイプの四値分類
+  dual_heads:
+    num_classes: 2  # 二重政策系の二値分類ペア
+  pet:
+    regularization_strength: 0.01  # PET正則化強度
+
+# LoRAアダプター重み生成設定（RTX3060最適化）
+lora_adapter:
+  r: 16  # 小さなLoRAランクでRTX3060対応
+  lora_alpha: 32
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+# 再現性確保のための乱数シード
+seed: 42
+
+# RTX3060メモリ最適化設定
+rtx3060_optimization:
+  enabled: true
+  max_memory_usage_gb: 7.5  # 8GB中7.5GBまで使用
+  batch_size_generation: 10  # 一度に生成するサンプル数
+  use_mixed_precision: true  # 混合精度使用
