@@ -493,3 +493,927 @@ if __name__ == "__main__":
     import sys
     sys.exit(main())
 
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+
+
+        "--output",
+        type=str,
+        required=True,
+        help="Output directory for labeled dataset"
+    )
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Disable class balancing"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)"
+    )
+    parser.add_argument(
+        "--huggingface",
+        action="store_true",
+        help="Process HuggingFace datasets instead of JSONL files"
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.2,
+        help="Test set size (default: 0.2)"
+    )
+    parser.add_argument(
+        "--val-size",
+        type=float,
+        default=0.1,
+        help="Validation set size (default: 0.1)"
+    )
+    
+    args = parser.parse_args()
+    
+    # シード設定
+    random.seed(args.seed)
+    
+    # ラベル付け実行
+    labeler = FourClassLabeler(balance_classes=not args.no_balance)
+    
+    try:
+        stats = labeler.label_dataset(
+            input_dir=Path(args.input),
+            output_dir=Path(args.output),
+            huggingface_mode=args.huggingface,
+            test_size=args.test_size,
+            val_size=args.val_size
+        )
+        
+        logger.info("[SUCCESS] Dataset labeling completed")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"[FAILED] Dataset labeling failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
+

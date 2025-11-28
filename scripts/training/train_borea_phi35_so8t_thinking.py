@@ -1745,3 +1745,3223 @@ def main():
 if __name__ == "__main__":
     main()
 
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+    # トレーニング引数
+    training_args = TrainingArguments(
+        output_dir=str(output_dir / "checkpoints"),
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation,
+        learning_rate=training_config.get("learning_rate", 2.0e-4),
+        weight_decay=training_config.get("weight_decay", 0.01),
+        warmup_ratio=training_config.get("warmup_ratio", 0.1),
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        logging_steps=training_config.get("logging_steps", 10),
+        save_steps=training_config.get("save_steps", 500),
+        save_total_limit=training_config.get("save_total_limit", 5),
+        fp16=training_config.get("fp16", True),
+        bf16=training_config.get("bf16", False),
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
+        optim=training_config.get("optim", "paged_adamw_8bit"),
+        report_to=[],
+        resume_from_checkpoint=resume_checkpoint if is_recovery else None,
+        # 進捗バーとログ出力の設定
+        disable_tqdm=False,  # tqdmを有効化
+        logging_first_step=True,  # 最初のステップもログ出力
+        logging_nan_inf_filter=False,  # NaN/Infのフィルタリングは無効化
+    )
+    
+    # 時間ベースチェックポイントCallbackを作成（約3分ごと）
+    time_cb = TimeBasedCheckpointCallback(fixed_interval_sec=180)
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback initialized (interval: {time_cb.fixed_interval_sec}s = {time_cb.fixed_interval_sec/60:.1f} minutes)")
+    logger.info(f"[CHECKPOINT] Checkpoint callback type: {type(time_cb).__name__}")
+    logger.info(f"[CHECKPOINT] Checkpoint callback will save every {time_cb.fixed_interval_sec}s ({time_cb.fixed_interval_sec/60:.1f} minutes)")
+    
+    # トレーナー
+    # Logits保存設定を取得
+    save_logits = training_config.get("save_logits", False)
+    save_logits_steps = training_config.get("save_logits_steps", 100)
+    save_logits_dir = training_config.get("save_logits_dir", "logits")
+    save_logits_max_files = training_config.get("save_logits_max_files", 10)
+    
+    # メトリクス記録設定を取得
+    save_metrics = training_config.get("save_metrics", True)
+    save_metrics_steps = training_config.get("save_metrics_steps", 10)
+    
+    trainer = SO8TPETTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        pet_regularization=pet_regularization,
+        save_logits=save_logits,
+        save_logits_steps=save_logits_steps,
+        save_logits_dir=save_logits_dir,
+        save_logits_max_files=save_logits_max_files,
+        save_metrics=save_metrics,
+        save_metrics_steps=save_metrics_steps,
+        callbacks=[time_cb]
+    )
+    
+    # コールバック登録の確認
+    callback_count = len(trainer.callback_handler.callbacks) if hasattr(trainer, 'callback_handler') else 0
+    logger.info(f"[CHECKPOINT] TimeBasedCheckpointCallback added to trainer (total callbacks: {callback_count})")
+    
+    # コールバックが正しく登録されているか確認
+    if hasattr(trainer, 'callback_handler') and hasattr(trainer.callback_handler, 'callbacks'):
+        callback_names = [type(cb).__name__ for cb in trainer.callback_handler.callbacks]
+        logger.info(f"[CHECKPOINT] Registered callbacks: {callback_names}")
+        if 'TimeBasedCheckpointCallback' in callback_names:
+            logger.info("[CHECKPOINT] TimeBasedCheckpointCallback is correctly registered")
+        else:
+            logger.warning("[CHECKPOINT] TimeBasedCheckpointCallback not found in registered callbacks!")
+    else:
+        logger.warning("[CHECKPOINT] Could not verify callback registration (callback_handler not available)")
+    
+    # 学習実行
+    logger.info("Starting training...")
+    if is_recovery:
+        logger.info(f"[RECOVERY] Resuming from checkpoint: {resume_checkpoint}")
+    
+    # カスタムコールバックでセッション情報を更新
+    class SessionUpdateCallback(TrainerCallback):
+        def __init__(self, recovery_obj, session_data):
+            self.recovery = recovery_obj
+            self.session_data = session_data
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            # ステップごとにセッション情報を更新
+            self.session_data["current_step"] = state.global_step
+            self.recovery.save_session(self.session_data)
+        
+        def on_save(self, args, state, control, **kwargs):
+            # チェックポイント保存時にセッション情報を更新
+            if state.global_step % args.save_steps == 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+                if checkpoint_path.exists():
+                    self.session_data["checkpoints"].append(str(checkpoint_path))
+                    # 古いチェックポイントを削除（save_total_limitを超える場合）
+                    if len(self.session_data["checkpoints"]) > args.save_total_limit:
+                        old_checkpoint = self.session_data["checkpoints"].pop(0)
+                        old_path = Path(old_checkpoint)
+                        if old_path.exists():
+                            import shutil
+                            shutil.rmtree(old_path)
+                    self.recovery.save_session(self.session_data)
+    
+    # 進捗表示とログ出力を強化するコールバック
+    class ProgressLoggingCallback(TrainerCallback):
+        """進捗表示とログ出力を強化するコールバック"""
+        
+        def __init__(self):
+            self.start_time = None
+            self.last_log_time = time.time()
+        
+        def on_train_begin(self, args, state, control, **kwargs):
+            """学習開始時のログ"""
+            self.start_time = time.time()
+            logger.info("="*80)
+            logger.info("Training Started")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.max_steps}")
+            logger.info(f"Total epochs: {args.num_train_epochs}")
+            logger.info(f"Batch size: {args.per_device_train_batch_size}")
+            logger.info(f"Gradient accumulation: {args.gradient_accumulation_steps}")
+            logger.info(f"Effective batch size: {args.per_device_train_batch_size * args.gradient_accumulation_steps}")
+            logger.info(f"Learning rate: {args.learning_rate}")
+            logger.info("="*80)
+        
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            """ログ出力時の処理"""
+            if logs is None:
+                return
+            
+            # 定期的に詳細ログを出力
+            current_time = time.time()
+            if current_time - self.last_log_time >= 30:  # 30秒ごと
+                elapsed_time = current_time - self.start_time if self.start_time else 0
+                progress = state.global_step / state.max_steps if state.max_steps > 0 else 0
+                
+                log_msg = f"[PROGRESS] Step {state.global_step}/{state.max_steps} "
+                log_msg += f"({progress*100:.1f}%) | "
+                log_msg += f"Elapsed: {elapsed_time/3600:.2f}h | "
+                
+                if "loss" in logs:
+                    log_msg += f"Loss: {logs['loss']:.4f} | "
+                if "learning_rate" in logs:
+                    log_msg += f"LR: {logs['learning_rate']:.2e}"
+                
+                logger.info(log_msg)
+                self.last_log_time = current_time
+        
+        def on_epoch_begin(self, args, state, control, **kwargs):
+            """エポック開始時のログ"""
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Started")
+            logger.info("="*80)
+        
+        def on_epoch_end(self, args, state, control, **kwargs):
+            """エポック終了時のログ"""
+            elapsed_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info(f"Epoch {int(state.epoch) + 1}/{args.num_train_epochs} Completed")
+            logger.info(f"Total elapsed time: {elapsed_time/3600:.2f} hours")
+            logger.info("="*80)
+        
+        def on_save(self, args, state, control, **kwargs):
+            """チェックポイント保存時のログ"""
+            checkpoint_path = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            if checkpoint_path.exists():
+                elapsed_time = time.time() - self.start_time if self.start_time else 0
+                logger.info(f"[CHECKPOINT] Saved at step {state.global_step} "
+                          f"(Elapsed: {elapsed_time/3600:.2f}h)")
+        
+        def on_train_end(self, args, state, control, **kwargs):
+            """学習終了時のログ"""
+            total_time = time.time() - self.start_time if self.start_time else 0
+            logger.info("="*80)
+            logger.info("Training Completed")
+            logger.info("="*80)
+            logger.info(f"Total steps: {state.global_step}")
+            logger.info(f"Total time: {total_time/3600:.2f} hours")
+            logger.info(f"Average time per step: {total_time/state.global_step:.2f} seconds")
+            logger.info("="*80)
+    
+    # コールバックを追加
+    progress_cb = ProgressLoggingCallback()
+    trainer.add_callback(SessionUpdateCallback(recovery, session_data))
+    trainer.add_callback(progress_cb)
+    
+    trainer.train(resume_from_checkpoint=resume_checkpoint if is_recovery else None)
+    
+    # PoCレポート生成（学習終了時）
+    if hasattr(trainer, 'metrics_recorder') and trainer.metrics_recorder is not None:
+        try:
+            logger.info("[METRICS] Generating PoC report...")
+            report_path = trainer.metrics_recorder.generate_poc_report(
+                model_config={
+                    'model_path': str(args.model_path),
+                    'model_type': config.get('model', {}).get('model_type', 'phi3'),
+                    'so8t_enabled': config.get('so8t', {}).get('enabled', False),
+                    'so8t_layers': config.get('so8t', {}).get('layer_indices', []),
+                },
+                training_config={
+                    'num_epochs': num_epochs,
+                    'batch_size': batch_size,
+                    'gradient_accumulation_steps': gradient_accumulation,
+                    'learning_rate': training_config.get("learning_rate", 2.0e-4),
+                    'weight_decay': training_config.get("weight_decay", 0.01),
+                    'warmup_ratio': training_config.get("warmup_ratio", 0.1),
+                    'lr_scheduler_type': training_config.get("lr_scheduler_type", "cosine"),
+                }
+            )
+            logger.info(f"[METRICS] PoC report generated: {report_path}")
+        except Exception as e:
+            logger.warning(f"[METRICS] Failed to generate PoC report: {e}")
+    
+    # 最終モデル保存
+    final_model_dir = output_dir / "final_model"
+    trainer.save_model(str(final_model_dir))
+    tokenizer.save_pretrained(str(final_model_dir))
+    
+    # セッション完了
+    session_data["end_time"] = datetime.now().isoformat()
+    session_data["status"] = "completed"
+    recovery.save_session(session_data)
+    
+    logger.info(f"[SUCCESS] Training completed. Model saved to {final_model_dir}")
+
+
+if __name__ == "__main__":
+    main()
+

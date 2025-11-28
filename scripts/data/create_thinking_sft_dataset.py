@@ -649,3 +649,4273 @@ if __name__ == "__main__":
 
 
 
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+    
+    with open(input_file, 'r', encoding='utf-8') as f, \
+         open(output_file, 'w', encoding='utf-8') as out_f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            try:
+                sample = json.loads(line)
+                converted_sample = convert_sample_to_thinking_format(
+                    sample,
+                    default_system_message=default_system_message
+                )
+                
+                if converted_sample is None:
+                    skipped_count += 1
+                    continue
+                
+                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                converted_count += 1
+                
+                if converted_count % 1000 == 0:
+                    logger.info(f"Converted {converted_count} samples...")
+                    
+            except json.JSONDecodeError as e:
+                logger.warning(f"Line {line_num}: JSON decode error: {e}")
+                skipped_count += 1
+                continue
+            except Exception as e:
+                logger.warning(f"Line {line_num}: Error: {e}")
+                skipped_count += 1
+                continue
+    
+    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
+    logger.info(f"Saved to: {output_file}")
+    
+    return converted_count
+
+
+def merge_multiple_datasets(
+    input_files: List[Path],
+    output_file: Path,
+    default_system_message: Optional[str] = None
+) -> int:
+    """
+    複数のデータセットをマージして/think形式に変換
+    
+    Args:
+        input_files: 入力データセットファイルのリスト
+        output_file: 出力データセットファイル
+        default_system_message: デフォルトのシステムメッセージ
+    
+    Returns:
+        マージされたサンプル数
+    """
+    total_count = 0
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for input_file in input_files:
+            logger.info(f"Processing: {input_file}")
+            count = 0
+            
+            with open(input_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        sample = json.loads(line)
+                        converted_sample = convert_sample_to_thinking_format(
+                            sample,
+                            default_system_message=default_system_message
+                        )
+                        
+                        if converted_sample is None:
+                            continue
+                        
+                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
+                        count += 1
+                        total_count += 1
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing sample: {e}")
+                        continue
+            
+            logger.info(f"  Processed {count} samples from {input_file}")
+    
+    logger.info(f"Merged {total_count} total samples")
+    logger.info(f"Saved to: {output_file}")
+    
+    return total_count
+
+
+def expand_dataset_gradually(
+    base_dataset: Path,
+    target_sizes: List[int],
+    quality_threshold: float = 0.7,
+    output_dir: Optional[Path] = None
+) -> List[Path]:
+    """
+    データセットを段階的に拡張
+    
+    Args:
+        base_dataset: ベースデータセットファイル
+        target_sizes: 目標サイズのリスト（例: [5000, 10000, 25000, 50000]）
+        quality_threshold: 品質スコアの閾値
+        output_dir: 出力ディレクトリ（Noneの場合はbase_datasetと同じディレクトリ）
+    
+    Returns:
+        各段階のデータセットファイルパスのリスト
+    """
+    if output_dir is None:
+        output_dir = base_dataset.parent
+    else:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # ベースデータセットを読み込み
+    logger.info(f"Loading base dataset from: {base_dataset}")
+    all_samples = []
+    with open(base_dataset, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                sample = json.loads(line)
+                all_samples.append(sample)
+            except json.JSONDecodeError:
+                continue
+    
+    logger.info(f"Loaded {len(all_samples)} samples from base dataset")
+    
+    # 品質評価器を初期化
+    evaluator = ThinkingDatasetQualityEvaluator()
+    
+    # 品質評価とフィルタリング
+    logger.info(f"Evaluating quality with threshold: {quality_threshold}")
+    quality_samples = evaluator.filter_by_quality(all_samples, min_score=quality_threshold)
+    logger.info(f"Quality-filtered samples: {len(quality_samples)} / {len(all_samples)}")
+    
+    # 各段階でデータセットを拡張
+    output_files = []
+    current_samples = quality_samples.copy()
+    
+    for target_size in target_sizes:
+        logger.info(f"Expanding to {target_size} samples...")
+        
+        # 目標サイズに達するまでサンプルを追加
+        if len(current_samples) < target_size:
+            # 不足分を既存サンプルからランダムに複製（簡易版）
+            # 実際の実装では、新しいデータソースから追加することを推奨
+            needed = target_size - len(current_samples)
+            additional_samples = random.sample(quality_samples, min(needed, len(quality_samples)))
+            current_samples.extend(additional_samples)
+        
+        # 目標サイズに合わせてサンプリング
+        if len(current_samples) > target_size:
+            current_samples = random.sample(current_samples, target_size)
+        
+        # 出力ファイル名を生成
+        output_file = output_dir / f"{base_dataset.stem}_expanded_{target_size}.jsonl"
+        
+        # データセットを保存
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for sample in current_samples:
+                f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Saved expanded dataset: {output_file} ({len(current_samples)} samples)")
+        output_files.append(output_file)
+    
+    return output_files
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Create /think format SFT dataset for Borea-Phi-3.5"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        help="Input dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--inputs",
+        type=Path,
+        nargs="+",
+        help="Multiple input dataset files (JSONL format) for merging"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Output dataset file (JSONL format)"
+    )
+    parser.add_argument(
+        "--system-message",
+        type=str,
+        default=None,
+        help="Custom system message (default: built-in thinking prompt)"
+    )
+    parser.add_argument(
+        "--quality-filter",
+        action="store_true",
+        help="Enable quality filtering"
+    )
+    parser.add_argument(
+        "--min-quality-score",
+        type=float,
+        default=0.7,
+        help="Minimum quality score for filtering (default: 0.7)"
+    )
+    parser.add_argument(
+        "--expand-gradually",
+        action="store_true",
+        help="Expand dataset gradually (5000 -> 10000 -> 25000 -> 50000)"
+    )
+    parser.add_argument(
+        "--target-sizes",
+        type=int,
+        nargs="+",
+        default=[5000, 10000, 25000, 50000],
+        help="Target sizes for gradual expansion (default: 5000 10000 25000 50000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.expand_gradually:
+        # 段階的拡張
+        if not args.input:
+            parser.error("--expand-gradually requires --input")
+        
+        output_files = expand_dataset_gradually(
+            base_dataset=args.input,
+            target_sizes=args.target_sizes,
+            quality_threshold=args.min_quality_score,
+            output_dir=args.output.parent if args.output else None
+        )
+        logger.info(f"[SUCCESS] Expanded dataset to {len(output_files)} stages")
+        for output_file in output_files:
+            logger.info(f"  - {output_file}")
+    
+    elif args.inputs:
+        # 複数ファイルをマージ
+        count = merge_multiple_datasets(
+            input_files=args.inputs,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Merged and converted {count} samples")
+    elif args.input:
+        # 単一ファイルを変換
+        count = convert_dataset_to_thinking_format(
+            input_file=args.input,
+            output_file=args.output,
+            default_system_message=args.system_message
+        )
+        
+        # 品質フィルタリング（オプション）
+        if args.quality_filter:
+            logger.info("Applying quality filtering...")
+            evaluator = ThinkingDatasetQualityEvaluator()
+            filtered_samples = []
+            with open(args.output, 'r', encoding='utf-8') as f:
+                samples = [json.loads(line) for line in f if line.strip()]
+            filtered_samples = evaluator.filter_by_quality(samples, min_score=args.min_quality_score)
+            
+            # フィルタリングされたデータセットを保存
+            filtered_output = args.output.parent / f"{args.output.stem}_filtered.jsonl"
+            with open(filtered_output, 'w', encoding='utf-8') as f:
+                for sample in filtered_samples:
+                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
+            logger.info(f"[SUCCESS] Quality-filtered dataset saved: {filtered_output} ({len(filtered_samples)} / {len(samples)} samples)")
+        
+        logger.info(f"[SUCCESS] Converted {count} samples")
+    else:
+        parser.error("Either --input or --inputs must be specified")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
