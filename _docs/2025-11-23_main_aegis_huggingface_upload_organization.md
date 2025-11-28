@@ -10,20 +10,20 @@
 
 ### 1. アップロード用フォルダー作成
 
-**ファイル**: `huggingface_upload/AEGIS-Phi3.5-Enhanced/`
+**ファイル**: `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/`
 
 **実装状況**: 実装済み
 **動作確認**: OK
 **確認日時**: 2025-11-23
 **備考**: SO8Tを伏せて一般的なTransformerモデルとして説明
 
-- フォルダー構造: huggingface_upload/AEGIS-Phi3.5-Enhanced/
+- フォルダー構造: huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/
 - 目的: HuggingFace公開用ファイル整理
 - SO8T言及: 完全に除去し、一般的なTransformer改良として説明
 
 ### 2. README.md修正（SO8T伏せ・四重推論強調）
 
-**ファイル**: `huggingface_upload/AEGIS-Phi3.5-Enhanced/README.md`
+**ファイル**: `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/README.md`
 
 **実装状況**: 実装済み
 **動作確認**: OK
@@ -55,7 +55,7 @@
 
 ### 4. ベンチマーク結果生成
 
-**ファイル**: `huggingface_upload/AEGIS-Phi3.5-Enhanced/benchmark_results/`
+**ファイル**: `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/benchmark_results/`
 
 **実装状況**: 実装済み
 **動作確認**: OK
@@ -77,16 +77,16 @@
 **備考**: Transformerベースの設定を維持
 
 - ソース: models/aegis_adjusted/
-- コピー先: huggingface_upload/AEGIS-Phi3.5-Enhanced/
+- コピー先: huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/
 - 内容: Phi-3.5ベースの設定（SO8T拡張含むが説明では伏せ）
 
 ## 作成・変更ファイル
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/` (新規フォルダー)
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/README.md` (新規作成・SO8T伏せ)
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/config.json` (コピー)
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/generation_config.json` (コピー)
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/benchmark_results/` (新規フォルダー)
-- `huggingface_upload/AEGIS-Phi3.5-Enhanced/benchmark_results/*.png` (4ファイル生成)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/` (新規フォルダー)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/README.md` (新規作成・SO8T伏せ)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/config.json` (コピー)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/generation_config.json` (コピー)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/benchmark_results/` (新規フォルダー)
+- `huggingface_upload/AEGIS-v2.0-Phi3.5-thinking/benchmark_results/*.png` (4ファイル生成)
 - `scripts/benchmark_visualization.py` (新規作成)
 - `_docs/2025-11-23_main_aegis_huggingface_upload_organization.md` (新規作成)
 
@@ -137,7 +137,7 @@
 ### HuggingFaceアップロード手順
 1. **モデルファイル追加**: 大きなsafetensorsファイルをアップロード用フォルダーに追加
 2. **HuggingFaceアカウント**: アップロード用アカウント準備
-3. **リポジトリ作成**: AEGIS-Phi3.5-Enhanced リポジトリ作成
+3. **リポジトリ作成**: AEGIS-v2.0-Phi3.5-thinking リポジトリ作成
 4. **ファイルアップロード**: 設定ファイル・README・グラフをアップロード
 5. **メタデータ設定**: タグ・説明・ライセンスを設定
 6. **公開**: Community Reviewを経て公開
@@ -147,6 +147,8 @@
 - **使用例拡張**: より詳細なコードサンプル追加
 - **論文引用**: 関連研究の引用追加
 - **コミュニティ対応**: HuggingFaceコミュニティからのフィードバック対応
+
+
 
 
 

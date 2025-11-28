@@ -191,7 +191,7 @@ abc_config = {
         "modelb": {
             "path": "D:/webdataset/models/borea_phi35_alpha_gate_sigmoid_bayesian/final",
             "type": "hf",
-            "description": "AEGIS-Phi3.5-Enhanced Model - ABC Test Model B"
+            "description": "AEGIS-v2.0-Phi3.5-thinking Model - ABC Test Model B"
         },
         "modelc": {
             "path": "D:/webdataset/models/borea_phi35_so8t_rtx3060/final",

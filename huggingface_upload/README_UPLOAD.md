@@ -40,7 +40,7 @@ pip install -r scripts/upload_requirements.txt
 export HF_TOKEN="your-huggingface-token"
 
 # 3. アップロード実行
-python scripts/upload_aegis_to_huggingface.py your-username/AEGIS-Phi3.5-Enhanced
+python scripts/upload_aegis_to_huggingface.py your-username/AEGIS-v2.0-Phi3.5-thinking
 ```
 
 ### 方法2: HuggingFace CLI
@@ -53,14 +53,14 @@ pip install huggingface_hub[cli]
 huggingface-cli login
 
 # 3. アップロード実行
-bash scripts/upload_aegis_hf.sh your-username/AEGIS-Phi3.5-Enhanced
+bash scripts/upload_aegis_hf.sh your-username/AEGIS-v2.0-Phi3.5-thinking
 ```
 
 ### 方法3: Windowsバッチファイル
 
 ```cmd
 REM Windowsコマンドプロンプトで実行
-scripts\upload_aegis_hf.bat your-username/AEGIS-Phi3.5-Enhanced
+scripts\upload_aegis_hf.bat your-username/AEGIS-v2.0-Phi3.5-thinking
 ```
 
 ## 🔧 HuggingFaceトークンの取得
@@ -99,8 +99,8 @@ set HF_TOKEN=your-token-here
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-model = AutoModelForCausalLM.from_pretrained("your-username/AEGIS-Phi3.5-Enhanced")
-tokenizer = AutoTokenizer.from_pretrained("your-username/AEGIS-Phi3.5-Enhanced")
+model = AutoModelForCausalLM.from_pretrained("your-username/AEGIS-v2.0-Phi3.5-thinking")
+tokenizer = AutoTokenizer.from_pretrained("your-username/AEGIS-v2.0-Phi3.5-thinking")
 
 # テスト推論
 messages = [{"role": "user", "content": "Hello, how are you?"}]
@@ -130,7 +130,7 @@ print(tokenizer.decode(outputs[0]))
 
 ### モデルページURL
 ```
-https://huggingface.co/your-username/AEGIS-Phi3.5-Enhanced
+https://huggingface.co/your-username/AEGIS-v2.0-Phi3.5-thinking
 ```
 
 ### コミュニティへの共有

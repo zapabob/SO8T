@@ -7,7 +7,7 @@
 ```
 🚀 AEGIS公開！Transformer数理的最適化+SFTで推論能力向上。正確性+17.1%、倫理適合性+35.3%達成。四重推論システムで包括的思考を実現。MIT Licenseでオープンソース化。
 
-🔗 https://huggingface.co/zapabobouj/AEGIS-Phi3.5-Enhanced
+🔗 https://huggingface.co/zapabobouj/AEGIS-v2.0-Phi3.5-thinking
 ```
 
 **文字数**: 139文字 ✅
@@ -17,7 +17,7 @@
 ```
 🚀 AEGIS released! Transformer mathematical optimization + SFT enhances reasoning. +17.1% accuracy, +35.3% ethical alignment. Quadruple reasoning system enables comprehensive thinking. MIT License, open source.
 
-🔗 https://huggingface.co/zapabobouj/AEGIS-Phi3.5-Enhanced
+🔗 https://huggingface.co/zapabobouj/AEGIS-v2.0-Phi3.5-thinking
 ```
 
 **文字数**: 139文字 ✅
@@ -50,7 +50,7 @@ AEGISは、すべてのクエリに対して四つの思考軸（論理的正確
 • 倫理適合性: +35.3% (6.8/10 → 9.2/10)
 • エラー耐性: +23.6% (7.2/10 → 8.9/10)
 
-🔗 モデルページ: https://huggingface.co/zapabobouj/AEGIS-Phi3.5-Enhanced
+🔗 モデルページ: https://huggingface.co/zapabobouj/AEGIS-v2.0-Phi3.5-thinking
 📄 ライセンス: MIT License
 🏷️ タグ: #AI #MachineLearning #LLM #Transformer #EthicalAI #OpenSource
 ```
@@ -79,7 +79,7 @@ AEGIS analyzes all queries from four thinking axes (logical accuracy, ethical va
 • Ethical Alignment: +35.3% (6.8/10 → 9.2/10)
 • Error Resilience: +23.6% (7.2/10 → 8.9/10)
 
-🔗 Model Page: https://huggingface.co/zapabobouj/AEGIS-Phi3.5-Enhanced
+🔗 Model Page: https://huggingface.co/zapabobouj/AEGIS-v2.0-Phi3.5-thinking
 📄 License: MIT License
 🏷️ Tags: #AI #MachineLearning #LLM #Transformer #EthicalAI #OpenSource
 ```
@@ -113,7 +113,7 @@ AEGISは、すべてのクエリに対して四つの思考軸（論理的正確
 • Ethical Alignment / 倫理適合性: +35.3% (6.8/10 → 9.2/10)
 • Error Resilience / エラー耐性: +23.6% (7.2/10 → 8.9/10)
 
-🔗 Model Page / モデルページ: https://huggingface.co/zapabobouj/AEGIS-Phi3.5-Enhanced
+🔗 Model Page / モデルページ: https://huggingface.co/zapabobouj/AEGIS-v2.0-Phi3.5-thinking
 📄 License / ライセンス: MIT License
 🏷️ Tags / タグ: #AI #MachineLearning #LLM #Transformer #EthicalAI #OpenSource #JapaneseAI #Reasoning #QuadrupleReasoning
 ```
@@ -160,6 +160,8 @@ AEGISは、すべてのクエリに対して四つの思考軸（論理的正確
 - `#QuadrupleReasoning`
 - `#SoftwareEngineering`
 - `#DeepLearning`
+
+
 
 
 

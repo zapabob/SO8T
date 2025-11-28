@@ -9,7 +9,7 @@ set HF_TOKEN=%2
 
 if "%REPO_NAME%"=="" (
     echo ❌ Usage: %0 ^<repo-name^> [hf-token]
-    echo Example: %0 your-username/AEGIS-Phi3.5-Enhanced
+    echo Example: %0 your-username/AEGIS-v2.0-Phi3.5-thinking
     exit /b 1
 )
 

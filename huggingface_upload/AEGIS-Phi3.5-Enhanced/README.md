@@ -199,13 +199,13 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # モデル読み込み
 model = AutoModelForCausalLM.from_pretrained(
-    "your-username/AEGIS-Phi3.5-Enhanced",
+    "your-username/AEGIS-v2.0-Phi3.5-thinking",
     device_map="cuda",
     torch_dtype="auto",
     trust_remote_code=True,
 )
 
-tokenizer = AutoTokenizer.from_pretrained("your-username/AEGIS-Phi3.5-Enhanced")
+tokenizer = AutoTokenizer.from_pretrained("your-username/AEGIS-v2.0-Phi3.5-thinking")
 
 # 推論実行
 messages = [
@@ -277,7 +277,7 @@ pip install flash-attn==2.5.8
 
 ```python
 model = AutoModelForCausalLM.from_pretrained(
-    "your-username/AEGIS-Phi3.5-Enhanced",
+    "your-username/AEGIS-v2.0-Phi3.5-thinking",
     device_map="cuda",
     torch_dtype="auto",
     trust_remote_code=True,
@@ -376,6 +376,6 @@ Quadruple Analysis = Logic ⊕ Ethics ⊕ Practical ⊕ Creative
   author={Axcxept AI Team},
   year={2025},
   publisher={HuggingFace},
-  url={https://huggingface.co/your-username/AEGIS-Phi3.5-Enhanced}
+  url={https://huggingface.co/your-username/AEGIS-v2.0-Phi3.5-thinking}
 }
 ```

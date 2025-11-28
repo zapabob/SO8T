@@ -14,7 +14,7 @@ def upload_aegis_model(repo_name: str, token: str = None):
     Upload AEGIS model to HuggingFace Hub
 
     Args:
-        repo_name: HuggingFace repository name (e.g., "your-username/AEGIS-Phi3.5-Enhanced")
+        repo_name: HuggingFace repository name (e.g., "your-username/AEGIS-v2.0-Phi3.5-thinking")
         token: HuggingFace API token (optional, will use env var if not provided)
     """
 
@@ -131,7 +131,7 @@ def upload_aegis_model(repo_name: str, token: str = None):
 
 def main():
     parser = argparse.ArgumentParser(description="Upload AEGIS model to HuggingFace Hub")
-    parser.add_argument("repo_name", help="HuggingFace repository name (e.g., 'your-username/AEGIS-Phi3.5-Enhanced')")
+    parser.add_argument("repo_name", help="HuggingFace repository name (e.g., 'your-username/AEGIS-v2.0-Phi3.5-thinking')")
     parser.add_argument("--token", help="HuggingFace API token", default=None)
 
     args = parser.parse_args()
