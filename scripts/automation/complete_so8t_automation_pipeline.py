@@ -283,6 +283,21 @@ class SO8TAutomationPipeline:
             self._handle_pipeline_error(e)
             return False
 
+        finally:
+            # プログレスバーとデバッグ出力のクリーンアップ
+            if self.main_progress:
+                self.main_progress.close()
+            if self.step_progress:
+                self.step_progress.close()
+            self.debug_enabled = False
+            self._debug_print("Pipeline execution finished", 'info')
+            logger.info("Pipeline cleanup completed")
+
+    def __del__(self):
+        """デストラクタ - デバッグスレッドのクリーンアップ"""
+        self.debug_enabled = False
+        logger.debug("SO8TAutomationPipeline destructor called")
+
     def _step_multimodal_data_collection(self) -> bool:
         """STEP 1: マルチモーダルデータセット収集 with tqdm and debug"""
         logger.info("STEP 1: Multimodal Data Collection")
