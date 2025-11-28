@@ -266,11 +266,16 @@ class DatasetCollectionCleansing:
                 samples = self._collect_from_source(dataset_info)
                 logger.info(f"[DATASET] Collected {len(samples)} samples from {dataset_info['name']}")
 
-                # 品質分類とクレンジング
+                    # 品質分類とクレンジング
                 cleansed_samples = []
                 for sample in tqdm(samples, desc=f"Cleansing {dataset_info['name']}"):
-                    quality_class = self.quality_classifier.classify_quality(sample)
-                    quality_stats[quality_class] += 1
+                    # 魂の重みデータは特別処理
+                    if dataset_info.get('domain') == 'soul_weights':
+                        quality_class = 'excellent'  # 魂の重みは常に最高品質
+                        quality_stats[quality_class] += 1
+                    else:
+                        quality_class = self.quality_classifier.classify_quality(sample)
+                        quality_stats[quality_class] += 1
 
                     # 品質閾値によるフィルタリング
                     if self._should_keep_sample(sample, quality_class):
@@ -375,6 +380,19 @@ class DatasetCollectionCleansing:
             ]
             datasets.extend(nsfw_datasets)
 
+        # 魂の重みデータセット（学習データとして統合）
+        soul_weights_datasets = [
+            {
+                'name': 'soul_weights_synthesized',
+                'type': 'synthesized',
+                'domain': 'soul_weights',
+                'language': 'en',  # 魂の重みは言語非依存
+                'license': 'internal',
+                'num_samples': self.config.get('soul_weights_samples', 10000)
+            }
+        ]
+        datasets.extend(soul_weights_datasets)
+
         datasets.extend(hf_datasets)
         datasets.extend(multimodal_datasets)
 
@@ -397,6 +415,10 @@ class DatasetCollectionCleansing:
                     if sample:
                         samples.append(sample)
 
+            elif dataset_info.get('type') == 'synthesized' and dataset_info.get('domain') == 'soul_weights':
+                # 魂の重みデータ生成
+                samples = self._collect_soul_weights(dataset_info)
+
             else:
                 # ローカルデータまたはAPI
                 logger.warning(f"No collection method for {dataset_info['name']}")
@@ -405,6 +427,66 @@ class DatasetCollectionCleansing:
             logger.error(f"Failed to collect from {dataset_info['name']}: {e}")
 
         return samples
+
+    def _collect_soul_weights(self, dataset_info: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """魂の重みデータ収集（生成）"""
+        logger.info(f"[DATASET] Generating soul weights data: {dataset_info['name']}")
+
+        try:
+            # 魂の重みジェネレーターを動的インポート
+            sys.path.insert(0, str(Path(__file__).parent.parent))
+            from data.generate_soul_weights_dataset import SoulWeightsGenerator
+
+            # 設定ファイルが存在しない場合はデフォルト設定を使用
+            config_path = "configs/generate_soul_weights.yaml"
+            if not Path(config_path).exists():
+                logger.warning(f"Config file {config_path} not found, using default settings")
+
+            # ジェネレーター初期化
+            generator = SoulWeightsGenerator(config_path if Path(config_path).exists() else None)
+
+            # サンプル数設定
+            num_samples = min(dataset_info.get('num_samples', 10000), self.max_samples_per_source)
+
+            # 各コンポーネント生成
+            alpha_gates = generator.generate_alpha_gate_values(num_samples)
+            so8_rotations = generator.generate_so8_rotations(num_samples)
+            soul_pillars = generator.generate_soul_pillars(num_samples)
+
+            # サンプル生成
+            samples = []
+            for i in range(num_samples):
+                sample = {
+                    'text': f"Soul weights sample {i}: Alpha={alpha_gates[i].item():.4f}, SO(8) rotations applied",
+                    'domain': 'soul_weights',
+                    'language': 'en',
+                    'license': 'internal',
+
+                    # 魂の重みデータ
+                    'soul_weights': {
+                        'alpha_gate': alpha_gates[i].item(),
+                        'r_safe': so8_rotations['r_safe'][i].mean().item(),  # メモリ節約のため平均値のみ
+                        'r_cmd': so8_rotations['r_cmd'][i].mean().item(),
+                        'r_total': so8_rotations['r_total'][i].mean().item(),
+                        'safety_head': soul_pillars['safety_head'][i].tolist(),
+                        'task_head': soul_pillars['task_head'][i].tolist(),
+                        'dual_heads': soul_pillars['dual_heads'][i].tolist(),
+                        'pet': soul_pillars['pet'][i].item()
+                    },
+
+                    # 品質分類用メタデータ
+                    'quality_score': 0.9,  # 魂の重みは高品質
+                    'has_image': False,
+                    'nsfw_content': False
+                }
+                samples.append(sample)
+
+            logger.info(f"[DATASET] Generated {len(samples)} soul weights samples")
+            return samples
+
+        except Exception as e:
+            logger.error(f"[DATASET] Failed to generate soul weights: {e}")
+            return []
 
     def _convert_hf_sample(self, item: Any, dataset_info: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """HuggingFaceサンプル変換"""

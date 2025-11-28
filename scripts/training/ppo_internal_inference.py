@@ -137,12 +137,12 @@ class MetaInferenceController:
         # 四つの推論層の制御パラメータ
         quad_control = {
             'perception_layer': {
-                'attention_focus': self._calculate_attention_focus(entropy, control_info),
+                'attention_focus': self._calculate_attention_focus(entropy, control_info, inference_state),
                 'pattern_recognition': self._calculate_pattern_recognition(entropy, inference_state),
                 'sensory_integration': self._calculate_sensory_integration(control_info)
             },
             'cognition_layer': {
-                'logical_reasoning': self._calculate_logical_reasoning(entropy, control_info),
+                'logical_reasoning': self._calculate_logical_reasoning(entropy, control_info, inference_state),
                 'abstract_thinking': self._calculate_abstract_thinking(inference_state),
                 'memory_retrieval': self._calculate_memory_retrieval(control_info)
             },
@@ -160,15 +160,26 @@ class MetaInferenceController:
 
         return quad_control
 
-    def _calculate_attention_focus(self, entropy: float, control_info: Dict[str, Any]) -> float:
-        """注意力集中度計算"""
+    def _calculate_attention_focus(self, entropy: float, control_info: Dict[str, Any], inference_state: Optional[Dict[str, Any]] = None) -> float:
+        """注意力集中度計算（魂の重み対応）"""
         base_focus = 0.7
+
+        # 魂の重みデータがある場合は活用
+        soul_multiplier = 1.0
+        if inference_state and inference_state.get('has_soul_weights', False):
+            soul_alpha = inference_state.get('soul_alpha', 0.5)
+            soul_safety = inference_state.get('soul_safety_score', 0.5)
+            # Alphaが高いほど、Safetyが高いほど注意力が向上
+            soul_multiplier = 1.0 + (soul_alpha * 0.2) + (soul_safety * 0.1)
+
         if control_info['focus_mode'] == 'convergence':
-            return min(1.0, base_focus + entropy * 0.1)
+            focus = min(1.0, (base_focus + entropy * 0.1) * soul_multiplier)
         elif control_info['focus_mode'] == 'exploration':
-            return max(0.3, base_focus - entropy * 0.05)
+            focus = max(0.3, (base_focus - entropy * 0.05) * soul_multiplier)
         else:
-            return base_focus
+            focus = base_focus * soul_multiplier
+
+        return focus
 
     def _calculate_pattern_recognition(self, entropy: float, inference_state: Dict[str, Any]) -> float:
         """パターン認識能力計算"""
@@ -184,12 +195,22 @@ class MetaInferenceController:
         else:
             return 0.75
 
-    def _calculate_logical_reasoning(self, entropy: float, control_info: Dict[str, Any]) -> float:
-        """論理的推論能力計算"""
+    def _calculate_logical_reasoning(self, entropy: float, control_info: Dict[str, Any], inference_state: Optional[Dict[str, Any]] = None) -> float:
+        """論理的推論能力計算（魂の重み対応）"""
+        base_reasoning = 0.7
+
+        # 魂の重みデータがある場合は活用
+        soul_multiplier = 1.0
+        if inference_state and inference_state.get('has_soul_weights', False):
+            soul_alpha = inference_state.get('soul_alpha', 0.5)
+            soul_complexity = inference_state.get('soul_task_complexity', 0.5)
+            # Alphaが高いほど、複雑さが高いほど論理的推論能力が向上
+            soul_multiplier = 1.0 + (soul_alpha * 0.3) + (soul_complexity * 0.2)
+
         if control_info['focus_mode'] == 'convergence':
-            return 0.85
+            return min(1.0, 0.85 * soul_multiplier)
         else:
-            return 0.7
+            return min(1.0, base_reasoning * soul_multiplier)
 
     def _calculate_abstract_thinking(self, inference_state: Dict[str, Any]) -> float:
         """抽象思考能力計算"""
@@ -220,9 +241,21 @@ class MetaInferenceController:
             return 0.6  # 探索時は緩やかな誤り検出
 
     def _calculate_decision_making(self, entropy: float, inference_state: Dict[str, Any]) -> float:
-        """意思決定能力計算"""
+        """意思決定能力計算（魂の重み対応）"""
         confidence = inference_state.get('confidence_score', 0.5)
-        return min(1.0, confidence + (1 - entropy) * 0.2)
+        base_decision = confidence + (1 - entropy) * 0.2
+
+        # 魂の重みデータがある場合は活用
+        if inference_state.get('has_soul_weights', False):
+            soul_alpha = inference_state.get('soul_alpha', 0.5)
+            soul_safety = inference_state.get('soul_safety_score', 0.5)
+            soul_inertia = abs(inference_state.get('soul_pet_inertia', 0.0))
+
+            # Alphaが高いほど、Safetyが高いほど、PET慣性が安定しているほど意思決定能力が向上
+            soul_bonus = (soul_alpha * 0.15) + (soul_safety * 0.1) + (1 - soul_inertia) * 0.05
+            base_decision += soul_bonus
+
+        return min(1.0, base_decision)
 
     def _calculate_response_inhibition(self, control_info: Dict[str, Any]) -> float:
         """反応抑制能力計算"""
@@ -325,12 +358,26 @@ class InternalInferenceEnhancer(nn.Module):
         return enhanced_embeds, thinking_info
 
     def _generate_thinking_tokens(self, input_embeds: torch.Tensor, inference_state: Dict[str, Any]) -> torch.Tensor:
-        """Thinking token 生成"""
+        """Thinking token 生成（魂の重み対応）"""
         batch_size, seq_len, embed_dim = input_embeds.shape
 
         # 推論状態に基づいてthinking token数を決定
         complexity_score = inference_state.get('complexity_score', 0.5)
-        thinking_token_count = int(self.max_thinking_tokens * complexity_score)
+
+        # 魂の重みデータがある場合は統合
+        if inference_state.get('has_soul_weights', False):
+            soul_alpha = inference_state.get('soul_alpha', 0.5)
+            soul_safety = inference_state.get('soul_safety_score', 0.5)
+            soul_complexity = inference_state.get('soul_task_complexity', 0.5)
+            soul_inertia = abs(inference_state.get('soul_pet_inertia', 0.0))
+
+            # 魂の重みに基づいてthinking token数を調整
+            # Alpha Gateが高いほど、Safetyが高いほど、複雑さが高いほど多くのthinking token
+            soul_multiplier = 1.0 + (soul_alpha * 0.5) + (soul_safety * 0.3) + (soul_complexity * 0.2)
+            thinking_token_count = int(self.max_thinking_tokens * complexity_score * soul_multiplier)
+        else:
+            thinking_token_count = int(self.max_thinking_tokens * complexity_score)
+
         thinking_token_count = max(1, min(thinking_token_count, self.max_thinking_tokens))
 
         # Thinking token 生成

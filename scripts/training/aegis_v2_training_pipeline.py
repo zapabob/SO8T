@@ -244,6 +244,13 @@ class MultimodalThinkingDataset(Dataset):
             'complexity_score': sample.get('complexity_score', 0.5)
         }
 
+        # 魂の重みデータがある場合は追加
+        if 'soul_weights' in sample:
+            result['soul_weights'] = sample['soul_weights']
+            result['has_soul_weights'] = True
+        else:
+            result['has_soul_weights'] = False
+
         # 画像処理（ある場合）
         if sample.get('has_image', False) and self.image_processor:
             # 実際の画像処理はここに実装
@@ -550,27 +557,51 @@ class AEGISv2IntegratedTrainer:
         self._generate_training_report()
 
     def _prepare_batch(self, batch: Dict[str, Any]) -> Dict[str, Any]:
-        """バッチデータ準備"""
+        """バッチデータ準備（魂の重み対応）"""
         prepared_batch = {}
         for key, value in batch.items():
             if isinstance(value, torch.Tensor):
                 prepared_batch[key] = value.to(self.device)
             elif isinstance(value, list):
                 prepared_batch[key] = torch.tensor(value).to(self.device)
+            elif key == 'soul_weights' and isinstance(value, list):
+                # 魂の重みデータをテンソル化
+                soul_weights_tensor = {}
+                for sw_key, sw_value in value[0].items() if value else {}:
+                    if isinstance(sw_value, (int, float)):
+                        soul_weights_tensor[sw_key] = torch.tensor(sw_value).to(self.device)
+                    elif isinstance(sw_value, list):
+                        soul_weights_tensor[sw_key] = torch.tensor(sw_value).to(self.device)
+                prepared_batch[key] = soul_weights_tensor
             else:
                 prepared_batch[key] = value
 
         return prepared_batch
 
     def _extract_inference_state(self, batch: Dict[str, Any], aux_info: Dict[str, Any]) -> Dict[str, Any]:
-        """推論状態情報抽出"""
-        return {
+        """推論状態情報抽出（魂の重み対応）"""
+        inference_state = {
             'complexity_score': batch.get('complexity_score', torch.tensor(0.5)).mean().item(),
             'confidence_score': aux_info.get('inference_quality', 0.5),
             'abstraction_level': aux_info.get('alpha', 0.5),
             'goal_clarity': batch.get('quality_score', torch.tensor(0.5)).mean().item(),
             'adaptation_score': aux_info.get('phase_transition', {}).get('loss_gradient', 0.5)
         }
+
+        # 魂の重みデータがある場合は統合
+        if batch.get('has_soul_weights', False) and 'soul_weights' in batch:
+            soul_weights = batch['soul_weights']
+            inference_state.update({
+                'soul_alpha': soul_weights.get('alpha_gate', 0.5),
+                'soul_safety_score': torch.tensor(soul_weights.get('safety_head', [0.5, 0.5])).softmax(dim=-1)[0].item(),
+                'soul_task_complexity': len(soul_weights.get('task_head', [0.0]*4)) / 4.0,
+                'soul_pet_inertia': soul_weights.get('pet', 0.0),
+                'has_soul_weights': True
+            })
+        else:
+            inference_state['has_soul_weights'] = False
+
+        return inference_state
 
     def _process_multimodal_batch(self, batch: Dict[str, Any], alpha: float):
         """マルチモーダルバッチ処理"""
