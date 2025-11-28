@@ -1,0 +1,70 @@
+# RTX3060 Optimized QLoRA Training Configuration
+# Frozen base weights, efficient fine-tuning for RTX3060
+
+model:
+  base_model: "microsoft/phi-3.5-mini-instruct"
+  torch_dtype: "bfloat16"
+  device: "cuda"
+
+data:
+  train_data:
+    - "D:/webdataset/datasets/instruction_tuning_data.jsonl"
+    - "D:/webdataset/datasets/multimodal_instruction_data.jsonl"
+  val_data: "D:/webdataset/datasets/validation_data.jsonl"
+  max_seq_length: 2048
+
+training:
+  output_dir: "D:/webdataset/checkpoints/finetuning/so8t_phi3_rtx3060"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 4  # RTX3060 optimized
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  logging_steps: 10
+  save_steps: 500
+  save_total_limit: 3
+  evaluation_strategy: "steps"
+  eval_steps: 500
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+  max_grad_norm: 1.0
+  report_to: []
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
+  dataloader_num_workers: 0
+
+qlora:
+  r: 16  # Smaller LoRA rank for RTX3060
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+quantization:
+  load_in_8bit: true
+  load_in_4bit: false
+
+loss:
+  so8t_orthogonality_weight: 0.01
+
+# RTX3060 Memory Optimization
+memory_optimization:
+  enable: true
+  empty_cache_steps: 10
+  max_memory_usage_gb: 7.5  # Leave 0.5GB buffer for RTX3060 8GB
+
+# Frozen Weights Configuration
+freeze_base_weights: true
+train_only_lora: true
