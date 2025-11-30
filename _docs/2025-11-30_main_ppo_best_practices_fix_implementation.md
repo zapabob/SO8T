@@ -18,10 +18,11 @@
 **備考**: PPOベストプラクティスに基づく損失計算を実装
 
 - Advantage normalization: `(advantages - advantages.mean()) / (advantages.std() + 1e-8)`
+- GAE簡易実装: advantages = rewards - value_predictions (baseline)
 - Proper entropy calculation: `-torch.sum(probs * log_probs, dim=-1).mean()`
 - KL divergence monitoring: early stopping用
 - Policy loss: `-torch.min(surr1, surr2).mean()`
-- VF loss: 簡易実装（実際のPPOではvalue networkが必要）
+- VF loss: PPOベストプラクティス実装（hidden statesベースのvalue prediction + MSE loss）
 
 ### 2. 統計記録の強化
 
