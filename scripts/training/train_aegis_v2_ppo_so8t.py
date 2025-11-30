@@ -614,6 +614,12 @@ class PPOTrainer:
             )
         # テストモードの場合はsetup_test_modeで既に設定済み
 
+        # オプティマイザー初期化（テストモード用）
+        if not hasattr(self, 'optimizer'):
+            # モックパラメータでオプティマイザーを初期化
+            mock_params = [torch.randn(10, requires_grad=True)]
+            self.optimizer = AdamW(mock_params, lr=self.ppo_config.learning_rate)
+
         # オプティマイザー
         self.optimizer = AdamW(
             self.model.parameters(),
