@@ -987,14 +987,6 @@ class PPOTrainer:
             'alpha': self.phase_annealer.get_current_alpha(),
             'chaos_intensity': self.chaos_enhancer.chaos_intensity if self.chaos_enhancer else 0.0
         })
-                    # 逆伝播 (Unsloth最適化)
-                    if UNSLOTH_AVAILABLE:
-                        # Unslothの高速逆伝播
-                        loss.backward()
-                    else:
-                        loss.backward()
-
-                    # Gradient accumulation
                     if (self.global_step + 1) % self.ppo_config.gradient_accumulation_steps == 0:
                         # Gradient clipping
                         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.ppo_config.max_grad_norm)
@@ -1169,6 +1161,30 @@ class PPOTrainer:
 
                     # 学習ステップ
                     step_info = self.train_step(batch)
+
+                    # RTX3060最適化: Gradient accumulationとメモリ効率化
+                    loss = torch.tensor(step_info['total_loss'], requires_grad=True)
+                    loss = loss / self.ppo_config.gradient_accumulation_steps  # accumulation用に損失をスケール
+
+                    # 逆伝播 (Unsloth最適化)
+                    loss.backward()
+
+                    # Gradient accumulation
+                    if (self.global_step + 1) % self.ppo_config.gradient_accumulation_steps == 0:
+                        # Gradient clipping
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.ppo_config.max_grad_norm)
+
+                        # Optimizer step
+                        self.optimizer.step()
+                        self.optimizer.zero_grad()
+
+                        # Learning rate scheduling (Unsloth使用時)
+                        if hasattr(self, 'lr_scheduler'):
+                            self.lr_scheduler.step()
+
+                        # GPUメモリ解放
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
 
                     epoch_losses.append(step_info['total_loss'])
                     epoch_rewards.append(step_info['rewards'])
