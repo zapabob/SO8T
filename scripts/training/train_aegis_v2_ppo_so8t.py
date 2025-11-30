@@ -723,6 +723,10 @@ class PPOTrainer:
                 # モックeval
                 pass
 
+            def parameters(self):
+                # モックparameters
+                return [torch.randn(10, requires_grad=True)]
+
         # モックトークナイザー
         class MockTokenizer:
             def __init__(self):
