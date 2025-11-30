@@ -30,10 +30,12 @@
         "task_type": "CAUSAL_LM"
     },
     "data": {
-        "train_file": "data/so8t_thinking_qc_optimized_5000.jsonl",
+        "train_file": "data/aegis_v2_mathematical_enhanced_dataset.jsonl",
         "validation_split": 0.1,
         "max_length": 2048,
-        "preprocessing_num_workers": 2
+        "preprocessing_num_workers": 4,
+        "include_mathematical_documents": true,
+        "mathematical_enhancement_weight": 0.8
     },
     "gguf": {
         "output_dir": "D:/webdataset/gguf_models",

@@ -141,6 +141,11 @@ dmypy.json
 *.gguf
 *.bin
 
+# Data files
+data/
+*.jsonl
+*.csv
+*.parquet
 # Logs
 *.log
 logs/
