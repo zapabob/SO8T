@@ -189,6 +189,47 @@ data/multimodal_synthetic/*.jsonl
 data/validated/*.jsonl
 # Keep: data/four_role/*.jsonl (important 4-role dataset)
 
+# AEGIS datasets (large reasoning datasets - exclude from repo)
+data/aegis_v2_0reasoningdataset.jsonl
+data/aegis_v2_test/train_aegis_v2.jsonl
+data/aegis_v2_test/val_aegis_v2.jsonl
+
+# Large integrated datasets (exclude from repo)
+data/so8t_integrated_training_dataset_utf8.jsonl
+data/so8t_quadruple_dataset.jsonl
+data/so8t_safety_dataset.jsonl
+
+# NKAT datasets (large training data)
+data/nkat_so8t/**/*.jsonl
+data/nkat_so8t_final/**/*.jsonl
+data/nkat_so8t_v2/**/*.jsonl
+data/nkat_so8t_test/**/*.jsonl
+
+# Thinking model datasets (large training data)
+data/so8t_thinking_*.jsonl
+
+# Labeled datasets (large training data)
+data/labeled/**/*.jsonl
+
+# Nobel Fields datasets (large training data)
+data/nobel_fields/**/*.jsonl
+data/nobel_fields_advanced/**/*.jsonl
+data/integrated_nobel_fields_cot_final/**/*.jsonl
+
+# HF integrated datasets (large training data)
+data/hf_integrated/**/*.jsonl
+data/hf_multilingual/**/*.jsonl
+
+# Processed datasets (large training data)
+data/processed/**/*.jsonl
+
+# Split datasets (large training data)
+data/splits/**/*.jsonl
+
+# So8t variant datasets (large training data)
+data/so8t_*/**/*.jsonl
+data/so8t_*.jsonl
+
 # Visualization outputs
 *.png
 *.pdf
