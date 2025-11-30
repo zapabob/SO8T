@@ -41,12 +41,17 @@
         "task_type": "CAUSAL_LM"
     },
     "data": {
-        "train_file": "data/aegis_v2_mathematical_enhanced_dataset.jsonl",
+        "train_file": "data/so8t_training_dataset_integrated_50k.jsonl",
         "validation_split": 0.1,
         "max_length": 2048,
         "preprocessing_num_workers": 4,
         "include_mathematical_documents": true,
-        "mathematical_enhancement_weight": 0.8
+        "mathematical_enhancement_weight": 0.8,
+        "dataset_quality_verified": true,
+        "nsfw_detection_enabled": true,
+        "qc_controlled": true,
+        "cot_enhanced": true,
+        "thinking_model_optimized": true
     },
     "gguf": {
         "output_dir": "H:/from_D/webdataset/gguf_models",

@@ -1,0 +1,51 @@
+{
+  "total_samples": 97755,
+  "quality_metrics": {
+    "text_length_stats": {
+      "mean": 26.976031916526008,
+      "min": 0,
+      "max": 220,
+      "median": 28
+    },
+    "qc_stats": {
+      "qc_controlled_count": 0,
+      "qc_controlled_ratio": 0.0
+    },
+    "weight_stats": {
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    }
+  },
+  "distribution_analysis": {
+    "reasoning_types": {
+      "unknown": 97755
+    },
+    "sources": {
+      "unknown": 97754,
+      "ZennCrawler": 1
+    },
+    "safety_flags": {
+      "drug_detection": 0,
+      "nsfw_erotic": 0,
+      "nsfw_violence": 0,
+      "safety_detection": 0
+    }
+  },
+  "content_analysis": {
+    "sample_sufficiency": true,
+    "nsfw_sufficient": false,
+    "quality_sufficient": true,
+    "diversity_ratio": 0.010413789575980768,
+    "min_samples_required": 50000
+  },
+  "safety_analysis": {},
+  "overall_assessment": {
+    "overall_score": 60,
+    "grade": "C",
+    "recommendations": [
+      "NSFWデータの割合が低いです。検知目的で最低10%のNSFWデータが必要です。",
+      "テキストの多様性が不十分です。重複データを除去してください。"
+    ]
+  }
+}

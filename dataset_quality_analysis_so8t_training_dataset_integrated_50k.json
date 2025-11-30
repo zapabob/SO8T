@@ -1,0 +1,51 @@
+{
+  "total_samples": 50000,
+  "quality_metrics": {
+    "text_length_stats": {
+      "mean": 55.15808,
+      "min": 12,
+      "max": 220,
+      "median": 54
+    },
+    "qc_stats": {
+      "qc_controlled_count": 50000,
+      "qc_controlled_ratio": 1.0
+    },
+    "weight_stats": {
+      "mean": 1.98753,
+      "min": 1.5,
+      "max": 3.0
+    }
+  },
+  "distribution_analysis": {
+    "reasoning_types": {
+      "safety": 48747,
+      "unknown": 1253
+    },
+    "sources": {
+      "unknown": 49999,
+      "ZennCrawler": 1
+    },
+    "safety_flags": {
+      "drug_detection": 1,
+      "nsfw_erotic": 6030,
+      "nsfw_violence": 0,
+      "safety_detection": 48747
+    }
+  },
+  "content_analysis": {
+    "sample_sufficiency": true,
+    "nsfw_sufficient": true,
+    "quality_sufficient": true,
+    "diversity_ratio": 0.0266,
+    "min_samples_required": 50000
+  },
+  "safety_analysis": {},
+  "overall_assessment": {
+    "overall_score": 85,
+    "grade": "B",
+    "recommendations": [
+      "テキストの多様性が不十分です。重複データを除去してください。"
+    ]
+  }
+}
