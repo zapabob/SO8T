@@ -18,6 +18,7 @@ NKAT理論に基づく四値分類タグ付きデータセット作成
 
 import json
 import re
+import os
 import argparse
 import logging
 from pathlib import Path
@@ -102,6 +103,17 @@ class DataConfig:
     total_samples: int = 50000
     val_split: float = 0.2
 
+    # ローカルデータセット設定（H:\ドライブ参照）
+    local_datasets: List[str] = field(default_factory=lambda: [
+        "H:\\from_D\\webdataset\\integrated_dataset.jsonl",  # 既存統合データセット
+        "H:\\from_D\\webdataset\\elyza100_test.jsonl",       # ELYZAテストデータ
+        "H:\\from_D\\webdataset\\gsm8k_train.jsonl",         # GSM8K訓練データ
+        "H:\\from_D\\webdataset\\mmlu_dev.jsonl",           # MMLU開発データ
+    ])
+
+    # ローカルデータ比率
+    local_ratio: float = 0.3  # 全体の30%をローカルデータから
+
 class NKATAutoTagger:
     """NKAT理論に基づく四値分類自動タグ付けクラス"""
 
@@ -119,6 +131,7 @@ class NKATAutoTagger:
         # センテンストランスフォーマー（類似度計算用）
         try:
             self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
+            logger.info("SentenceTransformer loaded successfully")
         except Exception as e:
             logger.warning(f"Embedder読み込み失敗: {e}")
             self.embedder = None
@@ -143,7 +156,7 @@ class NKATAutoTagger:
 
     def calculate_complexity_score(self, text: str) -> float:
         """テキストの複雑度スコアを計算"""
-        if not text or len(text) < 10:
+        if not text or len(text.strip()) < 10:
             return 0.0
 
         try:
@@ -157,12 +170,28 @@ class NKATAutoTagger:
             vocab_diversity = len(unique_words) / len(words) if words else 0
 
             # 文長の変動性
-            sentences = sent_tokenize(text)
-            if len(sentences) < 2:
-                sentence_variability = 0
-            else:
-                sentence_lengths = [len(s.split()) for s in sentences]
-                sentence_variability = np.std(sentence_lengths) / np.mean(sentence_lengths) if np.mean(sentence_lengths) > 0 else 0
+            try:
+                sentences = sent_tokenize(text)
+                if len(sentences) < 2:
+                    sentence_variability = 0
+                else:
+                    sentence_lengths = [len(s.split()) for s in sentences]
+                    if sentence_lengths and np.mean(sentence_lengths) > 0:
+                        sentence_variability = min(np.std(sentence_lengths) / np.mean(sentence_lengths), 1.0)
+                    else:
+                        sentence_variability = 0
+            except Exception as e:
+                logger.warning(f"NLTK sentence tokenization failed: {e}")
+                # フォールバック
+                sentences = [s.strip() for s in text.split('.') if s.strip()]
+                if len(sentences) < 2:
+                    sentence_variability = 0
+                else:
+                    sentence_lengths = [len(s.split()) for s in sentences]
+                    if sentence_lengths and np.mean(sentence_lengths) > 0:
+                        sentence_variability = min(np.std(sentence_lengths) / np.mean(sentence_lengths), 1.0)
+                    else:
+                        sentence_variability = 0
 
             # 専門用語密度（大文字単語）
             capital_words = [w for w in words if w and w[0].isupper()]
@@ -273,11 +302,18 @@ class AEGISDataCurator:
             logger.warning(f"トークナイザー読み込み失敗: {e}")
             self.tokenizer = None
 
-        # NLTKダウンロード
+        # NLTK punkt リソースのダウンロード
         try:
             nltk.download('punkt', quiet=True)
-        except:
-            pass
+            logger.info("NLTK punkt downloaded successfully")
+        except Exception as e:
+            logger.warning(f"NLTK punkt download failed: {e}")
+            # フォールバックとしてpunkt_tabを試す
+            try:
+                nltk.download('punkt_tab', quiet=True)
+                logger.info("NLTK punkt_tab downloaded successfully")
+            except Exception as e2:
+                logger.warning(f"NLTK punkt_tab download also failed: {e2}")
 
     def load_science_datasets(self) -> List[Dict[str, Any]]:
         """科学データセットを読み込み"""
@@ -553,6 +589,103 @@ class AEGISDataCurator:
 
         return safety_samples
 
+    def load_local_datasets(self) -> List[Dict[str, Any]]:
+        """ローカルデータセットを読み込み"""
+        logger.info("Loading local datasets...")
+        local_samples = []
+
+        for dataset_path in self.config.local_datasets:
+            try:
+                logger.info(f"Loading local dataset: {dataset_path}")
+
+                if os.path.exists(dataset_path):
+                    with open(dataset_path, 'r', encoding='utf-8') as f:
+                        for line_num, line in enumerate(f):
+                            if line.strip():
+                                try:
+                                    sample = json.loads(line.strip())
+
+                                    # フォーマットを統一
+                                    if 'text' in sample:
+                                        # integrated_dataset.jsonl形式
+                                        text = sample['text']
+                                        language = sample.get('language', 'en')
+                                        dataset_name = sample.get('dataset', 'local_integrated')
+
+                                        # 空のテキストをスキップ
+                                        if not text or len(text.strip()) < 10:
+                                            continue
+
+                                        # instruction/output形式に変換
+                                        try:
+                                            if language == 'ja':
+                                                # 日本語データは適切なタグ付け
+                                                tag = self.tagger.classify_inference_type(text, is_japanese=True)
+                                            else:
+                                                # 英語データは適切なタグ付け
+                                                tag = self.tagger.classify_inference_type(text, is_science=True)
+
+                                            formatted = {
+                                                'instruction': text[:500],  # 最初の500文字をinstruction
+                                                'output': text,
+                                                'tag': tag,
+                                                'complexity_score': self.tagger.calculate_complexity_score(text),
+                                                'toxicity_score': self.tagger.calculate_toxicity_score(text),
+                                                'source': dataset_name,
+                                                'language': language
+                                            }
+
+                                            if self._passes_quality_filter(text):
+                                                local_samples.append(formatted)
+                                        except Exception as e:
+                                            logger.warning(f"Failed to process sample from {dataset_name}: {e}")
+                                            continue
+
+                                    elif 'instruction' in sample and 'output' in sample:
+                                        # 既に整形済みデータ
+                                        instruction = sample['instruction']
+                                        output = sample['output']
+
+                                        # 言語判定
+                                        is_japanese = any(ord(char) > 0x3000 for char in instruction + output)
+
+                                        if is_japanese:
+                                            tag = self.tagger.classify_inference_type(instruction, is_japanese=True)
+                                        else:
+                                            tag = self.tagger.classify_inference_type(instruction, is_science=True)
+
+                                        formatted = {
+                                            'instruction': instruction,
+                                            'output': output,
+                                            'tag': tag,
+                                            'complexity_score': self.tagger.calculate_complexity_score(instruction + " " + output),
+                                            'toxicity_score': self.tagger.calculate_toxicity_score(instruction + " " + output),
+                                            'source': sample.get('source', dataset_path),
+                                            'language': 'ja' if is_japanese else 'en'
+                                        }
+
+                                        if self._passes_quality_filter(instruction):
+                                            local_samples.append(formatted)
+
+                                    # サンプル数制限（各ファイルから最大1000サンプル）
+                                    if len(local_samples) >= 1000:
+                                        break
+
+                                except json.JSONDecodeError as e:
+                                    logger.warning(f"JSON decode error in {dataset_path} line {line_num}: {e}")
+                                    continue
+
+                    logger.info(f"Loaded {len(local_samples)} samples from {dataset_path}")
+
+                else:
+                    logger.warning(f"Local dataset not found: {dataset_path}")
+
+            except Exception as e:
+                logger.warning(f"Failed to load local dataset {dataset_path}: {e}")
+                continue
+
+        return local_samples
+
     def _passes_quality_filter(self, text: str, is_science: bool = False,
                              is_japanese: bool = False) -> bool:
         """品質フィルタリング"""
@@ -562,7 +695,7 @@ class AEGISDataCurator:
         # トークン長チェック
         if self.tokenizer:
             try:
-                tokens = self.tokenizer.encode(text)
+                tokens = self.tokenizer.encode(text, truncation=True, max_length=self.config.max_length + 1)
                 if len(tokens) > self.config.max_length:
                     return False
             except Exception as e:
@@ -570,6 +703,10 @@ class AEGISDataCurator:
                 # フォールバック: 文字数チェック
                 if len(text) > self.config.max_length * 4:  # 概算
                     return False
+        else:
+            # トークナイザーがない場合のフォールバック
+            if len(text) > self.config.max_length * 4:  # 概算
+                return False
 
         # LaTeX密度チェック（科学データのみ）
         if is_science:
@@ -592,25 +729,31 @@ class AEGISDataCurator:
         science_samples = self.load_science_datasets()
         japanese_samples = self.load_japanese_datasets()
         safety_samples = self.load_safety_datasets()
+        local_samples = self.load_local_datasets()
 
         logger.info(f"Science samples: {len(science_samples)}")
         logger.info(f"Japanese samples: {len(japanese_samples)}")
         logger.info(f"Safety samples: {len(safety_samples)}")
+        logger.info(f"Local samples: {len(local_samples)}")
 
         # サンプリング
-        target_science = int(self.config.total_samples * self.config.science_ratio)
-        target_japanese = int(self.config.total_samples * self.config.japanese_ratio)
-        target_safety = int(self.config.total_samples * self.config.safety_ratio)
+        remaining_ratio = 1.0 - self.config.local_ratio
+        target_science = int(self.config.total_samples * self.config.science_ratio * remaining_ratio)
+        target_japanese = int(self.config.total_samples * self.config.japanese_ratio * remaining_ratio)
+        target_safety = int(self.config.total_samples * self.config.safety_ratio * remaining_ratio)
+        target_local = int(self.config.total_samples * self.config.local_ratio)
 
         # ランダムサンプリング
         np.random.shuffle(science_samples)
         np.random.shuffle(japanese_samples)
         np.random.shuffle(safety_samples)
+        np.random.shuffle(local_samples)
 
         selected_samples = (
             science_samples[:target_science] +
             japanese_samples[:target_japanese] +
-            safety_samples[:target_safety]
+            safety_samples[:target_safety] +
+            local_samples[:target_local]
         )
 
         np.random.shuffle(selected_samples)
@@ -651,18 +794,39 @@ class AEGISDataCurator:
         save_split(split_dataset['test'], 'val_aegis_v2.jsonl')
 
         # 統計情報保存
-        stats = {
-            'total_samples': len(dataset),
-            'train_samples': len(split_dataset['train']),
-            'val_samples': len(split_dataset['test']),
-            'tag_distribution': {},
-            'config': {
-                'science_ratio': self.config.science_ratio,
-                'japanese_ratio': self.config.japanese_ratio,
-                'safety_ratio': self.config.safety_ratio,
-                'complexity_threshold': self.config.complexity_threshold,
-                'toxicity_threshold': self.config.toxicity_threshold
-            }
+        # 統計情報の作成
+        stats = {}
+
+        # データ数
+        stats['total_samples'] = len(dataset)
+        stats['train_samples'] = len(split_dataset['train'])
+        stats['val_samples'] = len(split_dataset['test'])
+
+        # 元データの各カテゴリごとのサンプル数
+        stats['original_counts'] = {}
+        stats['original_counts']['science'] = len(getattr(self, 'science_samples', []))
+        stats['original_counts']['japanese'] = len(getattr(self, 'japanese_samples', []))
+        stats['original_counts']['safety'] = len(getattr(self, 'safety_samples', []))
+        stats['original_counts']['local'] = len(getattr(self, 'local_samples', []))
+
+        # 選択されたデータのカテゴリごとのサンプル数
+        stats['selected_counts'] = {}
+        stats['selected_counts']['science'] = sum(1 for s in dataset if s.get('source', '') == 'science')
+        stats['selected_counts']['japanese'] = sum(1 for s in dataset if s.get('source', '') == 'japanese')
+        stats['selected_counts']['safety'] = sum(1 for s in dataset if s.get('source', '') == 'safety')
+        stats['selected_counts']['local'] = sum(1 for s in dataset if s.get('source', '') == 'local')
+
+        # タグ分布（後で補完される）
+        stats['tag_distribution'] = {}
+
+        # config情報
+        stats['config'] = {
+            'science_ratio': getattr(self.config, 'science_ratio', None),
+            'japanese_ratio': getattr(self.config, 'japanese_ratio', None),
+            'safety_ratio': getattr(self.config, 'safety_ratio', None),
+            'local_ratio': getattr(self.config, 'local_ratio', None),
+            'complexity_threshold': getattr(self.config, 'complexity_threshold', None),
+            'toxicity_threshold': getattr(self.config, 'toxicity_threshold', None)
         }
 
         # タグ分布計算

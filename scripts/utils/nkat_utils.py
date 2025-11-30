@@ -307,7 +307,7 @@ class NKATRewardFunction:
 
     def _calculate_concept_isomorphism(self, concepts1: List[str], concepts2: List[str]) -> float:
         """概念間の同型性計算"""
-        if not concepts1 or not concepts2:
+        if not concepts1 or not concepts2 or not self.embedder:
             return 0.0
 
         try:
@@ -355,30 +355,48 @@ class NKATRewardFunction:
         return 0.6 * pattern_similarity + 0.4 * quote_similarity
 
     def _calculate_quote_similarity(self, text1: str, text2: str) -> float:
-        """引用類似度の計算"""
-        quotes1 = re.findall(r'[""''"''"']([^""]+)[""''"''"']', text1)
-        quotes2 = re.findall(r'[""''"''"']([^""]+)[""''"''"']', text2)
+        """引用類似度の計算（修正版）"""
+        # 引用記号を正規表現で抽出（日本語・英語両対応の引用記号に対応強化）
+        quote_patterns = [
+            r'"([^"]+)"',                # "..."
+            r'「([^」]+)」',             # 「...」
+            r'『([^』]+)』',             # 『...』
+            r'“([^”]+)”',                # “...”
+            r'‘([^’]+)’',                # ‘...’
+            r"'([^']+)'",                # '...'
+            r'《([^》]+)》',             # 《...》
+        ]
+        quotes1 = []
+        quotes2 = []
+        for pat in quote_patterns:
+            quotes1 += re.findall(pat, text1)
+            quotes2 += re.findall(pat, text2)
+
+        quotes1 = [q.strip() for q in quotes1 if q.strip()]
+        quotes2 = [q.strip() for q in quotes2 if q.strip()]
 
         if not quotes1 and not quotes2:
             return 0.5
         if not quotes1 or not quotes2:
             return 0.0
 
-        # 引用間の類似度
+        # 引用間の類似度（Jaccard係数の平均最大値によるマッチング）
         similarities = []
         for q1 in quotes1:
+            max_sim = 0.0
+            words1 = set(q1.lower().split())
             for q2 in quotes2:
-                # 単純な文字列類似度
-                if q1.lower() == q2.lower():
-                    similarities.append(1.0)
+                words2 = set(q2.lower().split())
+                if not words1 or not words2:
+                    sim = 0.0
                 else:
-                    # 部分一致
-                    words1 = set(q1.lower().split())
-                    words2 = set(q2.lower().split())
-                    overlap = len(words1 & words2) / len(words1 | words2) if words1 | words2 else 0
-                    similarities.append(overlap)
+                    sim = len(words1 & words2) / len(words1 | words2)
+                if q1.lower() == q2.lower():
+                    sim = 1.0
+                max_sim = max(max_sim, sim)
+            similarities.append(max_sim)
 
-        return max(similarities) if similarities else 0.0
+        return float(np.mean(similarities)) if similarities else 0.0
 
     def _calculate_thinking_consistency(self, text: str) -> float:
         """思考プロセスの一貫性評価"""
