@@ -613,7 +613,7 @@ class PPOTrainer:
             )
             logger.info("Reinitialized SO(8) phase annealer with optimized parameters")
 
-        # データセット準備（テストモードの場合はスキップ）
+        # データセット準備
         if not self.config.get('training', {}).get('test_mode', False):
             self.train_dataset = AEGISV2Dataset(
                 self.config['data']['train_file'],
@@ -621,19 +621,40 @@ class PPOTrainer:
                 self.config['data']['max_length']
             )
 
+            # RTX3060最適化: DataLoaderのメモリ効率化
             self.train_dataloader = DataLoader(
                 self.train_dataset,
-                batch_size=self.ppo_config.batch_size,
+                batch_size=self.ppo_config.batch_size,  # 1 (gradient accumulationで効果的バッチサイズを実現)
                 shuffle=True,
-                num_workers=4
+                num_workers=0,  # GPU使用時は0が安定
+                pin_memory=True,  # GPU転送高速化
+                prefetch_factor=2 if torch.cuda.is_available() else None,
             )
-        # テストモードの場合はsetup_test_modeで既に設定済み
 
-        # オプティマイザー初期化（テストモード用）
-        if not hasattr(self, 'optimizer'):
-            # モックパラメータでオプティマイザーを初期化
-            mock_params = [torch.randn(10, requires_grad=True)]
-            self.optimizer = AdamW(mock_params, lr=self.ppo_config.learning_rate)
+            # Unsloth最適化オプティマイザー
+            if UNSLOTH_AVAILABLE and hasattr(self.model, 'parameters'):
+                from transformers import get_cosine_schedule_with_warmup
+                self.optimizer = AdamW(
+                    self.model.parameters(),
+                    lr=self.ppo_config.learning_rate,
+                    weight_decay=0.01,
+                    betas=(0.9, 0.999),
+                )
+
+                # 学習率スケジューラー (Unsloth推奨)
+                num_training_steps = len(self.train_dataloader) * self.ppo_config.epochs
+                self.lr_scheduler = get_cosine_schedule_with_warmup(
+                    self.optimizer,
+                    num_warmup_steps=self.ppo_config.warmup_steps,
+                    num_training_steps=num_training_steps
+                )
+            else:
+                # Fallbackオプティマイザー
+                self.optimizer = AdamW(
+                    self.model.parameters(),
+                    lr=self.ppo_config.learning_rate
+                )
+        # テストモードの場合はsetup_test_modeで既に設定済み
 
         # オプティマイザー
         self.optimizer = AdamW(
@@ -967,11 +988,32 @@ class PPOTrainer:
             'chaos_intensity': self.chaos_enhancer.chaos_intensity if self.chaos_enhancer else 0.0
         })
 
-        # 逆伝播
-        self.optimizer.zero_grad()
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.ppo_config.max_grad_norm)
-        self.optimizer.step()
+                    # RTX3060最適化: Gradient accumulationとメモリ効率化
+                    loss = loss / self.ppo_config.gradient_accumulation_steps  # accumulation用に損失をスケール
+
+                    # 逆伝播 (Unsloth最適化)
+                    if UNSLOTH_AVAILABLE:
+                        # Unslothの高速逆伝播
+                        loss.backward()
+                    else:
+                        loss.backward()
+
+                    # Gradient accumulation
+                    if (self.global_step + 1) % self.ppo_config.gradient_accumulation_steps == 0:
+                        # Gradient clipping
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.ppo_config.max_grad_norm)
+
+                        # Optimizer step
+                        self.optimizer.step()
+                        self.optimizer.zero_grad()
+
+                        # Learning rate scheduling (Unsloth使用時)
+                        if hasattr(self, 'lr_scheduler'):
+                            self.lr_scheduler.step()
+
+                        # GPUメモリ解放
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
 
         # SO(8)位相アニーリング
         current_alpha = self.phase_annealer.get_current_alpha()
@@ -1205,7 +1247,7 @@ class PPOTrainer:
                 pass
 
     def log_training_stats(self):
-        """学習統計のログ出力 - PPOベストプラクティス"""
+        """学習統計のログ出力 - RTX3060最適化"""
         recent_window = 50  # 最近50ステップの統計
 
         recent_policy_loss = np.mean(self.stats['policy_losses'][-recent_window:])
@@ -1218,6 +1260,13 @@ class PPOTrainer:
         recent_orthogonal_error = np.mean(self.stats['orthogonal_errors'][-recent_window:])
         current_alpha = self.phase_annealer.get_current_alpha()
 
+        # GPUメモリ情報
+        gpu_memory_info = ""
+        if torch.cuda.is_available():
+            allocated = torch.cuda.memory_allocated(0) / 1024**3
+            reserved = torch.cuda.memory_reserved(0) / 1024**3
+            gpu_memory_info = f", GPU: {allocated:.1f}GB/{reserved:.1f}GB"
+
         logger.info(f"Step {self.global_step}: "
                    f"Policy Loss: {recent_policy_loss:.4f}, "
                    f"VF Loss: {recent_vf_loss:.4f}, "
@@ -1227,7 +1276,8 @@ class PPOTrainer:
                    f"KL Div: {recent_kl_div:.4f}, "
                    f"Clip Fraction: {recent_clip_fraction:.3f}, "
                    f"Orthogonal Error: {recent_orthogonal_error:.2e}, "
-                   f"Alpha: {current_alpha:.4f}")
+                   f"Alpha: {current_alpha:.4f}"
+                   f"{gpu_memory_info}")
 
     def log_final_stats(self):
         """最終統計のログ出力 - PPOベストプラクティス"""
