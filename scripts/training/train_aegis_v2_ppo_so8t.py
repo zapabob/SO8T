@@ -28,13 +28,14 @@ from huggingface_hub import HfApi, upload_file
 import pandas as pd
 
 # Try Unsloth first, fallback to bitsandbytes + PEFT
+UNSLOTH_AVAILABLE = False
 try:
     from unsloth import FastLanguageModel
     from unsloth import is_bfloat16_supported
     UNSLOTH_AVAILABLE = True
-    logger.info("Unsloth available - using memory-efficient training")
+    print("Unsloth available - using memory-efficient training")
 except (ImportError, Exception) as e:
-    logger.warning(f"Unsloth not available ({e}) - falling back to bitsandbytes + PEFT")
+    print(f"Unsloth not available ({e}) - falling back to bitsandbytes + PEFT")
     UNSLOTH_AVAILABLE = False
     try:
         from transformers import BitsAndBytesConfig
