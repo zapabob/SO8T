@@ -27,6 +27,17 @@ import seaborn as sns
 from huggingface_hub import HfApi, upload_file
 import pandas as pd
 
+# Unsloth imports for memory-efficient training
+try:
+    from unsloth import FastLanguageModel
+    from unsloth import is_bfloat16_supported
+    import torch
+    UNSLOTH_AVAILABLE = True
+    logger.info("Unsloth available - using memory-efficient training")
+except ImportError:
+    UNSLOTH_AVAILABLE = False
+    logger.warning("Unsloth not available - falling back to standard transformers")
+
 # Import SO(8) components with path manipulation for hyphenated directory names
 import sys
 import os
@@ -86,15 +97,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PPOConfig:
-    """PPO設定"""
-    learning_rate: float = 1e-6
+    """PPO設定 - RTX3060最適化"""
+    learning_rate: float = 2e-4  # Unsloth推奨の高い学習率
     max_grad_norm: float = 0.1
-    batch_size: int = 4
-    mini_batch_size: int = 2
-    gradient_accumulation_steps: int = 8
-    epochs: int = 10
-    max_steps: int = 10000
-    warmup_steps: int = 100
+    batch_size: int = 1  # RTX3060のメモリ制約のため1
+    mini_batch_size: int = 1
+    gradient_accumulation_steps: int = 8  # 効果的なバッチサイズ8を実現
+    epochs: int = 1  # Unslothでは1エポックで十分
+    max_steps: int = 200
+    warmup_steps: int = 10
+
+    # RTX3060最適化設定
+    use_unsloth: bool = True
+    gpu_memory_limit: float = 0.85  # 85%まで使用
 
     # ベイズ最適化設定
     enable_bayesian_optimization: bool = False  # デフォルトでは無効（メモリ制約のため）
@@ -655,40 +670,94 @@ class PPOTrainer:
         logger.info("PPO Trainer initialized with SO(8) enhancements")
 
     def setup_model_and_tokenizer(self):
-        """モデルとトークナイザーのセットアップ"""
-        from transformers import AutoTokenizer, AutoModelForCausalLM
+        """モデルとトークナイザーのセットアップ - RTX3060最適化"""
+        if UNSLOTH_AVAILABLE and torch.cuda.is_available():
+            logger.info(f"Loading model with Unsloth (RTX3060 optimized): {self.model_path}")
 
-        logger.info(f"Loading model: {self.model_path}")
+            # GPUメモリ最適化設定
+            gpu_memory_limit = self.config.get('training', {}).get('gpu_memory_limit', 0.85)
+            torch.cuda.set_per_process_memory_fraction(gpu_memory_limit)
+            torch.cuda.empty_cache()
 
-        # モデル読み込み
-        # Load model on CPU to avoid memory issues
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_path,
-            torch_dtype=torch.float32,  # Use float32 for CPU
-            device_map={"": "cpu"},     # Force CPU usage
-            trust_remote_code=True,
-            low_cpu_mem_usage=True
-        )
+            # Unslothで4bit量子化モデルをロード
+            self.model, self.tokenizer = FastLanguageModel.from_pretrained(
+                model_name=self.model_path,
+                max_seq_length=self.config['data']['max_length'],
+                dtype=None,  # Auto-detect (bf16推奨)
+                load_in_4bit=True,  # 4bit量子化でメモリ大幅節約
+                device_map={"": 0},  # RTX3060 (GPU 0) に固定配置
+            )
 
-        # 参照モデル（クローン）- CPU使用
-        self.ref_model = AutoModelForCausalLM.from_pretrained(
-            self.model_path,
-            torch_dtype=torch.float32,
-            device_map={"": "cpu"},
-            trust_remote_code=True,
-            low_cpu_mem_usage=True
-        )
-        self.ref_model.eval()
+            # LoRAを有効化（パラメータ数を大幅削減）
+            self.model = FastLanguageModel.get_peft_model(
+                self.model,
+                r=16,  # LoRA rank (メモリ効率と性能のバランス)
+                target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+                lora_alpha=16,
+                lora_dropout=0,
+                bias="none",
+                use_gradient_checkpointing=True,  # メモリ節約
+                random_state=3407,
+                use_rslora=False,
+                loftq_config=None,
+            )
 
-        # トークナイザー
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_path,
-            trust_remote_code=True
-        )
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+            # 参照モデルも同様に作成（メモリ効率重視）
+            self.ref_model, _ = FastLanguageModel.from_pretrained(
+                model_name=self.model_path,
+                max_seq_length=self.config['data']['max_length'],
+                dtype=None,
+                load_in_4bit=True,
+                device_map={"": 0},  # 同じGPUに配置
+            )
+            # 参照モデルはLoRAなしで軽量化
+            self.ref_model.eval()
 
-        logger.info("Model and tokenizer loaded successfully")
+            # GPUメモリ使用量をログ出力
+            if torch.cuda.is_available():
+                allocated = torch.cuda.memory_allocated(0) / 1024**3
+                reserved = torch.cuda.memory_reserved(0) / 1024**3
+                logger.info(".1f")
+
+            logger.info("Model and tokenizer loaded successfully with Unsloth (4bit + LoRA)")
+
+        else:
+            # Fallback: 標準transformers（CPUモード）
+            logger.warning("Unsloth not available or CUDA not found - using CPU fallback")
+            from transformers import AutoTokenizer, AutoModelForCausalLM
+
+            logger.info(f"Loading model (CPU fallback): {self.model_path}")
+
+            # CPUで量子化モデルをロード
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.model_path,
+                torch_dtype=torch.float16,  # float16 for memory efficiency
+                device_map="auto",  # Let transformers decide
+                trust_remote_code=True,
+                low_cpu_mem_usage=True,
+                load_in_8bit=True,  # 8bit quantization for CPU
+            )
+
+            # 参照モデル
+            self.ref_model = AutoModelForCausalLM.from_pretrained(
+                self.model_path,
+                torch_dtype=torch.float16,
+                device_map="auto",
+                trust_remote_code=True,
+                low_cpu_mem_usage=True,
+                load_in_8bit=True,
+            )
+            self.ref_model.eval()
+
+            # トークナイザー
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.model_path,
+                trust_remote_code=True
+            )
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+
+            logger.info("Model and tokenizer loaded successfully (CPU fallback with 8bit quantization)")
 
     def setup_test_mode(self):
         """テストモード用のセットアップ"""

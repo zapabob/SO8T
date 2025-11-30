@@ -5,14 +5,16 @@
         "quantization": ["Q8_0"]
     },
     "training": {
-        "max_steps": 3,
+        "max_steps": 200,
         "batch_size": 1,
-        "learning_rate": 7.621869045810622e-05,
-        "warmup_steps": 0,
-        "gradient_accumulation_steps": 1,
-        "save_steps": 1,
-        "logging_steps": 1,
-        "test_mode": true
+        "learning_rate": 2e-4,
+        "warmup_steps": 10,
+        "gradient_accumulation_steps": 8,
+        "save_steps": 50,
+        "logging_steps": 10,
+        "test_mode": false,
+        "use_unsloth": true,
+        "gpu_memory_limit": 0.85
     },
     "so8t": {
         "enable_so8t": true,
