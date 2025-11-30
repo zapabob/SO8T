@@ -1026,6 +1026,14 @@ class PPOTrainer:
             # 最適化されたパラメータを適用
             self.apply_optimized_params(optimal_params)
             logger.info(f"Applied optimized parameters: {optimal_params}")
+        else:
+            # ベイズ最適化が無効な場合でも基本パラメータを適用してoptimizerを初期化
+            logger.info("Applying default parameters...")
+            default_params = {
+                'learning_rate': self.ppo_config.learning_rate,
+                'batch_size': self.ppo_config.batch_size
+            }
+            self.apply_optimized_params(default_params)
 
         start_time = time.time()
         last_checkpoint_time = start_time
