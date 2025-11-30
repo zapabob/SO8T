@@ -5,14 +5,14 @@
         "quantization": ["Q8_0"]
     },
     "training": {
-        "max_steps": 10,
+        "max_steps": 3,
         "batch_size": 1,
         "learning_rate": 7.621869045810622e-05,
         "warmup_steps": 0,
         "gradient_accumulation_steps": 1,
-        "save_steps": 5,
+        "save_steps": 1,
         "logging_steps": 1,
-        "test_mode": false
+        "test_mode": true
     },
     "so8t": {
         "enable_so8t": true,
