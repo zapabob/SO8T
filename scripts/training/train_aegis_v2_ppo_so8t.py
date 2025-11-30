@@ -27,16 +27,24 @@ import seaborn as sns
 from huggingface_hub import HfApi, upload_file
 import pandas as pd
 
-# Unsloth imports for memory-efficient training
+# Try Unsloth first, fallback to bitsandbytes + PEFT
 try:
     from unsloth import FastLanguageModel
     from unsloth import is_bfloat16_supported
-    import torch
     UNSLOTH_AVAILABLE = True
     logger.info("Unsloth available - using memory-efficient training")
-except ImportError:
+except (ImportError, Exception) as e:
+    logger.warning(f"Unsloth not available ({e}) - falling back to bitsandbytes + PEFT")
     UNSLOTH_AVAILABLE = False
-    logger.warning("Unsloth not available - falling back to standard transformers")
+    try:
+        from transformers import BitsAndBytesConfig
+        from peft import LoraConfig, get_peft_model
+        import bitsandbytes as bnb
+        BITSANDBYTES_AVAILABLE = True
+        logger.info("BitsAndBytes + PEFT available - using 4bit quantization")
+    except ImportError:
+        BITSANDBYTES_AVAILABLE = False
+        logger.warning("BitsAndBytes not available - using standard transformers with CPU fallback")
 
 # Import SO(8) components with path manipulation for hyphenated directory names
 import sys
