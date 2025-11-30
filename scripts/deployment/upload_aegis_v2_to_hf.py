@@ -169,6 +169,55 @@ class AEGISV2HFUploader:
 
         return gguf_files
 
+    def convert_to_gguf_bf16(self) -> List[Path]:
+        """BF16 GGUF変換（SO8T専用）"""
+        logger.info("Converting SO8T model to BF16 GGUF format...")
+
+        gguf_dir = self.temp_dir / "gguf"
+        gguf_dir.mkdir(exist_ok=True)
+
+        # llama.cppパス
+        llama_cpp_path = Path("external/llama.cpp-master")
+
+        if not llama_cpp_path.exists():
+            logger.warning("llama.cpp not found, skipping GGUF conversion")
+            return []
+
+        # 変換スクリプトのパス
+        convert_script = llama_cpp_path / "convert_hf_to_gguf.py"
+
+        if not convert_script.exists():
+            logger.warning("GGUF conversion script not found")
+            return []
+
+        # BF16 GGUF変換実行
+        output_file = gguf_dir / "AEGIS-v2.0-Phi3.5-SO8T-BF16.gguf"
+
+        cmd = [
+            "python", str(convert_script),
+            str(self.model_path),
+            "--outfile", str(output_file),
+            "--outtype", "bf16"
+        ]
+
+        try:
+            logger.info("Converting to BF16 GGUF...")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+
+            if result.returncode == 0:
+                logger.info(f"BF16 GGUF conversion successful: {output_file}")
+                return [output_file]
+            else:
+                logger.error(f"BF16 GGUF conversion failed: {result.stderr}")
+                return []
+
+        except subprocess.TimeoutExpired:
+            logger.error("BF16 GGUF conversion timed out")
+            return []
+        except Exception as e:
+            logger.error(f"BF16 GGUF conversion error: {e}")
+            return []
+
     def create_model_card(self) -> Path:
         """モデルカード作成"""
         model_card_path = self.temp_dir / "README.md"
@@ -328,8 +377,8 @@ This model is released under the Apache 2.0 license.
             # モデルファイル準備
             model_dir = self.prepare_model_files()
 
-            # GGUF変換
-            gguf_files = self.convert_to_gguf()
+            # GGUF変換（BF16量子化）
+            gguf_files = self.convert_to_gguf_bf16()
 
             # モデルカード作成
             model_card = self.create_model_card()
