@@ -989,8 +989,8 @@ class PPOTrainer:
         })
 
                     # RTX3060最適化: Gradient accumulationとメモリ効率化
+                    # RTX3060最適化: Gradient accumulationとメモリ効率化
                     loss = loss / self.ppo_config.gradient_accumulation_steps  # accumulation用に損失をスケール
-
                     # 逆伝播 (Unsloth最適化)
                     if UNSLOTH_AVAILABLE:
                         # Unslothの高速逆伝播
