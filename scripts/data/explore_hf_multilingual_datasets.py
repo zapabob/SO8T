@@ -352,14 +352,14 @@ class HFDatasetExplorer:
         # マルチリンガルデータセット
         multilingual_datasets = [
             info for info in dataset_infos
-            if info.is_multilingual and not info.contains_nsfw
-        ][:target_multilingual]
+            if getattr(info, 'is_multilingual', False) and not getattr(info, 'contains_nsfw', False)
+        ][:self.target_multilingual]
 
         # NSFWデータセット（安全学習用）
         nsfw_datasets = [
             info for info in dataset_infos
             if info.contains_nsfw
-        ][:target_nsfw]
+        ][:self.target.target_nsfw]
 
         # 日本語特化データセット
         japanese_datasets = [
