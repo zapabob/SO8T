@@ -42,9 +42,9 @@ except (ImportError, Exception) as e:
         import bitsandbytes as bnb
         BITSANDBYTES_AVAILABLE = True
         logger.info("BitsAndBytes + PEFT available - using 4bit quantization")
-    except ImportError:
+    except ImportError as e2:
         BITSANDBYTES_AVAILABLE = False
-        logger.warning("BitsAndBytes not available - using standard transformers with CPU fallback")
+        logger.warning(f"BitsAndBytes not available ({e2}) - using standard transformers with CPU fallback")
 
 # Import SO(8) components with path manipulation for hyphenated directory names
 import sys
