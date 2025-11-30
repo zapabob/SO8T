@@ -693,10 +693,13 @@ class PPOTrainer:
             def __init__(self):
                 self.device = torch.device('cpu')
 
-            def __call__(self, **kwargs):
+            def __call__(self, input_ids=None, attention_mask=None, **kwargs):
                 # モック出力
-                batch_size = kwargs.get('input_ids', torch.randn(1, 10)).shape[0]
-                seq_len = kwargs.get('input_ids', torch.randn(1, 10)).shape[1]
+                if input_ids is not None:
+                    batch_size, seq_len = input_ids.shape
+                else:
+                    batch_size, seq_len = 1, 10
+
                 return type('MockOutput', (), {
                     'logits': torch.randn(batch_size, seq_len, 32000),  # Phi-3.5 vocab size
                     'hidden_states': [torch.randn(batch_size, seq_len, 3072) for _ in range(33)]  # 32 layers + input
@@ -985,6 +988,17 @@ class PPOTrainer:
     def train(self):
         """メイン学習ループ"""
         logger.info("Starting AEGIS-v2.0 PPO training with SO(8) enhancements")
+
+        # 学習状態の初期化（apply_optimized_paramsが呼ばれていない場合のため）
+        if not hasattr(self, 'global_step'):
+            self.global_step = 0
+        if not hasattr(self, 'epoch'):
+            self.epoch = 0
+        if not hasattr(self, 'best_reward'):
+            self.best_reward = float('-inf')
+        if not hasattr(self, 'checkpoint_dir'):
+            self.checkpoint_dir = Path(self.ppo_config.checkpoint_dir)
+            self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # ベイズ最適化によるハイパーパラメータ最適化
         if self.ppo_config.enable_bayesian_optimization:
