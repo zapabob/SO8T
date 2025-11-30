@@ -27,25 +27,9 @@ import seaborn as sns
 from huggingface_hub import HfApi, upload_file
 import pandas as pd
 
-# Try Unsloth first, fallback to bitsandbytes + PEFT
+# Placeholder for Unsloth/BitsAndBytes imports - will be initialized after logger setup
 UNSLOTH_AVAILABLE = False
-try:
-    from unsloth import FastLanguageModel
-    from unsloth import is_bfloat16_supported
-    UNSLOTH_AVAILABLE = True
-    print("Unsloth available - using memory-efficient training")
-except (ImportError, Exception) as e:
-    print(f"Unsloth not available ({e}) - falling back to bitsandbytes + PEFT")
-    UNSLOTH_AVAILABLE = False
-    try:
-        from transformers import BitsAndBytesConfig
-        from peft import LoraConfig, get_peft_model
-        import bitsandbytes as bnb
-        BITSANDBYTES_AVAILABLE = True
-        logger.info("BitsAndBytes + PEFT available - using 4bit quantization")
-    except ImportError as e2:
-        BITSANDBYTES_AVAILABLE = False
-        logger.warning(f"BitsAndBytes not available ({e2}) - using standard transformers with CPU fallback")
+BITSANDBYTES_AVAILABLE = False
 
 # Import SO(8) components with path manipulation for hyphenated directory names
 import sys
@@ -103,6 +87,25 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Initialize Unsloth/BitsAndBytes after logger setup
+try:
+    from unsloth import FastLanguageModel
+    from unsloth import is_bfloat16_supported
+    UNSLOTH_AVAILABLE = True
+    logger.info("Unsloth available - using memory-efficient training")
+except (ImportError, Exception) as e:
+    logger.info(f"Unsloth not available ({e}) - falling back to bitsandbytes + PEFT")
+    UNSLOTH_AVAILABLE = False
+    try:
+        from transformers import BitsAndBytesConfig
+        from peft import LoraConfig, get_peft_model
+        import bitsandbytes as bnb
+        BITSANDBYTES_AVAILABLE = True
+        logger.info("BitsAndBytes + PEFT available - using 4bit quantization")
+    except (ImportError, Exception) as e2:
+        BITSANDBYTES_AVAILABLE = False
+        logger.warning(f"BitsAndBytes not available ({e2}) - using standard transformers with CPU fallback")
 
 @dataclass
 class PPOConfig:
