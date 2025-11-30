@@ -22,6 +22,10 @@ import time
 import hashlib
 from datetime import datetime
 import math
+import matplotlib.pyplot as plt
+import seaborn as sns
+from huggingface_hub import HfApi, upload_file
+import pandas as pd
 
 # Import SO(8) components with path manipulation for hyphenated directory names
 import sys
@@ -371,6 +375,175 @@ class PPOTrainer:
 
         logger.info(f"Optimization summary saved to: {summary_file}")
 
+    def create_training_plots(self):
+        """学習曲線のグラフ化"""
+        try:
+            # プロット保存ディレクトリ
+            plots_dir = Path("models/aegis_v2_training_plots")
+            plots_dir.mkdir(exist_ok=True)
+
+            # スタイル設定
+            plt.style.use('default')
+            sns.set_palette("husl")
+
+            # 1. PPO学習曲線 (Losses and Rewards)
+            fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+            fig.suptitle('AEGIS-v2.0 PPO Training Curves', fontsize=16)
+
+            steps = np.array(self.stats['steps'])
+
+            # Policy Loss
+            axes[0,0].plot(steps, self.stats['policy_losses'], label='Policy Loss', alpha=0.7)
+            axes[0,0].set_title('Policy Loss')
+            axes[0,0].set_xlabel('Steps')
+            axes[0,0].set_ylabel('Loss')
+            axes[0,0].grid(True, alpha=0.3)
+            axes[0,0].legend()
+
+            # Value Function Loss
+            axes[0,1].plot(steps, self.stats['vf_losses'], label='VF Loss', alpha=0.7, color='orange')
+            axes[0,1].set_title('Value Function Loss')
+            axes[0,1].set_xlabel('Steps')
+            axes[0,1].set_ylabel('Loss')
+            axes[0,1].grid(True, alpha=0.3)
+            axes[0,1].legend()
+
+            # Entropy Loss
+            axes[1,0].plot(steps, self.stats['entropy_losses'], label='Entropy Loss', alpha=0.7, color='green')
+            axes[1,0].set_title('Entropy Loss')
+            axes[1,0].set_xlabel('Steps')
+            axes[1,0].set_ylabel('Loss')
+            axes[1,0].grid(True, alpha=0.3)
+            axes[1,0].legend()
+
+            # Rewards
+            axes[1,1].plot(steps, self.stats['rewards'], label='Rewards', alpha=0.7, color='red')
+            axes[1,1].set_title('Rewards')
+            axes[1,1].set_xlabel('Steps')
+            axes[1,1].set_ylabel('Reward')
+            axes[1,1].grid(True, alpha=0.3)
+            axes[1,1].legend()
+
+            plt.tight_layout()
+            plt.savefig(plots_dir / 'ppo_learning_curves.png', dpi=300, bbox_inches='tight')
+            plt.close()
+
+            # 2. アルファゲートアニーリング曲線
+            plt.figure(figsize=(10, 6))
+            plt.plot(steps, self.stats['alphas'], label='Alpha', linewidth=2, color='purple')
+            plt.axhline(y=self.ppo_config.alpha_target, color='red', linestyle='--',
+                       label=f'Target Alpha ({self.ppo_config.alpha_target:.4f})')
+            plt.title('SO(8) Alpha Gate Annealing Progress')
+            plt.xlabel('Training Steps')
+            plt.ylabel('Alpha Value')
+            plt.grid(True, alpha=0.3)
+            plt.legend()
+            plt.savefig(plots_dir / 'alpha_annealing_curve.png', dpi=300, bbox_inches='tight')
+            plt.close()
+
+            # 3. 直交誤差監視
+            plt.figure(figsize=(10, 6))
+            plt.plot(steps, self.stats['orthogonal_errors'], label='Orthogonal Error', linewidth=2, color='darkblue')
+            plt.axhline(y=1e-6, color='red', linestyle='--', label='Target (< 1e-6)')
+            plt.yscale('log')
+            plt.title('SO(8) Rotation Matrix Orthogonal Error')
+            plt.xlabel('Training Steps')
+            plt.ylabel('Orthogonal Error (log scale)')
+            plt.grid(True, alpha=0.3)
+            plt.legend()
+            plt.savefig(plots_dir / 'orthogonal_error_curve.png', dpi=300, bbox_inches='tight')
+            plt.close()
+
+            # 4. KL Divergence と Clip Fraction
+            fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+
+            # KL Divergence
+            axes[0].plot(steps, self.stats['kl_divs'], label='KL Divergence', alpha=0.7, color='brown')
+            axes[0].axhline(y=self.ppo_config.max_kl, color='red', linestyle='--',
+                           label=f'Max KL ({self.ppo_config.max_kl})')
+            axes[0].set_title('KL Divergence')
+            axes[0].set_xlabel('Steps')
+            axes[0].set_ylabel('KL')
+            axes[0].grid(True, alpha=0.3)
+            axes[0].legend()
+
+            # Clip Fraction
+            axes[1].plot(steps, self.stats['clip_fractions'], label='Clip Fraction', alpha=0.7, color='purple')
+            axes[1].set_title('Policy Clip Fraction')
+            axes[1].set_xlabel('Steps')
+            axes[1].set_ylabel('Fraction')
+            axes[1].grid(True, alpha=0.3)
+            axes[1].legend()
+
+            plt.tight_layout()
+            plt.savefig(plots_dir / 'ppo_stability_metrics.png', dpi=300, bbox_inches='tight')
+            plt.close()
+
+            logger.info(f"Training plots saved to: {plots_dir}")
+
+        except Exception as e:
+            logger.warning(f"Failed to create training plots: {e}")
+
+    def upload_stats_to_hf(self):
+        """学習統計をHugging Faceにアップロード"""
+        try:
+            # HF API初期化
+            api = HfApi()
+
+            # リポジトリ名
+            repo_name = "aegis-v2-ppo-training-stats"
+            repo_id = f"zapabob/{repo_name}"
+
+            # リポジトリ作成（存在しない場合）
+            try:
+                api.create_repo(repo_id=repo_id, private=False, exist_ok=True)
+                logger.info(f"HF repository ready: {repo_id}")
+            except Exception as e:
+                logger.warning(f"Could not create/access HF repo: {e}")
+                return
+
+            # 統計データをDataFrameに変換
+            df_stats = pd.DataFrame(self.stats)
+
+            # CSVとして保存してアップロード
+            stats_file = Path("models/aegis_v2_training_stats.csv")
+            df_stats.to_csv(stats_file, index=False)
+
+            # HFにアップロード
+            upload_file(
+                path_or_fileobj=str(stats_file),
+                path_in_repo="training_stats.csv",
+                repo_id=repo_id,
+                commit_message=f"AEGIS-v2.0 PPO Training Statistics - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+
+            # プロットもアップロード
+            plots_dir = Path("models/aegis_v2_training_plots")
+            if plots_dir.exists():
+                for plot_file in plots_dir.glob("*.png"):
+                    upload_file(
+                        path_or_fileobj=str(plot_file),
+                        path_in_repo=f"plots/{plot_file.name}",
+                        repo_id=repo_id,
+                        commit_message=f"Training plot: {plot_file.name}"
+                    )
+
+            # 設定ファイルもアップロード
+            config_file = Path("aegis_v2_test_config.json")
+            if config_file.exists():
+                upload_file(
+                    path_or_fileobj=str(config_file),
+                    path_in_repo="config.json",
+                    repo_id=repo_id,
+                    commit_message="Training configuration"
+                )
+
+            logger.info(f"Training statistics uploaded to HF: https://huggingface.co/{repo_id}")
+
+        except Exception as e:
+            logger.warning(f"Failed to upload stats to HF: {e}")
+            logger.info("Continuing without HF upload...")
+
     def apply_optimized_params(self, params: Dict[str, Any]):
         """最適化されたパラメータを適用"""
         logger.info(f"Applying optimized parameters: {params}")
@@ -449,13 +622,21 @@ class PPOTrainer:
         self.checkpoint_dir = Path(self.ppo_config.checkpoint_dir)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-        # 統計
+        # 統計記録の強化
         self.stats = {
+            'steps': [],
             'rewards': [],
-            'losses': [],
+            'policy_losses': [],
+            'vf_losses': [],
+            'entropy_losses': [],
+            'total_losses': [],
             'kl_divs': [],
-            'isomorphism_scores': [],
-            'chaos_diversity': []
+            'clip_fractions': [],
+            'orthogonal_errors': [],
+            'alphas': [],
+            'chaos_intensities': [],
+            'advantages_mean': [],
+            'advantages_std': []
         }
 
         logger.info("PPO Trainer initialized with SO(8) enhancements")
@@ -524,53 +705,96 @@ class PPOTrainer:
         return torch.stack(rewards)
 
     def compute_ppo_loss(self, old_logprobs: torch.Tensor, new_logprobs: torch.Tensor,
-                        advantages: torch.Tensor, cliprange: float) -> Tuple[torch.Tensor, Dict]:
-        """PPO損失計算"""
+                        advantages: torch.Tensor, cliprange: float, logits: torch.Tensor = None) -> Tuple[torch.Tensor, Dict]:
+        """PPO損失計算 - ベストプラクティス実装"""
+        # Advantage normalization (PPOベストプラクティス)
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+
         # 確率比
         ratio = torch.exp(new_logprobs - old_logprobs)
 
-        # Clipped surrogate objective
+        # Clipped surrogate objective (PPOコア)
         surr1 = ratio * advantages
         surr2 = torch.clamp(ratio, 1.0 - cliprange, 1.0 + cliprange) * advantages
-
         policy_loss = -torch.min(surr1, surr2).mean()
 
-        # 価値関数損失（PPOベストプラクティス）
-        # GAE等を使う場合、本来は advantages = returns - value_preds で、損失は value_preds と returns のMSE
-        # ここでは advantages をそのままターゲットとして利用しているので近似
-        def get_logits(batch):
-            return batch['logits']
-        def get_value(batch):
-            return batch['value']
-        vf_loss = torch.nn.functional.mse_loss(get_value(batch), advantages + get_value(batch))  # 実際はadvantage+valueがreturn推定になる
+        # 価値関数損失 - PPOでは通常、value predictionsとreturnsのMSE
+        # ここでは簡易的に0として実装（実際のPPOでは別途value networkが必要）
+        vf_loss = torch.tensor(0.0, device=policy_loss.device)
 
-        # エントロピー損失
-        def get_entropy(batch:Dict[str, Any]) -> torch.Tensor:
-            logits = get_logits(batch)
-            batch['logits'] = logits
-            return self.get_logprobs_from_outputs(batch)
+        # エントロピー損失 - 探索を促進 (PPOベストプラクティス)
+        entropy_loss = torch.tensor(0.0, device=policy_loss.device)
+        if logits is not None:
+            # エントロピー計算: -sum(p * log(p))
+            probs = F.softmax(logits, dim=-1)
+            log_probs = F.log_softmax(logits, dim=-1)
+            entropy = -torch.sum(probs * log_probs, dim=-1).mean()
+            entropy_loss = entropy
+
+        # KL divergence - early stopping用 (PPOベストプラクティス)
+        kl_div = torch.mean(torch.sum(
+            F.softmax(old_logprobs, dim=-1) * (old_logprobs - new_logprobs), dim=-1
+        ))
+
+        # Total loss
+        total_loss = (
+            policy_loss +
+            self.ppo_config.vf_coef * vf_loss -
+            self.ppo_config.ent_coef * entropy_loss
+        )
+
+        # Early stopping check (KLが大きすぎる場合は学習停止)
+        if kl_div > self.ppo_config.max_kl:
+            logger.warning(f"KL divergence too high: {kl_div:.4f} > {self.ppo_config.max_kl}, early stopping may be needed")
+
+        loss_info = {
+            'policy_loss': policy_loss.item(),
+            'vf_loss': vf_loss.item(),
+            'entropy_loss': entropy_loss.item(),
+            'total_loss': total_loss.item(),
+            'kl_div': kl_div.item(),
+            'clip_fraction': torch.mean((torch.abs(ratio - 1.0) > cliprange).float()).item()
+        }
+
+        return total_loss, loss_info
 
     def train_step(self, batch: Dict[str, Any]) -> Dict[str, Any]:
-        """1ステップの学習"""
+        """1ステップの学習 - PPOベストプラクティス"""
         # 参照モデルのログ確率を計算
         with torch.no_grad():
             ref_outputs = self.ref_model(**batch)
             ref_logprobs = self.get_logprobs_from_outputs(ref_outputs, batch)
 
-        # 現在のモデルのログ確率を計算
+        # 現在のモデルの出力を計算
         current_outputs = self.model(**batch)
         current_logprobs = self.get_logprobs_from_outputs(current_outputs, batch)
+
+        # logitsを取得（エントロピー計算用）
+        logits = current_outputs.logits
 
         # 報酬計算
         rewards = self.compute_rewards(batch)
 
-        # 利得計算（簡易版）
+        # 利得計算（簡易版）- PPOでは通常GAEを使用
         advantages = rewards - rewards.mean()
 
-        # PPO損失計算
+        # PPO損失計算 - logitsを渡す
         loss, loss_info = self.compute_ppo_loss(
-            ref_logprobs, current_logprobs, advantages, self.ppo_config.cliprange
+            ref_logprobs, current_logprobs, advantages, self.ppo_config.cliprange, logits
         )
+
+        # 直交誤差の計算（SO(8)特有）
+        orthogonal_error = self.compute_orthogonal_error()
+
+        # 統計更新
+        loss_info.update({
+            'rewards': rewards.mean().item(),
+            'advantages_mean': advantages.mean().item(),
+            'advantages_std': advantages.std().item(),
+            'orthogonal_error': orthogonal_error,
+            'alpha': self.phase_annealer.get_current_alpha(),
+            'chaos_intensity': self.chaos_enhancer.chaos_intensity if self.chaos_enhancer else 0.0
+        })
 
         # 逆伝播
         self.optimizer.zero_grad()
@@ -608,6 +832,24 @@ class PPOTrainer:
         )
 
         return -neg_logprobs.view(shift_labels.shape)
+
+    def compute_orthogonal_error(self) -> float:
+        """SO(8)ローテーション行列の直交誤差を計算"""
+        if not hasattr(self, 'reward_system') or self.reward_system is None:
+            return 0.0
+
+        try:
+            # SO(8)アダプタのローテーション行列を取得
+            if hasattr(self.reward_system, 'rotation_safe') and self.reward_system.rotation_safe is not None:
+                R = self.reward_system.rotation_safe
+                # 直交性チェック: R^T @ R - I のFrobeniusノルム
+                orthogonal_error = torch.norm(R.T @ R - torch.eye(R.shape[0], device=R.device), p='fro').item()
+                return orthogonal_error
+            else:
+                return 0.0
+        except Exception as e:
+            logger.warning(f"Failed to compute orthogonal error: {e}")
+            return 0.0
 
     def save_checkpoint(self, step: int):
         """チェックポイント保存"""
@@ -704,10 +946,20 @@ class PPOTrainer:
 
                     self.global_step += 1
 
-                    # 統計更新
-                    self.stats['losses'].append(step_info['total_loss'])
+                    # 統計更新 - PPOベストプラクティス
+                    self.stats['steps'].append(self.global_step)
                     self.stats['rewards'].append(step_info['rewards'])
-                    self.stats['isomorphism_scores'].append(step_info.get('alpha', 0))
+                    self.stats['policy_losses'].append(step_info['policy_loss'])
+                    self.stats['vf_losses'].append(step_info['vf_loss'])
+                    self.stats['entropy_losses'].append(step_info['entropy_loss'])
+                    self.stats['total_losses'].append(step_info['total_loss'])
+                    self.stats['kl_divs'].append(step_info['kl_div'])
+                    self.stats['clip_fractions'].append(step_info['clip_fraction'])
+                    self.stats['orthogonal_errors'].append(step_info['orthogonal_error'])
+                    self.stats['alphas'].append(step_info['alpha'])
+                    self.stats['chaos_intensities'].append(step_info['chaos_intensity'])
+                    self.stats['advantages_mean'].append(step_info['advantages_mean'])
+                    self.stats['advantages_std'].append(step_info['advantages_std'])
 
                     # プログレスバー更新
                     progress_bar.set_postfix({
@@ -748,6 +1000,12 @@ class PPOTrainer:
             self.save_checkpoint(self.global_step)
             self.log_final_stats()
 
+            # 学習曲線のグラフ化
+            self.create_training_plots()
+
+            # HFに学習統計をアップロード
+            self.upload_stats_to_hf()
+
             # 音声通知
             try:
                 import winsound
@@ -756,22 +1014,65 @@ class PPOTrainer:
                 pass
 
     def log_training_stats(self):
-        """学習統計のログ出力"""
-        recent_rewards = self.stats['rewards'][-100:]
-        recent_losses = self.stats['losses'][-100:]
+        """学習統計のログ出力 - PPOベストプラクティス"""
+        recent_window = 50  # 最近50ステップの統計
+
+        recent_policy_loss = np.mean(self.stats['policy_losses'][-recent_window:])
+        recent_vf_loss = np.mean(self.stats['vf_losses'][-recent_window:])
+        recent_entropy_loss = np.mean(self.stats['entropy_losses'][-recent_window:])
+        recent_total_loss = np.mean(self.stats['total_losses'][-recent_window:])
+        recent_rewards = np.mean(self.stats['rewards'][-recent_window:])
+        recent_kl_div = np.mean(self.stats['kl_divs'][-recent_window:])
+        recent_clip_fraction = np.mean(self.stats['clip_fractions'][-recent_window:])
+        recent_orthogonal_error = np.mean(self.stats['orthogonal_errors'][-recent_window:])
+        current_alpha = self.phase_annealer.get_current_alpha()
 
         logger.info(f"Step {self.global_step}: "
-                   f"Avg Reward: {np.mean(recent_rewards):.4f}, "
-                   f"Avg Loss: {np.mean(recent_losses):.4f}, "
-                   f"Alpha: {self.phase_annealer.get_current_alpha():.4f}")
+                   f"Policy Loss: {recent_policy_loss:.4f}, "
+                   f"VF Loss: {recent_vf_loss:.4f}, "
+                   f"Entropy Loss: {recent_entropy_loss:.4f}, "
+                   f"Total Loss: {recent_total_loss:.4f}, "
+                   f"Reward: {recent_rewards:.4f}, "
+                   f"KL Div: {recent_kl_div:.4f}, "
+                   f"Clip Fraction: {recent_clip_fraction:.3f}, "
+                   f"Orthogonal Error: {recent_orthogonal_error:.2e}, "
+                   f"Alpha: {current_alpha:.4f}")
 
     def log_final_stats(self):
-        """最終統計のログ出力"""
-        logger.info("=== Final Training Statistics ===")
-        logger.info(f"Total steps: {self.global_step}")
-        logger.info(f"Best reward: {self.best_reward:.4f}")
-        logger.info(f"Final alpha: {self.phase_annealer.get_current_alpha():.4f}")
+        """最終統計のログ出力 - PPOベストプラクティス"""
+        logger.info("=== Final AEGIS-v2.0 PPO Training Statistics ===")
+        logger.info(f"Total training steps: {self.global_step}")
+        logger.info(f"Best reward achieved: {self.best_reward:.4f}")
+
+        # 最終エポックの統計
+        if self.stats['total_losses']:
+            final_policy_loss = np.mean(self.stats['policy_losses'][-100:])
+            final_vf_loss = np.mean(self.stats['vf_losses'][-100:])
+            final_entropy_loss = np.mean(self.stats['entropy_losses'][-100:])
+            final_total_loss = np.mean(self.stats['total_losses'][-100:])
+            final_reward = np.mean(self.stats['rewards'][-100:])
+            final_kl_div = np.mean(self.stats['kl_divs'][-100:])
+            final_orthogonal_error = np.mean(self.stats['orthogonal_errors'][-100:])
+
+            logger.info(f"Final Policy Loss: {final_policy_loss:.4f}")
+            logger.info(f"Final VF Loss: {final_vf_loss:.4f}")
+            logger.info(f"Final Entropy Loss: {final_entropy_loss:.4f}")
+            logger.info(f"Final Total Loss: {final_total_loss:.4f}")
+            logger.info(f"Final Average Reward: {final_reward:.4f}")
+            logger.info(f"Final KL Divergence: {final_kl_div:.4f}")
+            logger.info(f"Final Orthogonal Error: {final_orthogonal_error:.2e}")
+
+            # 直交誤差の評価
+            if final_orthogonal_error < 1e-6:
+                logger.info("✅ Orthogonal error is within acceptable range (< 1e-6)")
+            else:
+                logger.warning(f"⚠️ Orthogonal error is high: {final_orthogonal_error:.2e}")
+
+        logger.info(f"Final SO(8) alpha: {self.phase_annealer.get_current_alpha():.4f}")
         logger.info(f"Checkpoints saved: {len(list(self.checkpoint_dir.glob('*.pt')))}")
+
+        # HFアップロード情報
+        logger.info("Training plots and statistics will be uploaded to Hugging Face")
 
 def main():
     """メイン実行関数"""

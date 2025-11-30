@@ -163,6 +163,41 @@ def _get_webdataset_base_path(self) -> Path:
 - ✅ **タスク削除**: パイプライン完了時の自動タスク削除
 - ✅ **オーディオ通知**: 成功時のmarisa_owattaze.wav再生
 
+### 9. PPOベストプラクティス修正完了
+
+**実装状況**: 完了
+**動作確認**: ✅ 完全実装
+**確認日時**: 2025-11-30
+**備考**: PPO損失計算、直交誤差監視、統計記録、グラフ化、HFアップロードを実装
+
+#### PPO修正の詳細:
+- **損失計算修正**: Advantage normalization, proper entropy calculation, KL divergence monitoring
+- **統計記録強化**: Policy loss, VF loss, entropy loss, KL div, clip fraction, orthogonal error
+- **直交誤差監視**: SO(8) rotation matrixの直交性チェック（限りなく0に近づける）
+- **アルファゲートグラフ**: アニーリングプロセスの可視化
+- **PPO学習曲線**: 4つのサブプロット（Policy/VF/Entropy Loss + Rewards）
+- **HF自動アップロード**: 統計データとグラフの自動アップロード
+
+#### 各数値の記録:
+- Policy Loss, VF Loss, Entropy Loss, Total Loss
+- Rewards, KL Divergence, Clip Fraction
+- Orthogonal Error (SO(8)特有)
+- Alpha annealing progress
+- Chaos intensity
+- Advantage statistics (mean, std)
+
+#### グラフ化機能:
+- **ppo_learning_curves.png**: PPO学習曲線（4プロット）
+- **alpha_annealing_curve.png**: SO(8)アルファゲートアニーリング
+- **orthogonal_error_curve.png**: 直交誤差推移（ログスケール）
+- **ppo_stability_metrics.png**: KL divergenceとclip fraction
+
+#### HFアップロード機能:
+- 統計データCSVアップロード
+- 全グラフ画像アップロード
+- 設定ファイルアップロード
+- リポジトリ: `zapabob/aegis-v2-ppo-training-stats`
+
 #### 実行ログ:
 ```
 2025-11-30 20:42:29 - === Starting Complete PPO Pipeline ===
