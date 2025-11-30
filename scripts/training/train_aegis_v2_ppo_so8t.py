@@ -705,6 +705,18 @@ class PPOTrainer:
                     'hidden_states': [torch.randn(batch_size, seq_len, 3072) for _ in range(33)]  # 32 layers + input
                 })()
 
+            def state_dict(self):
+                # モックstate_dict
+                return {'mock_param': torch.randn(10)}
+
+            def load_state_dict(self, state_dict):
+                # モックload_state_dict
+                pass
+
+            def eval(self):
+                # モックeval
+                pass
+
         # モックトークナイザー
         class MockTokenizer:
             def __init__(self):
@@ -732,8 +744,8 @@ class PPOTrainer:
 
         self.train_dataloader = DataLoader(
             self.train_dataset,
-            batch_size=self.ppo_config.batch_size,
-            shuffle=True,
+            batch_size=1,  # テストモードではバッチサイズを1に固定
+            shuffle=False,  # テストモードではシャッフルを無効化
             num_workers=0  # テストモードではマルチプロセスを避ける
         )
 
