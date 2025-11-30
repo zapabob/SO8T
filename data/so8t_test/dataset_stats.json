@@ -1,0 +1,16 @@
+{
+  "total_train": 5,
+  "total_val": 2,
+  "tag_distribution_train": {
+    "escalation": 5
+  },
+  "tag_distribution_val": {
+    "escalation": 2
+  },
+  "domain_distribution": {
+    "physics": 5
+  },
+  "created_at": "2025-11-30T14:03:15.784413",
+  "theory_integrated": true,
+  "so8t_optimized": true
+}
