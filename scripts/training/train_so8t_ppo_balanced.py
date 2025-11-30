@@ -22,6 +22,7 @@ SO8T PPO Training Script with Balanced Dataset
 """
 
 import os
+import sys
 import json
 import torch
 import torch.nn as nn
@@ -35,22 +36,32 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
+# プロジェクトルートをPythonパスに追加
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 # TRLとUnsloth (GPU環境でのみ使用)
+UNSLOTH_AVAILABLE = False
 try:
-    from unsloth import FastLanguageModel
-    from unsloth.chat_templates import get_chat_template
-    UNSLOTH_AVAILABLE = torch.cuda.is_available()
+    if torch.cuda.is_available():
+        from unsloth import FastLanguageModel
+        from unsloth.chat_templates import get_chat_template
+        UNSLOTH_AVAILABLE = True
+        print("Unsloth available with GPU")
+    else:
+        print("GPU not available, skipping Unsloth")
 except ImportError:
-    UNSLOTH_AVAILABLE = False
+    print("Unsloth not available")
 
 # TRL (必須)
+TRL_AVAILABLE = False
 try:
     from trl import PPOTrainer, PPOConfig, AutoModelForCausalLMWithValueHead
     from trl.core import LengthSampler
     TRL_AVAILABLE = True
+    print("TRL available")
 except ImportError:
     print("TRLがインストールされていません。pip install trl")
-    TRL_AVAILABLE = False
 
 from transformers import (
     AutoTokenizer,
@@ -71,14 +82,18 @@ from scripts.utils.nkat_utils import (
 from scripts.models.so8t_thinking_model import create_so8t_thinking_model
 
 # チェックポイントマネージャー
-from scripts.utils.checkpoint_manager import RollingCheckpointManager
+from utils.checkpoint_manager import RollingCheckpointManager
+
+# WebDatasetアクセスヘルパー
+from webdataset.access_helper import get_webdataset_accessor
 
 @dataclass
 class SO8TPPOConfig:
     """SO8T PPO設定"""
     model_name: str = "microsoft/Phi-3.5-mini-instruct"
-    dataset_path: str = "data/so8t_balanced"
-    output_dir: str = "D:/webdataset/checkpoints/ppo_so8t"
+    dataset_path: str = "data/so8t_advanced_integrated"
+    output_dir: str = field(default_factory=lambda: str(get_webdataset_accessor().get_checkpoint_path("ppo_so8t")))
+    experiment_id: str = ""
 
     # PPO設定 (RTX 3060最適化)
     learning_rate: float = 1.41e-5
@@ -108,9 +123,6 @@ class SO8TPPOConfig:
     rolling_checkpoint: bool = True
     max_keep_checkpoints: int = 5
     save_interval_sec: int = 1800  # 30分
-
-    # 実験ID
-    experiment_id: str = field(default_factory=lambda: f"so8t_ppo_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
 
 class SO8TDataset(Dataset):
     """SO8T PPO用データセット"""
@@ -187,6 +199,7 @@ def setup_so8t_model_and_tokenizer(config: SO8TPPOConfig):
 
     if UNSLOTH_AVAILABLE and torch.cuda.is_available():
         try:
+            print("Using Unsloth with GPU...")
             # Unsloth使用 (GPU必須)
             model, tokenizer = FastLanguageModel.from_pretrained(
                 model_name=config.model_name,
@@ -210,12 +223,62 @@ def setup_so8t_model_and_tokenizer(config: SO8TPPOConfig):
 
             # チャットテンプレート設定
             tokenizer = get_chat_template(tokenizer, chat_template="phi-3")
+            return model, tokenizer
 
         except Exception as e:
             print(f"Unsloth failed: {e}, falling back to transformers")
             UNSLOTH_AVAILABLE = False
+
+    # 標準Transformers使用 (CPU/GPU両対応)
+    print("Using standard Transformers...")
+    tokenizer = AutoTokenizer.from_pretrained(config.model_name)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    # CPU版でも動作するように設定
+    if torch.cuda.is_available():
+        print("Using GPU with standard quantization...")
+        # 4-bit量子化設定
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4"
+        )
+
+        model = AutoModelForCausalLM.from_pretrained(
+            config.model_name,
+            quantization_config=bnb_config,
+            device_map="auto",
+            torch_dtype=torch.float16
+        )
     else:
-        print("GPU not available or Unsloth not usable, using standard transformers")
+        print("Using CPU without quantization...")
+        model = AutoModelForCausalLM.from_pretrained(
+            config.model_name,
+            torch_dtype=torch.float32,
+            device_map={"": "cpu"},
+            low_cpu_mem_usage=True
+        )
+
+    # LoRA設定（PEFT使用）
+    try:
+        from peft import LoraConfig, get_peft_model
+        lora_config = LoraConfig(
+            r=16,
+            lora_alpha=16,
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
+                          "gate_proj", "up_proj", "down_proj"],
+            lora_dropout=0.05,
+            bias="none",
+            task_type="CAUSAL_LM"
+        )
+        model = get_peft_model(model, lora_config)
+        print("LoRA applied successfully")
+    except ImportError:
+        print("PEFT not available, using base model")
+
+    return model, tokenizer
 
     if not UNSLOTH_AVAILABLE:
         # 標準Transformers使用
@@ -319,12 +382,14 @@ def train_so8t_ppo(config: SO8TPPOConfig):
     print("Setting up SO8T model and tokenizer...")
     model, tokenizer = setup_so8t_model_and_tokenizer(config)
 
-    # SO8T Thinkingモデル統合
-    print("Integrating SO8T thinking model...")
+    # SO8T Thinkingモデル統合 (SO(8)回転レイヤーを残差アダプター接続)
+    print("Integrating SO8T thinking model with residual SO(8) adapters...")
     so8t_model = create_so8t_thinking_model(
         base_model=model,
         tokenizer=tokenizer,
-        use_nkat_thermostat=config.use_nkat_thermostat
+        use_nkat_thermostat=config.use_nkat_thermostat,
+        freeze_base_weights=True,  # 元の重みを凍結
+        inject_so8_adapters=True   # SO(8)アダプターを注入
     )
 
     # データセット準備
@@ -492,13 +557,96 @@ def main():
 
     args = parser.parse_args()
 
+    # 実験ID生成
+    experiment_id = args.experiment_id or f"so8t_ppo_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    # 出力ディレクトリ設定
+    output_dir = args.output_dir
+    if not output_dir or output_dir == "outputs/checkpoints/ppo_so8t":
+        # デフォルトの場合はwebdatasetを使用
+        accessor = get_webdataset_accessor()
+        output_dir = str(accessor.get_checkpoint_path("ppo_so8t"))
+
     # 設定
     config = SO8TPPOConfig(
         model_name=args.model_name,
         dataset_path=args.dataset_path,
-        output_dir=args.output_dir,
+        output_dir=output_dir,
         max_steps=args.max_steps,
-        experiment_id=args.experiment_id or SO8TPPOConfig.experiment_id
+        experiment_id=experiment_id
+    )
+
+    # 学習実行
+    train_so8t_ppo(config)
+
+if __name__ == "__main__":
+    main()
+
+    reward_fn = create_reward_function(config)
+
+    with torch.no_grad():
+        for i in range(min(100, len(dataset))):  # 最大100サンプル評価
+            item = dataset[i]
+
+            # プロンプトトークナイズ
+            prompt_tokens = tokenizer(
+                item['prompt'],
+                return_tensors="pt",
+                truncation=True,
+                max_length=config.max_prompt_length
+            ).to(model.device)
+
+            # 応答生成
+            response_tokens = model.generate(
+                **prompt_tokens,
+                max_new_tokens=config.max_target_length,
+                do_sample=True,
+                temperature=0.7,
+                pad_token_id=tokenizer.pad_token_id
+            )
+
+            response = response_tokens[:, prompt_tokens['input_ids'].shape[1]:]
+
+            # 報酬計算
+            rewards = reward_fn([item['sample']], [response], tokenizer, [item['tag_id']])
+            total_reward += rewards[0].item()
+            count += 1
+
+    return total_reward / count if count > 0 else 0
+
+def main():
+    """メイン関数"""
+    parser = argparse.ArgumentParser(description="SO8T PPO Training")
+    parser.add_argument("--model_name", type=str, default="microsoft/Phi-3.5-mini-instruct",
+                       help="Base model name")
+    parser.add_argument("--dataset_path", type=str, default="data/so8t_balanced",
+                       help="Dataset path")
+    parser.add_argument("--output_dir", type=str, default="D:/webdataset/checkpoints/ppo_so8t",
+                       help="Output directory")
+    parser.add_argument("--max_steps", type=int, default=10000,
+                       help="Maximum training steps")
+    parser.add_argument("--experiment_id", type=str, default=None,
+                       help="Experiment ID")
+
+    args = parser.parse_args()
+
+    # 実験ID生成
+    experiment_id = args.experiment_id or f"so8t_ppo_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    # 出力ディレクトリ設定
+    output_dir = args.output_dir
+    if not output_dir or output_dir == "outputs/checkpoints/ppo_so8t":
+        # デフォルトの場合はwebdatasetを使用
+        accessor = get_webdataset_accessor()
+        output_dir = str(accessor.get_checkpoint_path("ppo_so8t"))
+
+    # 設定
+    config = SO8TPPOConfig(
+        model_name=args.model_name,
+        dataset_path=args.dataset_path,
+        output_dir=output_dir,
+        max_steps=args.max_steps,
+        experiment_id=experiment_id
     )
 
     # 学習実行

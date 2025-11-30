@@ -319,8 +319,95 @@ class ThinkingProcessController(nn.Module):
 
         return output
 
-def create_so8t_thinking_model(base_model_path: str = "microsoft/phi-3.5-mini-instruct",
-                              thermostat_enabled: bool = True) -> SO8TThinkingModel:
+    def inject_so8_residual_adapters(self):
+        """
+        SO(8)回転レイヤーをtransformerの中間レイヤーに残差アダプター接続
+        """
+        # transformerのレイヤーを取得
+        if hasattr(self.base_model, 'model') and hasattr(self.base_model.model, 'layers'):
+            # Llama-style model
+            layers = self.base_model.model.layers
+        elif hasattr(self.base_model, 'transformer') and hasattr(self.base_model.transformer, 'h'):
+            # GPT-style model
+            layers = self.base_model.transformer.h
+        else:
+            logger.warning("Could not find transformer layers, skipping SO(8) adapter injection")
+            return
+
+        # 中間レイヤーにSO(8)アダプターを注入 (例: レイヤー12, 18, 24に注入)
+        adapter_positions = [len(layers) // 4, len(layers) // 2, 3 * len(layers) // 4]
+
+        for pos in adapter_positions:
+            if pos < len(layers):
+                original_layer = layers[pos]
+
+                # SO(8)残差アダプターを作成
+                so8_adapter = SO8ResidualAdapter(self.hidden_size, self.so8_rotations)
+
+                # 元のレイヤーをラップ
+                layers[pos] = SO8AdaptedLayer(original_layer, so8_adapter)
+
+                logger.info(f"Injected SO(8) residual adapter at layer {pos}")
+
+class SO8ResidualAdapter(nn.Module):
+    """
+    SO(8)回転レイヤーを使用した残差アダプター
+    """
+
+    def __init__(self, hidden_size: int, so8_rotations: int = 8):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.so8_rotations = so8_rotations
+
+        # SO(8)回転ゲート
+        self.so8_gate = SO8RotationGate(hidden_size)
+
+        # 残差接続用の線形層
+        self.residual_proj = nn.Linear(hidden_size, hidden_size)
+
+        # LayerNorm
+        self.norm = LayerNorm(hidden_size)
+
+    def forward(self, x):
+        # SO(8)幾何学的変換
+        so8_output = self.so8_gate(x)
+
+        # 残差投影
+        residual = self.residual_proj(so8_output)
+
+        # 残差接続
+        output = x + residual
+
+        # 正規化
+        output = self.norm(output)
+
+        return output
+
+class SO8AdaptedLayer(nn.Module):
+    """
+    SO(8)アダプターが注入されたtransformerレイヤー
+    """
+
+    def __init__(self, original_layer, so8_adapter):
+        super().__init__()
+        self.original_layer = original_layer
+        self.so8_adapter = so8_adapter
+
+    def forward(self, *args, **kwargs):
+        # 元のレイヤーの出力を取得
+        original_output = self.original_layer(*args, **kwargs)
+
+        # SO(8)アダプターを適用（残差接続）
+        adapted_output = self.so8_adapter(original_output)
+
+        return adapted_output
+
+def create_so8t_thinking_model(base_model=None,
+                              tokenizer=None,
+                              base_model_path: str = "microsoft/phi-3.5-mini-instruct",
+                              thermostat_enabled: bool = True,
+                              freeze_base_weights: bool = False,
+                              inject_so8_adapters: bool = False) -> SO8TThinkingModel:
     """
     SO8T/Thinkingモデルを作成
 
@@ -332,21 +419,23 @@ def create_so8t_thinking_model(base_model_path: str = "microsoft/phi-3.5-mini-in
         SO8TThinkingModelインスタンス
     """
 
-    # ベースモデル読み込み (Unsloth使用を想定)
-    try:
-        from unsloth import FastLanguageModel
-        base_model, tokenizer = FastLanguageModel.from_pretrained(
-            model_name=base_model_path,
-            max_seq_length=2048,
-            dtype=None,
-            load_in_4bit=True,
-        )
-        logger.info(f"Loaded base model from {base_model_path}")
-    except ImportError:
-        logger.warning("Unsloth not available, using transformers directly")
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+    # ベースモデルが提供されていない場合は読み込み
+    if base_model is None:
+        # ベースモデル読み込み (Unsloth使用を想定)
+        try:
+            from unsloth import FastLanguageModel
+            base_model, tokenizer = FastLanguageModel.from_pretrained(
+                model_name=base_model_path,
+                max_seq_length=2048,
+                dtype=None,
+                load_in_4bit=True,
+            )
+            logger.info(f"Loaded base model from {base_model_path}")
+        except ImportError:
+            logger.warning("Unsloth not available, using transformers directly")
+            from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        tokenizer = AutoTokenizer.from_pretrained(base_model_path)
+            tokenizer = AutoTokenizer.from_pretrained(base_model_path)
         base_model = AutoModelForCausalLM.from_pretrained(
             base_model_path,
             torch_dtype=torch.float16,
@@ -358,6 +447,17 @@ def create_so8t_thinking_model(base_model_path: str = "microsoft/phi-3.5-mini-in
         base_model=base_model,
         thermostat_enabled=thermostat_enabled
     )
+
+    # ベースモデルの重みを凍結（オプション）
+    if freeze_base_weights:
+        logger.info("Freezing base model weights...")
+        for param in so8t_model.base_model.parameters():
+            param.requires_grad = False
+
+    # SO(8)アダプターをtransformerの中間レイヤーに注入（オプション）
+    if inject_so8_adapters:
+        logger.info("Injecting SO(8) residual adapters into transformer layers...")
+        so8t_model.inject_so8_residual_adapters()
 
     return so8t_model
 

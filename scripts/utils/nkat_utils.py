@@ -17,11 +17,10 @@ AEGIS-v2.0の報酬関数と動的温度制御システム
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import LogitsProcessor
 import numpy as np
 from typing import Dict, List, Any, Optional, Tuple
 from sentence_transformers import SentenceTransformer
-from transformers import PreTrainedTokenizer
+from transformers import PreTrainedTokenizer, LogitsProcessor
 import re
 import logging
 

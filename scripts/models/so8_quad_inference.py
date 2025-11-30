@@ -460,3 +460,8 @@ if __name__ == '__main__':
     print(f"Quality assessment shape: {outputs['quality_assessment'].shape}")
     print(f"Confidence score shape: {outputs['confidence_score'].shape}")
     print(f"Reasoning trace length: {len(outputs['reasoning_trace'])}")
+
+    print(f"Output shape: {outputs['logits'].shape}")
+    print(f"Quality assessment shape: {outputs['quality_assessment'].shape}")
+    print(f"Confidence score shape: {outputs['confidence_score'].shape}")
+    print(f"Reasoning trace length: {len(outputs['reasoning_trace'])}")

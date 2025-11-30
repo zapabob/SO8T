@@ -784,3 +784,46 @@ if __name__ == '__main__':
 
     print("Dataset collection and cleansing completed!")
     print(f"Results: {result}")
+
+    # PPOデータセット保存
+    ppo_output_path = Path(dataset_config['output_dir']) / "ppo_training_dataset.jsonl"
+    ppo_output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(ppo_output_path, 'w', encoding='utf-8') as f:
+        for sample in ppo_samples:
+            json.dump(sample, f, ensure_ascii=False)
+            f.write('\n')
+
+    result['ppo_dataset_path'] = str(ppo_output_path)
+    result['ppo_samples'] = len(ppo_samples)
+
+    logger.info(f"[PPO] Created PPO training dataset with {len(ppo_samples)} samples")
+
+    return result
+
+
+if __name__ == '__main__':
+    # テスト実行
+    config = {
+        'output_dir': 'D:/webdataset/datasets/test_cleansing',
+        'max_samples_per_source': 1000,
+        'license_filter': ['mit', 'apache-2.0'],
+        'include_nsfw': True,
+        'quality_thresholds': {
+            'excellent': 0.9,
+            'good': 0.7,
+            'acceptable': 0.5
+        }
+    }
+
+    # データセット収集・クレンジング実行
+    collector = DatasetCollectionCleansing(config)
+    result = collector.collect_and_cleansing_datasets()
+
+    # 品質レポート生成
+    report = collector.generate_quality_report()
+    with open('dataset_quality_report.md', 'w', encoding='utf-8') as f:
+        f.write(report)
+
+    print("Dataset collection and cleansing completed!")
+    print(f"Results: {result}")
