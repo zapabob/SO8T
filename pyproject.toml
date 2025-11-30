@@ -17,7 +17,7 @@ dependencies = [
     "flash-attn==2.5.8",
 
     # Memory optimization
-    "bitsandbytes==0.45.0",
+    "bitsandbytes>=0.45.5",
     "peft==0.14.0",
 
     # Training and RL
