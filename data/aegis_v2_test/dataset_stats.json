@@ -1,0 +1,13 @@
+{
+  "total_samples": 0,
+  "train_samples": 0,
+  "val_samples": 0,
+  "tag_distribution": {},
+  "config": {
+    "science_ratio": 0.4,
+    "japanese_ratio": 0.4,
+    "safety_ratio": 0.2,
+    "complexity_threshold": 0.6,
+    "toxicity_threshold": 0.7
+  }
+}
