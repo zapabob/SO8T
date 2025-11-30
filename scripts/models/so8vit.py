@@ -40,16 +40,18 @@ class SO8RotationGate(nn.Module):
         self.orth_monitor = nn.Linear(embed_dim, embed_dim)
 
     def _create_so8_basis(self) -> torch.Tensor:
-        """SO(8) Lie代数の基底を作成"""
+        """SO(8) Lie代数の基底を作成（Matrix Exponential対応）"""
         # SO(8)には28個の生成子があるが、主要なものを8個選択
+        # 交代行列（skew-symmetric matrices）として表現
         basis_matrices = []
 
-        # 基本的な回転平面 (1-2, 3-4, 5-6, 7-8)
+        # 基本的な回転平面の生成子 (1-2, 3-4, 5-6, 7-8)
         for i in range(0, 8, 2):
-            R = torch.eye(8)
-            R[i, i] = 0; R[i, i+1] = -1
-            R[i+1, i] = 1; R[i+1, i+1] = 0
-            basis_matrices.append(R)
+            # 交代行列: A[i,j] = -A[j,i] = 1, その他0
+            A = torch.zeros(8, 8)
+            A[i, i+1] = 1
+            A[i+1, i] = -1
+            basis_matrices.append(A)
 
         return torch.stack(basis_matrices)  # [8, 8, 8]
 

@@ -1,0 +1,248 @@
+{
+  "total_problems": 35,
+  "category_distribution": {
+    "physics": 14,
+    "chemistry": 18,
+    "biology": 3
+  },
+  "difficulty_distribution": {
+    "fields_level": 1,
+    "advanced": 34
+  },
+  "average_quality_score": 0.9999999999999998,
+  "quality_score_std": 1.1102230246251565e-16,
+  "theoretical_depth_distribution": {
+    "intermediate": 33,
+    "advanced": 1,
+    "profound": 1
+  },
+  "validation_stats": {
+    "total_problems": 35,
+    "corrected_count": 17,
+    "category_distribution": {
+      "physics": 14,
+      "chemistry": 18,
+      "biology": 3
+    },
+    "validation_details": [
+      {
+        "id": "0df82962ff230890",
+        "title": "Quantum-magneto oscillations in a supramolecular Mn(II)-[3 x 3] grid",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "c11bdd7802e09835",
+        "title": "Phases of a rotating Bose-Einstein condensate with anharmonic confinement",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "d7954a5655137f4b",
+        "title": "Observation of narrow fluorescence from doubly driven four-level atoms at room temperature",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "15c1c88bf582ebda",
+        "title": "Fluorescence from doubly driven four-level atoms - A density matrix approach",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "69bc03030ae52da8",
+        "title": "Origin of asymmetric reversal modes in ferromagnetic/antiferromagnetic multilayers",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "b6bf8a0bceb9a5fd",
+        "title": "Vortex waves and the onset of turbulence in $^3$He-B",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "4360afc878a7ec24",
+        "title": "Dynamical mechanism of anticipating synchronization in excitable systems",
+        "original_category": "chemistry",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "cb6a912e5ef81530",
+        "title": "Spin Transport in Two Dimensional Hopping Systems",
+        "original_category": "chemistry",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "7ca0c964b0b40377",
+        "title": "Linear and nonlinear dynamics of matter wave packets in periodic potentials",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.35384615384615387
+      },
+      {
+        "id": "e59c4e2f36201bb3",
+        "title": "Simulation of Phonon-Polariton Generation and Propagation in Ferroelectric LiNbO3 Crystals",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "a707933ed7d60bfd",
+        "title": "Phonon-Polariton Propagation, Guidance, and Control in Bulk and Patterned Thin Film Ferroelectric Cr",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.35384615384615387
+      },
+      {
+        "id": "94c397c33b7cc218",
+        "title": "The Role of Multiferroics in the Negative Index of Refraction",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "983bf7411902d82e",
+        "title": "Resonance magneto-resistance in double barrier structure with spin-valve",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "008f1435d2428832",
+        "title": "Comment on \"Dielectric behavior of paraelectric KTaO3, CaTiO3, and (Ln_{1/2}Na_{1/2})TiO3 under a dc",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "12b2245e41e591e2",
+        "title": "Influence of Co$^{3+}$ spin-state on optical properties of LaCoO$_3$ and HoCoO$_3$",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "614f89ea7e133ef1",
+        "title": "Bankruptcy as an exit mechanism for systems with a variable number of components",
+        "original_category": "chemistry",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "1e4df2acbf8f5fe3",
+        "title": "Sum rules for free energy and frequency distribution of DNA dinucleotides",
+        "original_category": "chemistry",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      }
+    ]
+  },
+  "category_detailed_stats": {
+    "physics": {
+      "count": 14,
+      "avg_quality": 0.9999999999999999,
+      "difficulty_dist": {
+        "fields_level": 1,
+        "advanced": 13
+      },
+      "key_concepts_top10": [
+        [
+          "organic chemistry",
+          6
+        ],
+        [
+          "catalysis",
+          2
+        ],
+        [
+          "quantum chemistry",
+          2
+        ],
+        [
+          "physical chemistry",
+          2
+        ],
+        [
+          "biochemistry",
+          2
+        ]
+      ]
+    },
+    "chemistry": {
+      "count": 18,
+      "avg_quality": 0.9999999999999998,
+      "difficulty_dist": {
+        "advanced": 18
+      },
+      "key_concepts_top10": [
+        [
+          "organic chemistry",
+          5
+        ],
+        [
+          "biochemistry",
+          4
+        ],
+        [
+          "quantum chemistry",
+          4
+        ],
+        [
+          "materials science",
+          2
+        ],
+        [
+          "physical chemistry",
+          2
+        ],
+        [
+          "catalysis",
+          1
+        ]
+      ]
+    },
+    "biology": {
+      "count": 3,
+      "avg_quality": 0.9999999999999999,
+      "difficulty_dist": {
+        "advanced": 3
+      },
+      "key_concepts_top10": [
+        [
+          "materials science",
+          1
+        ],
+        [
+          "quantum chemistry",
+          1
+        ],
+        [
+          "physical chemistry",
+          1
+        ]
+      ]
+    }
+  },
+  "quad_inference_stats": {
+    "total_chains": 35,
+    "complete_chains": 35,
+    "avg_steps_per_chain": 4.0,
+    "step_completeness": {
+      "problem_formulation": 35,
+      "theoretical_approach": 35,
+      "computational_verification": 35,
+      "insightful_conclusion": 35
+    },
+    "mathematical_formalism_count": 70,
+    "computational_result_count": 35
+  }
+}

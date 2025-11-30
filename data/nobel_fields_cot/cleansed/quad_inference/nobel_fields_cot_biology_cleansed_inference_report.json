@@ -1,0 +1,44 @@
+{
+  "dataset_name": "nobel_fields_cot_biology_cleansed",
+  "total_problems": 18,
+  "processing_stats": {
+    "avg_confidence": 0.7124999999999999,
+    "avg_processing_time": 0.0009897777777777778,
+    "total_corrections": 72,
+    "reasoning_quality_distribution": {
+      "excellent": 0,
+      "good": 0,
+      "adequate": 18,
+      "poor": 0
+    },
+    "insight_level_distribution": {
+      "advanced": 0,
+      "intermediate": 0,
+      "basic": 18
+    }
+  },
+  "validity_stats": {
+    "computational_validity_rate": 1.0,
+    "theoretical_soundness_rate": 1.0
+  },
+  "category_performance": {
+    "mathematics": {
+      "count": 7,
+      "avg_confidence": 0.7124999999999998,
+      "computational_validity_rate": 1.0,
+      "theoretical_soundness_rate": 1.0
+    },
+    "biology": {
+      "count": 8,
+      "avg_confidence": 0.7124999999999999,
+      "computational_validity_rate": 1.0,
+      "theoretical_soundness_rate": 1.0
+    },
+    "chemistry": {
+      "count": 3,
+      "avg_confidence": 0.7124999999999999,
+      "computational_validity_rate": 1.0,
+      "theoretical_soundness_rate": 1.0
+    }
+  }
+}

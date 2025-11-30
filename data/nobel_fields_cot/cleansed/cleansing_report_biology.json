@@ -1,0 +1,188 @@
+{
+  "total_problems": 18,
+  "category_distribution": {
+    "mathematics": 7,
+    "biology": 8,
+    "chemistry": 3
+  },
+  "difficulty_distribution": {
+    "advanced": 18
+  },
+  "average_quality_score": 1.0,
+  "quality_score_std": 1.013490324081353e-16,
+  "theoretical_depth_distribution": {
+    "intermediate": 17,
+    "profound": 1
+  },
+  "validation_stats": {
+    "total_problems": 18,
+    "corrected_count": 10,
+    "category_distribution": {
+      "mathematics": 7,
+      "biology": 8,
+      "chemistry": 3
+    },
+    "validation_details": [
+      {
+        "id": "bf2df167bdd428b0",
+        "title": "Towards the Understanding of Stability Puzzles in Phage lambda",
+        "original_category": "biology",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "b2840da0c89f9d00",
+        "title": "A novel stochastic Hebb-like learning rule for neural networks",
+        "original_category": "biology",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "6deb227bbfe527d5",
+        "title": "Xerogel Protein Substrates for Far Infrared Studies",
+        "original_category": "biology",
+        "corrected_category": "chemistry",
+        "confidence": 0.34285714285714286
+      },
+      {
+        "id": "a1cd3f734b00561e",
+        "title": "Multi-state neural networks based upon spin-glasses: a biased overview",
+        "original_category": "biology",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "f7e0e9a52218abf5",
+        "title": "Adsorption of mono- and multivalent cat- and anions on DNA molecules",
+        "original_category": "biology",
+        "corrected_category": "chemistry",
+        "confidence": 0.34285714285714286
+      },
+      {
+        "id": "b7f3aecc4e9656b3",
+        "title": "Energetics of Protein Thermodynamic Cooperativity: Contributions of Local and Nonlocal Interactions",
+        "original_category": "biology",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "355a04af156e5a2d",
+        "title": "Deterministic uncertainty",
+        "original_category": "biology",
+        "corrected_category": "mathematics",
+        "confidence": 0.13333333333333333
+      },
+      {
+        "id": "6a3ba1a23c70d9a2",
+        "title": "The internal states of active inclusions and the dynamics of an active membrane",
+        "original_category": "biology",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "f2e60cf74b944d91",
+        "title": "An Analytical Approach to Neuronal Connectivity",
+        "original_category": "biology",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "23da1438dcd9eacf",
+        "title": "A Complex Network Approach to Topographical Connections",
+        "original_category": "biology",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      }
+    ]
+  },
+  "category_detailed_stats": {
+    "mathematics": {
+      "count": 7,
+      "avg_quality": 1.0,
+      "difficulty_dist": {
+        "advanced": 7
+      },
+      "key_concepts_top10": [
+        [
+          "immunology",
+          2
+        ],
+        [
+          "evolution",
+          2
+        ],
+        [
+          "cell biology",
+          1
+        ],
+        [
+          "molecular biology",
+          1
+        ],
+        [
+          "ecology",
+          1
+        ]
+      ]
+    },
+    "chemistry": {
+      "count": 3,
+      "avg_quality": 0.9999999999999999,
+      "difficulty_dist": {
+        "advanced": 3
+      },
+      "key_concepts_top10": [
+        [
+          "genetics",
+          1
+        ],
+        [
+          "ecology",
+          1
+        ],
+        [
+          "cell biology",
+          1
+        ]
+      ]
+    },
+    "biology": {
+      "count": 8,
+      "avg_quality": 1.0,
+      "difficulty_dist": {
+        "advanced": 8
+      },
+      "key_concepts_top10": [
+        [
+          "evolution",
+          4
+        ],
+        [
+          "neuroscience",
+          2
+        ],
+        [
+          "ecology",
+          1
+        ],
+        [
+          "genetics",
+          1
+        ]
+      ]
+    }
+  },
+  "quad_inference_stats": {
+    "total_chains": 18,
+    "complete_chains": 18,
+    "avg_steps_per_chain": 4.0,
+    "step_completeness": {
+      "problem_formulation": 18,
+      "theoretical_approach": 18,
+      "computational_verification": 18,
+      "insightful_conclusion": 18
+    },
+    "mathematical_formalism_count": 36,
+    "computational_result_count": 18
+  }
+}

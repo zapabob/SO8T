@@ -40,19 +40,24 @@ class SO8RotationGate(nn.Module):
         self.rotation_angles = nn.Parameter(torch.randn(num_rotations) * 0.1)
 
     def get_rotation_matrix(self, rotation_idx: int) -> torch.Tensor:
-        """指定された回転行列を取得"""
-        base_matrix = self.rotation_matrices[rotation_idx]
+        """指定された回転行列を取得（Matrix Exponentialベース）"""
+        # 学習パラメータとして交代行列（skew-symmetric matrix）を持つ
+        # これは so(8) リー代数の元
+        skew_symmetric = self.rotation_matrices[rotation_idx]
         angle = self.rotation_angles[rotation_idx]
 
-        # SO(8)拘束を適用（直交行列に近似）
-        # QR分解で直交化
-        Q, R = torch.linalg.qr(base_matrix)
-        # 行列式が1になるよう調整（特殊直交群SO(8)）
-        det = torch.det(Q)
-        if det < 0:
-            Q[:, 0] = -Q[:, 0]
+        # 交代行列を強制（A^T = -A）
+        skew_symmetric = (skew_symmetric - skew_symmetric.t()) * 0.5
 
-        return Q
+        # 角度スケーリング
+        skew_symmetric = skew_symmetric * angle
+
+        # Matrix Exponentialで回転行列を生成
+        # R = exp(A) where A is skew-symmetric
+        # これにより、Rは数学的に厳密に直交行列になる
+        rotation_matrix = torch.matrix_exp(skew_symmetric)
+
+        return rotation_matrix
 
     def forward(self, x: torch.Tensor, rotation_mask: torch.Tensor = None) -> torch.Tensor:
         """SO(8)回転を適用"""

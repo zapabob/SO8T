@@ -1,0 +1,1667 @@
+{
+  "total_problems": 677,
+  "category_distribution": {
+    "physics": 470,
+    "chemistry": 69,
+    "biology": 87,
+    "mathematics": 51
+  },
+  "difficulty_distribution": {
+    "advanced": 614,
+    "nobel_level": 21,
+    "fields_level": 42
+  },
+  "average_quality_score": 0.9992909896602659,
+  "quality_score_std": 0.008248331377463464,
+  "theoretical_depth_distribution": {
+    "intermediate": 558,
+    "profound": 100,
+    "advanced": 19
+  },
+  "validation_stats": {
+    "total_problems": 677,
+    "corrected_count": 207,
+    "category_distribution": {
+      "physics": 470,
+      "chemistry": 69,
+      "biology": 87,
+      "mathematics": 51
+    },
+    "validation_details": [
+      {
+        "id": "7614be01f0b43c94",
+        "title": "Efficient and affordable thermoelectric measurement setup using Arduino and LabVIEW for education an",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "bd0a985bb0d767ae",
+        "title": "Enabling Blind and Visually Impaired Individuals to Pursue Careers in Science",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "cf0208a33584f7b8",
+        "title": "How Physics Professors Use and Frame Generative AI Tools",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "5c5e3550d9f51771",
+        "title": "A quaternionic approach to teaching 3D rotations and the resolution of gimbal lock",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.13333333333333333
+      },
+      {
+        "id": "6082cbb907c051e2",
+        "title": "Teaching competencies in physics for engineering education: A qualitative analysis from teaching pra",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "26057c603d1c1001",
+        "title": "Stellar Spectroscopy Using Diffraction Grating, CMOS Monochrome Sensor, and Reflecting Telescopes",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "b7b6ae7a930bcb62",
+        "title": "UC2-ESP: A General-Purpose Framework for Open-Source Microscopy Control",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "39abdca526bbf3e2",
+        "title": "Analyzing Students Critical Thinking as a Basis for Developing Interactive Physics Multimedia with G",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "95c993ee7df6580d",
+        "title": "Mapping the AI Divide in Undergraduate Education: Community Detection in Disciplinary Networks and S",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "5d9f78cd892d12e9",
+        "title": "Exploring the potential of ChatGPT for feedback and evaluation in experimental physics",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "75c49553957de6a5",
+        "title": "Phonon-tunable THz magnonic emission in multiferroic heterostructures",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "372452a4d7f3258b",
+        "title": "High resolution 3D imaging of diamonds with multiphoton microscopy",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "7c40a32cada69d95",
+        "title": "White light interferometry analysis for measuring thin film thickness down to few nanometers",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "959902a1bdbd7a80",
+        "title": "Design and Fabrication of Microfluidic Micro-Membranes by means of Two-Photon Polymerization",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.14285714285714285
+      },
+      {
+        "id": "78d44f75d85192ea",
+        "title": "Low-dose Chemically Specific Bioimaging via Deep-UV Lensless Holographic Microscopy on a Standard Ca",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "4713635d688dea64",
+        "title": "Mapping Nonlinear Mode Interactions in Coupled Kerr Resonators",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "588c9bbb6e914ea3",
+        "title": "Flexible mm-Wave Frequency and High-Speed Arbitrary IQ Signal Synthesis by a Photonic System on Chip",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "4f1ea065f7691fc5",
+        "title": "All-Optical Varifocal Switching in a Polarization-Insensitive Si--GST Metalens",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "7d9c91973b7dc82c",
+        "title": "Passage of neutrons through accelerating crystal and the acceleration effect",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "395a1e0cb7d4f0f1",
+        "title": "Nonreciprocal Negative Refraction Enabled by Photonic Time Crystals",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "9fd60921c800aac9",
+        "title": "Super-resolution microscopy via fluctuation-enhanced spatial mode demultiplexing",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "3d5c428a312fb55e",
+        "title": "Topological edge states in curved zigzag superlattices in nonlinear exciton-polaritons",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "8a88b73eb207c232",
+        "title": "Ultralow noise microwaves with free-running frequency combs and electrical feedforward",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "8e3b70af358582e8",
+        "title": "Mobile Vehicle-Mounted Mid-Infrared Dual-Comb Spectrometer for Outdoor Trace Gas Detection",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "aff2aaecc5984bc9",
+        "title": "Unusual sign-changing Faraday effect in nanometer-thick magnetic films",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "2aabbbcb1a03f76d",
+        "title": "All-Optical Brillouin Random number Generator",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "52eec501368e9522",
+        "title": "A Network Dynamical Systems Approach to SDGs",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "14773274bc04d497",
+        "title": "City-level energy and emission assessment of over 20 million electric vehicle registrations in China",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "6e40a39e080aa885",
+        "title": "Decarbonization pathways for liquid fuels: A multi-sector energy system perspective",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "3144973339854af2",
+        "title": "Arriving Young, Leaving Old(er): Age-Structured International Migration on Subnational Scale in Aust",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "ba0c05a7bf12f3db",
+        "title": "Empirical Validation of Continuum Traffic Flow Model of Capacity Drop at Sag and Tunnel Bottlenecks",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "2a5eade4fde985bb",
+        "title": "Opinion Dynamics Models for Sentiment Evolution in Weibo Blogs",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "184d5a332dff2d6e",
+        "title": "Structural transitions induced by adaptive rewiring in networks with fixed states",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "6529320f0328ad10",
+        "title": "Isotope Production in Muon-Catalyzed-Fusion Systems",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "91df9f7ee98576c2",
+        "title": "Diffusion for Fusion: Designing Stellarators with Generative AI",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "7e878ecc2cc8d3fb",
+        "title": "Bell Plesset Effects on Rayleigh Taylor Instability of Three Dimensional Spherical Geometry",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "8641a9dacbefaa5d",
+        "title": "Three Dimensional Effects on Proton Acceleration with Grooved Hydrocarbon Targets",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.0
+      },
+      {
+        "id": "3cec6fcbdd5d19e9",
+        "title": "Entity -- Hardware-agnostic Particle-in-Cell Code for Plasma Astrophysics. I: Curvilinear Special Re",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "f862c6a542548538",
+        "title": "Effects of Multi-scale Coupling on Particle Acceleration and Energy Partition in Magnetic Reconnecti",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.0
+      },
+      {
+        "id": "8ce29a121fbd6fc5",
+        "title": "Material processing by laser-plasma-filament-guided high voltage discharges",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "bf11fd84913f318d",
+        "title": "Understanding In-Chamber Plasma Behavior Using a Dimensionally Scaled Gridded Ion Thruster in Three-",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.0
+      },
+      {
+        "id": "c179583cd34078db",
+        "title": "Case study of a differentiable heterogeneous multiphysics solver for a nuclear fusion application",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "721f600372d015a9",
+        "title": "EWE: An Agentic Framework for Extreme Weather Analysis",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "5507e3ff65eb0404",
+        "title": "Sunlight, the Bond Albedo, CO2, and Earth's Temperature",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "95888b87bd3e8d99",
+        "title": "An ALE approach to reduce spurious numerical mixing through variational minimizers: application to i",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "9173becdd81007d8",
+        "title": "Cloud4D: Estimating Cloud Properties at a High Spatial and Temporal Resolution",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "6a5e4dbb5cc7b366",
+        "title": "A multiresolution weather dataset for the Southwestern South Atlantic (2017-2018)",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "61940b0a7a47a5f3",
+        "title": "The Albedo Problem and Cloud Cover on Hot Jupiters",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "9681b938f2bd5452",
+        "title": "Measuring fluxes between wave and geostrophic features in rotating non-hydrostatic flows with variab",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "8b90697ee2c7da78",
+        "title": "Coupled atmospHere Interior modeL Intercomparison (CHILI) Protocol Version 1.0: A CUISINES Intercomp",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "68b5221ee5ec4774",
+        "title": "Stability of SQG Kolmogorov Flow",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "169f43932dba7ae0",
+        "title": "Oya: Deep Learning for Accurate Global Precipitation Estimation",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "1a4df69495e5d03b",
+        "title": "Acoustic pulse propagation in a non-ideal shallow-water model",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "335cad3f64bcca6d",
+        "title": "A high-resolution prediction dataset for solar energy across China (2015-2060)",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "b1a89725deceb85e",
+        "title": "Resolving Thermospheric Vertical Wind Ambiguities and Energy Processes",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "f166af7ac5d204f5",
+        "title": "A Satellite Remote Sensing and Doppler LiDAR-based Framework for Evaluating Mesoscale Flows Driven b",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "28fb97d8373be6a4",
+        "title": "Response Analysis of Four-Level Heterodyne Rydberg Atom Receiver",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "15954fc927d81477",
+        "title": "Infrared absorption spectroscopy of a single polyatomic molecular ion",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.34285714285714286
+      },
+      {
+        "id": "6e004f869c32a458",
+        "title": "Multiphoton ionization with three-dimensional light fields",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "a93c22746c327237",
+        "title": "The impact of ionising collisions on channeling and radiation emission for high-energy electrons and",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "71b9c6d1e74042ca",
+        "title": "Adiabatic passage of $^{205}$TlF with microwaves in a cryogenic beam",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "374aa788155a528e",
+        "title": "High-Fidelity Raman Spin-Dependent Kicks in the Presence of Micromotion",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "f8f24c2c427224de",
+        "title": "Static Laboratory-Frame Polarization of a Trapped Molecular Ion for CP-Violation Searches",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.34285714285714286
+      },
+      {
+        "id": "c60ab8c856117211",
+        "title": "Robust Two-Qubit Geometric Phase Gates using Amplitude and Frequency Ramping",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "a3f7d9225fea082a",
+        "title": "Prospects for a Solid-State Nuclear Clock",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "07d8e76c73275dc9",
+        "title": "Generation of Bright and Controllable Isolated Attosecond X-Ray Pulses from Synchronized Mid-Infrare",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "6948954298dddc34",
+        "title": "Curvature-Dependent Polarity of Interfacial Energy Flow in Functionalized CNT Polymer Nanocomposites",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.14285714285714285
+      },
+      {
+        "id": "e5b7f6974b40a32d",
+        "title": "Non-equilibrium Molecular Dynamics Study of Surface Wettability Effects on Pool Boiling of Water ove",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "01ed595efd296959",
+        "title": "Tracking Microhydration of the NaCl Rocksalt Molecule in Helium Nanodroplets by Penning Ionization E",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.41428571428571426
+      },
+      {
+        "id": "238fdf9d1450412f",
+        "title": "Technomolecular Materials: 3D Printed 2D Nanosheets with Self Patterned Electrodes",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "612b4cbbc063a7da",
+        "title": "Photoelectron Spectroscopy and Circular Dichroism of an Open-Shell Organometallic Camphor Complex",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.34285714285714286
+      },
+      {
+        "id": "ec769377856e8134",
+        "title": "Impact of Atomic Substitution on Core-Hole Relaxation Dynamics: A Study of Br$_2$ and IBr",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "cd1dbcc5a30038d2",
+        "title": "Low-energy electron scattering from aminoacetonitrile using the R-matrix method",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "2691bfdf47af02a3",
+        "title": "Investigation of low-energy electron scattering from ethylene glycol",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.34285714285714286
+      },
+      {
+        "id": "fde3d18b5fe5697d",
+        "title": "Active Learning for Machine Learning Driven Molecular Dynamics",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "833f266ccf482265",
+        "title": "Effect of correlation on the elastic scattering of slow positrons from molecules",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "db07d70ed7dc62ea",
+        "title": "IR Spectroscopic Studies of Gas-Phase Peptides",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "fdff4cb8f8a9a41b",
+        "title": "Laser-induced Coulomb explosion of the LiI molecule and of its dimer",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "44fce3b7c6cccaad",
+        "title": "Double Ionization to CO2 Produces Molecular Oxygen: A Roaming Mechanism",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "4f2d24c91fc6e465",
+        "title": "Giant Molecular Toroidal Moment Amenable to Direct Observation in a Fe$_{10}$Dy$_{10}$ Ring",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "4b6a45a593bdd192",
+        "title": "Modeling Bioelectric State Transitions in Glial Cells: An ASAL-Inspired Computational Approach to Gl",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.0
+      },
+      {
+        "id": "8fcadf4c877ee51f",
+        "title": "Comprehensive Multimodal and Multiscale Analysis of Alzheimer Disease in 5xFAD Mice: Optical Spectro",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.13333333333333333
+      },
+      {
+        "id": "bd03a46c65eb514f",
+        "title": "Iterative improvement of free energy landscape reconstructions with optimal protocols derived from d",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "e39aa5c76961c1ef",
+        "title": "3D printed waveguides for optogenetics applications: design optimization and optical characterizatio",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "9532d3ca7f4cab94",
+        "title": "Dissimilarity measures for generalized Lotka-Volterra systems on networks",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "b6a15aaac9cb6dfa",
+        "title": "A Complex Topological Phase in C-Spin Active Matter",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "f13855697b7e49c5",
+        "title": "Self-Organization Dynamics Beyond Equilibrium: Discreteness, Computation, and Rules of Life",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "d4157fb03fc3bcdf",
+        "title": "Topological flowscape reveals state transitions in nonreciprocal living matter",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "128e5c61d01eb8a4",
+        "title": "Phase Plane Analysis of Firing Patterns in the Adaptive Exponential Integrate-and-Fire Model",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "cba3c8b06979dc71",
+        "title": "Advanced Data Analysis of Spontaneous Biophoton Emission: A Multi-Method Approach",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.13333333333333333
+      },
+      {
+        "id": "c8f676d80b09b673",
+        "title": "Interspecific information use facilitates species coexistence in ecosystems",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.3764705882352941
+      },
+      {
+        "id": "13b00c125bb15cac",
+        "title": "Completion of partial structures using Patterson maps with the CrysFormer machine learning model",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "9149d943cd3f027b",
+        "title": "Stochastic Thermodynamics of Cooperative Biomolecular Machines: Fluctuation Relations and Hidden Det",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.26666666666666666
+      },
+      {
+        "id": "07f6a1147eb5645e",
+        "title": "Depth-enhanced molecular imaging with two-photon oblique plane microscopy",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "380da30132e4adfb",
+        "title": "A Low Cost Relativistic Algebraic Diagrammatic Construction Method Based on Cholesky Decomposition a",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "e2fc7981ec5655a5",
+        "title": "Diffusion-controlled reaction rate to an active site in a spherical cavity: Extension of Berg's theo",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "41329a9321ce9d29",
+        "title": "Towards superior van der Waals density functionals for molecular crystals",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "b9db1f57ce088982",
+        "title": "Comparing the Mechanical and Thermodynamic Definitions of Pressure in Ice Nucleation",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "03e8628e07063378",
+        "title": "Direct readout of excited state lifetimes in chlorin chromophores under electronic strong coupling",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "32256365df96d0b3",
+        "title": "Tuning Domain-Based Charge Transfer in Organic Dyes: Impact of Heteroatom Doping in the pi-linker of",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "c263d87335796071",
+        "title": "Unbiased molecular dynamics for the direct determination of catalytic reaction times : paving the wa",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "0e16b986580e45a7",
+        "title": "Benchmarking Hartree-Fock and DFT for Molecular Hyperpolarizability: Implications for Evolutionary D",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "29bc224e60b92598",
+        "title": "$Δ$-ML Ensembles for Selecting Quantum Chemistry Methods to Compute Intermolecular Interactions",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.34285714285714286
+      },
+      {
+        "id": "bf3b86be48e539e6",
+        "title": "Enhancing Infrared Laser Dissociation of Molecules with the Electromagnetic Vacuum",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.41428571428571426
+      },
+      {
+        "id": "eb5f0eec4bc5d982",
+        "title": "Generating transition states of chemical reactions via distance-geometry-based flow matching",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "d45e54d9a6f26e2e",
+        "title": "Calculation and analysis of exciton couplings via a subsystem formulation of the $GW$-Bethe-Salpeter",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "bb72a64f558e6b63",
+        "title": "Generalizing the Shell Theorem to Constant Curvature Spaces in All Dimensions and Topologies",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.26666666666666666
+      },
+      {
+        "id": "55844d805336a952",
+        "title": "A reinterpretation of classical magnetism via the regular representation of displacement current",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "37a79f485b4c004d",
+        "title": "Bessel-Hagen on the extension of Noether's theorems and their application to classical electromagnet",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.26666666666666666
+      },
+      {
+        "id": "cddc4986ea684c88",
+        "title": "Non-Gaussianity-induced enhanced target-finding dynamics of confined colloids",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "2efdb28c192b0c83",
+        "title": "Multifunctional Lightweight Radiators for Small-Satellite Thermal Control",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "bf5a913fa663b49f",
+        "title": "Experimental Investigation of Acoustic Kerker Effect in Labyrinthine Resonators",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "be2caf2e1c1d9990",
+        "title": "Path-Dependent Energy Lagrangian for Irreversible Thermomechanical Systems",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "04025a431ef01341",
+        "title": "Mechanically concealed holes",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "62ac76994922a938",
+        "title": "Momentum-Transfer Framework Unifies High-Velocity Impact and Failure Across Materials, Geometries, a",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "78a953fd7a0dda93",
+        "title": "Unified interface dipole theory for Fermi level pinning effect at metal-semiconductor contacts",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "a0adba4636bb2ef0",
+        "title": "Differentiable Physics-Neural Models enable Learning of Non-Markovian Closures for Accelerated Coars",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "31c38f1438aae8da",
+        "title": "Physics Steering: Causal Control of Cross-Domain Concepts in a Physics Foundation Model",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "708ccbc86fdae829",
+        "title": "High-pressure melting and elastic behavior of vanadium and niobium based on ab initio and machine le",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "5b33846aa3d944a6",
+        "title": "Fast-Converging and Asymptotic-Preserving DSMC",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "d2b68f69870d0823",
+        "title": "Dynamical interplay between coupled scalar dark sectors and gravity",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.13333333333333333
+      },
+      {
+        "id": "118eeb4b5fa86317",
+        "title": "Atomistic Framework for Glassy Polymer Viscoelasticity Across 20 Frequency Decades",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "34e1045f698d2e75",
+        "title": "Generation of Granular Deposition Interfaces using conditional Generative Adversarial Network (cGAN)",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "3f04ff96cf4f1e25",
+        "title": "Appraising the absolute limits of nanotubes and nanospheres to preserve high-pressure materials",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "f780db092e720363",
+        "title": "The Intrinsic Dimension of Collider Events and Model-Independent Searches in 100 Dimensions",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "8af851f5e1cc7237",
+        "title": "High-Accuracy Material Classification via Reference-Free Terahertz Spectroscopy: Revisiting Spectral",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.14285714285714285
+      },
+      {
+        "id": "45ed97f450277ebc",
+        "title": "A First Full Physics Benchmark for Highly Granular Calorimeter Surrogates",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "6e505ac357aabd44",
+        "title": "Exploring the Cosmological Model Degeneracy with a new evaluate factor G",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "08d4e988be71e648",
+        "title": "Energy-efficient recurrence quantification analysis",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "10c14dbf91a8430a",
+        "title": "A matrix form solution of the multi-dimensional generalized Langevin equation in the quadratic poten",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "76838e2163bf9360",
+        "title": "Diffusion Signals Reveal Hidden Connections: A Physics-Inspired Framework for Link Prediction via Pe",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "6493f67954454b85",
+        "title": "Beyond empirical models: Discovering new constitutive laws in solids with graph-based equation disco",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "1ed5d9c5e7a066ac",
+        "title": "The Data Fusion Labeler (dFL): Challenges and Solutions to Data Harmonization, Labeling, and Provena",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "08a272c5e6bd3ff3",
+        "title": "Lithological Controls on the Permeability of Geologic Faults: Surrogate Modeling and Sensitivity Ana",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "a1513872835c3705",
+        "title": "Relation between extensional viscosity and polymer conformation in dilute polymer solutions",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.14285714285714285
+      },
+      {
+        "id": "6d216ae59edcd944",
+        "title": "Hardware-Accelerated Phase-Averaging for Cavitating Bubbly Flows",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "b308059cbe19f7f6",
+        "title": "Implications of the Four-Color Theorem on the Dynamics of N-Component Phase Separation",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.33333333333333337
+      },
+      {
+        "id": "2a93a39a24319a80",
+        "title": "Probing superhydrophobic surface topography using droplet adhesion",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "14a1f80eb0d3d586",
+        "title": "Simulating droplet adhesion on superhydrophobic surfaces",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "b2c86a2cda660af0",
+        "title": "Unveiling the role of seepage forces in the acceleration of landslides creep",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "9cde03c8261b5d08",
+        "title": "Classical timing noise in gravity-mediated entanglement tests: LOCC structure, metrological bounds, ",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "5ed1d5fc14bf80c3",
+        "title": "Topological Structure of Infrared QCD",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "489fdb12cf5100f0",
+        "title": "Geometric Interpretation of the Redshift Evolution of H_0(z)",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "6bd8f28fc6fa672d",
+        "title": "The swinging counterweight trebuchet. On internal forces",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "bc40a6473c00e790",
+        "title": "Reply to Hofer-Szabó: the PBR theorem hasn't been saved",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.26666666666666666
+      },
+      {
+        "id": "aea98e7fca7b9a0b",
+        "title": "MOND Theory and Thermodynamics of Spacetime",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "7ee6e2cf3ad47910",
+        "title": "Einstein-Grossmann geometry for frequency shifts of retrograde and direct orbits",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "8ded9009112652f2",
+        "title": "Evolution of Size, Mass, and Density of Galaxies Since Cosmic Dawn",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "e2078bbf020780ba",
+        "title": "Lepton Triptych I: Geometric Foundations of Electroweak Symmetry in the Real Clifford Algebra $\\text",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "3485e9bc6f675b0c",
+        "title": "Universality of critical behaviors in the three-dimensional (3D) Ising magnets",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "74ca41062f0c31cc",
+        "title": "Holographic connection of f(G) gravity through Barrow and a generalized version of holographic dark ",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "fb8b47245898e5ae",
+        "title": "On the planetary forcing of the Solar dynamo: Evidence from a Lagrangian framework",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.26666666666666666
+      },
+      {
+        "id": "a59ae5e39cd4f309",
+        "title": "Structure-Function Coherent Coarsening for Cross-Resolution Ecohydrological Modeling",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "16268c56de435ffb",
+        "title": "Role of partial stable stratification on the onset of rotating magnetoconvection with a uniform hori",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "efb64d4569e941a6",
+        "title": "Seismic quiescence and activation prior to the 2025 M8.8 Kamchatka, Russia earthquake",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "f796144abe5ccdc8",
+        "title": "Effect of submerged vegetation on water surface geometry and air-water momentum transfer",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "3ea30606cc563d11",
+        "title": "A Deep Learning-based time shift objective function for Full Waveform Inversion",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "8cb8b4ab6cc8d736",
+        "title": "Diagnosing and Breaking Amplitude Suppression in Seismic Phase Picking Through Adversarial Shape Lea",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "97aaaba026ed6b4a",
+        "title": "Dark Matter Realism: How Referential Semantics Restricts Realism in Contemporary Fundamental Physics",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "378f0fd1146d6acf",
+        "title": "From Heisenberg and Schrödinger to the P vs. NP Problem",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "1a3c49f7dbe3bdbd",
+        "title": "A computational framework for evaluating an edge-integrated, multi-ramp construction model of the Gr",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "294c1bd4964275f6",
+        "title": "Nearly forgotten results in development of physical cosmology",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "213d281dfe01b0a7",
+        "title": "Legal Entanglement",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.26666666666666666
+      },
+      {
+        "id": "a55ec686fff53713",
+        "title": "Resolution of Loschmidts Paradox via Geometric Constraints on Information Accessibility",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "73bd12abcaa2ac20",
+        "title": "Is Gravity Truly Balanced? A Historical-Critical Journey Through the Equivalence Principle and the G",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "b07585012c9e6c99",
+        "title": "Evaluating the Effective Segregation Coefficient in High-Purity Germanium (HPGe) Crystals for Ge Det",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "4c2add018c0b2d2b",
+        "title": "Investigating the Timing Behavior of Compton Scattering in BGO for Time-of-Flight PET",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.14285714285714285
+      },
+      {
+        "id": "ca3dedfc974a20f4",
+        "title": "Calibration Plan for the SBC 10-kg Liquid Argon Detector with 100 eV Target Threshold",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "207ee368228f948b",
+        "title": "Approximate resolution convolution function for fitting a dispersion gap measured on a triple-axis s",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "640febd6c605cb59",
+        "title": "Simulating neutron diffraction from deformed mosaic crystals in McStas",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "9586c7fadfea2737",
+        "title": "Experimental Demonstration of an On-Axis Laser Ranging Interferometer for Future Gravity Missions",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "485f68b38eb172d9",
+        "title": "Development & Characterization of Electrodes for large-scale Xenon Time Projection Chambers",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "d5c5b5d4a6e59538",
+        "title": "Multiplexed SiPM Readout of Plastic Scintillating Fiber Detector for Muon Tomography",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.14285714285714285
+      },
+      {
+        "id": "f3ae93db312052f3",
+        "title": "High Density Hybridisation Using ENIG Bumping and Anisotropic Conductive Films",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "aa4742a212e07260",
+        "title": "Characterization of a CsI(Tl) Scintillator Coupled to a SiPM at Cryogenic Temperatures",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "753c7f4dbee0698a",
+        "title": "Studying AC-LGAD strip sensors from laser and testbeam measurements",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "561d262359feb1d1",
+        "title": "Exploring the production of Terbium-161 in the Brazilian Multipurpose Reactor",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "4c1764abdc0fca80",
+        "title": "Stopping power monitoring during proton therapy by means of prompt gamma timing: first experimental ",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "46966694c2008121",
+        "title": "Strategic Development of a Hydrogen Supply Chain in Corsica: a Multi-criteria Analysis",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "40f407c100e01e32",
+        "title": "Wide Area Surface Dosimetry with Conformal Scintillator Array for External Beam Radiotherapy",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "cc404f1009b2f5de",
+        "title": "Manganese-based macrocyclic chelates as novel MRI contrast agents: In vivo imaging in a porcine mode",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "886b16f47af16c8b",
+        "title": "Exploring the added value of pretherapeutic MR descriptors in predicting breast cancer pathologic co",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "692c702f83d69ceb",
+        "title": "Double-Profile Intersection (DoPIo) Ultrasound: Pointwise Shear Elasticity Estimation using Paired C",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "3fa554b96517c4b0",
+        "title": "A Respiratory Motion Analysis for Guiding Stereotactic Arrhythmia Radiotherapy Motion Management",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "6ad9e7a202ce0a2c",
+        "title": "Qualitative and quantitative hard-tissue MRI with portable Halbach scanners",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "9b1579e1aee0f865",
+        "title": "The Emory Optic Nerve Head Atlas - Using 3D Anatomical Mapping to Study Optic Neuropathies with an I",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "d36a00420d481700",
+        "title": "Clinical Validation and Prospective Deployment of an Automated Deep Learning-Based Coronary Segmenta",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "0497cd5362de2e30",
+        "title": "Composition-Dependent Properties of $\\mathrm{Ce_{x}La_{0.95-x}Tb_{0.05}F_{3}}$ Nanopowders Tailored ",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.14285714285714285
+      },
+      {
+        "id": "5ed64ed0eca205d7",
+        "title": "Smooth Total variation Regularization for Interference Detection and Elimination (STRIDE) for MRI",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "646a8a5444f019e6",
+        "title": "PyPeT: A Python Perfusion Tool for Automated Quantitative Brain CT and MR Perfusion Analysis",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "66a6ea64b6d23912",
+        "title": "Guidewire-driven deployment of high density ECoG arrays for large area brain-computer interface",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "6aad7953c3383a5b",
+        "title": "SETI Post-Detection Protocols: Progress Towards a New Version",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "8034250bad7fbba7",
+        "title": "Strategic Communication Protocols for Interstellar Objects Using a Threat-Communication Viability In",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "1a2ec848f1dc2610",
+        "title": "Blink and you'll miss it -- How Technological Acceleration Shrinks SETI's Narrow Detection Window",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "296335ede3e9cbba",
+        "title": "Electricity in international comparison -- Future technologies in power generation",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "770013f239d39730",
+        "title": "Some Geophysical Aspects Of The 1908 Tunguska Event",
+        "original_category": "physics",
+        "corrected_category": "mathematics",
+        "confidence": 0.06666666666666667
+      },
+      {
+        "id": "c3bc57fa81d0cb64",
+        "title": "On the Size of the Mission Suite Enabled by NASA's Deep Space Network",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "3a98730a3692c880",
+        "title": "Dichroism from Thermoelectric Chiral Drives: Generalized Sum Rules for Orbital and Heat Magnetizatio",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "4d50aa4b7e9a5335",
+        "title": "Quantum electrodynamic description of the neutral hydrogen molecule ionization",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.34285714285714286
+      },
+      {
+        "id": "6a0002385c18dd31",
+        "title": "Quasiperiodic localized oscillating solutions in the discrete nonlinear Schrödinger equation with al",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "22080fd46cea529e",
+        "title": "Free Energy Transduction in a Chemical Motor Model",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "487963c5cf309387",
+        "title": "Helicase activity on DNA as a propagating front",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "98d9ed0db52a9474",
+        "title": "Internal Motility in Stiffening Actin-Myosin Networks",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.34285714285714286
+      },
+      {
+        "id": "d912ffb91e699756",
+        "title": "Folding of Cu, Zn superoxide dismutase and Familial Amyotrophic Lateral Sclerosis",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "19b3f9f42666494c",
+        "title": "Noise in an insect outbreak model",
+        "original_category": "physics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "c39de549be551e20",
+        "title": "Correspondence between time-evolution dynamics of a tumor and an attractively interacting Bose-Einst",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.11764705882352941
+      },
+      {
+        "id": "ccec0ba4f2cc87ef",
+        "title": "Folding Mechanism of Small Proteins",
+        "original_category": "physics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      }
+    ]
+  },
+  "category_detailed_stats": {
+    "mathematics": {
+      "count": 51,
+      "avg_quality": 0.9980392156862745,
+      "difficulty_dist": {
+        "advanced": 47,
+        "fields_level": 3,
+        "nobel_level": 1
+      },
+      "key_concepts_top10": [
+        [
+          "electromagnetism",
+          12
+        ],
+        [
+          "quantum mechanics",
+          9
+        ],
+        [
+          "relativity",
+          7
+        ],
+        [
+          "thermodynamics",
+          6
+        ],
+        [
+          "condensed matter",
+          6
+        ],
+        [
+          "particle physics",
+          6
+        ],
+        [
+          "optics",
+          4
+        ],
+        [
+          "nuclear physics",
+          1
+        ]
+      ]
+    },
+    "physics": {
+      "count": 470,
+      "avg_quality": 0.9991914893617021,
+      "difficulty_dist": {
+        "advanced": 414,
+        "nobel_level": 20,
+        "fields_level": 36
+      },
+      "key_concepts_top10": [
+        [
+          "optics",
+          70
+        ],
+        [
+          "relativity",
+          64
+        ],
+        [
+          "electromagnetism",
+          61
+        ],
+        [
+          "condensed matter",
+          61
+        ],
+        [
+          "particle physics",
+          58
+        ],
+        [
+          "quantum mechanics",
+          54
+        ],
+        [
+          "thermodynamics",
+          53
+        ],
+        [
+          "nuclear physics",
+          51
+        ]
+      ]
+    },
+    "chemistry": {
+      "count": 69,
+      "avg_quality": 1.0,
+      "difficulty_dist": {
+        "advanced": 67,
+        "fields_level": 2
+      },
+      "key_concepts_top10": [
+        [
+          "optics",
+          16
+        ],
+        [
+          "electromagnetism",
+          11
+        ],
+        [
+          "thermodynamics",
+          10
+        ],
+        [
+          "relativity",
+          9
+        ],
+        [
+          "nuclear physics",
+          8
+        ],
+        [
+          "quantum mechanics",
+          7
+        ],
+        [
+          "particle physics",
+          4
+        ],
+        [
+          "condensed matter",
+          4
+        ]
+      ]
+    },
+    "biology": {
+      "count": 87,
+      "avg_quality": 1.0,
+      "difficulty_dist": {
+        "advanced": 86,
+        "fields_level": 1
+      },
+      "key_concepts_top10": [
+        [
+          "electromagnetism",
+          15
+        ],
+        [
+          "condensed matter",
+          13
+        ],
+        [
+          "relativity",
+          12
+        ],
+        [
+          "nuclear physics",
+          12
+        ],
+        [
+          "optics",
+          12
+        ],
+        [
+          "quantum mechanics",
+          9
+        ],
+        [
+          "thermodynamics",
+          9
+        ],
+        [
+          "particle physics",
+          5
+        ]
+      ]
+    }
+  },
+  "quad_inference_stats": {
+    "total_chains": 677,
+    "complete_chains": 677,
+    "avg_steps_per_chain": 4.0,
+    "step_completeness": {
+      "problem_formulation": 677,
+      "theoretical_approach": 677,
+      "computational_verification": 677,
+      "insightful_conclusion": 677
+    },
+    "mathematical_formalism_count": 1354,
+    "computational_result_count": 677
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "completeness_validation": {
+    "total_datasets": 10,
+    "dataset_sizes": {
+      "nobel_fields_cot_mathematics_cleansed.jsonl": 852,
+      "nobel_fields_cot_physics_cleansed.jsonl": 677,
+      "nobel_fields_cot_chemistry_cleansed.jsonl": 35,
+      "nobel_fields_cot_biology_cleansed.jsonl": 18,
+      "nobel_fields_cot_cleansed.jsonl": 1582,
+      "nobel_fields_cot_biology_cleansed_quad_inference.jsonl": 18,
+      "nobel_fields_cot_chemistry_cleansed_quad_inference.jsonl": 35,
+      "nobel_fields_cot_cleansed_quad_inference.jsonl": 1582,
+      "nobel_fields_cot_mathematics_cleansed_quad_inference.jsonl": 852,
+      "nobel_fields_cot_physics_cleansed_quad_inference.jsonl": 677
+    },
+    "category_coverage": {
+      "mathematics": 1380,
+      "physics": 1076,
+      "chemistry": 234,
+      "biology": 474
+    },
+    "missing_fields": {},
+    "data_quality_scores": {
+      "nobel_fields_cot_mathematics_cleansed.jsonl": 0.9948887585583087,
+      "nobel_fields_cot_physics_cleansed.jsonl": 0.9972505562075122,
+      "nobel_fields_cot_chemistry_cleansed.jsonl": 0.9166666666666666,
+      "nobel_fields_cot_biology_cleansed.jsonl": 0.9166666666666666,
+      "nobel_fields_cot_cleansed.jsonl": 0.9958287894313806,
+      "nobel_fields_cot_biology_cleansed_quad_inference.jsonl": 1.0,
+      "nobel_fields_cot_chemistry_cleansed_quad_inference.jsonl": 1.0,
+      "nobel_fields_cot_cleansed_quad_inference.jsonl": 1.0,
+      "nobel_fields_cot_mathematics_cleansed_quad_inference.jsonl": 1.0,
+      "nobel_fields_cot_physics_cleansed_quad_inference.jsonl": 1.0
+    },
+    "completeness_score": 1.0580325359382634,
+    "total_problems": 6328
+  },
+  "inference_quality": {
+    "total_inferences": 3164,
+    "confidence_distribution": {
+      "high": 0,
+      "medium": 3164,
+      "low": 0
+    },
+    "reasoning_quality_distribution": {
+      "adequate": 3164
+    },
+    "computational_validity_rate": 1.0,
+    "theoretical_soundness_rate": 1.0,
+    "self_correction_stats": {
+      "total_corrections": 12656,
+      "avg_corrections_per_inference": 4.0
+    },
+    "processing_time_stats": {
+      "avg_time": 0.0007730088495575221,
+      "max_time": 0.014693,
+      "min_time": 0.0
+    },
+    "category_performance": {
+      "biology": {
+        "count": 474,
+        "avg_confidence": 0.7125,
+        "computational_validity": 1.0,
+        "theoretical_soundness": 1.0
+      },
+      "chemistry": {
+        "count": 234,
+        "avg_confidence": 0.7125000000000001,
+        "computational_validity": 1.0,
+        "theoretical_soundness": 1.0
+      },
+      "physics": {
+        "count": 1076,
+        "avg_confidence": 0.7125,
+        "computational_validity": 1.0,
+        "theoretical_soundness": 1.0
+      },
+      "mathematics": {
+        "count": 1380,
+        "avg_confidence": 0.7125,
+        "computational_validity": 1.0,
+        "theoretical_soundness": 1.0
+      }
+    },
+    "overall_quality_score": 0.3333333333333333
+  },
+  "cross_validation": {
+    "n_splits": 5,
+    "fold_results": [
+      {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0
+      },
+      {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0
+      },
+      {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0
+      },
+      {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0
+      },
+      {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0
+      }
+    ],
+    "average_scores": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    "variance_scores": {
+      "accuracy_var": 0.0,
+      "precision_var": 0.0,
+      "recall_var": 0.0,
+      "f1_score_var": 0.0
+    }
+  },
+  "performance_report": {
+    "validation_timestamp": "2025-11-30T11:25:50.263734",
+    "overall_assessment": {
+      "grade": "Adequate",
+      "score": 0.7971219564238655,
+      "description": "データセットは基本的な品質基準を満たしています"
+    },
+    "recommendations": [
+      "四重推論の品質を向上させるため、理論的枠組みの拡充を検討してください",
+      "カテゴリバランスを改善するため、以下のカテゴリのサンプル増加を検討: chemistry: 7.4%"
+    ],
+    "performance_metrics": 
