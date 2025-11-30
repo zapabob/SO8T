@@ -1,0 +1,50 @@
+{
+  "dataset_name": "nobel_fields_cot_physics_cleansed",
+  "total_problems": 677,
+  "processing_stats": {
+    "avg_confidence": 0.7125000000000001,
+    "avg_processing_time": 0.0006144091580502216,
+    "total_corrections": 2708,
+    "reasoning_quality_distribution": {
+      "excellent": 0,
+      "good": 0,
+      "adequate": 677,
+      "poor": 0
+    },
+    "insight_level_distribution": {
+      "advanced": 0,
+      "intermediate": 0,
+      "basic": 677
+    }
+  },
+  "validity_stats": {
+    "computational_validity_rate": 1.0,
+    "theoretical_soundness_rate": 1.0
+  },
+  "category_performance": {
+    "biology": {
+      "count": 87,
+      "avg_confidence": 0.7124999999999999,
+      "computational_validity_rate": 1.0,
+      "theoretical_soundness_rate": 1.0
+    },
+    "physics": {
+      "count": 470,
+      "avg_confidence": 0.7125000000000001,
+      "computational_validity_rate": 1.0,
+      "theoretical_soundness_rate": 1.0
+    },
+    "chemistry": {
+      "count": 69,
+      "avg_confidence": 0.7124999999999998,
+      "computational_validity_rate": 1.0,
+      "theoretical_soundness_rate": 1.0
+    },
+    "mathematics": {
+      "count": 51,
+      "avg_confidence": 0.7124999999999998,
+      "computational_validity_rate": 1.0,
+      "theoretical_soundness_rate": 1.0
+    }
+  }
+}

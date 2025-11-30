@@ -1,0 +1,1768 @@
+{
+  "total_problems": 852,
+  "category_distribution": {
+    "mathematics": 632,
+    "biology": 139,
+    "physics": 54,
+    "chemistry": 27
+  },
+  "difficulty_distribution": {
+    "advanced": 800,
+    "fields_level": 32,
+    "nobel_level": 20
+  },
+  "average_quality_score": 0.9975117370892017,
+  "quality_score_std": 0.015333724325073676,
+  "theoretical_depth_distribution": {
+    "intermediate": 544,
+    "profound": 127,
+    "advanced": 181
+  },
+  "validation_stats": {
+    "total_problems": 852,
+    "corrected_count": 220,
+    "category_distribution": {
+      "mathematics": 632,
+      "biology": 139,
+      "physics": 54,
+      "chemistry": 27
+    },
+    "validation_details": [
+      {
+        "id": "945af24652a50c75",
+        "title": "Extendability of group actions on K3 or Enriques surfaces",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "0b7d7ff7a1a30642",
+        "title": "Evaluating the tame Brauer group of open varieties over local fields",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "5b8c0415a3db3a62",
+        "title": "The Self-Projecting Grassmannian",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "db3984d78a61c079",
+        "title": "A generalized Dumas irreducibility criterion",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "2a379db837785971",
+        "title": "Analogue of the Galois Theory for arbitrary finite field extensions",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "0225457d77f682e8",
+        "title": "Iterated polynomials are dense",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "e39426e65f92b615",
+        "title": "Hyperbolicity of adjoint linear series on varieties with positive tangent bundle",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "0e08c9a1bd30aef4",
+        "title": "Bases of associated Galois modules in general wildly ramified extensions and in elementary abelian e",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "f1f3f37696532596",
+        "title": "Dimension Polynomials for Affine Partial Difference Algebraic Groups",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "acb0a0777cae6dc1",
+        "title": "Derived categories of Gushel-Mukai surfaces and Fano fourfolds of K3 type",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "edb89b745aa88306",
+        "title": "On lattices over Fermat function fields",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "17170bbc46a5f236",
+        "title": "Exterior power of stable vector bundle destabilized by Frobenius pull-back",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "d75012a321b57a6a",
+        "title": "Stability conditions on a singular quadric threefold",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "bdafee7dbffe7fa8",
+        "title": "The Categorical 't Hooft Expansion",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.4307692307692308
+      },
+      {
+        "id": "27dbc3aa3aec7515",
+        "title": "On the de Rham cohomology of cyclic covers",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "daa889733485d3e9",
+        "title": "Deformation to the normal bundle and blow-ups via derived Weil restrictions",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "04de195d4b3445e2",
+        "title": "Point Objects and Derived Equivalences of Twisted Derived Categories of Abelian Varieties",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "e8895271bd678108",
+        "title": "A complete solution of the Erdős-Kleitman matching problem for $n\\le 3s$",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "980293ecf91b2333",
+        "title": "Scaling limits of critical FK-decorated random planar maps with $q=4$",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "08a356855afad66b",
+        "title": "Local generation of languages",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "cfaa7087169ed2eb",
+        "title": "Even with AI, Bijection Discovery is Still Hard: The Opportunities and Challenges of OpenEvolve for ",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "13c1749cd632b36b",
+        "title": "On the Expected Duration of a Generalized Bingo Game",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "c89b9dc3c7c1050f",
+        "title": "Toward a Canonical Representation of Blocked Rectangular Grids with an Application to Finite Tiling ",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.0
+      },
+      {
+        "id": "7a260bb9c8972db7",
+        "title": "A new factorization of the generalized period-doubling sequences through kernel words and gaps seque",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "6c9833115fbaf17b",
+        "title": "Off-Diagonal Continuous Rado Numbers $x_1 + x_2 + \\dots + x_k = x_0$",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "896e5d6314eb3b64",
+        "title": "ChemicHull: an online tool for determining extremal chemical graphs of maximum degree at most 3 for ",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "880f32f2618a7902",
+        "title": "Acyclic dichromatic number of oriented graphs",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "4599595f89d20fe0",
+        "title": "Stochastic Optimal Control of Interacting Particle Systems in Hilbert Spaces and Applications",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "289a833ad44dc0c3",
+        "title": "Dissipative solutions to Stochastic 3D Euler equations",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "84ee7b7be54344b0",
+        "title": "Large data global well-posedness for the modified Novikov-Veselov system",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "ede5fc0a680f3c78",
+        "title": "Variational Principle and Stochastic Lagrangian Formulation of Viscous Hydrodynamic Equations",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "fdf608154a88755f",
+        "title": "On the hyperbolic relaxation of the chemical potential in a phase field tumor growth model",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "67f2bdc631671b80",
+        "title": "A Hamilton-Jacobi Framework in a Field-Road System with Unidirectional Advection under Wentzell-Type",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "22ddb65cfe88b97a",
+        "title": "Polychromatic Localized Waves with Complex Frequencies in Nonlinear Maxwell Equations with Material ",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "4f9690e3372feeb6",
+        "title": "A Laplacian System With Sign-Changing Weight Function",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "dbd28c92a1bce876",
+        "title": "Stationary equation of the relativistic heat diffusion in transparent media having $L^1$--data",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "dfa24f9f514e95fb",
+        "title": "Qualitative properties of single blow-up solutions for nonlinear Hartree equation with slightly subc",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "d830b09c47e29001",
+        "title": "Normalized Solutions for Schroedinger-Bopp-Podolsky Systems in Bounded Domains with General Nonlinea",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "f5f4683c3b943575",
+        "title": "Curvature-driven pattern formation in biomembranes: A gradient flow approach",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "c6873663087db866",
+        "title": "Higher integrability for minimizers under weighted generalized Orlicz growth conditions",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "cd81ff6a68bde606",
+        "title": "Morse index stability for p-Yang-Mills connections",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "be13fff083426f47",
+        "title": "Analyticity in space and time for global solutions to the anisotropic Navier--Stokes equations in th",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "f187ab6fc60c7820",
+        "title": "Finite time blow up solutions for heat equations with Neumann boundary conditions on $\\mathbb{R}_{+}",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "8598f255e5196303",
+        "title": "The periodic Camassa-Holm equation by the Riemann-Hilbert problem approach",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "a6546d3d61156f6a",
+        "title": "Extension and neural operator approximation of the electrical impedance tomography inverse map",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "bcbe5047c18351f7",
+        "title": "Joint Projective Invariants on First Jet Spaces of Point Configurations via Moving Frames",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "bdc700b465b19bd6",
+        "title": "Realizing orders in rational sphere product algebras with three generators",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "01f66e12a827dd11",
+        "title": "Generalized Global Symmetries of $T[M]$ Theories: Part II",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "4598415d2c2991fb",
+        "title": "Equivariant Banach-bundle germs",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "401a0c2d33bd7d5e",
+        "title": "Cubical models of $\\infty$-presheaves and the Bousfield-Kan formula",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "9cd13c58b8b67fb5",
+        "title": "Realizing wedges of Moore spaces as classifying spaces of finite semigroups",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "43b0e1d088c90d4d",
+        "title": "Real spin bundles over $\\mathbb{C}\\mathrm{P}^3$ and a new Euclidean embedding of $\\mathbb{R}\\mathrm{",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "69b3eeb93f6a9d41",
+        "title": "Spectral sequences, Massey products and homology of covering spaces",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "df3c8dc5dd3db7e8",
+        "title": "Autonomous motion in changing environment, fibrations and reaction mechanisms",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "220f2a2fee1fa593",
+        "title": "Effective Resistance in Simplicial Complexes as Bilinear Forms: Generalizations and Properties",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "c797dfd1f5d1611d",
+        "title": "Deriving the Generalised Born Rule from First Principles",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "b428ab558812c54a",
+        "title": "A new characterization of Kac-type discrete quantum groups",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "2af1bf1fa8b82172",
+        "title": "Internalizing Tools as Morphisms in Graded Transformers",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "6932e9014ad3cbd1",
+        "title": "Combinatory Completeness in Structured Multicategories",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "eb4b3fdd18126781",
+        "title": "Cubical coherent confluence, cubical $ω$-groupoids and the cube equation",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "5a1a3451a7f54b97",
+        "title": "Multiple categories of general quintets",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "c07c0197d786424f",
+        "title": "A monoidal category of dependently sorted algebraic theories I: syntax",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "33105fd825e48fae",
+        "title": "Exchange relations and Frobenius subalgebras",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "1ee71507d4ce230b",
+        "title": "A convenient category of locales",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "049e4441d80b1b39",
+        "title": "Definable functoriality of tensor-triangular spectra",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "8cfc0341d1491f73",
+        "title": "A Presymplectic and Symmetry Reduced Formulation of the Maxwell Vlasov System",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.15384615384615385
+      },
+      {
+        "id": "b2a44fb003ec7965",
+        "title": "Quantitative Stability of the Clifford Torus as a Willmore Minimizer",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "c73b91886f7a6aba",
+        "title": "Lie Group Approach to Envelope Surfaces",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "8dc6ca4645bffa3b",
+        "title": "Complex structures of the Gibbons-Hawking ansatz with infinite topological type",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "c9aef0734c3a16d8",
+        "title": "$k$-contact Lie systems: theory and applications",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "aafeb206c5708ddc",
+        "title": "Explicit solutions to the gradient flow of Spin(7)-structures",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "44661592355ed8d4",
+        "title": "Energy functionals on almost Kähler manifolds:",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "449068b0b33042e3",
+        "title": "A Generalization of Zalcman's Lemma on Complex Lie Groups",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "d58f9930fbbff003",
+        "title": "Local Polynomial Convexity at Hyperbolic CR-singularities in $M \\subset \\mathbb{C}^n$",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "7f54ee8621a41f57",
+        "title": "On perturbations of the DN map of a disk causing changes of surface topology",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "0edf89a69ddd6537",
+        "title": "Nilpotent Holomorphic Foliations on $(\\mathbb{C}^n,\\mathbf{0})$",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "adbc4b2563db4715",
+        "title": "Inner functions and Pick-Nevanlinna interpolation in a multi-connected domain",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "ca18c7d698801467",
+        "title": "Emergent Geometry Governs Optimal Control in Driven Stokes Flows",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.0
+      },
+      {
+        "id": "b8ff2312898b7b73",
+        "title": "The Fourier Ratio and complexity of signals",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "a1c814b3407eeaae",
+        "title": "Quantitative BMO-BLO Estimates for the Hardy-Littlewood Maximal Function",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "d106d6e9db215744",
+        "title": "Powers of the arcsine and infinite classes of series involving central binomial coefficients",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "2d6ae8ab59343e74",
+        "title": "Non-homogeneous Linear Set-Valued Differential Equations with Variable Matrix Coefficients",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "3942fa58e24dfa22",
+        "title": "On Schultz's generalization of Borweins' cubic identity",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "d9c5db7807e1429e",
+        "title": "Revisiting mixed weak inequalities of Fefferman-Stein type for commutators of Calderón-Zygmund opera",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "dc2546cb670a4e53",
+        "title": "On infinite scalings of the canonical spectrum for self-similar spectral measures",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "25e19e15c73e8ef6",
+        "title": "An Elementary Approach to Depoissonization",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "7dc8a3e2c66d4a86",
+        "title": "Delsarte-type extremal problems and convolution roots on homogeneous spaces",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "7f23257aaa4236dc",
+        "title": "Effective equidistribution of random walks on simple homogeneous spaces",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "9e31e09f07f36fd9",
+        "title": "Magnetic Double-Wells: Lower Bounds on Tunneling",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "78f7289cbadb88f7",
+        "title": "A sharp commutator estimate for all Riesz modulated energies",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "8d33f9ce02b5661f",
+        "title": "Linear independence of quantum translates",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "a44f6cffefbfab98",
+        "title": "Inner products for strongly regular near-vector spaces and duality for finite dimensional near-vecto",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "12b715699e4aafc3",
+        "title": "Notes on Ordinary Conformal Differential Equations of order $α$ ($0<α\\leq 1$)",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "2059240fb5d7113b",
+        "title": "A flow and transport model for simulation of microbial enhanced oil recovery processes at core scale",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "75bd430342e1e116",
+        "title": "A Unified Transformation Formula for Ramanujan's Theta Function",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "0daa9d5b883a151a",
+        "title": "Categories of Games and their Fraïssé Theory",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "c5eaeceeb1cbcb20",
+        "title": "A space-fractional reaction-diffusion system with cylindrical symmetry",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.27142857142857146
+      },
+      {
+        "id": "2dc46534e0373b9b",
+        "title": "Bailey-Zeta Limits: A $q$-Series Bridge to Dirichlet $L$-Functions and the Riemann Zeta Function",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "372a46f066a6f622",
+        "title": "Some smooth divergences for $\\ell_{1}-$approximations",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "e1d75f40f11fc1f3",
+        "title": "The Lah Numbers with Higher Level and the Lah Numbers of Order s",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "5ed23e537d7e4936",
+        "title": "Exact Solutions for Classes of Nonlinear Differential Equations on Fractal Supports",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "7cccff940995b597",
+        "title": "$π_B$ in asymetric Minkowski normed spaces",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "37901edf7ceb1b9d",
+        "title": "Generalized quasiorders: constructions and characterizations",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "76a246beadc48cb9",
+        "title": "Classification of Quaternionic Projective Transformations by Equicontinuity Regions",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "77ab286c923fa27d",
+        "title": "Normality in the square of the Sorgenfrey Line",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "8d4a4e8399bce357",
+        "title": "An Ideal Zoo in the Baire Space",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "f12244b0784d9c8c",
+        "title": "Optimal regularity results for the Stokes--Dirichlet problem",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "ea04c5a91e85a772",
+        "title": "On gap properties for the linearized 1D Dirac--Soler model",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "959a1eff53a4bdfb",
+        "title": "Fractal Analysis of Pseudo Foci in Piecewise Analytic Systems",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "1be3382299b9e29e",
+        "title": "Classifying seizure generation mechanisms: A critical transitions framework",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "d0189127f4cdbc2d",
+        "title": "Nonlinearly preconditioned gradient flows",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "9b4f5b2acb58d5e7",
+        "title": "Stable rank one in nonnuclear crossed products",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "d375132d2f8299df",
+        "title": "Homogeneous potentials, Lagrange's identity and Poisson geometry",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "ed5e005fa3b7eb73",
+        "title": "Chaotic dynamics for the two body problem on a sphere",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "42333fe391daf3d4",
+        "title": "On the problem of stability of viscous shocks",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "0d7655d73cc4db5d",
+        "title": "The crossing matrix and the extended first Johnson homomorphism of a braid group",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "3f1d64d93d99cc8d",
+        "title": "Vassiliev invariants for virtual knotoids",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "4aebe99f87f1822c",
+        "title": "Minimal Generating sets of Reidemeister moves",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "52ebd5f86f1608e4",
+        "title": "A note on TQFTs for orientable 2-dimensional cobordisms",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "a49867035869c5ad",
+        "title": "The skein partition function of the mapping torus",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "541913d4f55c5ff6",
+        "title": "Euler's work on spherical geometry: An overview with comments",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "a6e1d7703b75a843",
+        "title": "Weinstein Handlebodies for the Painlevé Betti Spaces",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "b40f7ef486cd317e",
+        "title": "Minimal Generation of Mapping Class Groups: A Survey of the Orientable Case",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "ec8ea5ba856eb616",
+        "title": "Minimal Generation of Mapping Class Groups: A Survey of the Nonorientable Case",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "6ecfaae9da0b06a8",
+        "title": "Non-squeezing and other global rigidity results in locally conformal symplectic geometry",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "5532242331728d75",
+        "title": "Topological 5d $\\mathcal{N} = 2$ Gauge Theories: Mirror Symmetry and Langlands Duality of $A_\\infty$",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.15384615384615385
+      },
+      {
+        "id": "e890d6b757ccd7ed",
+        "title": "Lower central series of the Riordan group over the field with two elements",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "74384cae3eead0ca",
+        "title": "Property (VRC) and virtual fibering for amalgamated free products",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "aebba2f84911b9be",
+        "title": "Probabilistic Bounds on the Number of Elements to Generate Finite Nilpotent Groups and Their Applica",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "6ac1e87c8d5ff8ec",
+        "title": "Generating the symmetric group by three prefix reversals",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "9b58627d49076004",
+        "title": "Geometric property (T) for box spaces and sofic approximations",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "345441288411054b",
+        "title": "Representations of Cyclic Diagram Monoids",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "7c3cfd4eaceddebe",
+        "title": "Preimages for Zémor's Cayley hash function",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "b092ee2d5db80445",
+        "title": "Orientations of Orbi-K-Theory measuring Topological Phases and Brane Charges",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "73afbbc598625636",
+        "title": "Stability of the $C^q_i$ properties under field extensions",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "1d756811a2a8b35f",
+        "title": "A computation of $THH_*(ku)$ using a gathered spectral sequence",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "90171881fc6fafbd",
+        "title": "Revisiting the $β_1$-action on the $3$-primary stable homotopy groups of spheres",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "b8f9a1dbd943a5a5",
+        "title": "Schur multiplier of $\\mathrm{SL}_2$ over finite commutative rings",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "e11015d040e76c51",
+        "title": "Extremal poker hand rankings: why the standard 52 card deck and a 3044 card deck are special",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "45364f059aeb9b66",
+        "title": "The Orientalists' Stance Towards Arabic Sciences (Especially Arabic Astronomy)",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "cce2f80471a0611d",
+        "title": "On Modal Companions of Logics with Strong Negation",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "fb441055d1058389",
+        "title": "Pseudofinite fields with additive and multiplicative character",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "7eb49d8477aeac80",
+        "title": "Adding $\\aleph_ω$ many Cohen reals",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "3b4cf1949edd2931",
+        "title": "A General (Uniform) Relational Semantics for Sentential Logics",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "258a6a54b92d24f8",
+        "title": "Tableau methodology for propositional logics",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "bf0eb23c8c856122",
+        "title": "Generalized Borel Sets",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "bfdbb1736852736a",
+        "title": "Absorbed Types and Derivations in Exponential o-Minimal Theories",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "0882d4260f4d303d",
+        "title": "Lopsided HSS Iterative Method and Preconditioner for a class of Complex Symmetric Linear System",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "59e27757bab2b918",
+        "title": "Truncated kernel windowed Fourier projection: a fast algorithm for the 3D free-space wave equation",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "27baafdf2d9ffaf7",
+        "title": "Data-driven model order reduction for wave propagation in materials with nonlinearities or damage",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "7690e942d8aadedf",
+        "title": "Modified Equations for Stochastic Optimization",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "ce7f0414d83bed57",
+        "title": "A finite element method for a non-Newtonian dilute polymer fluid",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.14285714285714285
+      },
+      {
+        "id": "6ffd50eb0452bbc1",
+        "title": "Parallel simulation and adaptive mesh refinement for 3D elastostatic contact mechanics problems betw",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "8f576595883824e3",
+        "title": "Multiscale Methods for wave propagation in materials with sign-changing coefficients",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "8f4bb7197ad6edee",
+        "title": "Finite Element Spaces of Double Two-Forms With Polynomial Coefficients",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "74a0078c7687a7d0",
+        "title": "Multigrid with Linear Storage Complexity",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "792624cbf718b83e",
+        "title": "Some Results on Bichon's Quantum Automorphism Group of Graphs",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "0950ced063aae651",
+        "title": "Dynamical Sampling: A Survey",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "ed5bf9860097d5e9",
+        "title": "Euler systems for $\\mathrm{GSp}(4)$ over imaginary quadratic fields",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "20b078fbf05728ee",
+        "title": "A sufficient condition for generalized spectral characterization of graphs with loops",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "617aaa29169d68a6",
+        "title": "Comparison between formal slopes and p-adic slopes",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "f19994efea407ee1",
+        "title": "On Some Generalisations of Gauss Sequences",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "51d4c4e4705bbe4d",
+        "title": "Spectral Density and Eigenvector Nonorthogonality in Complex Symmetric Random Matrices",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "420b7c2d9ea7c47e",
+        "title": "$Λ$-Seed-Bank-Wright-Fisher process conditioned on fixation",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "63d9bc4f7117b668",
+        "title": "Nonlinear weak error expansion of McKean-Vlasov stochastic differential equations",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "b6edc2a51f3cbe45",
+        "title": "Closed Form HJB Solution for Continuous-Time Optimal Control of a Non-Linear Input-Affine System",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "c77bfab3a3b7d454",
+        "title": "Conditional Generative Modeling of Stochastic LTI Systems: A Behavioral Approach",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "d1c691b534e388a8",
+        "title": "Accelerated ADMM: Automated Parameter Tuning and Improved Linear Convergence",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "2c2c1dd3b2d3394a",
+        "title": "A Unified Understanding of Offline Data Selection and Online Self-refining Generation for Post-train",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "406589eb3504b46d",
+        "title": "Communication-Efficient Learning for Satellite Constellations",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "af2b1a29c794e80b",
+        "title": "Scaled relative graphs for pairs of operators beyond classical monotonicity",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "458cee2b457eddb6",
+        "title": "Heterogeneous Mean Field Games and Local Well-posedness",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "fbdb70b7d2e1bcaf",
+        "title": "Convexification of classes of mixed-integer sets with L$^\\natural$-convexity",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "c7f51ac8e95c85c2",
+        "title": "A Distributed Gradient-based Algorithm for Optimization Problems with Coupled Equality Constraints",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "7e14540938b5f4a0",
+        "title": "The Projective Class Rings of Drinfeld doubles of pointed rank one Hopf algebras",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "d7e4f5db38e71dc8",
+        "title": "Scaling limit of $Q$-functions for the ${\\cal Z}_r$ invariant inhomogeneous XXZ spin-$\\frac{1}{2}$ c",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "86cbf2ba14a57d51",
+        "title": "Noetherian pointed Hopf algebras are affine",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "de9ee8ed29cab515",
+        "title": "The quantum torus as an $\\mathbb E_M$-category",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "4284da1e3bf0bb5d",
+        "title": "Teaching quantum computing to computer science students: Review of a hands-on quantum circuit simula",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "ecea8e95cc0eb414",
+        "title": "On the resolution of categorical symmetries in (Non-) Unitary Rational CFTs",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "6345062b221e0968",
+        "title": "Universal TT- and TQ-relations via centrally extended q-Onsager algebra",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "e877e4f1c748d52b",
+        "title": "From quantum groups to quantum cluster algebras",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "9a2dc3d449f000a7",
+        "title": "The Green ring of a restricted enveloping algebra in characteristic 2",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "e748503ec6871a2a",
+        "title": "On the classification of quantum symmetries",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "3e5082ab6676be99",
+        "title": "Designs on the Tautological bundle",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "9b18e17637cbef2b",
+        "title": "Every $Q$-polynomial distance-regular graph is sharp over $\\mathbb{R}$",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "cf88704dceaf5b7a",
+        "title": "Instantons on the Blown-up Surface and the Affine Vertex Algebra",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "0562af248766a512",
+        "title": "Isomeric Heisenberg and Kac-Moody categorification I",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "3f4b3c81bc8072ab",
+        "title": "Equivariant Koszul Duality, Modular Category $\\mathcal{O}$, and Periodic Kazhdan--Lusztig Polynomial",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "969a18835feb5584",
+        "title": "Whittaker Modules for W type Cartan Lie superalgebras",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "dca829789a38f4f8",
+        "title": "Exponential matrices, $\\mathbb{G}_a$-actions on projective spaces and modular representations of ele",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "1311c49521f24e18",
+        "title": "The Relative Trace Formula for Galois Periods",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "04a19d64a4149bc6",
+        "title": "Exact Categories and Homological Foundations of Non-Commutative n-ary Gamma. Semirings",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "e0623830d6aad66f",
+        "title": "An abstract approach to algebras of braids and ties",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "8613a4d40acb39e0",
+        "title": "Construction and Decoding of Error--Correcting Codes from Ideal Lattices of Finite Ternary Gamma Sem",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      },
+      {
+        "id": "1bc787e38e8e2eac",
+        "title": "Invariants of Superalgebras as Complex Integrals",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "2c7f0e37ee370897",
+        "title": "On the left and right coefficients of the general Cayley-Hamilton identities for an nxn matrix",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "704e1f34cc8a0336",
+        "title": "Local, 2-local derivations and biderivations on 3-parameter generalized quaternion",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "47c5ab8ebcbe5c0b",
+        "title": "Stabilizing Automorphisms of Quantum Affine Space",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "e1862b991051a488",
+        "title": "The relationship between local derivations and local automorphisms of some associative algebras",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "607aa9078a149479",
+        "title": "Generalization of Weinstein's Morphism",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "a941f71044227b06",
+        "title": "Deformation quantisation of exact shifted symplectic structures, with an application to vanishing cy",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "4ea3ed1c64a397ea",
+        "title": "Closed-string mirror symmetry for dimer models",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "5381586ce5c2a52b",
+        "title": "Infinite-dimensional Lagrange-Dirac systems with boundary energy flow II: Field theories with bundle",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.0
+      },
+      {
+        "id": "4ef048fbd335d9a0",
+        "title": "Generative Myopia: Why Diffusion Models Fail at Structure",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "201559cef82b1d9d",
+        "title": "Factorization for the matrix-valued general Jacobi system on the full-line lattice",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "b8c824f3694e8200",
+        "title": "Efimov effect in the Born-Oppenheimer picture",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "b2066b2a25b90d0a",
+        "title": "Eigenvalue Number and Location for Two-Particle Schrödinger Operators on $\\mathbb{Z}^3$",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "65e2f5534bc7a9bc",
+        "title": "Bifurcations in Interior Transmission Eigenvalues: Theory and Computation",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "5da8a5bf7bf1dfd7",
+        "title": "SPEAR-MM: Selective Parameter Evaluation and Restoration via Model Merging for Efficient Financial L",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "4bf29c168ca35453",
+        "title": "On the Regularity of the Dimension of Cookie-Cutter-Like Sets",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "ec44d66df90be8e8",
+        "title": "A DSMC method for the space homogeneous multispecies Landau equation",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.25882352941176473
+      },
+      {
+        "id": "85a46faebd752ff3",
+        "title": "Algorithms and optimizations for global non-linear hybrid fluid-kinetic finite element stellarator s",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.15384615384615385
+      },
+      {
+        "id": "2f1783f0e26781d0",
+        "title": "Stochastic Kinetics of Protein Molecules in a Gene Expression Model under Burst Approximation",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.3176470588235294
+      },
+      {
+        "id": "8b1107911171d497",
+        "title": "Neural network approximation of regularized density functionals",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.35384615384615387
+      },
+      {
+        "id": "9e25b35f31b09937",
+        "title": "Geometric integrators for adiabatically closed simple thermodynamic systems",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.07692307692307693
+      },
+      {
+        "id": "c9e45509fbf97c9d",
+        "title": "Orbit Elements from Kepler Solutions in Projective Coordinates",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "2d2028ae2cf83f0b",
+        "title": "Human-aligned Quantification of Numerical Data",
+        "original_category": "mathematics",
+        "corrected_category": "physics",
+        "confidence": 0.27692307692307694
+      },
+      {
+        "id": "f97f7def2e02bee0",
+        "title": "Self-Similar Radially Symmetric Solutions of the Relativistic Euler Equations with Synge Energy",
+        "original_category": "mathematics",
+        "corrected_category": "chemistry",
+        "confidence": 0.07142857142857142
+      },
+      {
+        "id": "61ccfbff8addcf95",
+        "title": "Sharp uniform-in-diffusivity mixing rates for passive scalars in parallel shear flows",
+        "original_category": "mathematics",
+        "corrected_category": "biology",
+        "confidence": 0.058823529411764705
+      }
+    ]
+  },
+  "category_detailed_stats": {
+    "mathematics": {
+      "count": 632,
+      "avg_quality": 0.9970886075949364,
+      "difficulty_dist": {
+        "advanced": 588,
+        "fields_level": 27,
+        "nobel_level": 17
+      },
+      "key_concepts_top10": [
+        [
+          "algebra",
+          177
+        ],
+        [
+          "logic",
+          121
+        ],
+        [
+          "analysis",
+          110
+        ],
+        [
+          "geometry",
+          96
+        ],
+        [
+          "topology",
+          59
+        ],
+        [
+          "category theory",
+          49
+        ],
+        [
+          "graph theory",
+          44
+        ],
+        [
+          "combinatorics",
+          42
+        ],
+        [
+          "number theory",
+          38
+        ]
+      ]
+    },
+    "physics": {
+      "count": 54,
+      "avg_quality": 1.0,
+      "difficulty_dist": {
+        "advanced": 46,
+        "fields_level": 5,
+        "nobel_level": 3
+      },
+      "key_concepts_top10": [
+        [
+          "algebra",
+          21
+        ],
+        [
+          "logic",
+          10
+        ],
+        [
+          "analysis",
+          8
+        ],
+        [
+          "topology",
+          5
+        ],
+        [
+          "category theory",
+          5
+        ],
+        [
+          "geometry",
+          4
+        ],
+        [
+          "combinatorics",
+          3
+        ],
+        [
+          "number theory",
+          2
+        ],
+        [
+          "graph theory",
+          2
+        ]
+      ]
+    },
+    "chemistry": {
+      "count": 27,
+      "avg_quality": 1.0,
+      "difficulty_dist": {
+        "advanced": 27
+      },
+      "key_concepts_top10": [
+        [
+          "geometry",
+          8
+        ],
+        [
+          "analysis",
+          7
+        ],
+        [
+          "logic",
+          5
+        ],
+        [
+          "combinatorics",
+          2
+        ],
+        [
+          "number theory",
+          2
+        ],
+        [
+          "topology",
+          2
+        ],
+        [
+          "category theory",
+          1
+        ],
+        [
+          "algebra",
+          1
+        ]
+      ]
+    },
+    "biology": {
+      "count": 139,
+      "avg_quality": 0.9979856115107913,
+      "difficulty_dist": {
+        "advanced": 139
+      },
+      "key_concepts_top10": [
+        [
+          "algebra",
+          39
+        ],
+        [
+          "analysis",
+          28
+        ],
+        [
+          "geometry",
+          23
+        ],
+        [
+          "logic",
+          19
+        ],
+        [
+          "graph theory",
+          15
+        ],
+        [
+          "topology",
+          10
+        ],
+        [
+          "combinatorics",
+          7
+        ],
+        [
+          "number theory",
+          6
+        ],
+        [
+          "category theory",
+          6
+        ]
+      ]
+    }
+  },
+  "quad_inference_stats": {
+    "total_chains": 852,
+    "complete_chains": 852,
+    "avg_steps_per_chain": 4.0,
+    "step_completeness": {
+      "problem_formulation": 852,
+      "theoretical_approach": 852,
+      "computational_verification": 852,
+      "insightful_conclusion": 852
+    },
+    "mathematical_formalism_count": 1704,
+    "computational_result_count": 852
+  }
+}

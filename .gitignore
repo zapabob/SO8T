@@ -400,8 +400,8 @@ internal_proofs/
 *_so8t_proof.json
 so8t_rotation_params.pt
 
-# webdataset directory (D: drive, managed via symlink)
-# Note: webdataset/ is a symlink to D:\webdataset
+# webdataset directory (H: drive, managed via symlink)
+# Note: webdataset/ is a symlink to H:\from_D\webdataset
 # Large files in webdataset are excluded, but directory structure is tracked
 webdataset/*.pt
 webdataset/*.pth
@@ -423,6 +423,22 @@ webdataset/gguf_models/**/*.gguf
 !webdataset/**/*.json
 !webdataset/datasets/**/metadata.json
 !webdataset/processed/**/metadata.json
+
+# H:\from_D\webdataset directory (external drive for datasets and GGUF models)
+# Large files in H:\from_D\webdataset are excluded from Git tracking
+H:/from_D/webdataset/**/*.pt
+H:/from_D/webdataset/**/*.pth
+H:/from_D/webdataset/**/*.safetensors
+H:/from_D/webdataset/**/*.gguf
+H:/from_D/webdataset/**/*.bin
+H:/from_D/webdataset/**/*.jsonl
+H:/from_D/webdataset/**/*.pkl
+# Keep: directory structure and metadata files in H:\from_D\webdataset
+!H:/from_D/webdataset/**/.gitkeep
+!H:/from_D/webdataset/**/*.md
+!H:/from_D/webdataset/**/*.txt
+!H:/from_D/webdataset/**/*.json
+!H:/from_D/webdataset/**/metadata.json
 
 # HF upload staging
 outputs/hf_upload_ready/

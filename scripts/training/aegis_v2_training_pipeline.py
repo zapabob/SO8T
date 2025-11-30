@@ -23,66 +23,136 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns
 import threading
+import math
 import time
 import atexit
 import signal
 import psutil
-
+import argparse
+import unsloth
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline
+from transformers import TextStreamer
+from transformers import StoppingCriteria, StoppingCriteriaList
+from transformers import LogitsProcessor, LogitsProcessorList
 # カスタムモジュールインポート
-from .ppo_internal_inference import PPOInternalInferenceTrainer, MetaInferenceController
-from .alpha_gate_annealing import SigmoidAlphaGateAnnealing
-from ..models.so8vit import SO8VIT
-from ..models.so8_quad_inference import QuadrupleInference, PhDLevelInferenceAugmentor
-from ..data.dataset_collection_cleansing import create_ppo_training_dataset
+try:
+    from scripts.training.ppo_internal_inference import PPOInternalInferenceTrainer, MetaInferenceController
+    from scripts.training.alpha_gate_annealing import SigmoidAlphaGateAnnealing
+    from scripts.models.so8_quad_inference import QuadrupleInference, PhDLevelInferenceAugmentor
+    from scripts.data.dataset_collection_cleansing import create_ppo_training_dataset
+    from utils.checkpoint_manager import RollingCheckpointManager, EmergencyCheckpointManager
+except ImportError as e:
+    # 相対インポートが失敗した場合、sys.pathを調整して再試行
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent.parent
+    sys.path.insert(0, str(project_root))
+    sys.path.insert(0, str(script_dir.parent))  # scripts directory
+
+    try:
+        from scripts.training.ppo_internal_inference import PPOInternalInferenceTrainer, MetaInferenceController
+        from scripts.training.alpha_gate_annealing import SigmoidAlphaGateAnnealing
+        from scripts.models.so8_quad_inference import QuadrupleInference, PhDLevelInferenceAugmentor
+        from scripts.data.dataset_collection_cleansing import create_ppo_training_dataset
+        from utils.checkpoint_manager import RollingCheckpointManager, EmergencyCheckpointManager
+    except ImportError as e2:
+        print(f"Import error: {e2}")
+        print(f"Current sys.path: {sys.path}")
+        raise
+
+# Phase 1: テキスト専用モード（SO8VITはPhase 2で有効化）
+try:
+    from scripts.models.so8vit import SO8VIT
+    SO8VIT_AVAILABLE = True
+except ImportError:
+    SO8VIT_AVAILABLE = False
+    print("SO8VIT not available. Running in Phase 1 (Text-Only) mode.")
 
 logger = logging.getLogger(__name__)
 
 
-class AutoCheckpointManager:
+class EnhancedAutoCheckpointManager:
     """
-    自動チェックポイント管理システム
+    強化版自動チェックポイント管理システム
+    RollingCheckpointManager + EmergencyCheckpointManager + Auto-resume機能
     3分ごとの自動保存、5個上限ローリングストック、電源投入時自動再開
     """
 
-    def __init__(self, checkpoint_dir: Path, max_checkpoints: int = 5, auto_save_interval: int = 180):
+    def __init__(self, checkpoint_dir: str, max_checkpoints: int = 5, auto_save_interval: int = 180):
         """
         Args:
             checkpoint_dir: チェックポイント保存ディレクトリ
             max_checkpoints: 最大チェックポイント数（ローリングストック）
             auto_save_interval: 自動保存間隔（秒）
         """
-        self.checkpoint_dir = checkpoint_dir
-        self.max_checkpoints = max_checkpoints
-        self.auto_save_interval = auto_save_interval
+        # RollingCheckpointManagerの初期化
+        self.checkpoint_manager = RollingCheckpointManager(
+            base_dir=checkpoint_dir,
+            max_keep=max_checkpoints,
+            save_interval_sec=auto_save_interval
+        )
+
+        # EmergencyCheckpointManagerの初期化（後でモデル登録）
+        self.emergency_manager = None
 
         # 自動保存タイマー
         self.auto_save_timer = None
         self.is_running = False
-        self.last_save_time = time.time()
 
-        # シグナルハンドラー登録（異常終了時保存）
-        self._register_signal_handlers()
+        # 電源復旧検出
+        self.power_resume_detected = self._detect_power_resume()
 
-        # atexit登録（プログラム終了時保存）
-        atexit.register(self.force_save_checkpoint)
+        logger.info(f"[AUTO-CP] Enhanced auto checkpoint manager initialized:")
+        logger.info(f"   Directory: {checkpoint_dir}")
+        logger.info(f"   Max checkpoints: {max_checkpoints}")
+        logger.info(f"   Auto save interval: {auto_save_interval}s")
+        logger.info(f"   Power resume detected: {self.power_resume_detected}")
 
-        logger.info(f"[AUTO-CP] Auto checkpoint manager initialized: {auto_save_interval}s interval, {max_checkpoints} max checkpoints")
+    def _detect_power_resume(self) -> bool:
+        """電源復旧を検出"""
+        try:
+            import psutil
+            boot_time = psutil.boot_time()
+            current_time = time.time()
+            uptime_hours = (current_time - boot_time) / 3600
+            # 1時間以内の起動は電源復旧とみなす
+            return uptime_hours < 1.0
+        except ImportError:
+            logger.warning("psutil not available for power resume detection")
+            return False
+        except Exception as e:
+            logger.warning(f"Power resume detection failed: {e}")
+            return False
 
-    def start_auto_save(self, save_callback):
+    def register_model(self, model, tokenizer):
+        """モデルを登録（EmergencyCheckpointManager用）"""
+        self.emergency_manager = EmergencyCheckpointManager(self.checkpoint_manager)
+        self.emergency_manager.register_model(model, tokenizer)
+        logger.info("[AUTO-CP] Model registered for emergency checkpoints")
+
+    def start_auto_save(self, model, tokenizer, step_info_prefix: str = "epoch"):
         """自動保存を開始"""
         if self.is_running:
             return
 
-        self.save_callback = save_callback
+        self.model = model
+        self.tokenizer = tokenizer
+        self.step_info_prefix = step_info_prefix
         self.is_running = True
 
         def auto_save_loop():
+            step_counter = 0
             while self.is_running:
-                time.sleep(self.auto_save_interval)
-                if self.is_running:  # まだ実行中か確認
+                time.sleep(self.checkpoint_manager.save_interval_sec)
+                if self.is_running and self.checkpoint_manager.should_save():
                     try:
-                        self.save_callback(auto=True)
-                        self.last_save_time = time.time()
+                        step_info = f"{step_info_prefix}_{step_counter}"
+                        self.checkpoint_manager.save_checkpoint(
+                            model, tokenizer, step_info=step_info
+                        )
+                        step_counter += 1
                         logger.info("[AUTO-CP] Auto checkpoint saved")
                     except Exception as e:
                         logger.error(f"[AUTO-CP] Auto save failed: {e}")
@@ -99,21 +169,21 @@ class AutoCheckpointManager:
             self.auto_save_timer.join(timeout=5)
         logger.info("[AUTO-CP] Auto checkpoint saving stopped")
 
-    def save_checkpoint(self, checkpoint_data: Dict[str, Any], filename_prefix: str = "checkpoint"):
+    def save_checkpoint(self, step_info: str = "manual"):
         """チェックポイント保存（ローリングストック管理）"""
-        # タイムスタンプ付きファイル名
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{filename_prefix}_{timestamp}.pt"
-        filepath = self.checkpoint_dir / filename
+        if not hasattr(self, 'model') or not hasattr(self, 'tokenizer'):
+            logger.error("[AUTO-CP] Model not registered for checkpoint saving")
+            return None
 
-        # 保存
-        torch.save(checkpoint_data, filepath)
-
-        # ローリングストック管理
-        self._manage_rolling_stock(filename_prefix)
-
-        logger.info(f"[AUTO-CP] Checkpoint saved: {filepath}")
-        return filepath
+        try:
+            saved_path = self.checkpoint_manager.save_checkpoint(
+                self.model, self.tokenizer, step_info=step_info
+            )
+            logger.info(f"[AUTO-CP] Checkpoint saved: {saved_path}")
+            return saved_path
+        except Exception as e:
+            logger.error(f"[AUTO-CP] Checkpoint save failed: {e}")
+            return None
 
     def _manage_rolling_stock(self, filename_prefix: str):
         """ローリングストック管理（古いチェックポイントを削除）"""
@@ -134,17 +204,9 @@ class AutoCheckpointManager:
                 except Exception as e:
                     logger.error(f"[AUTO-CP] Failed to remove {old_cp.name}: {e}")
 
-    def find_latest_checkpoint(self, filename_prefix: str = "checkpoint") -> Optional[Path]:
+    def find_latest_checkpoint(self) -> Optional[str]:
         """最新のチェックポイントを検索"""
-        pattern = f"{filename_prefix}_*.pt"
-        checkpoints = list(self.checkpoint_dir.glob(pattern))
-
-        if not checkpoints:
-            return None
-
-        # 最新のものを返す
-        checkpoints.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-        return checkpoints[0]
+        return self.checkpoint_manager.get_latest_checkpoint()
 
     def _register_signal_handlers(self):
         """シグナルハンドラー登録"""
@@ -254,11 +316,39 @@ class MultimodalThinkingDataset(Dataset):
 
         # 画像処理（ある場合）
         if sample.get('has_image', False) and self.image_processor:
-            # 実際の画像処理はここに実装
-            result['image'] = torch.randn(3, 224, 224)  # ダミー
-            result['has_image'] = True
-        else:
-            result['has_image'] = False
+            # ベストプラクティス：画像前処理とエラーハンドリング
+            try:
+                image_path = sample.get('image_path')
+                if image_path is not None:
+                    # 画像を実際にロード（PIL経由が一般的）
+                    from PIL import Image
+                    import os
+
+                    # 絶対パス/相対パス両対応
+                    if not os.path.isabs(image_path) and hasattr(self, 'data_path'):
+                        image_full_path = os.path.join(os.path.dirname(self.data_path), image_path)
+                    else:
+                        image_full_path = image_path
+
+                    # 画像読み込み ＆ 画像プロセッサ正規化
+                    with Image.open(image_full_path).convert("RGB") as img:
+                        if self.image_processor is not None:
+                            processed_image = self.image_processor(img)
+                        else:
+                            # image_processor未設定時はテンソル化のみ
+                            import torchvision.transforms as T
+                            processed_image = T.ToTensor()(img)
+                        result['image'] = processed_image
+                        result['has_image'] = True
+                else:
+                    result['has_image'] = False
+                    result['image'] = None
+            except Exception as e:
+                # エラーログは記録して、has_image=Falseにフォールバック
+                import logging
+                logging.getLogger(__name__).warning(f"画像処理失敗: {e} (image_path={sample.get('image_path')})")
+                result['has_image'] = False
+                result['image'] = None
 
         return result
 
@@ -294,7 +384,7 @@ class AEGISv2IntegratedTrainer:
         self.save_steps = config.get('save_steps', 100)
 
         # 出力ディレクトリ
-        self.output_dir = Path(config.get('output_dir', 'D:/webdataset/models/aegis_v2_phi35_thinking'))
+        self.output_dir = Path(config.get('output_dir', 'H:/from_D/webdataset/models/aegis_v2_phi35_thinking'))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # トレーニング状態
@@ -312,15 +402,30 @@ class AEGISv2IntegratedTrainer:
             'meta_control_actions': []
         }
 
-        # 自動チェックポイント管理
-        self.auto_cp_manager = AutoCheckpointManager(
-            checkpoint_dir=self.output_dir / "checkpoints",
-            max_checkpoints=config.get('max_checkpoints', 5),
-            auto_save_interval=config.get('auto_save_interval', 180)  # 3分
+        # チェックポイントマネージャー初期化
+        checkpoint_config = config.get('checkpoint_config', {})
+        checkpoint_dir = checkpoint_config.get('dir', str(self.output_dir / "checkpoints"))
+        max_checkpoints = checkpoint_config.get('max_keep', 5)
+        auto_save_interval = checkpoint_config.get('auto_save_interval', 180)
+
+        self.setup_checkpoint_manager(
+            checkpoint_dir=checkpoint_dir,
+            max_checkpoints=max_checkpoints,
+            auto_save_interval=auto_save_interval
         )
 
-        # 電源投入時自動再開フラグ
-        self.power_resume_detected = AutoCheckpointManager.detect_power_resume()
+    def setup_checkpoint_manager(self, checkpoint_dir: str, max_checkpoints: int = 5, auto_save_interval: int = 180):
+        """チェックポイントマネージャーのセットアップ"""
+        self.auto_cp_manager = EnhancedAutoCheckpointManager(
+            checkpoint_dir=checkpoint_dir,
+            max_checkpoints=max_checkpoints,
+            auto_save_interval=auto_save_interval
+        )
+        logger.info("[AEGIS-v2] Auto checkpoint manager initialized")
+        logger.info(f"   Directory: {checkpoint_dir}")
+        logger.info(f"   Max checkpoints: {max_checkpoints}")
+        logger.info(f"   Auto save interval: {auto_save_interval}s")
+        logger.info(f"   Power resume detected: {self.power_resume_detected}")
 
     def setup_models(self, base_model_path: str):
         """モデルセットアップ"""
@@ -330,16 +435,21 @@ class AEGISv2IntegratedTrainer:
         self.base_model = self._load_base_model(base_model_path)
         self._freeze_base_model()
 
-        # SO8VIT for multimodal processing
-        so8vit_config = self.config.get('so8vit_config', {})
-        self.so8vit = SO8VIT(
-            img_size=so8vit_config.get('img_size', 224),
-            patch_size=so8vit_config.get('patch_size', 16),
-            embed_dim=so8vit_config.get('embed_dim', 768),
-            depth=so8vit_config.get('depth', 12),
-            num_heads=so8vit_config.get('num_heads', 12),
-            multimodal=True
-        ).to(self.device)
+        # SO8VIT for multimodal processing (Phase 1では無効化)
+        if SO8VIT_AVAILABLE and self.config.get('enable_multimodal', False):
+            so8vit_config = self.config.get('so8vit_config', {})
+            self.so8vit = SO8VIT(
+                img_size=so8vit_config.get('img_size', 224),
+                patch_size=so8vit_config.get('patch_size', 16),
+                embed_dim=so8vit_config.get('embed_dim', 768),
+                depth=so8vit_config.get('depth', 12),
+                num_heads=so8vit_config.get('num_heads', 12),
+                multimodal=True
+            ).to(self.device)
+            print("SO8VIT initialized: Phase 2 Multimodal mode activated")
+        else:
+            self.so8vit = None
+            print("SO8VIT skipped: Phase 1 Text-Only mode (focus on reasoning capabilities)")
 
         # PPO trainer setup
         self.ppo_trainer.setup_models(
@@ -431,6 +541,13 @@ class AEGISv2IntegratedTrainer:
         """統合トレーニング実行（自動チェックポイント対応）"""
         logger.info("[AEGIS-v2] Starting integrated training...")
 
+        # モデルをチェックポイントマネージャーに登録
+        if self.base_model is not None and hasattr(self, 'tokenizer'):
+            self.auto_cp_manager.register_model(self.base_model, self.tokenizer)
+            logger.info("[AEGIS-v2] Model registered with checkpoint manager")
+        else:
+            logger.warning("[AEGIS-v2] Model or tokenizer not available for checkpoint registration")
+
         # 電源投入時自動再開チェック
         if self.power_resume_detected:
             latest_cp = self.auto_cp_manager.find_latest_checkpoint()
@@ -496,8 +613,9 @@ class AEGISv2IntegratedTrainer:
                     quad_inference_loss = self._train_quad_inference(batch, alpha, training_info)
 
                     # 統合損失計算
-                    total_loss = loss + quad_inference_loss
                     loss = training_info['total_loss']
+                    quad_inference_loss = self._train_quad_inference(batch, alpha, training_info)
+                    total_loss = loss + quad_inference_loss
                     epoch_loss += loss
                     epoch_steps += 1
 
@@ -820,7 +938,7 @@ def create_aegis_v2_training_config() -> Dict[str, Any]:
         'auto_save_interval': 180,  # 3分
         'max_checkpoints': 5,       # ローリングストック上限
 
-        'output_dir': 'D:/webdataset/models/aegis_v2_phi35_thinking',
+        'output_dir': 'H:/from_D/webdataset/models/aegis_v2_phi35_thinking',
 
         'so8vit_config': {
             'img_size': 224,
@@ -870,7 +988,7 @@ def create_aegis_v2_training_config() -> Dict[str, Any]:
             'include_nsfw': True,  # 検出目的のみ
             'quality_thresholds': {'acceptable': 0.6},
             'license_filter': ['mit', 'apache-2.0'],
-            'output_dir': 'D:/webdataset/datasets/ppo_training'
+            'output_dir': 'H:/from_D/webdataset/datasets/ppo_training'
         }
     }
 
@@ -900,7 +1018,7 @@ def run_complete_aegis_v2_pipeline():
         # Phase 2: モデルセットアップ
         logger.info("[AEGIS-v2] Phase 2: Model setup...")
         trainer = AEGISv2IntegratedTrainer(config)
-        base_model_path = "D:/webdataset/models/borea_phi35_instruct_jp/final"
+        base_model_path = "H:/from_D/webdataset/models/borea_phi35_instruct_jp/final"
         trainer.setup_models(base_model_path)
         logger.info("[AEGIS-v2] Models setup completed")
 
