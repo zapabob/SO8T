@@ -1,0 +1,20 @@
+{
+  "total_train": 2163,
+  "total_val": 541,
+  "tag_distribution_train": {
+    "allow": 1298,
+    "escalation": 649,
+    "deny": 108,
+    "refuse": 108
+  },
+  "tag_distribution_val": {
+    "allow": 325,
+    "escalation": 162,
+    "refuse": 27,
+    "deny": 27
+  },
+  "created_at": "2025-11-30T14:32:20.116550",
+  "theory_integrated": true,
+  "balanced": true,
+  "so8t_optimized": true
+}

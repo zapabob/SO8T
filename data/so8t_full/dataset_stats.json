@@ -1,0 +1,21 @@
+{
+  "total_train": 2173,
+  "total_val": 544,
+  "tag_distribution_train": {
+    "allow": 2160,
+    "escalation": 13
+  },
+  "tag_distribution_val": {
+    "allow": 541,
+    "escalation": 3
+  },
+  "domain_distribution": {
+    "japanese": 2160,
+    "mathematics": 6,
+    "physics": 4,
+    "ai_physics": 3
+  },
+  "created_at": "2025-11-30T14:21:29.203145",
+  "theory_integrated": true,
+  "so8t_optimized": true
+}
