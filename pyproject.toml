@@ -11,31 +11,25 @@ dependencies = [
     "torchaudio==2.9.0",
     "transformers==4.57.2",
     "accelerate==1.1.1",
-
     # Unsloth and Flash Attention
     "unsloth==2025.11.4",
     "flash-attn==2.5.8",
-
     # Memory optimization
     "bitsandbytes==0.45.0",
     "peft==0.14.0",
-
     # Training and RL
     "trl==0.12.1",
     "optuna==4.1.0",
-
     # Data processing
     "datasets==3.6.0",
     "numpy==2.1.3",
     "scipy==1.14.1",
     "pandas==2.2.3",
-
     # Visualization and utilities
     "matplotlib==3.9.2",
     "seaborn==0.13.2",
     "tqdm==4.67.1",
     "scikit-learn==1.5.2",
-
     # Core dependencies
     "huggingface-hub==0.36.0",
     "tokenizers==0.22.1",
