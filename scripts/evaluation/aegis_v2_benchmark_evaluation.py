@@ -127,12 +127,12 @@ class AEGISV2BenchmarkEvaluator:
         # モデル設定
         self.models = {
             'baseline': {
-                'name': 'microsoft/Phi-3.5-mini-instruct',
-                'display_name': 'Phi-3.5-Baseline'
+                'name': 'AXCEPT-Borea-phi3.5-instinct-jp',
+                'display_name': 'AXCEPT-Borea-phi3.5-instinct-jp'
             },
             'aegis_v2': {
-                'name': 'models/Borea-Phi-3.5-mini-Instruct-Jp',
-                'display_name': 'AEGIS-v2.0-PPO-SO8T'
+                'name': 'models/aegis_v2_phi35_thinking/final',
+                'display_name': 'AEGIS-v2.0-Phi3.5-Thinking'
             }
         }
 
