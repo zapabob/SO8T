@@ -31,6 +31,8 @@ import numpy as np
 from tqdm import tqdm
 import argparse
 import logging
+import time
+import signal
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
@@ -119,10 +121,11 @@ class SO8TPPOConfig:
     thermostat_cool_factor: float = 0.1
     thermostat_heat_factor: float = 1.5
 
-    # チェックポイント設定
+    # チェックポイント設定 (強化版)
     rolling_checkpoint: bool = True
     max_keep_checkpoints: int = 5
-    save_interval_sec: int = 1800  # 30分
+    save_interval_sec: int = 180  # 3分に変更
+    time_based_checkpoint: bool = True  # 時間ベースチェックポイント有効化
 
 class SO8TDataset(Dataset):
     """SO8T PPO用データセット"""
@@ -423,8 +426,44 @@ def train_so8t_ppo(config: SO8TPPOConfig):
         save_interval_sec=config.save_interval_sec
     )
 
+    # 時間ベースチェックポイント管理
+    last_checkpoint_time = time.time()
+    training_start_time = time.time()
+    total_training_time = 0
+
+    # シグナルハンドラー設定（電源断対策）
+    def signal_handler(signum, frame):
+        """シグナルハンドラー（Ctrl+C, 電源断対策）"""
+        print("\n[WARNING] Signal received, saving emergency checkpoint...")
+        emergency_checkpoint_path = output_dir / "emergency_checkpoint"
+        try:
+            # 緊急チェックポイント保存
+            so8t_model.save_pretrained(emergency_checkpoint_path)
+            tokenizer.save_pretrained(emergency_checkpoint_path)
+
+            # セッション情報保存
+            session_info = {
+                'global_step': global_step,
+                'total_training_time': total_training_time,
+                'last_checkpoint_time': last_checkpoint_time,
+                'emergency_save': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            with open(emergency_checkpoint_path / "session_info.json", 'w') as f:
+                json.dump(session_info, f, indent=2)
+
+            print(f"[OK] Emergency checkpoint saved to {emergency_checkpoint_path}")
+        except Exception as e:
+            print(f"[ERROR] Failed to save emergency checkpoint: {e}")
+
+        sys.exit(0)
+
+    # シグナル登録
+    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # 終了シグナル
+
     # 学習ループ
-    print("Starting SO8T PPO training...")
+    print("Starting SO8T PPO training with enhanced checkpoint management...")
     global_step = 0
 
     for epoch in range(config.max_steps // 1000 + 1):
@@ -466,16 +505,51 @@ def train_so8t_ppo(config: SO8TPPOConfig):
                 tag_ids.append(item['tag_id'])
 
             # PPOステップ
+            step_start_time = time.time()
             stats = ppo_trainer.step(queries, responses, [reward_fn])
+            step_time = time.time() - step_start_time
 
             global_step += 1
+            total_training_time += step_time
 
             # ログ
             if global_step % config.logging_steps == 0:
                 logging.info(f"Step {global_step}: {stats}")
-                print(f"Step {global_step}: reward={stats.get('ppo/mean_scores', 0):.4f}")
+                print(f"Step {global_step}: reward={stats.get('ppo/mean_scores', 0):.4f}, step_time={step_time:.2f}s")
 
-            # チェックポイント保存
+            # 時間ベースチェックポイント（3分ごと）
+            current_time = time.time()
+            if config.time_based_checkpoint and (current_time - last_checkpoint_time) >= config.save_interval_sec:
+                print(f"[TIME CHECKPOINT] Saving checkpoint at {global_step} steps...")
+                time_checkpoint_path = output_dir / f"time_checkpoint_{global_step}_{int(current_time)}"
+                so8t_model.save_pretrained(time_checkpoint_path)
+                tokenizer.save_pretrained(time_checkpoint_path)
+
+                # セッション情報保存
+                session_info = {
+                    'global_step': global_step,
+                    'total_training_time': total_training_time,
+                    'last_checkpoint_time': current_time,
+                    'timestamp': datetime.now().isoformat(),
+                    'time_based': True
+                }
+                with open(time_checkpoint_path / "session_info.json", 'w') as f:
+                    json.dump(session_info, f, indent=2)
+
+                # ローリングチェックポイント（時間ベース）
+                if config.rolling_checkpoint:
+                    checkpoint_manager.save_checkpoint(
+                        model=so8t_model,
+                        tokenizer=tokenizer,
+                        step=global_step,
+                        metrics={**stats, 'training_time': total_training_time},
+                        prefix="time_"
+                    )
+
+                last_checkpoint_time = current_time
+                print(f"[OK] Time-based checkpoint saved (interval: {config.save_interval_sec}s)")
+
+            # ステップベースチェックポイント保存
             if global_step % config.save_steps == 0:
                 checkpoint_path = output_dir / f"checkpoint_{global_step}"
                 so8t_model.save_pretrained(checkpoint_path)
