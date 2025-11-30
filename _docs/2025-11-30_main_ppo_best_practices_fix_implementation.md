@@ -209,3 +209,38 @@ models/aegis_v2_training_plots/
 **PPO学習曲線HFアップロード** ✅
 **全数値記録実装** ✅
 **テスト成功** ✅
+
+## RTX3060 + Unsloth対応 実装完了
+
+### 実装機能
+- **Unsloth統合**: 4bit量子化 + LoRA + 高速学習 ✅
+- **GPUメモリ最適化**: 12GB VRAM + 32GB RAMで実行可能 ✅
+- **Gradient Accumulation**: バッチサイズ1 + accumulation 8で効率化 ✅
+- **Memory Monitoring**: GPU使用量リアルタイム監視 ✅
+- **Cosine LR Scheduling**: Unsloth推奨の学習率スケジューリング ✅
+
+### RTX3060実行推奨設定
+```json
+{
+  "training": {
+    "max_steps": 200,
+    "batch_size": 1,
+    "gradient_accumulation_steps": 8,
+    "learning_rate": 2e-4,
+    "use_unsloth": true,
+    "gpu_memory_limit": 0.85
+  }
+}
+```
+
+### メモリ使用量見積もり
+- **4bit量子化**: ~7GB VRAM (通常の1/2)
+- **LoRA (r=16)**: ~50MB追加
+- **Gradient accumulation**: バッチサイズ1で安定
+- **総使用量**: ~8GB VRAM (RTX3060 12GB以内に収まる)
+
+---
+
+**RTX3060 + Unsloth対応完了** ✅
+**32GB RAM + 12GB VRAMで実行可能** ✅
+**Phi-3.5 PPO学習実現** ✅
