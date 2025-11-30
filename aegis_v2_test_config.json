@@ -11,7 +11,8 @@
         "warmup_steps": 0,
         "gradient_accumulation_steps": 1,
         "save_steps": 1,
-        "logging_steps": 1
+        "logging_steps": 1,
+        "test_mode": true
     },
     "so8t": {
         "enable_so8t": true,
