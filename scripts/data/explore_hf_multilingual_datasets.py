@@ -180,7 +180,7 @@ class HFDatasetExplorer:
         logger.info(f"Loaded {len(hashes)} existing text hashes for deduplication")
         return hashes
 
-    def explore_datasets(self, max_datasets: int = 100) -> List[HFDatasetInfo]:
+    def explore_datasets(self, max_datasets: int = 500) -> List[HFDatasetInfo]:
         """Hugging Face Hubからデータセットを探索"""
         if not HF_AVAILABLE:
             logger.error("Hugging Face datasets library not available")
@@ -344,8 +344,8 @@ class HFDatasetExplorer:
 
         return max(0.0, min(1.0, score))
 
-    def select_top_datasets(self, dataset_infos: List[HFDatasetInfo],
-                          target_multilingual: int = 10, target_nsfw: int = 5) -> Dict[str, List[HFDatasetInfo]]:
+    def select_top_datasets_by_ranking(self, dataset_infos: List[HFDatasetInfo],
+                                      top_percentage: float = 20.0) -> Dict[str, List[HFDatasetInfo]]:
         """最適なデータセットを選択"""
         logger.info("Selecting top datasets...")
 

@@ -1,0 +1,17 @@
+# Top 20% HF Datasets for JA-EN Reasoning Enhancement
+# Generated: 2025-11-30T18:55:02.945830
+# Format: dataset_id | quality_score | ja_en_relevance | reasoning_fitness | contains_nsfw
+
+google-research-datasets/natural_questions | 1.000 | 0.700 | 0.800 | SAFE | UNVERIFIED
+allenai/sciq | 1.000 | 0.700 | 1.000 | SAFE | UNVERIFIED
+allenai/openbookqa | 1.000 | 0.700 | 0.800 | SAFE | UNVERIFIED
+hotpotqa/hotpot_qa | 1.000 | 0.700 | 0.800 | NSFW | UNVERIFIED
+tau/commonsense_qa | 1.000 | 0.700 | 0.650 | SAFE | UNVERIFIED
+mandarjoshi/trivia_qa | 1.000 | 0.800 | 0.650 | NSFW | UNVERIFIED
+truthfulqa/truthful_qa | 1.000 | 0.700 | 0.650 | SAFE | UNVERIFIED
+FreedomIntelligence/medical-o1-reasoning-SFT | 0.962 | 0.600 | 0.800 | SAFE | UNVERIFIED
+facebook/empathetic_dialogues | 0.910 | 0.900 | 0.650 | SAFE | UNVERIFIED
+UCSD26/medical_dialog | 0.905 | 1.000 | 0.650 | SAFE | UNVERIFIED
+Helsinki-NLP/opus-100 | 0.900 | 1.000 | 0.000 | SAFE | UNVERIFIED
+facebook/flores | 0.891 | 1.000 | 0.000 | SAFE | UNVERIFIED
+alexandrainst/multi-wiki-qa | 0.863 | 1.000 | 0.650 | SAFE | UNVERIFIED

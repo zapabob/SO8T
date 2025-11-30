@@ -1,0 +1,8 @@
+# Reasoning Datasets Datasets
+# Count: 5
+
+google-research-datasets/natural_questions (Score: 1.000)
+allenai/sciq (Score: 1.000)
+allenai/openbookqa (Score: 1.000)
+hotpotqa/hotpot_qa (Score: 1.000)
+FreedomIntelligence/medical-o1-reasoning-SFT (Score: 0.962)
