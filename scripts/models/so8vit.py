@@ -533,3 +533,5 @@ if __name__ == '__main__':
     output, aux = model(img, text_embeds)
     print(f"Output shape: {output.shape}")
     print(f"Orth errors: {len(aux['orth_errors'])}")
+
+    print(f"Orth errors: {len(aux['orth_errors'])}")

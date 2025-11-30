@@ -418,3 +418,90 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+                rewards.append(torch.tensor(reward))
+
+            rewards = torch.stack(rewards).to(ppo_trainer.accelerator.device)
+
+            # PPOステップ
+            train_stats = ppo_trainer.step(queries, responses, rewards)
+
+            # ログ出力
+            if step % args.log_interval == 0:
+                logger.info(f"Step {step}: Reward = {rewards.mean().item():.4f}")
+                logger.info(f"PPO Stats: {train_stats}")
+
+        # エポック終了時のチェックポイント保存
+        checkpoint_manager.save_checkpoint(
+            model,
+            tokenizer,
+            step_info=f"epoch_{epoch+1}"
+        )
+
+    # 最終モデル保存
+    final_path = Path(args.output_dir) / "final_model"
+    logger.info(f"Saving final model to {final_path}")
+    model.save_pretrained(final_path)
+    tokenizer.save_pretrained(final_path)
+
+    logger.info("=== SO8T PPO Training Completed ===")
+
+def main():
+    parser = argparse.ArgumentParser(description="SO8T PPO Training Pipeline")
+
+    # データセット設定
+    parser.add_argument("--dataset_path", type=str, required=True,
+                       help="Path to SO8T thinking dataset (JSONL)")
+    parser.add_argument("--execution_id", type=str, default=None,
+                       help="Execution ID for logging and checkpointing")
+    parser.add_argument("--model_path", type=str, default="microsoft/Phi-3.5-mini-instruct",
+                       help="Path to pre-trained model or HuggingFace model name")
+    parser.add_argument("--checkpoint_dir", type=str, default=None,
+                       help="Checkpoint directory (default: output_dir/checkpoints)")
+
+    # トレーニング設定
+    parser.add_argument("--output_dir", type=str, default="outputs/so8t_ppo",
+                       help="Output directory")
+    parser.add_argument("--num_epochs", type=int, default=3,
+                       help="Number of training epochs")
+    parser.add_argument("--batch_size", type=int, default=4,
+                       help="Batch size")
+    parser.add_argument("--mini_batch_size", type=int, default=1,
+                       help="Mini batch size")
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=4,
+                       help="Gradient accumulation steps")
+    parser.add_argument("--learning_rate", type=float, default=1.41e-5,
+                       help="Learning rate")
+
+    # PPO設定
+    parser.add_argument("--ppo_epochs", type=int, default=4,
+                       help="PPO epochs")
+    parser.add_argument("--target_kl", type=float, default=0.1,
+                       help="Target KL divergence")
+    parser.add_argument("--kl_penalty", type=str, default="kl",
+                       help="KL penalty type")
+
+    # その他設定
+    parser.add_argument("--seed", type=int, default=42,
+                       help="Random seed")
+    parser.add_argument("--log_interval", type=int, default=10,
+                       help="Logging interval")
+    parser.add_argument("--early_stopping", type=bool, default=False,
+                       help="Enable early stopping")
+    parser.add_argument("--use_score_scaling", type=bool, default=False,
+                       help="Use score scaling")
+    parser.add_argument("--use_score_norm", type=bool, default=True,
+                       help="Use score normalization")
+    parser.add_argument("--score_clip", type=float, default=None,
+                       help="Score clipping threshold")
+
+    args = parser.parse_args()
+
+    # 出力ディレクトリ作成
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+
+    # トレーニング実行
+    train_so8t_ppo(args)
+
+if __name__ == "__main__":
+    main()

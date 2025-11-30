@@ -439,6 +439,8 @@ H:/from_D/webdataset/**/*.pkl
 !H:/from_D/webdataset/**/*.txt
 !H:/from_D/webdataset/**/*.json
 !H:/from_D/webdataset/**/metadata.json
+!H:/from_D/webdataset/**/dataset_stats.json
+!H:/from_D/webdataset/**/integration_statistics.json
 
 # HF upload staging
 outputs/hf_upload_ready/

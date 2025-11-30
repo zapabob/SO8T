@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-11-30T15:27:46.771321",
+  "phi35_tagged": true,
+  "thinking_process_enabled": true,
+  "thinking_depth": "full",
+  "chaos_factor": 0.1,
+  "total_samples": 29787,
+  "splits": {
+    "train": {
+      "count": 23836,
+      "tag_distribution": {
+        "escalation": 7155,
+        "allow": 11881,
+        "refuse": 2400,
+        "deny": 2400
+      }
+    },
+    "validation": {
+      "count": 5951,
+      "tag_distribution": {
+        "allow": 2964,
+        "deny": 600,
+        "escalation": 1787,
+        "refuse": 600
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "total_samples": 12966,
+  "tag_distribution": {
+    "escalation": 12959,
+    "refuse": 4,
+    "deny": 3
+  },
+  "domain_distribution": {
+    "quantum_physics": 552,
+    "particle_physics": 559,
+    "quantum_information": 544,
+    "computational_chemistry": 2479,
+    "biophysical_chemistry": 559,
+    "molecular_biology": 576,
+    "neuroscience": 547,
+    "fluid_dynamics": 1043,
+    "differential_geometry": 1034,
+    "number_theory": 1032,
+    "string_theory": 1044,
+    "noncommutative_geometry": 1043,
+    "machine_learning_theory": 1947,
+    "safety": 4,
+    "logic": 1,
+    "physics": 2
+  },
+  "difficulty_distribution": {
+    "unknown": 12966
+  },
+  "language_distribution": {
+    "en": 7791,
+    "ja": 5175
+  },
+  "created_at": "2025-11-30T15:18:29.345375",
+  "theory_integrated": true,
+  "chaos_introduced": true,
+  "nsfw_detection_enabled": true
+}
