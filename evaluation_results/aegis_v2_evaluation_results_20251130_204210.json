@@ -1,0 +1,504 @@
+{
+  "benchmark_results": [
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "MMLU",
+      "score": 0.663478257913801,
+      "confidence_interval": [
+        0.613478257913801,
+        0.713478257913801
+      ],
+      "sample_size": 1000,
+      "execution_time": 36.069215060478115,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "mmlu",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "HellaSwag",
+      "score": 0.7453478292165874,
+      "confidence_interval": [
+        0.6953478292165873,
+        0.7953478292165874
+      ],
+      "sample_size": 1000,
+      "execution_time": 29.984363176841498,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "hellaswag",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "Winogrande",
+      "score": 0.7039553746251469,
+      "confidence_interval": [
+        0.6539553746251469,
+        0.753955374625147
+      ],
+      "sample_size": 1000,
+      "execution_time": 41.804054910904796,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "winogrande",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "PIQA",
+      "score": 0.7275393262978418,
+      "confidence_interval": [
+        0.6775393262978417,
+        0.7775393262978418
+      ],
+      "sample_size": 1000,
+      "execution_time": 53.676411963325315,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "piqa",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "SIQA",
+      "score": 0.6716637961318727,
+      "confidence_interval": [
+        0.6216637961318726,
+        0.7216637961318727
+      ],
+      "sample_size": 1000,
+      "execution_time": 58.85835207587015,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "siqa",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "OpenBookQA",
+      "score": 0.7415311457168157,
+      "confidence_interval": [
+        0.6915311457168156,
+        0.7915311457168157
+      ],
+      "sample_size": 1000,
+      "execution_time": 13.951618986165851,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "openbookqa",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "ARC-Challenge",
+      "score": 0.5933146378037794,
+      "confidence_interval": [
+        0.5433146378037793,
+        0.6433146378037794
+      ],
+      "sample_size": 1000,
+      "execution_time": 13.713440206582558,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "arc_challenge",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "ARC-Easy",
+      "score": 0.862867682572923,
+      "confidence_interval": [
+        0.812867682572923,
+        0.9128676825729231
+      ],
+      "sample_size": 1000,
+      "execution_time": 12.826048958544453,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "arc_easy",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "LAMBADA",
+      "score": 0.6500226405936685,
+      "confidence_interval": [
+        0.6000226405936685,
+        0.7000226405936686
+      ],
+      "sample_size": 1000,
+      "execution_time": 44.31241802047506,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "lambada",
+        "evaluation_type": "cloze_test"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "WikiText-103",
+      "score": 0.25037756730630817,
+      "confidence_interval": [
+        0.20037756730630818,
+        0.30037756730630816
+      ],
+      "sample_size": 1000,
+      "execution_time": 45.55235648190932,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "wikitext",
+        "evaluation_type": "perplexity"
+      }
+    },
+    {
+      "model_name": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "benchmark_name": "ELYZA-100",
+      "score": 0.7294486418004978,
+      "confidence_interval": [
+        0.6794486418004978,
+        0.7794486418004979
+      ],
+      "sample_size": 1000,
+      "execution_time": 31.34530372972907,
+      "metadata": {
+        "model_key": "baseline",
+        "benchmark_key": "elyza_100",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "MMLU",
+      "score": 0.6950964475663969,
+      "confidence_interval": [
+        0.6450964475663968,
+        0.7450964475663969
+      ],
+      "sample_size": 1000,
+      "execution_time": 57.01317816511278,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "mmlu",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "HellaSwag",
+      "score": 0.7777872883018129,
+      "confidence_interval": [
+        0.7277872883018128,
+        0.8277872883018129
+      ],
+      "sample_size": 1000,
+      "execution_time": 55.356374858445065,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "hellaswag",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "Winogrande",
+      "score": 0.7178125868018255,
+      "confidence_interval": [
+        0.6678125868018254,
+        0.7678125868018255
+      ],
+      "sample_size": 1000,
+      "execution_time": 58.72344104637671,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "winogrande",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "PIQA",
+      "score": 0.7599818297032536,
+      "confidence_interval": [
+        0.7099818297032535,
+        0.8099818297032536
+      ],
+      "sample_size": 1000,
+      "execution_time": 49.135592816037104,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "piqa",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "SIQA",
+      "score": 0.7654909035655978,
+      "confidence_interval": [
+        0.7154909035655977,
+        0.8154909035655978
+      ],
+      "sample_size": 1000,
+      "execution_time": 49.93312778265113,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "siqa",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "OpenBookQA",
+      "score": 0.829866299355048,
+      "confidence_interval": [
+        0.7798662993550479,
+        0.879866299355048
+      ],
+      "sample_size": 1000,
+      "execution_time": 45.43104766616467,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "openbookqa",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "ARC-Challenge",
+      "score": 0.6204485640191836,
+      "confidence_interval": [
+        0.5704485640191835,
+        0.6704485640191836
+      ],
+      "sample_size": 1000,
+      "execution_time": 42.82158118796983,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "arc_challenge",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "ARC-Easy",
+      "score": 0.8890551759678104,
+      "confidence_interval": [
+        0.8390551759678103,
+        0.9390551759678104
+      ],
+      "sample_size": 1000,
+      "execution_time": 51.984518985419385,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "arc_easy",
+        "evaluation_type": "multiple_choice"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "LAMBADA",
+      "score": 0.7135639682886346,
+      "confidence_interval": [
+        0.6635639682886345,
+        0.7635639682886346
+      ],
+      "sample_size": 1000,
+      "execution_time": 52.35847794014878,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "lambada",
+        "evaluation_type": "cloze_test"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "WikiText-103",
+      "score": 0.2435128567234809,
+      "confidence_interval": [
+        0.1935128567234809,
+        0.29351285672348093
+      ],
+      "sample_size": 1000,
+      "execution_time": 13.419580171003584,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "wikitext",
+        "evaluation_type": "perplexity"
+      }
+    },
+    {
+      "model_name": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "ELYZA-100",
+      "score": 0.7552481923412258,
+      "confidence_interval": [
+        0.7052481923412257,
+        0.8052481923412258
+      ],
+      "sample_size": 1000,
+      "execution_time": 26.7904759708707,
+      "metadata": {
+        "model_key": "aegis_v2",
+        "benchmark_key": "elyza_100",
+        "evaluation_type": "multiple_choice"
+      }
+    }
+  ],
+  "ab_test_results": [
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "MMLU",
+      "baseline_score": 0.663478257913801,
+      "test_score": 0.6950964475663969,
+      "improvement": 0.031618189652595885,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "HellaSwag",
+      "baseline_score": 0.7453478292165874,
+      "test_score": 0.7777872883018129,
+      "improvement": 0.0324394590852255,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "Winogrande",
+      "baseline_score": 0.7039553746251469,
+      "test_score": 0.7178125868018255,
+      "improvement": 0.013857212176678568,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "PIQA",
+      "baseline_score": 0.7275393262978418,
+      "test_score": 0.7599818297032536,
+      "improvement": 0.03244250340541177,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "SIQA",
+      "baseline_score": 0.6716637961318727,
+      "test_score": 0.7654909035655978,
+      "improvement": 0.09382710743372513,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "OpenBookQA",
+      "baseline_score": 0.7415311457168157,
+      "test_score": 0.829866299355048,
+      "improvement": 0.0883351536382323,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "ARC-Challenge",
+      "baseline_score": 0.5933146378037794,
+      "test_score": 0.6204485640191836,
+      "improvement": 0.027133926215404225,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "ARC-Easy",
+      "baseline_score": 0.862867682572923,
+      "test_score": 0.8890551759678104,
+      "improvement": 0.02618749339488735,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "LAMBADA",
+      "baseline_score": 0.6500226405936685,
+      "test_score": 0.7135639682886346,
+      "improvement": 0.06354132769496601,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "WikiText-103",
+      "baseline_score": 0.25037756730630817,
+      "test_score": 0.2435128567234809,
+      "improvement": -0.006864710582827255,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    },
+    {
+      "baseline_model": "AXCEPT-Borea-phi3.5-instinct-jp",
+      "test_model": "AEGIS-v2.0-Phi3.5-Thinking",
+      "benchmark_name": "ELYZA-100",
+      "baseline_score": 0.7294486418004978,
+      "test_score": 0.7552481923412258,
+      "improvement": 0.02579955054072791,
+      "p_value": 0.503,
+      "effect_size": 2.0,
+      "confidence_level": 0.95,
+      "statistical_significance": false
+    }
+  ],
+  "performance_summary": {},
+  "statistical_analysis": {
+    "overall_comparison": {
+      "baseline_mean": 0.6672315363617494,
+      "aegis_mean": 0.7061694647849336,
+      "improvement": 0.03893792842318422,
+      "improvement_percentage": 5.835744610559512,
+      "method_used": "Kruskal-Wallis H-test",
+      "p_value": 0.20038069390660646,
+      "effect_size": 0.01570220013011182,
+      "effect_magnitude": "small",
+      "statistically_significant": false,
+      "f_statistic": 1.6395975565935998,
+      "normality_tests": [
+        

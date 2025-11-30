@@ -26,7 +26,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 class AEGISV2HFUploader:
     """AEGIS-v2.0 HFアップローダー"""

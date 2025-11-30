@@ -6,8 +6,9 @@ param(
     [switch]$Status
 )
 
-$taskName = "SO8T_Complete_Automation_Pipeline"
-$scriptPath = "$PSScriptRoot\run_complete_pipeline.bat"
+$taskName = "SO8T_Complete_PPO_Pipeline"
+$pythonPath = (Get-Command py).Source
+$scriptPath = "$PSScriptRoot\complete_ppo_pipeline_with_power_on_automation.py"
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $projectRoot = Split-Path $projectRoot -Parent
 
@@ -76,10 +77,10 @@ if (-not (Test-Path $scriptPath)) {
 
 # Python環境確認
 try {
-    $pythonVersion = & python --version 2>&1
+    $pythonVersion = & py -3 --version 2>&1
     Write-Log "Python version: $pythonVersion"
 } catch {
-    Write-Log "ERROR: Python not found in PATH" "ERROR"
+    Write-Log "ERROR: Python (py -3) not found in PATH" "ERROR"
     exit 1
 }
 
@@ -87,8 +88,7 @@ try {
 $requiredPaths = @(
     (Join-Path $projectRoot "scripts"),
     (Join-Path $projectRoot "so8t"),
-    (Join-Path $projectRoot "configs"),
-    "D:\webdataset"
+    (Join-Path $projectRoot "configs")
 )
 
 foreach ($path in $requiredPaths) {
@@ -97,6 +97,64 @@ foreach ($path in $requiredPaths) {
         exit 1
     }
 }
+
+# webdataset パス設定（H:\from_D\webdataset を優先使用）
+$webDatasetPaths = @(
+    "H:\from_D\webdataset",  # 優先パス
+    "D:\webdataset",         # 従来の推奨パス
+    (Join-Path $projectRoot "webdataset")  # 最終フォールバック
+)
+
+$webDatasetPath = $null
+foreach ($path in $webDatasetPaths) {
+    if (Test-Path $path) {
+        $webDatasetPath = $path
+        Write-Log "Found webdataset directory: $webDatasetPath" "INFO"
+        break
+    }
+}
+
+# 見つからない場合はH:\from_D\webdatasetを作成
+if (-not $webDatasetPath) {
+    $webDatasetPath = "H:\from_D\webdataset"
+    Write-Log "Creating webdataset directory: $webDatasetPath" "INFO"
+
+    try {
+        # H:\from_D が存在するか確認
+        $fromDPath = "H:\from_D"
+        if (-not (Test-Path $fromDPath)) {
+            New-Item -ItemType Directory -Path $fromDPath -Force | Out-Null
+            Write-Log "Created directory: $fromDPath" "INFO"
+        }
+
+        # webdatasetサブディレクトリ作成
+        $webDatasetDirs = @(
+            $webDatasetPath,
+            (Join-Path $webDatasetPath "checkpoints"),
+            (Join-Path $webDatasetPath "models"),
+            (Join-Path $webDatasetPath "gguf_models"),
+            (Join-Path $webDatasetPath "datasets"),
+            (Join-Path $webDatasetPath "logs"),
+            (Join-Path $webDatasetPath "temp")
+        )
+
+        foreach ($dir in $webDatasetDirs) {
+            if (-not (Test-Path $dir)) {
+                New-Item -ItemType Directory -Path $dir -Force | Out-Null
+                Write-Log "Created directory: $dir" "INFO"
+            }
+        }
+
+        Write-Log "Successfully created webdataset structure at: $webDatasetPath" "INFO"
+    } catch {
+        Write-Log "ERROR: Failed to create webdataset directory: $($_.Exception.Message)" "ERROR"
+        exit 1
+    }
+}
+
+# 環境変数設定
+$env:WEBDATASET_PATH = $webDatasetPath
+Write-Log "Set WEBDATASET_PATH environment variable: $webDatasetPath" "INFO"
 
 Write-Log "All prerequisites verified"
 
@@ -109,29 +167,59 @@ try {
     Write-Log "No existing task to clean up"
 }
 
-# タスク作成
-Write-Log "Creating scheduled task '$taskName'..."
+# バッチファイル作成
+Write-Log "Creating batch file for task execution..."
+
+$batchFilePath = Join-Path $PSScriptRoot "run_ppo_pipeline_task.bat"
 
 try {
-    # タスクアクション定義
-    $action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$scriptPath`""
+    $batchContent = @"
+@echo off
+chcp 65001 >nul
+echo [SO8T] Starting PPO Pipeline Task
+echo ===============================
 
-    # トリガー定義（ログオン時）
-    $trigger = New-ScheduledTaskTrigger -AtLogOn
+cd /d "$projectRoot"
 
-    # プリンシパル定義（対話型トークン）
-    $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType InteractiveToken
+echo [INFO] Setting WEBDATASET_PATH environment variable...
+set WEBDATASET_PATH=$webDatasetPath
 
-    # 設定定義
+echo [INFO] Running PPO Pipeline...
+"$pythonPath" "$scriptPath"
+
+if %ERRORLEVEL% EQU 0 (
+    echo [SUCCESS] PPO Pipeline completed successfully
+) else (
+    echo [ERROR] PPO Pipeline failed with error code %ERRORLEVEL%
+)
+
+echo [DONE] Task execution completed
+"@
+
+    $batchContent | Out-File -FilePath $batchFilePath -Encoding UTF8 -Force
+    Write-Log "Created batch file: $batchFilePath"
+
+} catch {
+    Write-Log "ERROR: Failed to create batch file: $($_.Exception.Message)" "ERROR"
+    exit 1
+}
+
+# タスク作成（バッチファイルを使用）
+Write-Log "Creating scheduled task using batch file..."
+
+try {
+    $batchAction = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$batchFilePath`""
+
+    $trigger = New-ScheduledTaskTrigger -AtStartup
+
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RunOnlyIfNetworkAvailable
+    $settings.ExecutionTimeLimit = "PT0S"
+    $settings.RestartCount = 3
+    $settings.RestartInterval = "PT5M"
 
-    # 実行条件
-    $settings.ExecutionTimeLimit = "PT0S"  # 時間制限なし
-    $settings.RestartCount = 3  # リトライ回数
-    $settings.RestartInterval = "PT5M"  # リトライ間隔5分
+    $task = New-ScheduledTask -Action $batchAction -Trigger $trigger -Settings $settings
 
-    # タスク登録
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "Complete SO8T Automation Pipeline - Transforms Borea-Phi3.5-instinct-jp into SO8T/thinking multimodal model" -ErrorAction Stop
+    Register-ScheduledTask -TaskName $taskName -InputObject $task -Force | Out-Null
 
     Write-Log "Successfully created scheduled task '$taskName'"
 
@@ -139,7 +227,6 @@ try {
     $createdTask = Get-ScheduledTask -TaskName $taskName
     Write-Log "Task created with the following settings:"
     Write-Log "  Name: $($createdTask.TaskName)"
-    Write-Log "  Path: $($createdTask.TaskPath)"
     Write-Log "  State: $($createdTask.State)"
     Write-Log "  Triggers: $($createdTask.Triggers.Count) trigger(s)"
     Write-Log "  Actions: $($createdTask.Actions.Count) action(s)"

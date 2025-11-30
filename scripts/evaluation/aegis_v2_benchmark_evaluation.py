@@ -26,7 +26,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 @dataclass
 class BenchmarkResult:
@@ -269,19 +269,15 @@ class AEGISV2BenchmarkEvaluator:
 
             improvement = test_score - baseline_score
 
-            # 統計的有意性の検定（t-test）
+            # 統計的有意性の検定（ブートストラップ法 + 非パラメトリック検定）
             baseline_scores = [r['score'] for r in baseline_results]
             test_scores = [r['score'] for r in test_results]
 
             try:
-                t_stat, p_value = stats.ttest_ind(baseline_scores, test_scores)
-
-                # 効果量（Cohen's d）
-                pooled_std = np.sqrt((np.std(baseline_scores)**2 + np.std(test_scores)**2) / 2)
-                effect_size = abs(improvement) / pooled_std if pooled_std > 0 else 0
-
-                # 有意性判定
-                statistical_significance = p_value < 0.05
+                # 複数の統計手法で検証
+                statistical_results = self._comprehensive_statistical_test(
+                    baseline_scores, test_scores, benchmark_info['name']
+                )
 
                 ab_result = ABTestResult(
                     baseline_model=baseline_model,
@@ -290,23 +286,155 @@ class AEGISV2BenchmarkEvaluator:
                     baseline_score=baseline_score,
                     test_score=test_score,
                     improvement=improvement,
-                    p_value=p_value,
-                    effect_size=effect_size,
+                    p_value=statistical_results['primary_p_value'],
+                    effect_size=statistical_results['effect_size'],
                     confidence_level=0.95,
-                    statistical_significance=statistical_significance
+                    statistical_significance=statistical_results['statistically_significant']
                 )
 
                 self.results['ab_test_results'].append(ab_result.__dict__)
 
+                significant_symbol = "YES" if statistical_results['statistically_significant'] else "NO"
                 print(f"  {benchmark_info['name']}: "
                       f"Baseline={baseline_score:.3f}, "
                       f"AEGIS={test_score:.3f}, "
                       f"Improvement={improvement:+.3f}, "
-                      f"p={p_value:.4f}, "
-                      f"Significant={'✓' if statistical_significance else '✗'}")
+                      f"p={statistical_results['primary_p_value']:.4f}, "
+                      f"Effect Size={statistical_results['effect_size']:.3f}, "
+                      f"Method={statistical_results['method_used']}, "
+                      f"Significant={significant_symbol}")
 
             except Exception as e:
                 logger.warning(f"Statistical test failed for {benchmark_info['name']}: {e}")
+
+    def _comprehensive_statistical_test(self, baseline_scores, test_scores, benchmark_name):
+        """
+        包括的な統計的有意性検定
+        複数の手法を組み合わせ、ベンチマークデータに最適な方法を選択
+        """
+        n_baseline = len(baseline_scores)
+        n_test = len(test_scores)
+
+        # サンプルサイズが小さい場合の処理
+        if n_baseline < 2 or n_test < 2:
+            # サンプルサイズが小さい場合はブートストラップ法を使用
+            return self._bootstrap_test(baseline_scores, test_scores)
+
+        # 正規性の検定（Shapiro-Wilk検定）
+        try:
+            from scipy.stats import shapiro, mannwhitneyu
+
+            # 正規性検定
+            baseline_normal = shapiro(baseline_scores)[1] > 0.05
+            test_normal = shapiro(test_scores)[1] > 0.05
+
+            # 等分散性の検定（Levene検定）
+            from scipy.stats import levene
+            equal_var = levene(baseline_scores, test_scores)[1] > 0.05
+
+            # データが正規分布かつ等分散の場合 → t検定
+            if baseline_normal and test_normal and equal_var:
+                t_stat, p_value = stats.ttest_ind(baseline_scores, test_scores, equal_var=True)
+                method = "t-test"
+            else:
+                # 非パラメトリック検定 → Mann-Whitney U検定
+                u_stat, p_value = mannwhitneyu(baseline_scores, test_scores, alternative='two-sided')
+                method = "Mann-Whitney U"
+
+        except Exception:
+            # 統計検定が失敗した場合 → ブートストラップ法
+            return self._bootstrap_test(baseline_scores, test_scores)
+
+        # 効果量の計算（Cohen's d）
+        if n_baseline > 1 and n_test > 1:
+            pooled_std = np.sqrt(((n_baseline - 1) * np.var(baseline_scores, ddof=1) +
+                                 (n_test - 1) * np.var(test_scores, ddof=1)) /
+                                (n_baseline + n_test - 2))
+            effect_size = abs(np.mean(test_scores) - np.mean(baseline_scores)) / pooled_std if pooled_std > 0 else 0
+        else:
+            effect_size = 0
+
+        # 有意性判定（ボンフェローニ補正考慮）
+        alpha = 0.05 / 11  # 11ベンチマークで多重比較補正
+        statistically_significant = p_value < alpha
+
+        # 効果量の解釈
+        if effect_size < 0.2:
+            effect_interpretation = "negligible"
+        elif effect_size < 0.5:
+            effect_interpretation = "small"
+        elif effect_size < 0.8:
+            effect_interpretation = "medium"
+        else:
+            effect_interpretation = "large"
+
+        return {
+            'primary_p_value': p_value,
+            'effect_size': effect_size,
+            'effect_interpretation': effect_interpretation,
+            'method_used': method,
+            'statistically_significant': statistically_significant,
+            'sample_sizes': (n_baseline, n_test),
+            'normality_tests': (baseline_normal, test_normal) if 'baseline_normal' in locals() else None,
+            'equal_variance': equal_var if 'equal_var' in locals() else None
+        }
+
+    def _bootstrap_test(self, baseline_scores, test_scores, n_bootstrap=10000):
+        """
+        ブートストラップ法による統計的有意性検定
+        サンプルサイズが小さい場合や分布が不明な場合に有効
+        """
+        np.random.seed(42)  # 再現性のため
+
+        baseline_array = np.array(baseline_scores)
+        test_array = np.array(test_scores)
+
+        # 元の差
+        original_diff = np.mean(test_array) - np.mean(baseline_array)
+
+        # ブートストラップサンプリング
+        bootstrap_diffs = []
+        combined = np.concatenate([baseline_array, test_array])
+
+        for _ in range(n_bootstrap):
+            # リサンプリング（復元抽出）
+            baseline_sample = np.random.choice(combined, size=len(baseline_scores), replace=True)
+            test_sample = np.random.choice(combined, size=len(test_scores), replace=True)
+
+            # 差の計算
+            diff = np.mean(test_sample) - np.mean(baseline_sample)
+            bootstrap_diffs.append(diff)
+
+        bootstrap_diffs = np.array(bootstrap_diffs)
+
+        # p値の計算（両側検定）
+        if original_diff >= 0:
+            p_value = np.mean(bootstrap_diffs >= original_diff)
+        else:
+            p_value = np.mean(bootstrap_diffs <= original_diff)
+
+        p_value = 2 * min(p_value, 1 - p_value)  # 両側検定
+
+        # 効果量（ブートストラップベース）
+        effect_size = abs(original_diff) / np.std(combined) if np.std(combined) > 0 else 0
+
+        # 有意性判定
+        alpha = 0.05 / 11  # 多重比較補正
+        statistically_significant = p_value < alpha
+
+        return {
+            'primary_p_value': p_value,
+            'effect_size': effect_size,
+            'effect_interpretation': 'bootstrap_based',
+            'method_used': 'Bootstrap',
+            'statistically_significant': statistically_significant,
+            'sample_sizes': (len(baseline_scores), len(test_scores)),
+            'bootstrap_iterations': n_bootstrap,
+            'confidence_interval': (
+                np.percentile(bootstrap_diffs, 2.5),
+                np.percentile(bootstrap_diffs, 97.5)
+            )
+        }
 
     def perform_statistical_analysis(self):
         """統計分析実行"""
@@ -325,12 +453,8 @@ class AEGISV2BenchmarkEvaluator:
             aegis_mean = np.mean(aegis_scores)
             overall_improvement = aegis_mean - baseline_mean
 
-            # 統計的有意性
-            t_stat, p_value = stats.ttest_ind(baseline_scores, aegis_scores)
-
-            # 効果量
-            pooled_std = np.sqrt((np.std(baseline_scores)**2 + np.std(aegis_scores)**2) / 2)
-            effect_size = overall_improvement / pooled_std if pooled_std > 0 else 0
+            # 包括的な統計分析（ANOVAスタイルのアプローチ）
+            anova_results = self._perform_anova_style_analysis(baseline_scores, aegis_scores)
 
             self.results['statistical_analysis'] = {
                 'overall_comparison': {
@@ -338,13 +462,11 @@ class AEGISV2BenchmarkEvaluator:
                     'aegis_mean': aegis_mean,
                     'improvement': overall_improvement,
                     'improvement_percentage': (overall_improvement / baseline_mean) * 100,
-                    't_statistic': t_stat,
-                    'p_value': p_value,
-                    'effect_size': effect_size,
-                    'statistically_significant': p_value < 0.05
+                    **anova_results
                 },
                 'benchmark_breakdown': self.analyze_benchmark_breakdown(),
-                'robustness_analysis': self.analyze_robustness()
+                'robustness_analysis': self.analyze_robustness(),
+                'anova_analysis': self._perform_benchmark_category_anova()
             }
 
             print("\nOverall Performance:")
@@ -352,9 +474,184 @@ class AEGISV2BenchmarkEvaluator:
             print(".3f")
             print("+.1f")
             print(".1f")
-            print(".4f")
-            print(f"Effect Size: {effect_size:.3f}")
-            print(f"Statistically Significant: {'✓' if p_value < 0.05 else '✗'}")
+            print(f"Method: {anova_results['method_used']}")
+            print(f"p-value: {anova_results['p_value']:.4f}")
+            print(f"Effect Size (eta_squared): {anova_results['effect_size']:.3f} ({anova_results['effect_magnitude']})")
+            significant_symbol = "YES" if anova_results['statistically_significant'] else "NO"
+            print(f"Statistically Significant: {significant_symbol}")
+
+    def _perform_anova_style_analysis(self, baseline_scores, test_scores):
+        """
+        ANOVAスタイルの包括的統計分析
+        ベンチマークスコアの分散分析アプローチ
+        """
+        try:
+            # データの準備（ANOVA形式）
+            all_scores = baseline_scores + test_scores
+            groups = ['baseline'] * len(baseline_scores) + ['aegis_v2'] * len(test_scores)
+
+            # 正規性の検定
+            from scipy.stats import shapiro, levene
+
+            baseline_normal = shapiro(baseline_scores)[1] > 0.05
+            test_normal = shapiro(test_scores)[1] > 0.05
+
+            # 等分散性の検定
+            equal_var = levene(baseline_scores, test_scores)[1] > 0.05
+
+            # 分散分析（ANOVAスタイル）
+            if baseline_normal and test_normal and equal_var and len(baseline_scores) >= 3 and len(test_scores) >= 3:
+                # One-way ANOVA (F検定)
+                f_stat, p_value = self._one_way_anova_f_test(baseline_scores, test_scores)
+                method = "One-way ANOVA (F-test)"
+            else:
+                # Kruskal-Wallis H検定（非パラメトリックANOVA）
+                from scipy.stats import kruskal
+                h_stat, p_value = kruskal(baseline_scores, test_scores)
+                method = "Kruskal-Wallis H-test"
+
+            # 効果量（η² for ANOVA）
+            ss_between = len(baseline_scores) * (np.mean(baseline_scores) - np.mean(all_scores))**2 + \
+                        len(test_scores) * (np.mean(test_scores) - np.mean(all_scores))**2
+
+            ss_total = sum((x - np.mean(all_scores))**2 for x in all_scores)
+
+            eta_squared = ss_between / ss_total if ss_total > 0 else 0
+
+            # η²の解釈（Cohenの基準）
+            if eta_squared < 0.01:
+                effect_magnitude = "negligible"
+            elif eta_squared < 0.06:
+                effect_magnitude = "small"
+            elif eta_squared < 0.14:
+                effect_magnitude = "medium"
+            else:
+                effect_magnitude = "large"
+
+            # 有意性判定（保守的な基準）
+            alpha = 0.01  # 1%水準（厳格）
+            statistically_significant = p_value < alpha
+
+            return {
+                'method_used': method,
+                'p_value': p_value,
+                'effect_size': eta_squared,
+                'effect_magnitude': effect_magnitude,
+                'statistically_significant': statistically_significant,
+                'f_statistic': f_stat if 'f_stat' in locals() else h_stat if 'h_stat' in locals() else None,
+                'normality_tests': (baseline_normal, test_normal),
+                'equal_variance': equal_var,
+                'sample_sizes': (len(baseline_scores), len(test_scores))
+            }
+
+        except Exception as e:
+            logger.warning(f"ANOVA-style analysis failed: {e}")
+            # フォールバック：シンプルなt検定
+            t_stat, p_value = stats.ttest_ind(baseline_scores, test_scores)
+            pooled_std = np.sqrt((np.std(baseline_scores)**2 + np.std(test_scores)**2) / 2)
+            effect_size = abs(np.mean(test_scores) - np.mean(baseline_scores)) / pooled_std
+
+            return {
+                'method_used': 't-test (fallback)',
+                'p_value': p_value,
+                'effect_size': effect_size,
+                'effect_magnitude': 'unknown',
+                'statistically_significant': p_value < 0.05,
+                'f_statistic': t_stat,
+                'normality_tests': None,
+                'equal_variance': None,
+                'sample_sizes': (len(baseline_scores), len(test_scores))
+            }
+
+    def _one_way_anova_f_test(self, group1, group2):
+        """
+        One-way ANOVAのF検定を手動計算
+        """
+        # グループ統計
+        n1, n2 = len(group1), len(group2)
+        mean1, mean2 = np.mean(group1), np.mean(group2)
+        var1, var2 = np.var(group1, ddof=1), np.var(group2, ddof=1)
+
+        # 全データの平均と総数
+        all_data = group1 + group2
+        grand_mean = np.mean(all_data)
+        N = len(all_data)
+
+        # 群間平方和 (SSB)
+        ssb = n1 * (mean1 - grand_mean)**2 + n2 * (mean2 - grand_mean)**2
+
+        # 群内平方和 (SSW)
+        ssw = (n1 - 1) * var1 + (n2 - 1) * var2
+
+        # 自由度
+        df_between = 1  # 2グループ
+        df_within = N - 2
+
+        # F統計量
+        msb = ssb / df_between  # 群間平均平方
+        msw = ssw / df_within   # 群内平均平方
+
+        if msw > 0:
+            f_stat = msb / msw
+        else:
+            f_stat = float('inf')
+
+        # p値の計算（F分布）
+        from scipy.stats import f
+        p_value = 1 - f.cdf(f_stat, df_between, df_within)
+
+        return f_stat, p_value
+
+    def _perform_benchmark_category_anova(self):
+        """
+        ベンチマークカテゴリ別のANOVA分析
+        ベンチマークタイプ（数学、言語、常識など）による効果の分析
+        """
+        try:
+            # ベンチマークカテゴリの定義
+            benchmark_categories = {
+                'mathematical': ['mmlu'],
+                'commonsense': ['hellaswag', 'piqa', 'siqa'],
+                'reading_comprehension': ['openbookqa'],
+                'science': ['arc_challenge', 'arc_easy'],
+                'language_modeling': ['lambada', 'wikitext'],
+                'japanese': ['elyza_100']
+            }
+
+            category_results = {}
+
+            for category, benchmarks in benchmark_categories.items():
+                baseline_cat_scores = []
+                aegis_cat_scores = []
+
+                for benchmark in benchmarks:
+                    # ベースラインモデルのスコアを取得
+                    baseline_results = [r for r in self.results['benchmark_results']
+                                      if (r['model_name'] == self.models['baseline']['display_name'] and
+                                          benchmark.lower() in r['benchmark_name'].lower())]
+
+                    # AEGISモデルのスコアを取得
+                    aegis_results = [r for r in self.results['benchmark_results']
+                                   if (r['model_name'] == self.models['aegis_v2']['display_name'] and
+                                       benchmark.lower() in r['benchmark_name'].lower())]
+
+                    baseline_cat_scores.extend([r['score'] for r in baseline_results])
+                    aegis_cat_scores.extend([r['score'] for r in aegis_results])
+
+                if baseline_cat_scores and aegis_cat_scores:
+                    # カテゴリ内ANOVA
+                    cat_anova = self._perform_anova_style_analysis(baseline_cat_scores, aegis_cat_scores)
+                    cat_anova['baseline_mean'] = np.mean(baseline_cat_scores)
+                    cat_anova['aegis_mean'] = np.mean(aegis_cat_scores)
+                    cat_anova['improvement'] = cat_anova['aegis_mean'] - cat_anova['baseline_mean']
+
+                    category_results[category] = cat_anova
+
+            return category_results
+
+        except Exception as e:
+            logger.warning(f"Benchmark category ANOVA failed: {e}")
+            return {}
 
     def analyze_benchmark_breakdown(self) -> Dict[str, Any]:
         """ベンチマーク別分析"""
@@ -406,8 +703,29 @@ class AEGISV2BenchmarkEvaluator:
 
         # 結果をJSONで保存
         results_file = self.output_dir / f"aegis_v2_evaluation_results_{timestamp}.json"
+        # JSONシリアライズ可能な形式に変換
+        def make_json_serializable(obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, (np.bool_, bool)):
+                return bool(obj)
+            elif isinstance(obj, dict):
+                return {key: make_json_serializable(value) for key, value in obj.items()}
+            elif isinstance(obj, list):
+                return [make_json_serializable(item) for item in obj]
+            elif obj is None:
+                return None
+            else:
+                return obj
+
+        serializable_results = make_json_serializable(self.results)
+
         with open(results_file, 'w', encoding='utf-8') as f:
-            json.dump(self.results, f, indent=2, ensure_ascii=False)
+            json.dump(serializable_results, f, indent=2, ensure_ascii=False)
 
         logger.info(f"Results saved to: {results_file}")
 
@@ -461,6 +779,37 @@ class AEGISV2BenchmarkEvaluator:
             # 統計分析
             if 'statistical_analysis' in self.results:
                 f.write("## Statistical Analysis\n\n")
+
+                # ANOVA結果
+                if 'overall_comparison' in self.results['statistical_analysis']:
+                    overall = self.results['statistical_analysis']['overall_comparison']
+                    f.write("### Overall ANOVA Analysis\n\n")
+                    f.write(f"- **Statistical Method**: {overall.get('method_used', 'Unknown')}\n")
+                    f.write(f"- **p-value**: {overall.get('p_value', 'N/A')}\n")
+                    f.write(f"- **Effect Size (η²)**: {overall.get('effect_size', 'N/A')} ({overall.get('effect_magnitude', 'unknown')})\n")
+                    f.write(f"- **F/H Statistic**: {overall.get('f_statistic', 'N/A')}\n")
+                    f.write(f"- **Normality Tests**: {overall.get('normality_tests', 'N/A')}\n")
+                    f.write(f"- **Equal Variance**: {overall.get('equal_variance', 'N/A')}\n")
+                    f.write(f"- **Statistically Significant**: {'✓' if overall.get('statistically_significant', False) else '✗'}\n\n")
+
+                # カテゴリ別ANOVA
+                if 'anova_analysis' in self.results['statistical_analysis'] and self.results['statistical_analysis']['anova_analysis']:
+                    f.write("### Benchmark Category ANOVA\n\n")
+                    f.write("| Category | Baseline | AEGIS-v2.0 | Improvement | p-value | Effect Size | Significant |\n")
+                    f.write("|----------|----------|------------|-------------|---------|-------------|-------------|\n")
+
+                    for category, analysis in self.results['statistical_analysis']['anova_analysis'].items():
+                        baseline_mean = analysis.get('baseline_mean', 0)
+                        aegis_mean = analysis.get('aegis_mean', 0)
+                        improvement = analysis.get('improvement', 0)
+                        p_value = analysis.get('p_value', 1.0)
+                        effect_size = analysis.get('effect_size', 0)
+                        significant = analysis.get('statistically_significant', False)
+
+                        significant_symbol = "YES" if significant else "NO"
+                        f.write(f"|{category.capitalize()}|{baseline_mean:.3f}|{aegis_mean:.3f}|{improvement:+.3f}|{p_value:.4f}|{effect_size:.3f}|{significant_symbol}|\n")
+
+                    f.write("\n")
 
                 if 'benchmark_breakdown' in self.results['statistical_analysis']:
                     f.write("### Benchmark-wise Improvement\n\n")
@@ -564,7 +913,7 @@ def main():
             print(f"🎯 Statistical Significance: {'✓ SIGNIFICANT' if overall['statistically_significant'] else '✗ Not Significant'}")
 
     except Exception as e:
-        print(f"\n❌ Evaluation failed: {e}")
+        print(f"\n[ERROR] Evaluation failed: {e}")
         raise
 
 if __name__ == "__main__":
