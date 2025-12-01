@@ -88,9 +88,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize BitsAndBytes after logger setup (Unsloth disabled for testing)
-UNSLOTH_AVAILABLE = False
-logger.info("Unsloth disabled for testing - using bitsandbytes + PEFT")
+# Initialize BitsAndBytes after logger setup
 try:
     from transformers import BitsAndBytesConfig
     from peft import LoraConfig, get_peft_model
@@ -101,12 +99,12 @@ except (ImportError, Exception) as e2:
     BITSANDBYTES_AVAILABLE = False
     logger.warning(f"BitsAndBytes not available ({e2}) - using standard transformers with CPU fallback")
 
-# Initialize Unsloth for fallback (force disabled)
+# Initialize Unsloth
 try:
     from unsloth import FastLanguageModel
     from unsloth import is_bfloat16_supported
-    UNSLOTH_AVAILABLE = False  # Force disable Unsloth for CPU testing
-    logger.info("Unsloth available but disabled for CPU testing - using bitsandbytes + PEFT")
+    UNSLOTH_AVAILABLE = True
+    logger.info("Unsloth available - using Unsloth for optimized training")
 except (ImportError, Exception) as e:
     logger.info(f"Unsloth not available ({e}) - falling back to bitsandbytes + PEFT")
     UNSLOTH_AVAILABLE = False

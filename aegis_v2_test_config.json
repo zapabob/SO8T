@@ -13,11 +13,11 @@
         "save_steps": 50,
         "logging_steps": 10,
         "test_mode": false,
-        "use_unsloth": false,
+        "use_unsloth": true,
         "gpu_memory_limit": 0.6
     },
     "so8t": {
-        "enable_so8t": false,
+        "enable_so8t": true,
         "alpha_gate_enabled": true,
         "alpha_initial": -0.5,
         "alpha_target": 0.382,
@@ -42,7 +42,7 @@
     },
     "data": {
         "train_file": "data/so8t_cot_enhanced_training_dataset_70k.jsonl",
-        "max_samples": 10,
+        "max_samples": 1000,
         "validation_split": 0.1,
         "max_length": 2048,
         "preprocessing_num_workers": 4,
