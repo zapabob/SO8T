@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 AEGIS-v2.0 PPO Training with SO(8) Rotation Adapter
@@ -70,6 +70,15 @@ except ImportError:
         ChaosInducedDiversityEnhancer = None
         PPOAlignmentRewardSystem = None
 
+# Import NKAT SO(8) adapter
+try:
+    from modeling_nkat import attach_nkat_adapters, SO8ResidualAdapter
+    NKAT_AVAILABLE = True
+    print("🧬 NKAT SO(8) adapter available")
+except ImportError as e:
+    print(f"Failed to import NKAT adapter: {e}")
+    NKAT_AVAILABLE = False
+
 # Import Bayesian optimizer
 try:
     from alpha_gate_annealing import GoldenRatioBayesianOptimizer
@@ -112,49 +121,46 @@ except (ImportError, Exception) as e:
 @dataclass
 class PPOConfig:
     """PPO設定 - RTX3060最適化"""
-    learning_rate: float = 2e-4  # Unsloth推奨の高い学習率
+    learning_rate: float = 2e-4
     max_grad_norm: float = 0.1
-    batch_size: int = 1  # RTX3060のメモリ制約のため1
+    batch_size: int = 1
     mini_batch_size: int = 1
-    gradient_accumulation_steps: int = 8  # 効果的なバッチサイズ8を実現
-    epochs: int = 1  # Unslothでは1エポックで十分
+    gradient_accumulation_steps: int = 8
+    epochs: int = 1
     max_steps: int = 200
     warmup_steps: int = 10
 
-    # RTX3060最適化設定
+    # RTX3060
     use_unsloth: bool = True
-    gpu_memory_limit: float = 0.85  # 85%まで使用
-
-    # SO(8)設定
-    alpha_initial: float = -0.5
-    alpha_target: float = 0.382
-    annealing_steps: int = 500
-    chaos_intensity: float = 0.1
-
-    # ベイズ最適化設定
-    enable_bayesian_optimization: bool = False  # デフォルトでは無効（メモリ制約のため）
-    bayesian_trials: int = 10  # 試行回数を減らす
-    bayesian_timeout: int = 1800  # 30分に短縮
-    optimize_learning_rate: bool = True
-    optimize_batch_size: bool = True
-    optimize_alpha_params: bool = True
+    gpu_memory_limit: float = 0.85
 
     # PPO specific
-    cliprange: float = 0.2
+    clip_range: float = 0.2      # ← cliprange → clip_range に統一
     vf_coef: float = 0.1
-    ent_coef: float = 0.01
+    ent_coef: float = 0.01       # ← entropy_coef ではなくこっちを使う
     gamma: float = 0.99
     lam: float = 0.95
     max_kl: float = 0.01
 
-    # SO(8) specific
+    # Rollout
+    rollout_steps: int = 128     # ← env 版 _collect_experiences 用に追加
+
+    # SO(8) specific（片方だけ残す）
     alpha_initial: float = -2.1336307753809063
     alpha_target: float = math.log(0.382)  # Φ^(-2)
     annealing_steps: int = 1000
     chaos_intensity: float = 0.1
 
+    # ベイズ最適化
+    enable_bayesian_optimization: bool = False
+    bayesian_trials: int = 10
+    bayesian_timeout: int = 1800
+    optimize_learning_rate: bool = True
+    optimize_batch_size: bool = True
+    optimize_alpha_params: bool = True
+
     # Checkpoint
-    checkpoint_interval: int = 180  # 3分毎
+    checkpoint_interval: int = 180
     max_checkpoints: int = 5
     checkpoint_dir: str = "H:/from_D/webdataset/checkpoints/aegis_v2_ppo"
 
@@ -731,15 +737,15 @@ class PPOTrainer:
         if use_unsloth and UNSLOTH_AVAILABLE and torch.cuda.is_available():
             with tqdm(total=100, desc="Model Setup", unit="%") as setup_bar:
                 setup_bar.update(5)
-                logger.info(f"Loading model with Unsloth (RTX3060 optimized): {self.model_path}")
+            logger.info(f"Loading model with Unsloth (RTX3060 optimized): {self.model_path}")
 
-                # GPUメモリ最適化設定
-                logger.info("Setting up GPU memory optimization...")
-                gpu_memory_limit = self.config.get('training', {}).get('gpu_memory_limit', 0.85)
-                torch.cuda.set_per_process_memory_fraction(gpu_memory_limit)
-                torch.cuda.empty_cache()
-                setup_bar.update(10)
-                setup_bar.set_postfix({"step": "GPU setup"})
+            # GPUメモリ最適化設定
+            logger.info("Setting up GPU memory optimization...")
+            gpu_memory_limit = self.config.get('training', {}).get('gpu_memory_limit', 0.85)
+            torch.cuda.set_per_process_memory_fraction(gpu_memory_limit)
+            torch.cuda.empty_cache()
+            setup_bar.update(10)
+            setup_bar.set_postfix({"step": "GPU setup"})
 
             # Unslothで4bit量子化モデルをロード
             logger.info("Loading model with Unsloth...")
@@ -809,9 +815,9 @@ class PPOTrainer:
             with tqdm(total=100, desc="Model Setup", unit="%") as setup_bar:
                 setup_bar.update(5)
                 logger.info(f"Entered CPU fallback path for model: {self.model_path}")
-                from transformers import AutoTokenizer, AutoModelForCausalLM
-                setup_bar.update(10)
-                setup_bar.set_postfix({"step": "CPU mode setup"})
+            from transformers import AutoTokenizer, AutoModelForCausalLM
+            setup_bar.update(10)
+            setup_bar.set_postfix({"step": "CPU mode setup"})
 
             logger.info(f"Loading model (CPU fallback): {self.model_path}")
 
@@ -820,11 +826,11 @@ class PPOTrainer:
             start_time = time.time()
             try:
                 self.model = AutoModelForCausalLM.from_pretrained(
-                    self.model_path,
-                    torch_dtype=torch.float16,  # float16 for memory efficiency
+                self.model_path,
+                torch_dtype=torch.float16,  # float16 for memory efficiency
                     device_map="cpu",  # Force CPU
-                    trust_remote_code=True,
-                    low_cpu_mem_usage=True,
+                trust_remote_code=True,
+                low_cpu_mem_usage=True,
                     # BitsAndBytes 8bit quantization removed for CPU compatibility
                 )
             except AttributeError as e:
@@ -946,29 +952,63 @@ class PPOTrainer:
             raise
 
     def _ensure_so8t_adapter_attached(self):
-        """RTX3060最適化: SO8Tアダプターがモデルにアタッチされていることを確認"""
+        """RTX3060最適化: NKAT SO(8)アダプターがモデルにアタッチされていることを確認"""
         try:
-            logger.info("Checking SO8T adapter attachment...")
+            logger.info("Checking NKAT SO(8) adapter attachment...")
 
-            # モデルにSO8Tアダプターが存在するか確認
-            has_so8t_adapter = False
-            for layer_idx, layer in enumerate(self.model.model.layers):
-                if hasattr(layer, 'so8_adapter'):
-                    has_so8t_adapter = True
+            # NKATアダプターが利用可能かチェック
+            if not NKAT_AVAILABLE:
+                logger.warning("NKAT adapter not available, using legacy SO8T adapter...")
+                self._initialize_legacy_so8t_adapter()
+                return
+
+            # モデルにNKATアダプターが存在するか確認
+            has_nkat_adapter = False
+
+            # モデル構造の解析
+            if hasattr(self.model, "base_model") and hasattr(self.model.base_model, "model"):
+                # LoRA適用後のUnslothモデル
+                layers = self.model.base_model.model.layers
+            elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
+                # 通常のHFモデル
+                layers = self.model.model.layers
+            else:
+                raise ValueError("Unknown model structure: Cannot find 'layers' attribute.")
+
+            for layer_idx, layer in enumerate(layers):
+                if hasattr(layer, 'nkat_adapter'):
+                    has_nkat_adapter = True
                     break
 
-            if not has_so8t_adapter:
-                logger.warning("SO8T adapter not found in model, initializing...")
-                self._initialize_so8t_adapter()
+            if not has_nkat_adapter:
+                logger.info("NKAT adapter not found in model, injecting...")
+                self._initialize_nkat_adapter()
             else:
-                logger.info("SO8T adapter already attached to model")
+                logger.info("NKAT adapter already attached to model")
 
         except Exception as e:
-            logger.error(f"Failed to ensure SO8T adapter attachment: {e}")
+            logger.error(f"Failed to ensure NKAT adapter attachment: {e}")
+            # Fallback to legacy adapter
+            logger.warning("Falling back to legacy SO8T adapter...")
+            self._initialize_legacy_so8t_adapter()
             raise
 
-    def _initialize_so8t_adapter(self):
-        """RTX3060向けSO8Tアダプター初期化"""
+    def _initialize_nkat_adapter(self):
+        """RTX3060向けNKAT SO(8)アダプター初期化"""
+        try:
+            logger.info("Initializing NKAT SO(8) adapter for RTX3060...")
+
+            # NKATアダプターの注入
+            self.model = attach_nkat_adapters(self.model, target_layers="middle")
+
+            logger.info("NKAT SO(8) adapter initialized successfully")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize NKAT adapter: {e}")
+            raise
+
+    def _initialize_legacy_so8t_adapter(self):
+        """RTX3060向けレガシーSO8Tアダプター初期化 (フォールバック用)"""
         try:
             logger.info("Initializing SO8T adapter for RTX3060...")
 
@@ -987,7 +1027,23 @@ class PPOTrainer:
             spec.loader.exec_module(so8_module)
             SO8RotationGate = so8_module.SO8RotationGate
 
-            num_layers = len(self.model.model.layers)
+            # PEFTモデルの構造に対応 (Phi3専用)
+            if hasattr(self.model, 'base_model') and hasattr(self.model.base_model, 'model') and hasattr(self.model.base_model.model, 'model') and hasattr(self.model.base_model.model.model, 'layers'):
+                # PEFT + Phi3: model.base_model.model.model.layers
+                model_layers = self.model.base_model.model.model.layers
+            elif hasattr(self.model, 'base_model') and hasattr(self.model.base_model, 'model') and hasattr(self.model.base_model.model, 'layers'):
+                # PEFTモデル (Unsloth + LoRA)
+                model_layers = self.model.base_model.model.layers
+            elif hasattr(self.model, 'model') and hasattr(self.model.model, 'layers'):
+                # 通常のtransformersモデル (Phi3)
+                model_layers = self.model.model.layers
+            elif hasattr(self.model, 'layers'):
+                # 直接layersを持つ場合
+                model_layers = self.model.layers
+            else:
+                raise ValueError(f"Cannot find layers in model structure. Model type: {type(self.model)}")
+
+            num_layers = len(model_layers)
             hidden_size = self.model.config.hidden_size
 
             # 中間層(4-11)にSO8Tアダプターをアタッチ
@@ -995,7 +1051,7 @@ class PPOTrainer:
             so8t_to = min(12, num_layers)  # RTX3060のメモリ制約を考慮
 
             for layer_idx in range(so8t_from, so8t_to):
-                layer = self.model.model.layers[layer_idx]
+                layer = model_layers[layer_idx]
 
                 # SO8Tアダプターをアタッチ
                 so8t_adapter = SO8RotationGate(hidden_size=hidden_size)
@@ -1024,11 +1080,13 @@ class PPOTrainer:
         try:
             logger.info("Reinitializing SO8T adapter structure (attach SO8T adapter to mid layers 4-11)...")
 
-            num_layers = len(self.model.model.layers)
+            # Unslothモデルの場合、model.layersを使用
+            model_layers = self.model.model.layers if hasattr(self.model, 'model') else self.model.layers
+            num_layers = len(model_layers)
             so8t_from = 4    # inclusive, 0-based
             so8t_to = 12     # exclusive (so covers layers 4-11: 4,5,...,11)
 
-            for layer_idx, layer in enumerate(self.model.model.layers):
+            for layer_idx, layer in enumerate(model_layers):
                 if so8t_from <= layer_idx < so8t_to:
                     # 中間層(4-11)にはSO8Tアダプタを付与・修正
                     if hasattr(layer, 'so8_adapter'):
@@ -1054,92 +1112,93 @@ class PPOTrainer:
         except Exception as e:
             logger.error(f"Failed to reinitialize SO8T adapter: {e}")
             # 再初期化に失敗しても続行（警告のみ）
-def setup_reference_model(self):
-    """
-    参照モデルのセットアップ（メインモデルと同じロジック）
-    """
-    try:
-        from transformers import AutoModelForCausalLM
-        logger.info("Setting up reference model (same logic as main model)...")
 
-        # 参照モデルのロード
-        self.ref_model = AutoModelForCausalLM.from_pretrained(
-            self.model_path,
-            torch_dtype=torch.float16,
-            device_map="auto",
-            trust_remote_code=True,
-            low_cpu_mem_usage=True,
-            load_in_8bit=True,
-        )
-    except AttributeError as e:
-        if "so8_adapter" in str(e) or "SCB" in str(e):
-            logger.warning(f"Reference model structure mismatch detected: {e}")
-            logger.warning("Loading reference model by filtering incompatible parameters...")
+    def setup_reference_model(self):
+        """
+        参照モデルのセットアップ（メインモデルと同じロジック）
+        """
+        try:
+            from transformers import AutoModelForCausalLM
+            logger.info("Setting up reference model (same logic as main model)...")
 
-            # 参照モデルも同じ方法でロード
-            # Fix: mimic the rest of the model loading, fallback if Phi3Config doesn't exist
-            try:
-                from transformers import Phi3Config, AutoModelForCausalLM
-                config = Phi3Config.from_pretrained(self.model_path)
-                self.ref_model = AutoModelForCausalLM.from_config(config)
-            except (ImportError, ModuleNotFoundError, AttributeError):
-                # Fallback if Phi3Config not available: use generic config
-                config = AutoModelForCausalLM.from_pretrained(
-                    self.model_path,
-                    torch_dtype=torch.float16,
-                    device_map="auto",
-                    trust_remote_code=True,
-                    low_cpu_mem_usage=True,
-                    load_in_8bit=True,
-                ).config
-                self.ref_model = AutoModelForCausalLM.from_config(config)
+            # 参照モデルのロード
+            self.ref_model = AutoModelForCausalLM.from_pretrained(
+                self.model_path,
+                torch_dtype=torch.float16,
+                device_map="auto",
+                trust_remote_code=True,
+                low_cpu_mem_usage=True,
+                load_in_8bit=True,
+            )
+        except AttributeError as e:
+            if "so8_adapter" in str(e) or "SCB" in str(e):
+                logger.warning(f"Reference model structure mismatch detected: {e}")
+                logger.warning("Loading reference model by filtering incompatible parameters...")
 
-            # state_dictを読み込んで互換性のないパラメータをフィルタリング
-            try:
-                state_dict = torch.load(
-                    Path(self.model_path) / "pytorch_model.bin",
-                    map_location="cpu",
-                    weights_only=True
-                )
-            except FileNotFoundError:
-                # safetensors形式の場合
-                from safetensors.torch import load_file
-                state_dict = {}
-            for safetensor_file in Path(self.model_path).glob("*.safetensors"):
-                state_dict.update(load_file(safetensor_file, device="cpu"))
+                # 参照モデルも同じ方法でロード
+                # Fix: mimic the rest of the model loading, fallback if Phi3Config doesn't exist
+                try:
+                    from transformers import Phi3Config, AutoModelForCausalLM
+                    config = Phi3Config.from_pretrained(self.model_path)
+                    self.ref_model = AutoModelForCausalLM.from_config(config)
+                except (ImportError, ModuleNotFoundError, AttributeError):
+                    # Fallback if Phi3Config not available: use generic config
+                    config = AutoModelForCausalLM.from_pretrained(
+                        self.model_path,
+                        torch_dtype=torch.float16,
+                        device_map="auto",
+                        trust_remote_code=True,
+                        low_cpu_mem_usage=True,
+                        load_in_8bit=True,
+                    ).config
+                    self.ref_model = AutoModelForCausalLM.from_config(config)
 
-            # SO8Tアダプター関連の互換性のないパラメータを除去
-            filtered_state_dict = {}
-            incompatible_keys = []
-            for key, value in state_dict.items():
-                if "so8_adapter.so8_gate.noncommutative_proj.SCB" in key:
-                    incompatible_keys.append(key)
-                    continue
-                if "so8_adapter" in key and ("SCB" in key or "legacy" in key):
-                    incompatible_keys.append(key)
-                    continue
-                filtered_state_dict[key] = value
+                # state_dictを読み込んで互換性のないパラメータをフィルタリング
+                try:
+                    state_dict = torch.load(
+                        Path(self.model_path) / "pytorch_model.bin",
+                        map_location="cpu",
+                        weights_only=True
+                    )
+                except FileNotFoundError:
+                    # safetensors形式の場合
+                    from safetensors.torch import load_file
+                    state_dict = {}
+                for safetensor_file in Path(self.model_path).glob("*.safetensors"):
+                    state_dict.update(load_file(safetensor_file, device="cpu"))
 
-            if incompatible_keys:
-                logger.warning(f"Skipped {len(incompatible_keys)} incompatible SO8T parameters in ref model:")
-                for key in incompatible_keys[:5]:  # 最初の5つだけ表示
-                    logger.warning(f"  - {key}")
-                if len(incompatible_keys) > 5:
-                    logger.warning(f"  ... and {len(incompatible_keys) - 5} more")
+                # SO8Tアダプター関連の互換性のないパラメータを除去
+                filtered_state_dict = {}
+                incompatible_keys = []
+                for key, value in state_dict.items():
+                    if "so8_adapter.so8_gate.noncommutative_proj.SCB" in key:
+                        incompatible_keys.append(key)
+                        continue
+                    if "so8_adapter" in key and ("SCB" in key or "legacy" in key):
+                        incompatible_keys.append(key)
+                        continue
+                    filtered_state_dict[key] = value
 
-            # フィルタリングしたstate_dictをロード
-            missing_keys, unexpected_keys = self.ref_model.load_state_dict(filtered_state_dict, strict=False)
-            if missing_keys:
-                logger.warning(f"Ref model missing keys: {missing_keys}")
-            if unexpected_keys:
-                logger.warning(f"Ref model unexpected keys: {unexpected_keys}")
+                if incompatible_keys:
+                    logger.warning(f"Skipped {len(incompatible_keys)} incompatible SO8T parameters in ref model:")
+                    for key in incompatible_keys[:5]:  # 最初の5つだけ表示
+                        logger.warning(f"  - {key}")
+                    if len(incompatible_keys) > 5:
+                        logger.warning(f"  ... and {len(incompatible_keys) - 5} more")
 
-            logger.info("Reference model loaded successfully with filtered parameters")
+                # フィルタリングしたstate_dictをロード
+                missing_keys, unexpected_keys = self.ref_model.load_state_dict(filtered_state_dict, strict=False)
+                if missing_keys:
+                    logger.warning(f"Ref model missing keys: {missing_keys}")
+                if unexpected_keys:
+                    logger.warning(f"Ref model unexpected keys: {unexpected_keys}")
 
-            # 参照モデルは完全に凍結（学習対象外）
-            for param in self.ref_model.parameters():
-                param.requires_grad = False
-            self.ref_model.eval()
+                logger.info("Reference model loaded successfully with filtered parameters")
+
+                # 参照モデルは完全に凍結（学習対象外）
+                for param in self.ref_model.parameters():
+                    param.requires_grad = False
+                self.ref_model.eval()
 
         logger.info("Reference model setup completed successfully")                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 
@@ -1234,20 +1293,11 @@ def setup_reference_model(self):
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'stats': self.stats,
-                'config': self.config
+            'config': self.config
             }, checkpoint_path)
             logger.info(f"Checkpoint saved: {checkpoint_path}")
-        except Exception as e:
+        except Exception as e:  
             logger.warning(f"Failed to save checkpoint: {e}")
-
-    # ---- 修正版（コード未到達箇所の実行不能部分を削除・整理） ----
-    # except Exception: のブロック直下でインデントがおかしくなり、通常到達しない"mock"モデルの生成が
-    # 例外処理に隠れていました。これを削除・整理します。
-    # （本来この箇所は、init/モデルロード例外時に適切なハンドリング等で配置する必要がある）
-
-    # raise以降のコード（MockModelなどインデントがおかしかった部分全部）は到達不可能なので削除し、
-    # 本来例外ハンドリングでMockModelを使いたい場合は、except:内で代入処理に分離して書き直すべきです。
-    # ここでは、未到達・実行不能な部分をカットします。
 
     def train(self):
         """PPOトレーニングを開始"""
@@ -1255,255 +1305,7 @@ def setup_reference_model(self):
         logger.info(f"Max steps: {self.ppo_config.max_steps}")
         self._train_ppo()
 
-    def _train_ppo(self):
-        """PPOトレーニングメインループ"""
-        try:
-            logger.info("Starting PPO training...")
-
-            # tqdmで詳細な進捗表示
-            progress_bar = tqdm(
-                range(self.ppo_config.max_steps),
-                desc="SO8T PPO Training",
-                unit="step",
-                ncols=120,
-                bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
-            )
-
-            for step in range(self.ppo_config.max_steps):
-                # 経験収集
-                experiences = self._collect_experiences()
-
-                # PPO更新
-                train_info = self._update_ppo(experiences)
-
-                # 統計記録
-                self._log_training_stats(step, train_info)
-
-                # 詳細な進捗バー更新
-                progress_bar.set_postfix({
-                    'loss': f'{train_info.get("total_loss", 0):.4f}',
-                    'reward': f'{train_info.get("reward", 0):.4f}',
-                    'alpha': f'{train_info.get("alpha", 0):.4f}',
-                    'lr': f'{self.ppo_config.learning_rate:.2e}',
-                    'kl': f'{train_info.get("kl_div", 0):.4f}'
-                })
-                progress_bar.update(1)
-
-                # 定期チェックポイント保存
-                if step % 50 == 0:
-                    self._save_checkpoint(step)
-
-            progress_bar.close()
-            logger.info("=== PPO training completed successfully! ===")
-            logger.info(f"Total steps trained: {self.ppo_config.max_steps}")
-            logger.info(f"Final learning rate: {self.ppo_config.learning_rate:.2e}")
-            logger.info(f"Final alpha value: {self.config.get('so8t', {}).get('alpha_target', 'N/A')}")
-            logger.info("SO8T thinking model training completed!")
-
-        except Exception as e:
-            logger.error(f"Training failed: {e}")
-            raise
-
-    import torch
-    import numpy as np
-
-    def _collect_experiences(self):
-        """経験収集 - PPO標準に基づくバッチ分割の経験収集"""
-        batch_obs = []
-        batch_actions = []
-        batch_rewards = []
-        batch_dones = []
-        batch_log_probs = []
-        batch_values = []
-
-        obs = self.env.reset()
-        for _ in range(self.ppo_config.rollout_steps):
-            obs_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0).to(self.device)
-            with torch.no_grad():
-                logits, value = self.model(obs_tensor)
-                action_dist = torch.distributions.Categorical(logits=logits)
-                action = action_dist.sample()
-                log_prob = action_dist.log_prob(action)
-            
-            next_obs, reward, done, info = self.env.step(action.item())
-
-            batch_obs.append(obs)
-            batch_actions.append(action.item())
-            batch_rewards.append(reward)
-            batch_dones.append(done)
-            batch_log_probs.append(log_prob.item())
-            batch_values.append(value.item())
-
-            obs = next_obs
-            if done:
-                obs = self.env.reset()
-
-        # GAEによるAdvantage計算
-        returns, advantages = self._compute_gae(
-            rewards=batch_rewards,
-            values=batch_values,
-            dones=batch_dones
-        )
-
-        return {
-            'observations': np.array(batch_obs, dtype=np.float32),
-            'actions': np.array(batch_actions, dtype=np.int64),
-            'rewards': np.array(batch_rewards, dtype=np.float32),
-            'values': np.array(batch_values, dtype=np.float32),
-            'log_probs': np.array(batch_log_probs, dtype=np.float32),
-            'advantages': advantages,
-            'returns': returns
-        }
-
-    def _compute_gae(self, rewards, values, dones, gamma=0.99, lam=0.95):
-        """Generalized Advantage Estimator (GAE)"""
-        advantages = []
-        gae = 0
-        values = values + [0]  # terminal value
-        for t in reversed(range(len(rewards))):
-            mask = 1.0 - dones[t]
-            delta = rewards[t] + gamma * values[t+1] * mask - values[t]
-            gae = delta + gamma * lam * mask * gae
-            advantages.insert(0, gae)
-        returns = [adv + v for adv, v in zip(advantages, values[:-1])]
-        return np.array(returns, dtype=np.float32), np.array(advantages, dtype=np.float32)
-
-    def _update_ppo(self, experiences):
-        """PPO更新 - ミニバッチ反復・クリッピング適用"""
-        batch_size = len(experiences['observations'])
-        batch_inds = np.arange(batch_size)
-        minibatch_size = self.ppo_config.minibatch_size
-        num_epochs = self.ppo_config.epochs
-
-        observations = torch.tensor(experiences['observations'], dtype=torch.float32).to(self.device)
-        actions = torch.tensor(experiences['actions'], dtype=torch.int64).to(self.device)
-        old_log_probs = torch.tensor(experiences['log_probs'], dtype=torch.float32).to(self.device)
-        returns = torch.tensor(experiences['returns'], dtype=torch.float32).to(self.device)
-        advantages = torch.tensor(experiences['advantages'], dtype=torch.float32).to(self.device)
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)  # normalize
-
-        total_loss = 0.0
-        policy_loss = 0.0
-        value_loss = 0.0
-        entropy_loss = 0.0
-        kl_div = 0.0
-
-        for _ in range(num_epochs):
-            np.random.shuffle(batch_inds)
-            for start in range(0, batch_size, minibatch_size):
-                end = start + minibatch_size
-                mb_inds = batch_inds[start:end]
-
-                logits, values = self.model(observations[mb_inds])
-                action_dist = torch.distributions.Categorical(logits=logits)
-                entropy = action_dist.entropy().mean()
-                new_log_probs = action_dist.log_prob(actions[mb_inds])
-
-                ratio = (new_log_probs - old_log_probs[mb_inds]).exp()
-                surr1 = ratio * advantages[mb_inds]
-                surr2 = torch.clamp(ratio, 1.0 - self.ppo_config.clip_range,
-                                          1.0 + self.ppo_config.clip_range) * advantages[mb_inds]
-                policy_loss_mb = -torch.min(surr1, surr2).mean()
-
-                value_pred = values.squeeze(-1)
-                value_loss_mb = torch.nn.functional.mse_loss(value_pred, returns[mb_inds])
-
-                loss = (policy_loss_mb
-                        + self.ppo_config.vf_coef * value_loss_mb
-                        - self.ppo_config.entropy_coef * entropy)
-
-                self.optimizer.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.ppo_config.max_grad_norm)
-                self.optimizer.step()
-
-                with torch.no_grad():
-                    kl_mb = (old_log_probs[mb_inds] - new_log_probs).mean().item()
-
-                total_loss += loss.item()
-                policy_loss += policy_loss_mb.item()
-                value_loss += value_loss_mb.item()
-                entropy_loss += entropy.item()
-                kl_div += kl_mb
-
-        avg_steps = num_epochs * ((batch_size + minibatch_size - 1) // minibatch_size)
-        results = {
-            'total_loss': total_loss / avg_steps,
-            'policy_loss': policy_loss / avg_steps,
-            'value_loss': value_loss / avg_steps,
-            'entropy_loss': entropy_loss / avg_steps,
-            'reward': np.mean(experiences['rewards']),
-            'kl_div': kl_div / avg_steps
-        }
-        return results
-
-    def _log_training_stats(self, step, train_info):
-        """トレーニング統計記録 PPO標準"""
-        self.stats['steps'].append(step)
-        self.stats['rewards'].append(float(train_info.get('reward', 0)))
-        self.stats['policy_losses'].append(float(train_info.get('policy_loss', 0)))
-        self.stats['vf_losses'].append(float(train_info.get('value_loss', 0)))
-        self.stats['entropy_losses'].append(float(train_info.get('entropy_loss', 0)))
-        self.stats['total_losses'].append(float(train_info.get('total_loss', 0)))
-        self.stats['kl_divs'].append(float(train_info.get('kl_div', 0)))
-
-    def _save_checkpoint(self, step):
-        """チェックポイント保存"""
-        checkpoint_path = self.checkpoint_dir / f"checkpoint_step_{step}.pt"
-        try:
-            torch.save({
-                'step': step,
-                'model_state_dict': self.model.state_dict(),
-                'optimizer_state_dict': self.optimizer.state_dict(),
-                'stats': self.stats,
-                'config': self.config
-            }, checkpoint_path)
-            logger.info(f"Checkpoint saved: {checkpoint_path}")
-        except Exception as e:
-            logger.warning(f"Failed to save checkpoint: {e}")
-
-
-def main():
-    """メイン実行関数"""
-    print("Starting SO8T PPO training script...")
-    import argparse
-    import sys
-
-    parser = argparse.ArgumentParser(description='SO8T PPO Training')
-    parser.add_argument('--config', type=str, default='aegis_v2_test_config.json',
-                        help='Path to config file')
-    parser.add_argument('--model_path', type=str,
-                        default='models/Borea-Phi-3.5-mini-Instruct-Jp',
-                        help='Path to model')
-    parser.add_argument('--max_steps', type=int, default=None,
-                        help='Maximum training steps (overrides config)')
-    parser.add_argument('--load_checkpoint', type=str, default=None,
-                        help='Path to checkpoint to load')
-
-    args = parser.parse_args()
-
-    try:
-        # PPOトレーナーの初期化
-        trainer = PPOTrainer(args.config, args.model_path)
-
-        # 最大ステップ数のオーバーライド
-        if args.max_steps is not None:
-            trainer.ppo_config.max_steps = args.max_steps
-            print(f"Overriding max_steps to: {args.max_steps}")
-
-        # チェックポイントのロード
-        if args.load_checkpoint:
-            trainer.load_checkpoint(args.load_checkpoint)
-
-        # トレーニング実行
-        trainer.train()
-
-    except Exception as e:
-            print(f"Training failed: {e}")
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-
 
 if __name__ == "__main__":
-    main()
+    trainer = PPOTrainer(config_path="config.json", model_path="models/Borea-Phi-3.5-mini-Instruct-Jp")
+    trainer.train()

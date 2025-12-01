@@ -19,10 +19,12 @@ def debug_model_structure():
     """Unslothモデルの構造をデバッグ"""
     try:
         logger.info("Loading model with Unsloth for debugging...")
+        print("Starting model loading...")
 
         model_path = "models/Borea-Phi-3.5-mini-Instruct-Jp"
 
         # Unslothでモデルをロード
+        print(f"Loading model from {model_path}")
         model, tokenizer = FastLanguageModel.from_pretrained(
             model_name=model_path,
             max_seq_length=2048,
@@ -30,6 +32,7 @@ def debug_model_structure():
             load_in_4bit=True,
             device_map="auto",
         )
+        print("Model loaded successfully")
 
         logger.info(f"Model type: {type(model)}")
         logger.info(f"Model class: {model.__class__.__name__}")
