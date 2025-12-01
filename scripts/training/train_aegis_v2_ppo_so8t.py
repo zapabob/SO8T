@@ -28,8 +28,8 @@ from huggingface_hub import HfApi, upload_file
 import pandas as pd
 
 # Placeholder for Unsloth/BitsAndBytes imports - will be initialized after logger setup
-UNSLOTH_AVAILABLE = False
-BITSANDBYTES_AVAILABLE = False
+UNSLOTH_AVAILABLE = False  # Force disable Unsloth for testing
+BITSANDBYTES_AVAILABLE = None
 
 # Import SO(8) components with path manipulation for hyphenated directory names
 import sys
@@ -88,24 +88,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize Unsloth/BitsAndBytes after logger setup
+# Initialize BitsAndBytes after logger setup (Unsloth disabled for testing)
+UNSLOTH_AVAILABLE = False
+logger.info("Unsloth disabled for testing - using bitsandbytes + PEFT")
+try:
+    from transformers import BitsAndBytesConfig
+    from peft import LoraConfig, get_peft_model
+    import bitsandbytes as bnb
+    BITSANDBYTES_AVAILABLE = True
+    logger.info("BitsAndBytes + PEFT available - using 4bit quantization")
+except (ImportError, Exception) as e2:
+    BITSANDBYTES_AVAILABLE = False
+    logger.warning(f"BitsAndBytes not available ({e2}) - using standard transformers with CPU fallback")
+
+# Initialize Unsloth for fallback (force disabled)
 try:
     from unsloth import FastLanguageModel
     from unsloth import is_bfloat16_supported
-    UNSLOTH_AVAILABLE = True
-    logger.info("Unsloth available - using memory-efficient training")
+    UNSLOTH_AVAILABLE = False  # Force disable Unsloth for CPU testing
+    logger.info("Unsloth available but disabled for CPU testing - using bitsandbytes + PEFT")
 except (ImportError, Exception) as e:
     logger.info(f"Unsloth not available ({e}) - falling back to bitsandbytes + PEFT")
     UNSLOTH_AVAILABLE = False
-    try:
-        from transformers import BitsAndBytesConfig
-        from peft import LoraConfig, get_peft_model
-        import bitsandbytes as bnb
-        BITSANDBYTES_AVAILABLE = True
-        logger.info("BitsAndBytes + PEFT available - using 4bit quantization")
-    except (ImportError, Exception) as e2:
-        BITSANDBYTES_AVAILABLE = False
-        logger.warning(f"BitsAndBytes not available ({e2}) - using standard transformers with CPU fallback")
 
 @dataclass
 class PPOConfig:
@@ -122,6 +126,12 @@ class PPOConfig:
     # RTX3060最適化設定
     use_unsloth: bool = True
     gpu_memory_limit: float = 0.85  # 85%まで使用
+
+    # SO(8)設定
+    alpha_initial: float = -0.5
+    alpha_target: float = 0.382
+    annealing_steps: int = 500
+    chaos_intensity: float = 0.1
 
     # ベイズ最適化設定
     enable_bayesian_optimization: bool = False  # デフォルトでは無効（メモリ制約のため）
@@ -204,18 +214,23 @@ class PPOTrainer:
     """AEGIS-v2.0 PPOトレーナー"""
 
     def __init__(self, config_path: str, model_path: str):
-        logger.info("Initializing PPOTrainer...")
+        logger.info("=== Starting PPOTrainer initialization ===")
         self.config_path = config_path
         self.model_path = model_path
 
         # 設定読み込み
+        logger.info(f"Loading config from: {config_path}")
         with open(config_path, 'r') as f:
             self.config = json.load(f)
+        logger.info("Config loaded successfully")
 
         # PPO設定
+        logger.info("Initializing PPO config...")
         self.ppo_config = PPOConfig()
+        logger.info("PPO config initialized")
 
         # SO(8)コンポーネント初期化
+        logger.info("Initializing SO(8) components...")
         self.phase_annealer = SO8PhaseTransitionAnnealer(
             initial_alpha=self.ppo_config.alpha_initial,
             target_alpha=self.ppo_config.alpha_target,
@@ -240,7 +255,10 @@ class PPOTrainer:
         self.ref_model = None  # 参照モデル
 
         # test_modeの場合はモデルロードをスキップ
-        if not self.config.get('training', {}).get('test_mode', False):
+        test_mode = self.config.get('training', {}).get('test_mode', False)
+        logger.info(f"Test mode check: test_mode={test_mode}")
+        if not test_mode:
+            logger.info("Calling setup_model_and_tokenizer()")
             self.setup_model_and_tokenizer()
         else:
             logger.info("Test mode: Skipping model loading")
@@ -705,16 +723,29 @@ class PPOTrainer:
 
     def setup_model_and_tokenizer(self):
         """モデルとトークナイザーのセットアップ - RTX3060最適化"""
-        logger.info("Starting model and tokenizer setup...")
-        if UNSLOTH_AVAILABLE and torch.cuda.is_available():
-            logger.info(f"Loading model with Unsloth (RTX3060 optimized): {self.model_path}")
+        from tqdm import tqdm
+        import time
 
-            # GPUメモリ最適化設定
-            gpu_memory_limit = self.config.get('training', {}).get('gpu_memory_limit', 0.85)
-            torch.cuda.set_per_process_memory_fraction(gpu_memory_limit)
-            torch.cuda.empty_cache()
+        logger.info("=== Starting model and tokenizer setup ===")
+        use_unsloth = self.config.get('training', {}).get('use_unsloth', True)
+        logger.info(f"Unsloth requested: {use_unsloth}, Available: {UNSLOTH_AVAILABLE}, CUDA: {torch.cuda.is_available()}")
+
+        if use_unsloth and UNSLOTH_AVAILABLE and torch.cuda.is_available():
+            with tqdm(total=100, desc="Model Setup", unit="%") as setup_bar:
+                setup_bar.update(5)
+                logger.info(f"Loading model with Unsloth (RTX3060 optimized): {self.model_path}")
+
+                # GPUメモリ最適化設定
+                logger.info("Setting up GPU memory optimization...")
+                gpu_memory_limit = self.config.get('training', {}).get('gpu_memory_limit', 0.85)
+                torch.cuda.set_per_process_memory_fraction(gpu_memory_limit)
+                torch.cuda.empty_cache()
+                setup_bar.update(10)
+                setup_bar.set_postfix({"step": "GPU setup"})
 
             # Unslothで4bit量子化モデルをロード
+            logger.info("Loading model with Unsloth...")
+            start_time = time.time()
             self.model, self.tokenizer = FastLanguageModel.from_pretrained(
                 model_name=self.model_path,
                 max_seq_length=self.config['data']['max_length'],
@@ -736,8 +767,14 @@ class PPOTrainer:
                 use_rslora=False,
                 loftq_config=None,
             )
+            load_time = time.time() - start_time
+            logger.info(f"Model loaded in {load_time:.2f} seconds")
+            setup_bar.update(40)
+            setup_bar.set_postfix({"step": "Model loaded"})
 
             # 参照モデルも同様に作成（メモリ効率重視）
+            logger.info("Loading reference model...")
+            ref_start_time = time.time()
             self.ref_model, _ = FastLanguageModel.from_pretrained(
                 model_name=self.model_path,
                 max_seq_length=self.config['data']['max_length'],
@@ -747,37 +784,50 @@ class PPOTrainer:
             )
             # 参照モデルはLoRAなしで軽量化
             self.ref_model.eval()
+            ref_load_time = time.time() - ref_start_time
+            logger.info(f"Reference model loaded in {ref_load_time:.2f} seconds")
+            setup_bar.update(20)
+            setup_bar.set_postfix({"step": "Ref model loaded"})
 
             # GPUメモリ使用量をログ出力
             if torch.cuda.is_available():
                 allocated = torch.cuda.memory_allocated(0) / 1024**3
                 reserved = torch.cuda.memory_reserved(0) / 1024**3
                 logger.info(".1f")
+                setup_bar.set_postfix({"step": f"GPU: {allocated:.1f}GB"})
 
             logger.info("Model and tokenizer loaded successfully with Unsloth (4bit + LoRA)")
+            setup_bar.update(25)
+            setup_bar.set_postfix({"step": "Unsloth setup complete"})
 
             # RTX3060最適化: SO8Tアダプターがモデルにアタッチされていることを確認
             self._ensure_so8t_adapter_attached()
 
             # Unsloth使用時も元モデルの重みを凍結
             self._freeze_base_model_weights()
-
         else:
             # Fallback: 標準transformers（CPUモード）
             logger.warning("Unsloth not available or CUDA not found - using CPU fallback")
-            from transformers import AutoTokenizer, AutoModelForCausalLM
+            with tqdm(total=100, desc="Model Setup", unit="%") as setup_bar:
+                setup_bar.update(5)
+                logger.info(f"Entered CPU fallback path for model: {self.model_path}")
+                from transformers import AutoTokenizer, AutoModelForCausalLM
+                setup_bar.update(10)
+                setup_bar.set_postfix({"step": "CPU mode setup"})
 
             logger.info(f"Loading model (CPU fallback): {self.model_path}")
 
-            # CPUで量子化モデルをロード
+            # CPUで標準モデルをロード（BitsAndBytesはCPUでサポートされない）
+            logger.info("Loading model on CPU without quantization")
+            start_time = time.time()
             try:
                 self.model = AutoModelForCausalLM.from_pretrained(
                     self.model_path,
                     torch_dtype=torch.float16,  # float16 for memory efficiency
-                    device_map="auto",  # Let transformers decide
+                    device_map="cpu",  # Force CPU
                     trust_remote_code=True,
                     low_cpu_mem_usage=True,
-                    load_in_8bit=True,  # 8bit quantization for CPU
+                    # BitsAndBytes 8bit quantization removed for CPU compatibility
                 )
             except AttributeError as e:
                 if "so8_adapter" in str(e) or "SCB" in str(e):
@@ -832,11 +882,18 @@ class PPOTrainer:
                         logger.warning(f"Unexpected keys: {unexpected_keys}")
 
                     logger.info("Model loaded successfully with filtered parameters")
+                    load_time = time.time() - start_time
+                    logger.info(f"CPU model loaded in {load_time:.2f} seconds")
+                    setup_bar.update(40)
+                    setup_bar.set_postfix({"step": "CPU model loaded"})
                 else:
                     raise
 
             # RTX3060最適化: SO8Tアダプターがモデルにアタッチされていない場合は初期化
+            logger.info("Checking SO8T adapter attachment...")
             self._ensure_so8t_adapter_attached()
+            setup_bar.update(30)
+            setup_bar.set_postfix({"step": "SO8T adapter attached"})
 
             # 元モデルの重みを凍結（SO8Tアダプター部分のみ学習）
             self._freeze_base_model_weights()
@@ -998,6 +1055,7 @@ def setup_reference_model(self):
     参照モデルのセットアップ（メインモデルと同じロジック）
     """
     try:
+        from transformers import AutoModelForCausalLM
         logger.info("Setting up reference model (same logic as main model)...")
 
         # 参照モデルのロード
@@ -1017,7 +1075,7 @@ def setup_reference_model(self):
             # 参照モデルも同じ方法でロード
             # Fix: mimic the rest of the model loading, fallback if Phi3Config doesn't exist
             try:
-                from transformers import Phi3Config
+                from transformers import Phi3Config, AutoModelForCausalLM
                 config = Phi3Config.from_pretrained(self.model_path)
                 self.ref_model = AutoModelForCausalLM.from_config(config)
             except (ImportError, ModuleNotFoundError, AttributeError):
@@ -1079,15 +1137,21 @@ def setup_reference_model(self):
                 param.requires_grad = False
             self.ref_model.eval()
 
-        logger.info("Model and tokenizer loaded successfully (CPU fallback with 8bit quantization)")
+        logger.info("Reference model setup completed successfully")                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 
-    def _train_ppo(self):
+    def _train_ppo(self):                                                                                                           
         """PPOトレーニングメインループ"""
         try:
             logger.info("Starting PPO training...")
 
-            # tqdmで進捗表示
-            progress_bar = tqdm(range(self.ppo_config.max_steps), desc="SO8T PPO Training")
+            # tqdmで詳細な進捗表示
+            progress_bar = tqdm(
+                range(self.ppo_config.max_steps),
+                desc="SO8T PPO Training",
+                unit="step",
+                ncols=120,
+                bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+            )
 
             for step in range(self.ppo_config.max_steps):
                 # 経験収集
@@ -1099,10 +1163,12 @@ def setup_reference_model(self):
                 # 統計記録
                 self._log_training_stats(step, train_info)
 
-                # 進捗バー更新
+                # 詳細な進捗バー更新
                 progress_bar.set_postfix({
                     'loss': f'{train_info.get("total_loss", 0):.4f}',
                     'reward': f'{train_info.get("reward", 0):.4f}',
+                    'alpha': f'{train_info.get("alpha", 0):.4f}',
+                    'lr': f'{self.ppo_config.learning_rate:.2e}',
                     'kl': f'{train_info.get("kl_div", 0):.4f}'
                 })
                 progress_bar.update(1)
@@ -1112,7 +1178,11 @@ def setup_reference_model(self):
                     self._save_checkpoint(step)
 
             progress_bar.close()
-            logger.info("PPO training completed!")
+            logger.info("=== PPO training completed successfully! ===")
+            logger.info(f"Total steps trained: {self.ppo_config.max_steps}")
+            logger.info(f"Final learning rate: {self.ppo_config.learning_rate:.2e}")
+            logger.info(f"Final alpha value: {self.config.get('so8t', {}).get('alpha_target', 'N/A')}")
+            logger.info("SO8T thinking model training completed!")
 
         except Exception as e:
             logger.error(f"Training failed: {e}")
@@ -1156,10 +1226,10 @@ def setup_reference_model(self):
         checkpoint_path = self.checkpoint_dir / f"checkpoint_step_{step}.pt"
         try:
             torch.save({
-                'step': step,
-                'model_state_dict': self.model.state_dict(),
-                'optimizer_state_dict': self.optimizer.state_dict(),
-                'stats': self.stats,
+            'step': step,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'stats': self.stats,
                 'config': self.config
             }, checkpoint_path)
             logger.info(f"Checkpoint saved: {checkpoint_path}")
@@ -1186,8 +1256,14 @@ def setup_reference_model(self):
         try:
             logger.info("Starting PPO training...")
 
-            # tqdmで進捗表示
-            progress_bar = tqdm(range(self.ppo_config.max_steps), desc="SO8T PPO Training")
+            # tqdmで詳細な進捗表示
+            progress_bar = tqdm(
+                range(self.ppo_config.max_steps),
+                desc="SO8T PPO Training",
+                unit="step",
+                ncols=120,
+                bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+            )
 
             for step in range(self.ppo_config.max_steps):
                 # 経験収集
@@ -1199,10 +1275,12 @@ def setup_reference_model(self):
                 # 統計記録
                 self._log_training_stats(step, train_info)
 
-                # 進捗バー更新
+                # 詳細な進捗バー更新
                 progress_bar.set_postfix({
                     'loss': f'{train_info.get("total_loss", 0):.4f}',
                     'reward': f'{train_info.get("reward", 0):.4f}',
+                    'alpha': f'{train_info.get("alpha", 0):.4f}',
+                    'lr': f'{self.ppo_config.learning_rate:.2e}',
                     'kl': f'{train_info.get("kl_div", 0):.4f}'
                 })
                 progress_bar.update(1)
@@ -1212,7 +1290,11 @@ def setup_reference_model(self):
                     self._save_checkpoint(step)
 
             progress_bar.close()
-            logger.info("PPO training completed!")
+            logger.info("=== PPO training completed successfully! ===")
+            logger.info(f"Total steps trained: {self.ppo_config.max_steps}")
+            logger.info(f"Final learning rate: {self.ppo_config.learning_rate:.2e}")
+            logger.info(f"Final alpha value: {self.config.get('so8t', {}).get('alpha_target', 'N/A')}")
+            logger.info("SO8T thinking model training completed!")
 
         except Exception as e:
             logger.error(f"Training failed: {e}")
@@ -1419,5 +1501,5 @@ def main():
             sys.exit(1)
 
 
-    if __name__ == "__main__":
-        main()
+if __name__ == "__main__":
+    main()

@@ -13,11 +13,11 @@
         "save_steps": 50,
         "logging_steps": 10,
         "test_mode": false,
-        "use_unsloth": true,
-        "gpu_memory_limit": 0.85
+        "use_unsloth": false,
+        "gpu_memory_limit": 0.6
     },
     "so8t": {
-        "enable_so8t": true,
+        "enable_so8t": false,
         "alpha_gate_enabled": true,
         "alpha_initial": -0.5,
         "alpha_target": 0.382,
@@ -41,7 +41,8 @@
         "task_type": "CAUSAL_LM"
     },
     "data": {
-        "train_file": "data/so8t_training_dataset_integrated_50k.jsonl",
+        "train_file": "data/so8t_cot_enhanced_training_dataset_70k.jsonl",
+        "max_samples": 10,
         "validation_split": 0.1,
         "max_length": 2048,
         "preprocessing_num_workers": 4,
