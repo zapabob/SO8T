@@ -323,7 +323,7 @@ class SO8TSFTTrainer:
 def create_sft_config() -> Dict[str, Any]:
     """SFT設定を作成"""
     return {
-        'model_name': 'microsoft/Phi-3.5-mini-instruct',
+        'model_name': 'AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp',
         'train_dataset': 'data/train_sft_enhanced.jsonl',
         'eval_dataset': 'data/test_eval.jsonl',
         'output_dir': './checkpoints/sft_so8t',

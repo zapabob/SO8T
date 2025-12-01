@@ -326,7 +326,7 @@ PARAMETER num_ctx 4096'''
 def create_gguf_config() -> Dict[str, Any]:
     """GGUF変換設定"""
     return {
-        'base_model_name': 'microsoft/Phi-3.5-mini-instruct',
+        'base_model_name': 'AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp',
         'ppo_model_path': './checkpoints/ppo_so8t/final_model',
         'base_dir': './models',
         'gguf_dir': 'H:/from_D/webdataset/gguf_models',

@@ -174,7 +174,7 @@ class PPOConfig:
     nsfw_refusal_reward_weight: float = 2.0
 
 class AEGISV2Dataset(Dataset):
-    """AEGIS-v2.0学習データセット"""
+    """AEGIS-v2.0学習データセット（SO(8)統合データセット対応版）"""
 
     def __init__(self, data_file: str, tokenizer=None, max_length: int = 2048):
         self.data_file = data_file
@@ -185,7 +185,7 @@ class AEGISV2Dataset(Dataset):
         self.load_data()
 
     def load_data(self):
-        """データ読み込み"""
+        """データ読み込み（複数形式対応）"""
         with open(self.data_file, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.strip():
@@ -194,12 +194,84 @@ class AEGISV2Dataset(Dataset):
 
         logger.info(f"Loaded {len(self.data)} training examples")
 
+        # データセット形式の分析
+        if self.data:
+            sample = self.data[0]
+            if 'instruction' in sample:
+                logger.info("Detected SO(8) integrated PPO dataset format")
+                self.dataset_format = 'so8t_integrated'
+            elif 'text' in sample and 'ppo_labels' in sample:
+                logger.info("Detected legacy AEGIS-v2.0 dataset format")
+                self.dataset_format = 'aegis_v2'
+            else:
+                logger.warning("Unknown dataset format, assuming SO(8) integrated format")
+                self.dataset_format = 'so8t_integrated'
+
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         item = self.data[idx]
 
+        if self.dataset_format == 'so8t_integrated':
+            # SO(8)統合データセット形式
+            return self._process_so8t_integrated_item(item)
+        else:
+            # レガシーAEGIS-v2.0形式
+            return self._process_aegis_v2_item(item)
+
+    def _process_so8t_integrated_item(self, item):
+        """SO(8)統合データセットの処理"""
+        # テキストの準備
+        text = item.get('instruction', '')
+        if not text:
+            return None
+
+        # ラベルの準備（四値分類に基づく）
+        four_class_label = item.get('metadata', {}).get('four_class_label', 'ALLOW')
+
+        # PPOラベル変換
+        if four_class_label == 'ALLOW':
+            target_correct = True
+            reward_value = 1.0
+        elif four_class_label == 'Escalation':
+            target_correct = False  # エスカレーションが必要
+            reward_value = 0.5
+        elif four_class_label == 'Deny':
+            target_correct = False  # 拒否
+            reward_value = -1.0
+        else:  # REFUSE
+            target_correct = False  # 明確拒否
+            reward_value = -2.0
+
+        # NSFW判定
+        is_nsfw = item.get('metadata', {}).get('is_nsfw', False)
+        safety_detection = item.get('metadata', {}).get('safety_detection', False)
+        is_nsfw = is_nsfw or safety_detection
+
+        # 思考トレースの準備
+        thinking_trace = []
+        output = item.get('output', '')
+        if '<think>' in output and '</think>' in output:
+            think_content = output.split('<think>')[1].split('</think>')[0]
+            thinking_trace = [line.strip() for line in think_content.split('\n') if line.strip()]
+
+        return {
+            'text': text,
+            'target_correct': target_correct,
+            'reward_value': reward_value,
+            'is_nsfw': is_nsfw,
+            'four_class_label': four_class_label,
+            'quality_score': item.get('metadata', {}).get('quality_score', 0.5),
+            'thinking_trace': thinking_trace,
+            'system_prompt': item.get('system', ''),
+            'expected_output': item.get('output', ''),
+            'domain': item.get('metadata', {}).get('domain', 'general'),
+            'source': item.get('metadata', {}).get('source', 'unknown')
+        }
+
+    def _process_aegis_v2_item(self, item):
+        """レガシーAEGIS-v2.0データセットの処理"""
         # テキストの準備
         text = item.get('text', '')
         if not text:
@@ -208,14 +280,22 @@ class AEGISV2Dataset(Dataset):
         # ラベルの準備
         ppo_labels = item.get('ppo_labels', {})
         target_correct = ppo_labels.get('reward_correctness', 0) > 0.5
+        reward_value = ppo_labels.get('reward_correctness', 0.5)
+
         is_nsfw = item.get('category', '') == 'nsfw'
 
         return {
             'text': text,
             'target_correct': target_correct,
+            'reward_value': reward_value,
             'is_nsfw': is_nsfw,
+            'four_class_label': 'ALLOW',  # レガシーデータはALLOW扱い
             'quality_score': item.get('quality_score', 0.5),
-            'thinking_trace': item.get('thinking_trace', [])
+            'thinking_trace': item.get('thinking_trace', []),
+            'system_prompt': '',
+            'expected_output': '',
+            'domain': 'general',
+            'source': 'legacy_aegis_v2'
         }
 
 class PPOTrainer:
