@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 <#
 .SYNOPSIS
-    SO8T Pipeline Real-time Status Monitor with Always-on-Top Display
+    SO8Tパイプライン実行状況をリアルタイムで最前面表示
 
 .DESCRIPTION
-    Monitor pipeline execution logs in real-time and display them in always-on-top window.
-    Continuously monitor pipeline status, progress, and system resources.
+    パイプライン実行中のログをリアルタイムで監視し、常時最前面に表示します。
+    パイプラインの実行状況、進捗、システムリソースを継続的に監視します。
 #>
 
 param(
@@ -37,7 +37,7 @@ function Get-WorktreeName {
     }
 }
 
-# Set window to always-on-top
+# ウィンドウを最前面に設定
 function Set-WindowTopMost {
     param([string]$Title)
 
@@ -107,15 +107,15 @@ class LogMonitor {
                 }
             }
         } catch {
-            # Ignore file access errors
+            # ファイルアクセスエラーは無視
         }
 
-        # Update recent lines
+        # 最近の行を更新
         foreach ($line in $newLines) {
             $this.RecentLines.Add($line)
         }
 
-        # Limit to maximum 50 lines
+        # 最大50行に制限
         while ($this.RecentLines.Count -gt 50) {
             $this.RecentLines.RemoveAt(0)
         }
@@ -245,7 +245,7 @@ function Get-SystemResources {
     return $resources
 }
 
-# Display progress bar
+# プログレスバーの表示
 function Show-ProgressBar {
     param([int]$percentage, [string]$label = "")
 
@@ -253,7 +253,7 @@ function Show-ProgressBar {
     $filled = [math]::Floor(($percentage / 100) * $width)
     $empty = $width - $filled
 
-    $bar = "[" + ("#" * $filled) + ("-" * $empty) + "]"
+    $bar = "[" + ("█" * $filled) + ("░" * $empty) + "]"
 
     if ($label) {
         return "$label $percentage% $bar"
@@ -270,52 +270,52 @@ function Show-PipelineMonitor {
 
     # ヘッダー
     Write-Host "╔══════════════════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║                 SO8T Pipeline Real-time Status Monitor                     ║" -ForegroundColor Cyan
+    Write-Host "║                     SO8T パイプライン実行状況 リアルタイム監視                ║" -ForegroundColor Cyan
     Write-Host "╚══════════════════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 
     # 基本情報
-    Write-Host "[INFO] Pipeline Status" -ForegroundColor Yellow
-    Write-Host "   Worktree: $worktreeName" -ForegroundColor White
+    Write-Host "📊 実行情報" -ForegroundColor Yellow
+    Write-Host "   ワークツリー: $worktreeName" -ForegroundColor White
     Write-Host "   最終更新: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor White
     Write-Host "   監視ログ: $LogFile" -ForegroundColor White
     Write-Host ""
 
     # パイプラインステータス
-    Write-Host "[PIPELINE] Pipeline Status" -ForegroundColor Green
+    Write-Host "🔄 パイプラインステータス" -ForegroundColor Green
     $statusColor = if ($pipelineStatus.IsRunning) { "Green" } elseif ($pipelineStatus.CurrentStage -eq "completed") { "Cyan" } else { "Gray" }
-    Write-Host "   Status: $($pipelineStatus.IsRunning)" -ForegroundColor $statusColor
-    Write-Host "   Current Stage: $($pipelineStatus.CurrentStage)" -ForegroundColor $statusColor
+    Write-Host "   実行状態: $($pipelineStatus.IsRunning)" -ForegroundColor $statusColor
+    Write-Host "   現在のステージ: $($pipelineStatus.CurrentStage)" -ForegroundColor $statusColor
 
     # 進捗バー
-    $progressBar = Show-ProgressBar -percentage $pipelineStatus.Progress -label "Overall Progress"
+    $progressBar = Show-ProgressBar -percentage $pipelineStatus.Progress -label "全体進捗"
     Write-Host "   $progressBar" -ForegroundColor Cyan
 
-    Write-Host "   Errors: $($pipelineStatus.ErrorCount)" -ForegroundColor $(if ($pipelineStatus.ErrorCount -gt 0) { "Red" } else { "White" })
-    Write-Host "   Warnings: $($pipelineStatus.WarningCount)" -ForegroundColor $(if ($pipelineStatus.WarningCount -gt 0) { "Yellow" } else { "White" })
+    Write-Host "   エラー数: $($pipelineStatus.ErrorCount)" -ForegroundColor $(if ($pipelineStatus.ErrorCount -gt 0) { "Red" } else { "White" })
+    Write-Host "   警告数: $($pipelineStatus.WarningCount)" -ForegroundColor $(if ($pipelineStatus.WarningCount -gt 0) { "Yellow" } else { "White" })
     Write-Host ""
 
     # システムリソース
-    Write-Host "[SYSTEM] System Resources" -ForegroundColor Magenta
-    Write-Host "   CPU Usage: $($resources.CPUUsage)%" -ForegroundColor $(if ($resources.CPUUsage -gt 80) { "Red" } elseif ($resources.CPUUsage -gt 60) { "Yellow" } else { "Green" })
-    Write-Host "   Memory Usage: $($resources.MemoryUsage)%" -ForegroundColor $(if ($resources.MemoryUsage -gt 85) { "Red" } elseif ($resources.MemoryUsage -gt 70) { "Yellow" } else { "Green" })
-    Write-Host "   D: Drive Usage: $($resources.DiskUsage)%" -ForegroundColor $(if ($resources.DiskUsage -gt 90) { "Red" } elseif ($resources.DiskUsage -gt 80) { "Yellow" } else { "Green" })
+    Write-Host "💻 システムリソース" -ForegroundColor Magenta
+    Write-Host "   CPU使用率: $($resources.CPUUsage)%" -ForegroundColor $(if ($resources.CPUUsage -gt 80) { "Red" } elseif ($resources.CPUUsage -gt 60) { "Yellow" } else { "Green" })
+    Write-Host "   メモリ使用率: $($resources.MemoryUsage)%" -ForegroundColor $(if ($resources.MemoryUsage -gt 85) { "Red" } elseif ($resources.MemoryUsage -gt 70) { "Yellow" } else { "Green" })
+    Write-Host "   Dドライブ使用率: $($resources.DiskUsage)%" -ForegroundColor $(if ($resources.DiskUsage -gt 90) { "Red" } elseif ($resources.DiskUsage -gt 80) { "Yellow" } else { "Green" })
 
     if ($resources.GPUUsage -gt 0) {
-        Write-Host "   GPU Usage: $($resources.GPUUsage)%" -ForegroundColor $(if ($resources.GPUUsage -gt 90) { "Red" } elseif ($resources.GPUUsage -gt 70) { "Yellow" } else { "Green" })
-        Write-Host "   GPU Temperature: $($resources.GPUTemperature)°C" -ForegroundColor $(if ($resources.GPUTemperature -gt 75) { "Red" } elseif ($resources.GPUTemperature -gt 65) { "Yellow" } else { "Green" })
+        Write-Host "   GPU使用率: $($resources.GPUUsage)%" -ForegroundColor $(if ($resources.GPUUsage -gt 90) { "Red" } elseif ($resources.GPUUsage -gt 70) { "Yellow" } else { "Green" })
+        Write-Host "   GPU温度: $($resources.GPUTemperature)°C" -ForegroundColor $(if ($resources.GPUTemperature -gt 75) { "Red" } elseif ($resources.GPUTemperature -gt 65) { "Yellow" } else { "Green" })
     }
     Write-Host ""
 
     # 最新ログ
-    Write-Host "[LOGS] Recent Logs (last 20 lines)" -ForegroundColor Blue
+    Write-Host "📝 最新ログ (直近20行)" -ForegroundColor Blue
     Write-Host "───────────────────────────────────────────────────────────────────────────────" -ForegroundColor Gray
 
     $recentLines = $logMonitor.GetRecentLines(20)
     if ($recentLines.Count -eq 0) {
-        Write-Host "   (No logs - Pipeline may not have started yet)" -ForegroundColor Gray
+        Write-Host "   (ログなし - パイプラインが開始されていない可能性があります)" -ForegroundColor Gray
     } else {
         foreach ($line in $recentLines) {
-            # Color-code log lines
+            # ログ行の色分け
             if ($line -match "ERROR|FAILED|CRITICAL") {
                 Write-Host "   $line" -ForegroundColor Red
             } elseif ($line -match "WARNING|WARN") {
@@ -333,17 +333,17 @@ function Show-PipelineMonitor {
     }
 
     Write-Host ""
-    Write-Host "[MONITORING] Monitoring active... (Ctrl+C to stop)" -ForegroundColor DarkGray
-    Write-Host "   Update interval: ${UpdateInterval} seconds" -ForegroundColor DarkGray
+    Write-Host "🔄 監視中... (Ctrl+Cで停止)" -ForegroundColor DarkGray
+    Write-Host "   更新間隔: ${UpdateInterval}秒" -ForegroundColor DarkGray
 }
 
 # パイプライン実行関数
 function Start-PipelineExecution {
     param([string]$pythonExe, [string]$logFile)
 
-    Write-Host "Starting pipeline execution..." -ForegroundColor Green
+    Write-Host "パイプライン実行を開始します..." -ForegroundColor Green
 
-    # Launch Python process in background
+    # Pythonプロセスをバックグラウンドで起動
     $process = Start-Process -FilePath $pythonExe -ArgumentList "so8t_automated_pipeline.py", "--autostart" -RedirectStandardOutput $logFile -RedirectStandardError $logFile -PassThru -NoNewWindow
 
     return $process
@@ -354,13 +354,13 @@ function Main {
     $worktreeName = Get-WorktreeName
 
     # ウィンドウタイトル設定
-    $host.UI.RawUI.WindowTitle = "SO8T Pipeline Monitor - $worktreeName"
+    $host.UI.RawUI.WindowTitle = "SO8T パイプライン監視 - $worktreeName"
 
-    Write-Host "Starting SO8T Pipeline Real-time Status Monitor..." -ForegroundColor Green
-    Write-Host "Worktree: $worktreeName" -ForegroundColor Yellow
+    Write-Host "SO8T パイプライン実行状況 リアルタイム監視を開始します..." -ForegroundColor Green
+    Write-Host "ワークツリー: $worktreeName" -ForegroundColor Yellow
     Write-Host ""
 
-    # Find Python executable
+    # Python実行ファイルの検索
     $pythonExe = "py"
     if (Test-Path "C:\Python312\python.exe") {
         $pythonExe = "C:\Python312\python.exe"
@@ -370,42 +370,42 @@ function Main {
         $pythonExe = "C:\Python310\python.exe"
     }
 
-    Write-Host "Python executable: $pythonExe" -ForegroundColor White
-    Write-Host "Log file to monitor: $LogFile" -ForegroundColor White
+    Write-Host "使用Python: $pythonExe" -ForegroundColor White
+    Write-Host "監視ログファイル: $LogFile" -ForegroundColor White
     Write-Host ""
 
-    # Start pipeline execution
+    # パイプライン実行開始
     $pipelineProcess = Start-PipelineExecution -pythonExe $pythonExe -logFile $LogFile
 
-    # Start log monitoring
+    # ログ監視開始
     $logMonitor = [LogMonitor]::new($LogFile)
 
-    # Initial wait
+    # 初期待機
     Start-Sleep -Seconds 3
 
     try {
         while ($true) {
-            # Set window to always-on-top
+            # ウィンドウを最前面に設定
             Set-WindowTopMost -Title "SO8T パイプライン監視 - $worktreeName"
 
-            # Get new log lines
+            # 新しいログ行を取得
             $newLines = $logMonitor.GetNewLines()
 
-            # Get pipeline status
+            # パイプラインステータスを取得
             $pipelineStatus = Get-PipelineStatus -logMonitor $logMonitor
 
-            # Get system resources
+            # システムリソースを取得
             $resources = Get-SystemResources
 
-            # Update display
+            # 画面表示更新
             Show-PipelineMonitor -logMonitor $logMonitor -pipelineStatus $pipelineStatus -resources $resources -worktreeName $worktreeName
 
-            # Check if process has exited
+            # プロセスが終了しているかチェック
             if ($pipelineProcess.HasExited) {
                 Write-Host ""
-                Write-Host "Pipeline execution completed (Exit code: $($pipelineProcess.ExitCode))" -ForegroundColor Yellow
+                Write-Host "パイプライン実行が終了しました (終了コード: $($pipelineProcess.ExitCode))" -ForegroundColor Yellow
 
-                # Final display on completion
+                # 完了時の最終表示
                 $pipelineStatus.IsRunning = $false
                 $pipelineStatus.CurrentStage = if ($pipelineProcess.ExitCode -eq 0) { "completed" } else { "failed" }
                 $pipelineStatus.Progress = 100
@@ -420,18 +420,18 @@ function Main {
         }
     } catch {
         Write-Host ""
-        Write-Host "Monitoring interrupted: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "監視が中断されました: $($_.Exception.Message)" -ForegroundColor Red
     } finally {
-        # Kill process if still running
+        # プロセスがまだ実行中なら終了
         if (-not $pipelineProcess.HasExited) {
-            Write-Host "Terminating pipeline..." -ForegroundColor Yellow
+            Write-Host "パイプラインを終了します..." -ForegroundColor Yellow
             $pipelineProcess.Kill()
         }
 
         # 完了音声通知
         if (-not $NoAudio) {
             Write-Host ""
-            Write-Host "[AUDIO] Pipeline monitoring completed, playing notification..." -ForegroundColor Green
+            Write-Host "[AUDIO] パイプライン監視完了、通知を再生します..." -ForegroundColor Green
 
             $audioFile = "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav"
             if (Test-Path $audioFile) {
@@ -439,19 +439,19 @@ function Main {
                     Add-Type -AssemblyName System.Windows.Forms
                     $player = New-Object System.Media.SoundPlayer $audioFile
                     $player.PlaySync()
-                    Write-Host "[OK] marisa_owattaze.wav played successfully" -ForegroundColor Green
+                    Write-Host "[OK] marisa_owattaze.wav を再生しました" -ForegroundColor Green
                 } catch {
-                    Write-Host "[WARNING] Failed to play audio: $($_.Exception.Message)" -ForegroundColor Yellow
+                    Write-Host "[WARNING] オーディオ再生に失敗しました: $($_.Exception.Message)" -ForegroundColor Yellow
                     [System.Console]::Beep(1000, 500)
                 }
             } else {
-                Write-Host "[WARNING] Audio file not found" -ForegroundColor Yellow
+                Write-Host "[WARNING] オーディオファイルが見つかりません" -ForegroundColor Yellow
                 [System.Console]::Beep(1000, 500)
             }
         }
 
         Write-Host ""
-        Write-Host "SO8T Pipeline Monitor terminated." -ForegroundColor Cyan
+        Write-Host "SO8T パイプライン監視を終了します。" -ForegroundColor Cyan
     }
 }
 

@@ -38,3 +38,4 @@ powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.
 echo ============================================
 echo [SO8T] SO(8) Integrated PPO Training finished
 pause
+
