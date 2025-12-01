@@ -178,7 +178,8 @@ def train_so8_adapter(
             outputs = model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
-                labels=labels
+                labels=labels,
+                past_key_values=None  # past_key_valuesを明示的にNoneに設定してDynamicCacheの問題を回避
             )
 
             loss = outputs.loss
