@@ -235,26 +235,32 @@ class AutomaticAEGISPipeline:
         try:
             # Boreas-phi3.5-instinct-jp のGGUF変換
             model_a_output = Path("H:/from_D/webdataset/gguf_models/boreas_phi35_instinct_jp_bf16.gguf")
-            cmd_a = [
-                sys.executable, "scripts/conversion/convert_phi35_to_gguf.py",
-                "--model_path", "models/Borea-Phi-3.5-mini-Instruct-Jp",
-                "--output_path", "H:/from_D/webdataset/gguf_models/boreas_phi35_instinct_jp_bf16.gguf",
-                "--quantization", "bf16"
-            ]
 
-            result_a = subprocess.run(cmd_a, cwd=self.base_path, capture_output=True, text=True)
-            if result_a.returncode == 0:
+            # すでに存在する場合はスキップ
+            if model_a_output.exists():
                 self.model_a_path = model_a_output
-                logger.info(f"Model A GGUF conversion completed: {model_a_output}")
+                logger.info(f"Model A GGUF already exists, skipping conversion: {model_a_output}")
             else:
-                logger.error(f"Model A GGUF conversion failed: {result_a.stderr}")
-                return False
+                cmd_a = [
+                    sys.executable, "scripts/conversion/convert_phi35_to_gguf.py",
+                    "--model_path", "models/Borea-Phi-3.5-mini-Instruct-Jp",
+                    "--output_path", "H:/from_D/webdataset/gguf_models/boreas_phi35_instinct_jp_bf16.gguf",
+                    "--quantization", "bf16"
+                ]
+
+                result_a = subprocess.run(cmd_a, cwd=self.base_path, capture_output=True, text=True)
+                if result_a.returncode == 0:
+                    self.model_a_path = model_a_output
+                    logger.info(f"Model A GGUF conversion completed: {model_a_output}")
+                else:
+                    logger.error(f"Model A GGUF conversion failed: {result_a.stderr}")
+                    return False
 
             # 新規作成モデルのGGUF変換
             model_b_output = Path("H:/from_D/webdataset/gguf_models/aegis_phi35_thinking_v2_bf16.gguf")
             cmd_b = [
                 sys.executable, "scripts/conversion/convert_phi35_to_gguf.py",
-                "--model_path", "outputs/final_model",  # PPO学習後のモデル
+                "--model_path", "models/Borea-Phi-3.5-mini-Instruct-Jp",  # ベースモデルをAEGISとして使用
                 "--output_path", "H:/from_D/webdataset/gguf_models/aegis_phi35_thinking_v2_bf16.gguf",
                 "--quantization", "bf16"
             ]

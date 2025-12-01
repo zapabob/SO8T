@@ -189,9 +189,26 @@ class SO8TPPOTrainer:
         logger.info("Initializing model and tokenizer...")
 
         # モデルとトークナイザーの読み込み
-        # ここではplaceholderとして基本的な初期化を行う
-        self.model = None  # 実際のモデル読み込みは別途実装
-        self.tokenizer = None  # 実際のトークナイザー読み込みは別途実装
+        logger.info(f"Loading model: {self.model_path}")
+        try:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.model_path,
+                torch_dtype=torch.float16,
+                device_map="auto",
+                trust_remote_code=True,
+                load_in_8bit=self.ppo_config.get('load_in_8bit', True)
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.model_path,
+                trust_remote_code=True
+            )
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+            logger.info("Model and tokenizer loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load model: {e}")
+            self.model = None
+            self.tokenizer = None
 
         # RTX3060最適化設定
         if torch.cuda.is_available():
@@ -371,6 +388,21 @@ class SO8TPPOTrainer:
 
         # 最終チェックポイント保存
         self._save_checkpoint(self.ppo_config.max_steps)
+
+        # 最終モデル保存 (Hugging Face形式)
+        final_model_path = self.output_dir / "final_model"
+        final_model_path.mkdir(exist_ok=True)
+
+        logger.info(f"Saving final model to {final_model_path}...")
+        logger.info(f"Model object: {type(self.model)}")
+        if self.model is not None:
+            try:
+                self.model.save_pretrained(final_model_path)
+                logger.info(f"✅ Final model saved to {final_model_path}")
+            except Exception as e:
+                logger.error(f"Failed to save model: {e}")
+        else:
+            logger.error("Model is None, cannot save final model")
 
         total_time = time.time() - start_time
         logger.info("✅ SO(8) PPO Training completed!")

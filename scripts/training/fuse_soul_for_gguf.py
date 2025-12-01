@@ -4,10 +4,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 
 # --- Config ---
-BASE_MODEL = "microsoft/Phi-3.5-mini-instruct"
-ADAPTER_DIR = "models/Borea-Phi-3.5-mini-Instruct-Jp-so8t-adapter/final_adapter"
-SOUL_PATH = "models/Borea-Phi-3.5-mini-Instruct-Jp-so8t-adapter/final_adapter/soul_params.pt"
-EXPORT_DIR = "models/AEGIS-Phi3.5-Hybrid"
+BASE_MODEL = "models/Borea-Phi-3.5-mini-Instruct-Jp"
+CHECKPOINT_PATH = "outputs/so8t_ppo_training/20251201_223144/checkpoint_1000.pt"  # PPO training checkpoint
+EXPORT_DIR = "models/AEGIS-Phi3.5-Thinking-v2"
+SOUL_PATH = True  # Not used for PPO training
 
 def fuse_and_export():
     print("[FUSION] Alchemist Mode: Fusing Soul into Weights...")
@@ -23,32 +23,59 @@ def fuse_and_export():
     )
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
 
-    # 2. Merge LoRA
-    print("   Merging LoRA Adapters...")
-    model = PeftModel.from_pretrained(base_model, ADAPTER_DIR)
-    model = model.merge_and_unload() # LoRA is now baked into standard weights
+    # 2. Load PPO checkpoint and merge weights
+    print("   Loading PPO checkpoint...")
+    checkpoint = torch.load(CHECKPOINT_PATH, map_location='cpu')
+    if 'model_state_dict' in checkpoint:
+        print("   Merging PPO trained weights...")
+        # Load the trained weights into the base model
+        model_state_dict = checkpoint['model_state_dict']
 
-    # 3. Load Soul Parameters
-    print("   Loading Soul Parameters...")
-    soul_data = torch.load(SOUL_PATH)
-    alpha = soul_data["alpha"].to(model.device).float() # Compute in float32 for precision
-    rotation_state = soul_data["rotation"]
+        # Filter out SO8T adapter keys that might cause issues during loading
+        filtered_state_dict = {}
+        for key, value in model_state_dict.items():
+            # Skip SO8T adapter parameters for now, or handle them specially
+            if 'so8_adapter' not in key:
+                filtered_state_dict[key] = value
+            else:
+                print(f"   Skipping SO8T adapter parameter: {key}")
 
-    # Reconstruct Rotation Matrix R
-    # Orthogonal parametrization stores weights differently, need to instantiate to get W
-    hidden_dim = model.config.hidden_size
-    rot_layer = torch.nn.utils.parametrizations.orthogonal(
-        torch.nn.Linear(hidden_dim, hidden_dim, bias=False)
-    ).to(model.device)
-    rot_layer.load_state_dict(rotation_state)
-    R = rot_layer.weight.data.float() # Matrix R
+        # Load the filtered state dict
+        missing_keys, unexpected_keys = base_model.load_state_dict(filtered_state_dict, strict=False)
+        if missing_keys:
+            print(f"   Missing keys: {len(missing_keys)}")
+        if unexpected_keys:
+            print(f"   Unexpected keys: {len(unexpected_keys)}")
 
-    # 4. Mathematical Fusion (The Magic)
-    # y = W_head * (h + sigmoid(alpha) * R * h)
-    # y = (W_head + sigmoid(alpha) * W_head * R) * h
-    # New_Head = W_head + (sigma(alpha) * W_head @ R)
+        model = base_model
+    else:
+        print("   No model_state_dict found in checkpoint, using base model")
+        model = base_model
 
-    print(f"   Fusing Alpha ({alpha.item():.4f}) and Rotation into LM Head...")
+    # 3. SO(8) Integration
+    if SOUL_PATH and os.path.exists(SOUL_PATH):
+        print("   Loading Soul Parameters...")
+        soul_data = torch.load(SOUL_PATH)
+        alpha = soul_data["alpha"].to(model.device).float() # Compute in float32 for precision
+        rotation_state = soul_data["rotation"]
+
+        # Reconstruct Rotation Matrix R
+        # Orthogonal parametrization stores weights differently, need to instantiate to get W
+        hidden_dim = model.config.hidden_size
+        rot_layer = torch.nn.utils.parametrizations.orthogonal(
+            torch.nn.Linear(hidden_dim, hidden_dim, bias=False)
+        ).to(model.device)
+        rot_layer.load_state_dict(rotation_state)
+        R = rot_layer.weight.data.float() # Matrix R
+
+        # 4. Mathematical Fusion (The Magic)
+        # y = W_head * (h + sigmoid(alpha) * R * h)
+        # y = (W_head + sigmoid(alpha) * W_head * R) * h
+        # New_Head = W_head + (sigma(alpha) * W_head @ R)
+
+        print(f"   Fusing Alpha ({alpha.item():.4f}) and Rotation into LM Head...")
+    else:
+        print("   Skipping Soul fusion (PPO training doesn't use separate soul parameters)...")
 
     with torch.no_grad():
         W_head = model.lm_head.weight.data.float() # [vocab, hidden]
