@@ -28,7 +28,7 @@ from huggingface_hub import HfApi, upload_file
 import pandas as pd
 
 # Placeholder for Unsloth/BitsAndBytes imports - will be initialized after logger setup
-UNSLOTH_AVAILABLE = False  # Force disable Unsloth for testing
+UNSLOTH_AVAILABLE = True  # RTX3060向けにUnslothを有効化
 BITSANDBYTES_AVAILABLE = None
 
 # Import SO(8) components with path manipulation for hyphenated directory names
@@ -127,12 +127,16 @@ class PPOConfig:
     mini_batch_size: int = 1
     gradient_accumulation_steps: int = 8
     epochs: int = 1
-    max_steps: int = 200
-    warmup_steps: int = 10
+    max_steps: int = 100  # RTX3060向けに短く設定（テスト用）
+    warmup_steps: int = 5   # ウォームアップも短く
 
-    # RTX3060
+    # RTX3060 (12GB VRAM + 32GB System RAM)
     use_unsloth: bool = True
-    gpu_memory_limit: float = 0.85
+    gpu_memory_limit: float = 0.75  # 12GB VRAMの75% = 9GB (より保守的)
+
+    # RTX3060 + 32GB RAM 向け最適化
+    enable_cpu_offload: bool = True  # CPUメモリ活用
+    use_gradient_checkpointing: bool = True  # メモリ節約
 
     # PPO specific
     clip_range: float = 0.2      # ← cliprange → clip_range に統一
@@ -267,6 +271,35 @@ class PPOTrainer:
         else:
             logger.info("Test mode: Skipping model loading")
             self.setup_test_mode()
+
+        # 統計記録の初期化
+        logger.info("Initializing training statistics...")
+        self.stats = {
+            'steps': [],
+            'rewards': [],
+            'policy_losses': [],
+            'vf_losses': [],
+            'entropy_losses': [],
+            'total_losses': [],
+            'kl_divs': [],
+            'clip_fractions': [],
+            'orthogonal_errors': [],
+            'alphas': [],
+            'chaos_intensities': [],
+            'advantages_mean': [],
+            'advantages_std': []
+        }
+
+        # 学習状態
+        self.global_step = 0
+        self.epoch = 0
+        self.best_reward = float('-inf')
+
+        # チェックポイント管理
+        self.checkpoint_dir = Path(self.ppo_config.checkpoint_dir)
+        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+        logger.info("PPO Trainer initialized with SO(8) enhancements")
 
     def setup_bayesian_optimization(self):
         """ベイズ最適化のセットアップ"""
@@ -804,6 +837,25 @@ class PPOTrainer:
             setup_bar.update(25)
             setup_bar.set_postfix({"step": "Unsloth setup complete"})
 
+            # RTX3060最適化: モデル構造デバッグ
+            logger.info(f"=== Model Structure Debug ===")
+            logger.info(f"Model type: {type(self.model)}")
+            logger.info(f"Model has base_model: {hasattr(self.model, 'base_model')}")
+            if hasattr(self.model, 'base_model'):
+                logger.info(f"base_model type: {type(self.model.base_model)}")
+                logger.info(f"base_model has model: {hasattr(self.model.base_model, 'model')}")
+                if hasattr(self.model.base_model, 'model'):
+                    logger.info(f"base_model.model type: {type(self.model.base_model.model)}")
+                    logger.info(f"base_model.model has layers: {hasattr(self.model.base_model.model, 'layers')}")
+                    if hasattr(self.model.base_model.model, 'layers'):
+                        logger.info(f"base_model.model.layers count: {len(self.model.base_model.model.layers)}")
+                    elif hasattr(self.model.base_model.model, 'model') and hasattr(self.model.base_model.model.model, 'layers'):
+                        logger.info(f"base_model.model.model.layers count: {len(self.model.base_model.model.model.layers)}")
+            logger.info(f"Model has layers directly: {hasattr(self.model, 'layers')}")
+            if hasattr(self.model, 'layers'):
+                logger.info(f"model.layers count: {len(self.model.layers)}")
+            logger.info(f"=== End Model Structure Debug ===")
+
             # RTX3060最適化: SO8Tアダプターがモデルにアタッチされていることを確認
             self._ensure_so8t_adapter_attached()
 
@@ -826,8 +878,8 @@ class PPOTrainer:
             start_time = time.time()
             try:
                 self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_path,
-                torch_dtype=torch.float16,  # float16 for memory efficiency
+                    self.model_path,
+                    torch_dtype=torch.float16,  # float16 for memory efficiency
                     device_map="cpu",  # Force CPU
                 trust_remote_code=True,
                 low_cpu_mem_usage=True,
@@ -915,24 +967,24 @@ class PPOTrainer:
             trainable_params = 0
             so8t_params = 0
 
-            # デバッグ: named_modulesでSO8Tアダプターを探す
+            # デバッグ: named_modulesでSO8T/NKATアダプターを探す
             so8t_modules_found = []
             for name, module in self.model.named_modules():
-                if 'so8_adapter' in name:
+                if 'so8_adapter' in name or 'nkat_adapter' in name:
                     so8t_modules_found.append(name)
-                    logger.info(f"Found SO8T module: {name}")
+                    logger.info(f"Found SO8T/NKAT module: {name}")
                     for param in module.parameters():
                         param.requires_grad = True
                         so8t_params += param.numel()
                         trainable_params += param.numel()
 
-            logger.info(f"SO8T modules found: {so8t_modules_found}")
+            logger.info(f"SO8T/NKAT modules found: {so8t_modules_found}")
 
             # 統計情報表示
-            # SO8Tアダプター以外のパラメータ数を計算
+            # SO8T/NKATアダプター以外のパラメータ数を計算
             base_model_params = 0
             for name, param in self.model.named_parameters():
-                if 'so8_adapter' not in name:
+                if 'so8_adapter' not in name and 'nkat_adapter' not in name:
                     base_model_params += param.numel()
 
             total_params = base_model_params + so8t_params
@@ -965,14 +1017,29 @@ class PPOTrainer:
             # モデルにNKATアダプターが存在するか確認
             has_nkat_adapter = False
 
-            # モデル構造の解析
+            # モデル構造の解析 (Phi3対応)
             if hasattr(self.model, "base_model") and hasattr(self.model.base_model, "model"):
                 # LoRA適用後のUnslothモデル
-                layers = self.model.base_model.model.layers
+                if hasattr(self.model.base_model.model, "layers"):
+                    layers = self.model.base_model.model.layers
+                    logger.info(f"Found layers in base_model.model.layers (count: {len(layers)})")
+                elif hasattr(self.model.base_model.model, "model") and hasattr(self.model.base_model.model.model, "layers"):
+                    layers = self.model.base_model.model.model.layers
+                    logger.info(f"Found layers in base_model.model.model.layers (count: {len(layers)})")
+                else:
+                    raise ValueError("Cannot find 'layers' in Unsloth model structure")
             elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
                 # 通常のHFモデル
                 layers = self.model.model.layers
+                logger.info(f"Found layers in model.model.layers (count: {len(layers)})")
+            elif hasattr(self.model, "layers"):
+                # 直接layersを持つ場合 (Phi3ForCausalLMなど)
+                layers = self.model.layers
+                logger.info(f"Found layers directly in model.layers (count: {len(layers)})")
             else:
+                # 詳細なエラー情報
+                logger.error(f"Model type: {type(self.model)}")
+                logger.error(f"Available attributes: {[attr for attr in dir(self.model) if not attr.startswith('_')]}")
                 raise ValueError("Unknown model structure: Cannot find 'layers' attribute.")
 
             for layer_idx, layer in enumerate(layers):
@@ -1028,10 +1095,15 @@ class PPOTrainer:
             SO8RotationGate = so8_module.SO8RotationGate
 
             # PEFTモデルの構造に対応 (Phi3専用)
-            if hasattr(self.model, 'base_model') and hasattr(self.model.base_model, 'model') and hasattr(self.model.base_model.model, 'model') and hasattr(self.model.base_model.model.model, 'layers'):
+            if (hasattr(self.model, 'base_model') and
+                hasattr(self.model.base_model, 'model') and
+                hasattr(self.model.base_model.model, 'model') and
+                hasattr(self.model.base_model.model.model, 'layers')):
                 # PEFT + Phi3: model.base_model.model.model.layers
                 model_layers = self.model.base_model.model.model.layers
-            elif hasattr(self.model, 'base_model') and hasattr(self.model.base_model, 'model') and hasattr(self.model.base_model.model, 'layers'):
+            elif (hasattr(self.model, 'base_model') and
+                  hasattr(self.model.base_model, 'model') and
+                  hasattr(self.model.base_model.model, 'layers')):
                 # PEFTモデル (Unsloth + LoRA)
                 model_layers = self.model.base_model.model.layers
             elif hasattr(self.model, 'model') and hasattr(self.model.model, 'layers'):
@@ -1307,5 +1379,5 @@ class PPOTrainer:
 
 
 if __name__ == "__main__":
-    trainer = PPOTrainer(config_path="config.json", model_path="models/Borea-Phi-3.5-mini-Instruct-Jp")
+    trainer = PPOTrainer(config_path="aegis_v2_test_config.json", model_path="models/Borea-Phi-3.5-mini-Instruct-Jp")
     trainer.train()

@@ -411,6 +411,159 @@ def create_resource_chart(metrics: List[Dict]) -> go.Figure:
     return fig
 
 
+def load_ppo_training_progress(log_file_path: Path) -> Dict:
+    """PPOトレーニングの進捗をログファイルから読み込む"""
+    try:
+        if not log_file_path.exists():
+            return {"status": "no_log_file", "message": f"Log file not found: {log_file_path}"}
+
+        progress_data = {
+            "status": "running",
+            "current_step": 0,
+            "max_steps": 100,
+            "loss_history": [],
+            "reward_history": [],
+            "alpha_history": [],
+            "kl_history": [],
+            "last_update": None,
+            "total_time": 0,
+            "learning_rate": 0,
+            "model_info": {}
+        }
+
+        with open(log_file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()[-200:]  # 最新の200行のみ読み込み
+
+        for line in lines:
+            # ステップ情報
+            if 'step' in line.lower() and 'loss' in line.lower():
+                try:
+                    # INFO - Step 10/100: loss=2.145, reward=0.234, alpha=0.012, kl=0.045
+                    parts = line.split('Step ')[-1].split('/')[0]
+                    if parts.isdigit():
+                        progress_data["current_step"] = int(parts)
+                except:
+                    pass
+
+            # 最大ステップ数
+            if 'max steps:' in line.lower():
+                try:
+                    max_steps_part = line.split('max steps:')[-1].strip()
+                    if max_steps_part.isdigit():
+                        progress_data["max_steps"] = int(max_steps_part)
+                except:
+                    pass
+
+            # 損失値
+            if 'loss=' in line:
+                try:
+                    loss_part = line.split('loss=')[-1].split(',')[0]
+                    progress_data["loss_history"].append(float(loss_part))
+                except:
+                    pass
+
+            # 報酬値
+            if 'reward=' in line:
+                try:
+                    reward_part = line.split('reward=')[-1].split(',')[0]
+                    progress_data["reward_history"].append(float(reward_part))
+                except:
+                    pass
+
+            # Alpha値
+            if 'alpha=' in line:
+                try:
+                    alpha_part = line.split('alpha=')[-1].split(',')[0]
+                    progress_data["alpha_history"].append(float(alpha_part))
+                except:
+                    pass
+
+            # KLダイバージェンス
+            if 'kl=' in line:
+                try:
+                    kl_part = line.split('kl=')[-1].split(',')[0]
+                    progress_data["kl_history"].append(float(kl_part))
+                except:
+                    pass
+
+            # 学習率
+            if 'lr=' in line:
+                try:
+                    lr_part = line.split('lr=')[-1].split(',')[0]
+                    progress_data["learning_rate"] = float(lr_part)
+                except:
+                    pass
+
+            # タイムスタンプ
+            if line.startswith('2025-'):
+                try:
+                    timestamp_str = line.split(' - ')[0]
+                    progress_data["last_update"] = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S,%f')
+                except:
+                    pass
+
+        # ステータス判定
+        if progress_data["current_step"] >= progress_data["max_steps"]:
+            progress_data["status"] = "completed"
+        elif progress_data["current_step"] > 0:
+            progress_data["status"] = "running"
+        else:
+            progress_data["status"] = "starting"
+
+        # 履歴データの最新100個のみ保持
+        for key in ["loss_history", "reward_history", "alpha_history", "kl_history"]:
+            if len(progress_data[key]) > 100:
+                progress_data[key] = progress_data[key][-100:]
+
+        return progress_data
+
+    except Exception as e:
+        logger.error(f"Error loading PPO training progress: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+def get_rtx3060_gpu_info() -> Dict:
+    """RTX3060のGPU情報を取得"""
+    try:
+        import torch
+        gpu_info = {
+            "available": torch.cuda.is_available(),
+            "device_count": torch.cuda.device_count() if torch.cuda.is_available() else 0,
+            "current_device": torch.cuda.current_device() if torch.cuda.is_available() else -1,
+            "memory_allocated": 0,
+            "memory_reserved": 0,
+            "memory_free": 0,
+            "memory_total": 0,
+            "utilization": 0
+        }
+
+        if torch.cuda.is_available():
+            gpu_info["memory_allocated"] = torch.cuda.memory_allocated() / 1024**3  # GB
+            gpu_info["memory_reserved"] = torch.cuda.memory_reserved() / 1024**3    # GB
+            gpu_info["memory_free"] = (torch.cuda.get_device_properties(0).total_memory / 1024**3) - gpu_info["memory_reserved"]
+            gpu_info["memory_total"] = torch.cuda.get_device_properties(0).total_memory / 1024**3
+
+            # 利用率取得（pynvmlが利用可能な場合）
+            try:
+                import pynvml
+                pynvml.nvmlInit()
+                handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                gpu_info["utilization"] = util.gpu
+                pynvml.nvmlShutdown()
+            except ImportError:
+                gpu_info["utilization"] = -1  # pynvml not available
+            except Exception as e:
+                logger.warning(f"Could not get GPU utilization: {e}")
+                gpu_info["utilization"] = -1
+
+        return gpu_info
+
+    except Exception as e:
+        logger.error(f"Error getting RTX3060 GPU info: {e}")
+        return {"error": str(e)}
+
+
 def main():
     """メイン関数"""
     # タイトル
@@ -520,12 +673,13 @@ def main():
             )
     
     # タブでセクションを分ける
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📊 Overview",
         "📈 Timeline",
         "💻 Resources",
         "❌ Errors",
-        "📝 Logs"
+        "📝 Logs",
+        "🤖 PPO Training"
     ])
     
     with tab1:
@@ -737,6 +891,196 @@ def main():
     if auto_refresh:
         time.sleep(refresh_interval)
         st.rerun()
+
+    with tab6:
+        # PPOトレーニング進捗
+        st.markdown('<h2>🤖 PPO TRAINING PROGRESS</h2>', unsafe_allow_html=True)
+
+        # PPOログファイルのパス
+        ppo_log_file = PROJECT_ROOT / "logs" / "aegis_v2_ppo_training.log"
+
+        # RTX3060 GPU情報取得
+        gpu_info = get_rtx3060_gpu_info()
+
+        # PPOトレーニング進捗読み込み
+        ppo_progress = load_ppo_training_progress(ppo_log_file)
+
+        if ppo_progress["status"] == "no_log_file":
+            st.warning("PPOトレーニングログファイルが見つかりません")
+            st.info(f"期待される場所: {ppo_log_file}")
+            return
+
+        elif ppo_progress["status"] == "error":
+            st.error(f"PPOトレーニング進捗の読み込みに失敗しました: {ppo_progress.get('message', 'Unknown error')}")
+            return
+
+        # ステータス表示
+        status_color = {
+            "starting": "#ffff00",  # 黄色
+            "running": "#00ff41",   # 緑
+            "completed": "#0080ff", # 青
+            "error": "#ff0040"      # 赤
+        }.get(ppo_progress["status"], "#ffffff")
+
+        st.markdown(
+            f'<div class="cyber-border" style="text-align: center;">'
+            f'<h3 style="color: {status_color}; font-size: 2em;">{ppo_progress["status"].upper()}</h3>'
+            f'<p style="color: #00ff41; font-size: 1.5em;">Step {ppo_progress["current_step"]}/{ppo_progress["max_steps"]}</p>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+        # 進捗バー
+        if ppo_progress["max_steps"] > 0:
+            progress = min(ppo_progress["current_step"] / ppo_progress["max_steps"], 1.0)
+            st.progress(progress)
+
+        # RTX3060 GPU情報表示
+        if isinstance(gpu_info, dict) and not gpu_info.get("error"):
+            st.markdown('<h3>🎮 RTX3060 GPU Status</h3>', unsafe_allow_html=True)
+
+            gpu_col1, gpu_col2, gpu_col3, gpu_col4 = st.columns(4)
+
+            with gpu_col1:
+                mem_used = gpu_info.get("memory_allocated", 0)
+                mem_total = gpu_info.get("memory_total", 0)
+                st.metric("VRAM Used", ".1f", ".1f")
+
+            with gpu_col2:
+                mem_free = gpu_info.get("memory_free", 0)
+                st.metric("VRAM Free", ".1f")
+
+            with gpu_col3:
+                utilization = gpu_info.get("utilization", -1)
+                if utilization >= 0:
+                    st.metric("GPU Util", f"{utilization}%")
+                else:
+                    st.metric("GPU Util", "N/A")
+
+            with gpu_col4:
+                device_count = gpu_info.get("device_count", 0)
+                st.metric("GPU Count", device_count)
+
+            # VRAM使用率バー
+            if mem_total > 0:
+                vram_usage = (mem_used / mem_total) * 100
+                st.progress(min(vram_usage / 100, 1.0))
+                st.caption(".1f")
+
+        # トレーニングメトリクス表示
+        st.markdown('<h3>📊 Training Metrics</h3>', unsafe_allow_html=True)
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            current_loss = ppo_progress["loss_history"][-1] if ppo_progress["loss_history"] else 0.0
+            st.metric("Current Loss", ".4f")
+
+        with col2:
+            current_reward = ppo_progress["reward_history"][-1] if ppo_progress["reward_history"] else 0.0
+            st.metric("Current Reward", ".4f")
+
+        with col3:
+            current_alpha = ppo_progress["alpha_history"][-1] if ppo_progress["alpha_history"] else 0.0
+            st.metric("Alpha", ".4f")
+
+        with col4:
+            lr = ppo_progress["learning_rate"]
+            st.metric("Learning Rate", ".2e")
+
+        # グラフ表示
+        st.markdown('<h3>📈 Training Metrics</h3>', unsafe_allow_html=True)
+
+        # 損失と報酬のグラフ
+        if ppo_progress["loss_history"] or ppo_progress["reward_history"]:
+            fig = go.Figure()
+
+            if ppo_progress["loss_history"]:
+                steps = list(range(len(ppo_progress["loss_history"])))
+                fig.add_trace(go.Scatter(
+                    x=steps,
+                    y=ppo_progress["loss_history"],
+                    mode='lines+markers',
+                    name='Loss',
+                    line=dict(color='#ff0040', width=2)
+                ))
+
+            if ppo_progress["reward_history"]:
+                steps = list(range(len(ppo_progress["reward_history"])))
+                fig.add_trace(go.Scatter(
+                    x=steps,
+                    y=ppo_progress["reward_history"],
+                    mode='lines+markers',
+                    name='Reward',
+                    line=dict(color='#00ff41', width=2),
+                    yaxis='y2'
+                ))
+
+            fig.update_layout(
+                title="Loss & Reward History",
+                xaxis_title="Steps",
+                yaxis_title="Loss",
+                yaxis2=dict(title="Reward", overlaying="y", side="right"),
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0.1)",
+                font=dict(color="#00ff41")
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+        # AlphaとKLダイバージェンスのグラフ
+        if ppo_progress["alpha_history"] or ppo_progress["kl_history"]:
+            fig2 = go.Figure()
+
+            if ppo_progress["alpha_history"]:
+                steps = list(range(len(ppo_progress["alpha_history"])))
+                fig2.add_trace(go.Scatter(
+                    x=steps,
+                    y=ppo_progress["alpha_history"],
+                    mode='lines+markers',
+                    name='Alpha',
+                    line=dict(color='#0080ff', width=2)
+                ))
+
+            if ppo_progress["kl_history"]:
+                steps = list(range(len(ppo_progress["kl_history"])))
+                fig2.add_trace(go.Scatter(
+                    x=steps,
+                    y=ppo_progress["kl_history"],
+                    mode='lines+markers',
+                    name='KL Divergence',
+                    line=dict(color='#ffff00', width=2),
+                    yaxis='y2'
+                ))
+
+            fig2.update_layout(
+                title="Alpha & KL Divergence History",
+                xaxis_title="Steps",
+                yaxis_title="Alpha",
+                yaxis2=dict(title="KL", overlaying="y", side="right"),
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0.1)",
+                font=dict(color="#00ff41")
+            )
+
+            st.plotly_chart(fig2, use_container_width=True)
+
+        # 最新ログ表示
+        st.markdown('<h3>📝 Recent Logs</h3>', unsafe_allow_html=True)
+
+        try:
+            if ppo_log_file.exists():
+                with open(ppo_log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    lines = f.readlines()[-20:]  # 最新20行
+
+                log_text = ''.join(lines)
+                st.code(log_text, language='log')
+            else:
+                st.warning("ログファイルが見つかりません")
+        except Exception as e:
+            st.error(f"ログ読み込みエラー: {e}")
 
 
 if __name__ == "__main__":

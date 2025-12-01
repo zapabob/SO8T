@@ -5,16 +5,16 @@
         "quantization": ["Q8_0"]
     },
     "training": {
-        "max_steps": 200,
+        "max_steps": 1000,
         "batch_size": 1,
         "learning_rate": 2e-4,
         "warmup_steps": 10,
-        "gradient_accumulation_steps": 8,
+        "gradient_accumulation_steps": 16,
         "save_steps": 50,
         "logging_steps": 10,
         "test_mode": false,
         "use_unsloth": true,
-        "gpu_memory_limit": 0.6
+        "gpu_memory_limit": 0.75
     },
     "so8t": {
         "enable_so8t": true,
@@ -42,7 +42,7 @@
     },
     "data": {
         "train_file": "data/so8t_cot_enhanced_training_dataset_70k.jsonl",
-        "max_samples": 1000,
+        "max_samples": 70000,
         "validation_split": 0.1,
         "max_length": 2048,
         "preprocessing_num_workers": 4,

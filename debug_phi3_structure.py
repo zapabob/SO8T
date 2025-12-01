@@ -1,88 +1,87 @@
 #!/usr/bin/env python3
-"""Phi3モデルの構造を詳細にデバッグ"""
+# -*- coding: utf-8 -*-
+"""
+Phi3モデル構造デバッグスクリプト
+"""
 
 from unsloth import FastLanguageModel
+import torch
 
 def debug_phi3_structure():
-    """Phi3モデルの構造を詳細にデバッグ"""
-    try:
-        print("Loading Phi3 model to understand its structure...")
+    """Phi3モデルの構造をデバッグ"""
+    print("=== Phi3 Model Structure Debug ===")
 
+    try:
+        # モデル読み込み
+        print("Loading Phi-3.5-mini-instruct model...")
         model, tokenizer = FastLanguageModel.from_pretrained(
-            'models/Borea-Phi-3.5-mini-Instruct-Jp',
+            'microsoft/Phi-3.5-mini-instruct',
             max_seq_length=2048,
             dtype=None,
             load_in_4bit=True,
-            device_map='auto'
         )
 
-        print("Phi3 model structure analysis:")
-        print(f"  Model type: {type(model)}")
-        print(f"  Model class: {model.__class__.__name__}")
+        print(f"Model type: {type(model)}")
 
-        # Phi3ForCausalLMの属性を調べる
-        attrs = [attr for attr in dir(model) if not attr.startswith('_')]
-        print(f"  All attributes ({len(attrs)}): {attrs[:10]}...")
+        # トップレベル属性
+        print("\n=== Top Level Attributes ===")
+        top_attrs = [attr for attr in dir(model) if not attr.startswith('_') and not callable(getattr(model, attr))]
+        print(f"Top level attributes: {top_attrs}")
 
-        # 主なコンポーネントをチェック
-        components = ['model', 'base_model', 'layers', 'embed_tokens', 'norm', 'lm_head']
-        for comp in components:
-            if hasattr(model, comp):
-                print(f"  hasattr({comp}): True, type: {type(getattr(model, comp))}")
-                obj = getattr(model, comp)
-                if hasattr(obj, '__len__'):
-                    try:
-                        print(f"    length: {len(obj)}")
-                    except:
-                        pass
-            else:
-                print(f"  hasattr({comp}): False")
+        # base_model確認
+        if hasattr(model, 'base_model'):
+            print(f"\n=== base_model ===")
+            print(f"base_model type: {type(model.base_model)}")
 
-        # model属性の詳細
-        if hasattr(model, 'model'):
-            inner_model = model.model
-            print(f"  model attribute type: {type(inner_model)}")
-            inner_attrs = [attr for attr in dir(inner_model) if not attr.startswith('_')]
-            print(f"  model attributes ({len(inner_attrs)}): {inner_attrs[:15]}...")
+            base_attrs = [attr for attr in dir(model.base_model) if not attr.startswith('_') and not callable(getattr(model.base_model, attr))]
+            print(f"base_model attributes: {base_attrs}")
 
-            # レイヤー関連の属性を探す
-            layer_attrs = [attr for attr in inner_attrs if 'layer' in attr.lower()]
-            print(f"  Layer-related attributes: {layer_attrs}")
+            if hasattr(model.base_model, 'model'):
+                print(f"\n=== base_model.model ===")
+                print(f"base_model.model type: {type(model.base_model.model)}")
 
-            # 各属性をチェック
-            for attr in ['layers', 'encoder', 'decoder', 'embeddings', 'pooler']:
-                if hasattr(inner_model, attr):
-                    print(f"    hasattr(model.{attr}): True, type: {type(getattr(inner_model, attr))}")
-                    obj = getattr(inner_model, attr)
-                    if hasattr(obj, '__len__'):
-                        try:
-                            print(f"      length: {len(obj)}")
-                            if len(obj) > 0:
-                                print(f"      first item type: {type(obj[0])}")
-                        except:
-                            pass
+                base_model_attrs = [attr for attr in dir(model.base_model.model) if not attr.startswith('_') and not callable(getattr(model.base_model.model, attr))]
+                print(f"base_model.model attributes: {base_model_attrs}")
+
+                # layersを探す
+                if hasattr(model.base_model.model, 'layers'):
+                    print("
+✅ Found layers in base_model.model.layers"                    print(f"Layers count: {len(model.base_model.model.layers)}")
+                    print(f"First layer type: {type(model.base_model.model.layers[0])}")
+                elif hasattr(model.base_model.model, 'model') and hasattr(model.base_model.model.model, 'layers'):
+                    print("
+✅ Found layers in base_model.model.model.layers"                    print(f"Layers count: {len(model.base_model.model.model.layers)}")
+                    print(f"First layer type: {type(model.base_model.model.model.layers[0])}")
                 else:
-                    print(f"    hasattr(model.{attr}): False")
+                    print("\n❌ Layers not found in expected locations")
 
-        # Phi3Configを確認
-        if hasattr(model, 'config'):
-            config = model.config
-            print(f"  Config type: {type(config)}")
-            config_attrs = [attr for attr in dir(config) if not attr.startswith('_')]
-            print(f"  Config attributes: {config_attrs[:10]}...")
+                    # 再帰的に探す
+                    def find_layers(obj, path=""):
+                        if hasattr(obj, 'layers'):
+                            print(f"✅ Found layers at: {path}.layers")
+                            return True
+                        for attr in dir(obj):
+                            if not attr.startswith('_') and not callable(getattr(obj, attr)):
+                                try:
+                                    child = getattr(obj, attr)
+                                    if hasattr(child, '__dict__') or hasattr(child, '__slots__'):
+                                        if find_layers(child, f"{path}.{attr}"):
+                                            return True
+                                except:
+                                    pass
+                        return False
 
-            if hasattr(config, 'num_hidden_layers'):
-                print(f"    num_hidden_layers: {config.num_hidden_layers}")
-            if hasattr(config, 'num_attention_heads'):
-                print(f"    num_attention_heads: {config.num_attention_heads}")
+                    find_layers(model, "model")
 
-        print("Phi3 structure analysis completed")
+        # 直接layers確認
+        if hasattr(model, 'layers'):
+            print(f"\n✅ Found layers directly in model.layers")
+            print(f"Layers count: {len(model.layers)}")
 
     except Exception as e:
-        print(f"Failed to debug: {e}")
+        print(f"❌ Error during debugging: {e}")
         import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":
     debug_phi3_structure()
-
