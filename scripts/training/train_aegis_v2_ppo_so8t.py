@@ -923,8 +923,14 @@ class PPOTrainer:
             logger.info(f"SO8T modules found: {so8t_modules_found}")
 
             # 統計情報表示
-            total_params = sum(p.numel() for p in self.model.parameters())
-            frozen_params = total_params - trainable_params
+            # SO8Tアダプター以外のパラメータ数を計算
+            base_model_params = 0
+            for name, param in self.model.named_parameters():
+                if 'so8_adapter' not in name:
+                    base_model_params += param.numel()
+
+            total_params = base_model_params + so8t_params
+            frozen_params = base_model_params
 
             logger.info(f"Model freezing completed:")
             logger.info(f"  Total parameters: {total_params:,}")
