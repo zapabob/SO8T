@@ -804,18 +804,7 @@ class EnhancedPowerStateMonitor:
 
         return False
 
-class EnhancedStatisticalAnalyzer(SO8TStatisticalAnalyzer):
-    """強化統計分析器"""
-
-    def generate_enhanced_analysis_report(self, benchmark_data: Dict[str, Any]) -> Dict[str, Any]:
-        """強化統計分析レポート生成"""
-        analysis_report = super().generate_analysis_report(benchmark_data)
-
-        # ANOVA分析追加
-        analysis_report['anova_analysis'] = self.perform_anova_analysis(benchmark_data)
-
-        # 球面t検定追加
-        analysis_report['spherical_t_tests'] = self.perform_spherical_t_tests(benchmark_data)
+# EnhancedStatisticalAnalyzerはso8t_benchmark_pipeline.pyからインポート済み
 
         # 効果量の追加指標
         analysis_report['enhanced_effect_sizes'] = self.calculate_enhanced_effect_sizes(benchmark_data)

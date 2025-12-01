@@ -30,7 +30,26 @@ echo ======================================== >> "%LOG_FILE%"
 
 REM Python実行（バックグラウンドで実行）
 echo Starting Python process...
-start "SO8T_Automated_Pipeline" /B python so8t_automated_pipeline.py --autostart >> "%LOG_FILE%" 2>&1
+
+REM Python実行ファイルの検索
+set PYTHON_EXE=
+if exist "C:\Python312\python.exe" (
+    set PYTHON_EXE=C:\Python312\python.exe
+) else if exist "C:\Python311\python.exe" (
+    set PYTHON_EXE=C:\Python311\python.exe
+) else if exist "C:\Python310\python.exe" (
+    set PYTHON_EXE=C:\Python310\python.exe
+) else if exist "C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python312\python.exe" (
+    set PYTHON_EXE=C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python312\python.exe
+) else if exist "C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311\python.exe" (
+    set PYTHON_EXE=C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311\python.exe
+) else (
+    REM py launcherを使用
+    set PYTHON_EXE=py -3
+)
+
+echo Using Python: %PYTHON_EXE%
+start "SO8T_Automated_Pipeline" /B %PYTHON_EXE% so8t_automated_pipeline.py --autostart >> "%LOG_FILE%" 2>&1
 
 REM プロセス起動確認
 timeout /t 5 /nobreak > nul

@@ -656,15 +656,19 @@ def main():
     hf_preparator = SO8THFPreparator(config)
     hf_dir = hf_preparator.prepare_hf_structure(benchmark_results, analysis_report)
 
-    print("
-✅ ベンチマーク完了!"    print(f"📊 結果保存先: {config['results_dir']}")
+    print("✅ ベンチマーク完了!")
+    print(f"📊 結果保存先: {config['results_dir']}")
     print(f"📈 分析結果: {config['results_dir']}/analysis")
     print(f"📁 HFアップロード: {hf_dir}")
 
     # 結果表示
     overall = analysis_report['overall']
-    print("
-🎯 Overall Results:"    print(".3f"    print(".3f"    print(".3f"    print(".4f"    print("Significant" if overall['statistical_tests']['t_test']['significant'] else "Not Significant")
+    print("🎯 Overall Results:")
+    print(".3f")
+    print(".3f")
+    print(".3f")
+    print(".4f")
+    print("Significant" if overall['statistical_tests']['t_test']['significant'] else "Not Significant")
 
     # 音声通知
     try:

@@ -34,7 +34,26 @@ echo.
 
 REM Start the monitoring Python script
 echo [SO8T-MONITOR] Launching pipeline monitor...
-python scripts/automation/so8t_pipeline_monitor.py >> "%LOG_FILE%" 2>&1
+
+REM Python実行ファイルの検索
+set PYTHON_EXE=
+if exist "C:\Python312\python.exe" (
+    set PYTHON_EXE=C:\Python312\python.exe
+) else if exist "C:\Python311\python.exe" (
+    set PYTHON_EXE=C:\Python311\python.exe
+) else if exist "C:\Python310\python.exe" (
+    set PYTHON_EXE=C:\Python310\python.exe
+) else if exist "C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python312\python.exe" (
+    set PYTHON_EXE=C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python312\python.exe
+) else if exist "C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311\python.exe" (
+    set PYTHON_EXE=C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311\python.exe
+) else (
+    REM py launcherを使用
+    set PYTHON_EXE=py -3
+)
+
+echo Using Python: %PYTHON_EXE%
+%PYTHON_EXE% scripts/automation/so8t_pipeline_monitor.py >> "%LOG_FILE%" 2>&1
 
 set MONITOR_RESULT=%errorlevel%
 

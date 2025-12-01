@@ -39,10 +39,29 @@ if exist "scripts\startup\so8t_power_on_startup.bat" (
 REM Python環境確認
 echo.
 echo [TEST 3] Checking Python environment...
-python --version >nul 2>&1
+
+REM Python実行ファイルの検索
+set PYTHON_EXE=
+if exist "C:\Python312\python.exe" (
+    set PYTHON_EXE=C:\Python312\python.exe
+) else if exist "C:\Python311\python.exe" (
+    set PYTHON_EXE=C:\Python311\python.exe
+) else if exist "C:\Python310\python.exe" (
+    set PYTHON_EXE=C:\Python310\python.exe
+) else if exist "C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python312\python.exe" (
+    set PYTHON_EXE=C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python312\python.exe
+) else if exist "C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311\python.exe" (
+    set PYTHON_EXE=C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311\python.exe
+) else (
+    REM py launcherを使用
+    set PYTHON_EXE=py -3
+)
+
+echo Using Python: %PYTHON_EXE%
+%PYTHON_EXE% --version >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
     echo [PASS] Python is available
-    python -c "import torch; print(f'[INFO] PyTorch version: {torch.__version__}')" 2>nul
+    %PYTHON_EXE% -c "import torch; print(f'[INFO] PyTorch version: {torch.__version__}')" 2>nul
 ) else (
     echo [FAIL] Python not found or not in PATH
 )

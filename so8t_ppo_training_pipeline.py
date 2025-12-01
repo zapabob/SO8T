@@ -590,8 +590,8 @@ def main():
     # トレーニング実行
     final_path = trainer.train()
 
-    print("
-✅ PPOトレーニング完了!"    print(f"📊 トレーニング済みモデル: {final_path}")
+    print("✅ PPOトレーニング完了!")
+    print(f"📊 トレーニング済みモデル: {final_path}")
 
     # 音声通知
     try:

@@ -155,7 +155,11 @@ class SO8TSFTTrainer:
 
         logger.info(f"モデル読み込み: {model_name}")
 
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        # HuggingFaceキャッシュをH:/from_D/webdatasetに設定
+        cache_dir = Path("H:/from_D/webdataset/hf_cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=str(cache_dir))
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
@@ -172,14 +176,16 @@ class SO8TSFTTrainer:
                 model_name,
                 quantization_config=bnb_config,
                 device_map="auto",
-                trust_remote_code=True
+                trust_remote_code=True,
+                cache_dir=str(cache_dir)
             )
         else:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 torch_dtype=torch.float16,
                 device_map="auto",
-                trust_remote_code=True
+                trust_remote_code=True,
+                cache_dir=str(cache_dir)
             )
 
         # LoRA設定
@@ -317,7 +323,7 @@ class SO8TSFTTrainer:
 def create_sft_config() -> Dict[str, Any]:
     """SFT設定を作成"""
     return {
-        'model_name': 'Boreas/phi-3.5-mini-instruct-Jp',
+        'model_name': 'microsoft/Phi-3.5-mini-instruct',
         'train_dataset': 'data/train_sft_enhanced.jsonl',
         'eval_dataset': 'data/test_eval.jsonl',
         'output_dir': './checkpoints/sft_so8t',

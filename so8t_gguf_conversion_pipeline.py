@@ -316,7 +316,7 @@ PARAMETER num_ctx 4096'''
                 json.dump(result, f, indent=2, ensure_ascii=False)
 
             logger.info(f"変換結果保存: {result_file}")
-            logger.info(".2f"
+            logger.info(f"GGUF変換完了: {result['model_a']['model_name']} -> {result['model_a']['gguf_path']}")
             return result
 
         except Exception as e:
@@ -326,10 +326,10 @@ PARAMETER num_ctx 4096'''
 def create_gguf_config() -> Dict[str, Any]:
     """GGUF変換設定"""
     return {
-        'base_model_name': 'Boreas/phi-3.5-mini-instruct-Jp',
+        'base_model_name': 'microsoft/Phi-3.5-mini-instruct',
         'ppo_model_path': './checkpoints/ppo_so8t/final_model',
         'base_dir': './models',
-        'gguf_dir': 'D:/webdataset/gguf_models',
+        'gguf_dir': 'H:/from_D/webdataset/gguf_models',
         'llama_cpp_dir': 'external/llama.cpp-master',
         'quantizations': ['Q8_0', 'Q4_K_M'],  # 複数の量子化タイプ
         'create_ollama_models': True
@@ -349,8 +349,8 @@ def main():
     # 変換実行
     result = converter.run_conversion_pipeline()
 
-    print("
-✅ GGUF変換完了!"    print(f"📊 modelA: {result['model_a']['model_name']}")
+    print("✅ GGUF変換完了!")
+    print(f"📊 modelA: {result['model_a']['model_name']}")
     print(f"📊 modelB: {result['model_b']['model_name']}")
     print(f"📁 GGUF保存先: {config['gguf_dir']}")
 
