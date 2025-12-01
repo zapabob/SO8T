@@ -15,6 +15,8 @@ CPUオフロードを積極的に活用し、VRAM不足を防ぐ
 """
 
 import os
+import sys
+import subprocess
 import torch
 import gc
 import json
@@ -31,7 +33,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def load_base_model(base_model_path: str, device_map: str = "cpu") -> torch.nn.Module:
+def load_base_model(base_model_path: str, device_map: str = "cpu", dtype: str = "bf16") -> torch.nn.Module:
     """
     ベースモデルをCPUオフロードで読み込み
 
@@ -44,13 +46,21 @@ def load_base_model(base_model_path: str, device_map: str = "cpu") -> torch.nn.M
     """
     from transformers import AutoModelForCausalLM
 
-    logger.info(f"Loading base model from {base_model_path} with device_map={device_map}")
+    # dtype設定
+    dtype_map = {
+        "fp16": torch.float16,
+        "bf16": torch.bfloat16,
+        "f16": torch.float16
+    }
+    torch_dtype = dtype_map.get(dtype, torch.bfloat16)
+
+    logger.info(f"Loading base model from {base_model_path} with device_map={device_map}, dtype={dtype}")
 
     # CPUオフロード設定
     if device_map == "cpu":
         model = AutoModelForCausalLM.from_pretrained(
             base_model_path,
-            torch_dtype=torch.float16,
+            torch_dtype=torch_dtype,
             device_map="cpu",  # 明示的にCPUに配置
             trust_remote_code=True,
             low_cpu_mem_usage=True
@@ -59,7 +69,7 @@ def load_base_model(base_model_path: str, device_map: str = "cpu") -> torch.nn.M
         # autoの場合もCPUオフロードを有効化
         model = AutoModelForCausalLM.from_pretrained(
             base_model_path,
-            torch_dtype=torch.float16,
+            torch_dtype=torch_dtype,
             device_map="auto",
             max_memory={0: "12GB", "cpu": "32GB"},  # VRAM 12GB, RAM 32GB
             trust_remote_code=True,
@@ -168,12 +178,57 @@ def save_merged_model(
 
         # マージ済みであることを示すメタデータ追加
         config["_merged_with_so8_adapter"] = True
-        config["_merge_date"] = torch.datetime.datetime.now().isoformat()
+        from datetime import datetime
+        config["_merge_date"] = datetime.now().isoformat()
 
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
 
     logger.info(f"Merged model saved successfully to {output_dir}")
+
+
+def convert_to_gguf(model_path: str, output_path: str, quantization: str = "bf16"):
+    """GGUF形式に変換 (llama.cpp使用)"""
+    logger.info(f"Converting to GGUF: {model_path} -> {output_path} (quantization: {quantization})")
+
+    # llama.cpp convert_hf_to_gguf.pyを使用
+    convert_script = Path(__file__).parent.parent.parent / "external" / "llama.cpp-master" / "convert_hf_to_gguf.py"
+
+    if not convert_script.exists():
+        raise FileNotFoundError(f"convert_hf_to_gguf.py not found at {convert_script}")
+
+    # 量子化タイプのマッピング
+    quant_map = {
+        "f16": "f16",
+        "bf16": "bf16",
+        "f32": "f32",
+        "q8_0": "q8_0",
+        "q4_k_m": "q4_k_m",
+        "q4_0": "q4_0",
+    }
+
+    if quantization not in quant_map:
+        raise ValueError(f"Unsupported quantization: {quantization}")
+
+    gguf_type = quant_map[quantization]
+
+    cmd = [
+        sys.executable, str(convert_script),
+        model_path,
+        "--outfile", output_path,
+        "--outtype", gguf_type
+    ]
+
+    logger.info(f"Running GGUF conversion command: {' '.join(cmd)}")
+
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent.parent)
+
+    if result.returncode == 0:
+        logger.info(f"GGUF conversion completed successfully: {output_path}")
+        return True
+    else:
+        logger.error(f"GGUF conversion failed: {result.stderr}")
+        return False
 
 
 def validate_paths(base_model: str, adapter_path: str, output_dir: str):
@@ -201,10 +256,21 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Example usage:
+  # BF16 HFモデル + GGUF変換
   python scripts/utils/merge_so8_adapter.py \\
     --base_model models/Borea-Phi-3.5-mini-Instruct-Jp \\
     --adapter_path outputs/so8_adapter/final_adapter \\
-    --output_dir outputs/merged_so8_model
+    --output_dir outputs/aegis_so8_bf16 \\
+    --dtype bf16 \\
+    --convert_gguf \\
+    --gguf_quantization bf16
+
+  # FP16 HFモデル保存のみ
+  python scripts/utils/merge_so8_adapter.py \\
+    --base_model models/Borea-Phi-3.5-mini-Instruct-Jp \\
+    --adapter_path outputs/so8_adapter/final_adapter \\
+    --output_dir outputs/aegis_so8_fp16 \\
+    --dtype fp16
 
 Hardware constraints: RTX 3060 (12GB VRAM) + 32GB RAM
 Uses CPU offloading to prevent VRAM overflow.
@@ -228,8 +294,8 @@ Uses CPU offloading to prevent VRAM overflow.
     parser.add_argument(
         "--output_dir",
         type=str,
-        required=True,
-        help="Output directory for merged model"
+        default="H:/from_D/webdataset/models/aegis_so8_merged",
+        help="Output directory for merged model (default: H:/from_D/webdataset/models/aegis_so8_merged)"
     )
 
     parser.add_argument(
@@ -245,6 +311,28 @@ Uses CPU offloading to prevent VRAM overflow.
         type=str,
         default="2GB",
         help="Maximum shard size for safetensors (default: 2GB)"
+    )
+
+    parser.add_argument(
+        "--dtype",
+        type=str,
+        default="bf16",
+        choices=["fp16", "bf16", "f16"],
+        help="Data type for saving (default: bf16)"
+    )
+
+    parser.add_argument(
+        "--convert_gguf",
+        action="store_true",
+        help="Also convert to GGUF format after merging"
+    )
+
+    parser.add_argument(
+        "--gguf_quantization",
+        type=str,
+        default="bf16",
+        choices=["f16", "bf16", "f32", "q8_0", "q4_k_m", "q4_0"],
+        help="Quantization type for GGUF (default: bf16)"
     )
 
     args = parser.parse_args()
@@ -263,7 +351,7 @@ Uses CPU offloading to prevent VRAM overflow.
 
         # 1. ベースモデル読み込み (CPUオフロード)
         logger.info("Step 1: Loading base model with CPU offloading...")
-        base_model = load_base_model(args.base_model, args.device_map)
+        base_model = load_base_model(args.base_model, args.device_map, args.dtype)
 
         # メモリチェック
         gc.collect()
@@ -294,6 +382,87 @@ Uses CPU offloading to prevent VRAM overflow.
             args.max_shard_size
         )
 
+        # 5. GGUF変換 (オプション)
+        if args.convert_gguf:
+            logger.info("Step 5: Converting to GGUF format...")
+            gguf_dir = Path("H:/from_D/webdataset/gguf_models")
+            gguf_dir.mkdir(parents=True, exist_ok=True)
+            gguf_output_path = gguf_dir / f"aegis_so8_merged_{args.gguf_quantization}.gguf"
+
+            # SO(8)アダプターを標準LoRA形式に変換してからGGUF変換
+            logger.info("Converting SO(8) adapter to standard LoRA format for GGUF compatibility...")
+
+            # 一時ディレクトリに標準LoRA形式のモデルを保存
+            temp_lora_dir = Path(args.output_dir) / "temp_standard_lora"
+            temp_lora_dir.mkdir(exist_ok=True)
+
+            # 標準LoRA形式のstate_dictを取得して保存
+            standard_lora_state = {}
+            for name, module in merged_model.named_modules():
+                if hasattr(module, 'merge_to_standard_lora'):
+                    try:
+                        lora_state = module.merge_to_standard_lora()
+                        # モジュール名を付けて保存
+                        for key, value in lora_state.items():
+                            full_key = f"{name}.{key}"
+                            standard_lora_state[full_key] = value
+                    except Exception as e:
+                        logger.warning(f"Failed to convert {name} to standard LoRA: {e}")
+
+            if standard_lora_state:
+                # safetensors形式で保存
+                from safetensors.torch import save_file
+                lora_path = temp_lora_dir / "adapter_model.safetensors"
+                save_file(standard_lora_state, lora_path)
+                logger.info(f"Standard LoRA adapter saved to {lora_path}")
+
+                # adapter_config.jsonも作成
+                adapter_config = {
+                    "peft_type": "LORA",
+                    "auto_mapping": None,
+                    "base_model_name_or_path": args.base_model,
+                    "revision": None,
+                    "task_type": "CAUSAL_LM",
+                    "inference_mode": True,
+                    "r": 8,
+                    "target_modules": ["o_proj", "gate_up_proj", "down_proj"],
+                    "lora_alpha": 1.0,
+                    "lora_dropout": 0.0,
+                    "fan_in_fan_out": False,
+                    "bias": "none",
+                    "modules_to_save": None,
+                    "init_lora_weights": True,
+                    "layers_to_transform": None,
+                    "layers_pattern": None,
+                    "rank_pattern": {},
+                    "alpha_pattern": {},
+                    "megatron_config": None,
+                    "megatron_core": "megatron.core",
+                }
+
+                import json
+                config_path = temp_lora_dir / "adapter_config.json"
+                with open(config_path, 'w') as f:
+                    json.dump(adapter_config, f, indent=2)
+
+                # GGUF変換実行
+                success = convert_to_gguf(
+                    str(temp_lora_dir),
+                    str(gguf_output_path),
+                    args.gguf_quantization
+                )
+
+                # 一時ファイル削除
+                import shutil
+                shutil.rmtree(temp_lora_dir, ignore_errors=True)
+
+                if success:
+                    logger.info(f"GGUF model saved to: {gguf_output_path}")
+                else:
+                    logger.warning("GGUF conversion failed, but HF model is available")
+            else:
+                logger.warning("No SO(8) adapters found to convert to standard LoRA format")
+
         # 最終メモリ解放
         del merged_model, tokenizer
         gc.collect()
@@ -302,7 +471,9 @@ Uses CPU offloading to prevent VRAM overflow.
 
         logger.info("=" * 60)
         logger.info("SO(8) Adapter merge completed successfully!")
-        logger.info(f"Merged model saved to: {args.output_dir}")
+        logger.info(f"Merged HF model saved to: {args.output_dir}")
+        if args.convert_gguf:
+            logger.info(f"GGUF model saved to: {gguf_output_path}")
         logger.info("=" * 60)
 
     except Exception as e:

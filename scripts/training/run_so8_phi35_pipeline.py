@@ -93,10 +93,10 @@ def main():
                        default="data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl",
                        help="Path to training dataset")
     parser.add_argument("--output_dir", type=str,
-                       default="outputs/so8_phi35_training",
+                       default="H:/from_D/webdataset/checkpoints/so8_phi35_training",
                        help="Output directory for training results")
     parser.add_argument("--gguf_output", type=str,
-                       default="models/gguf/so8_phi35_adapter.gguf",
+                       default="H:/from_D/webdataset/gguf_models/so8_phi35_adapter.gguf",
                        help="Output path for GGUF file")
     parser.add_argument("--quantization", type=str, default="bf16",
                        choices=["f16", "bf16", "f32", "q8_0", "q4_k_m", "q4_0"],

@@ -205,7 +205,7 @@ class AutomaticAEGISPipeline:
             model_path = "models/Borea-Phi-3.5-mini-Instruct-Jp"
             dataset_path = "data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
             config_path = "scripts/training/so8t_ppo_config.json"
-            output_dir = "checkpoints/automatic_aegis/ppo_output"
+            output_dir = "H:/from_D/webdataset/checkpoints/automatic_aegis/ppo_output"
 
             cmd = [
                 sys.executable, "scripts/training/so8t_integrated_ppo_trainer.py",

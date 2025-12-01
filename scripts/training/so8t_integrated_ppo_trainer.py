@@ -179,7 +179,7 @@ class SO8TPPOTrainer:
         self._init_so8t_components()
 
         # ログとチェックポイントディレクトリ
-        self.output_dir = Path("outputs/so8t_ppo_training") / datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.output_dir = Path("H:/from_D/webdataset/checkpoints/so8t_ppo_training") / datetime.now().strftime("%Y%m%d_%H%M%S")
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         logger.info(f"SO(8) PPO Trainer initialized. Output dir: {self.output_dir}")
