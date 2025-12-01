@@ -51,7 +51,7 @@ def run_training(model_path: str, dataset_path: str, output_path: str, **kwargs)
 
     logger.info(f"Running command: {' '.join(cmd)}")
 
-    result = subprocess.run(cmd, cwd=Path(__file__).parent.parent)
+    result = subprocess.run(cmd, cwd=Path(__file__).parent.parent.parent)
 
     if result.returncode != 0:
         logger.error("Training failed!")
@@ -74,7 +74,7 @@ def run_gguf_conversion(lora_path: str, gguf_output_path: str, quantization: str
 
     logger.info(f"Running command: {' '.join(cmd)}")
 
-    result = subprocess.run(cmd, cwd=Path(__file__).parent.parent)
+    result = subprocess.run(cmd, cwd=Path(__file__).parent.parent.parent)
 
     if result.returncode != 0:
         logger.error("GGUF conversion failed!")

@@ -48,7 +48,13 @@ class TextDataset(Dataset):
         with open(data_path, 'r', encoding='utf-8') as f:
             for line in f:
                 item = json.loads(line.strip())
-                if 'text' in item:
+                # SO(8)データセット形式に対応
+                if 'instruction' in item:
+                    text = item['instruction']
+                    if item.get('input'):
+                        text += " " + item['input']
+                    self.data.append(text)
+                elif 'text' in item:
                     self.data.append(item['text'])
 
         logger.info(f"Loaded {len(self.data)} text samples")
@@ -117,6 +123,7 @@ def train_so8_adapter(
 
     # SO(8)アダプター注入
     logger.info("Injecting SO(8) Compatible LoRA adapters...")
+    # SO(8)アダプター注入 - qkv_projは除外（次元不一致のため）
     injected_adapters = inject_so8_adapter_into_model(
         model,
         target_modules=['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'],
@@ -130,12 +137,21 @@ def train_so8_adapter(
     dataset = TextDataset(dataset_path, tokenizer)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    # オプティマイザー設定
-    optimizer = AdamW([
-        {'params': model.parameters(), 'lr': learning_rate},
-        # Lie代数パラメータはより小さな学習率で
-        {'params': [adapter.lie_algebra_param for adapter in injected_adapters.values()], 'lr': learning_rate * 0.1},
-    ])
+    # オプティマイザー設定 - SO(8)アダプターのパラメータのみを最適化
+    # ベースモデルは凍結し、アダプターパラメータのみ学習
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # アダプターパラメータのみを学習対象に
+    adapter_params = []
+    for adapter in injected_adapters.values():
+        adapter_params.extend([
+            {'params': [adapter.lora_A], 'lr': learning_rate},
+            {'params': [adapter.lora_B], 'lr': learning_rate},
+            {'params': [adapter.lie_algebra_param], 'lr': learning_rate * 0.1},  # Lie代数パラメータは小さな学習率
+        ])
+
+    optimizer = AdamW(adapter_params)
 
     # 学習ループ
     model.train()
@@ -175,10 +191,17 @@ def train_so8_adapter(
             total_loss += loss.item()
             global_step += 1
 
+            # アニーリングステップ実行
+            total_training_steps = len(dataloader) * num_epochs
+            for adapter in injected_adapters.values():
+                adapter.step_annealing(total_training_steps, global_step)
+
             # ログ出力
             if global_step % 10 == 0:
                 avg_loss = total_loss / 10
-                progress_bar.set_postfix({'loss': f'{avg_loss:.4f}'})
+                # 現在のアルファゲート値をログに表示
+                current_gate = list(injected_adapters.values())[0].alpha_gate.item()
+                progress_bar.set_postfix({'loss': f'{avg_loss:.4f}', 'gate': f'{current_gate:.4f}'})
                 total_loss = 0
 
             progress_bar.update(1)

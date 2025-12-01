@@ -24,7 +24,7 @@ class SO8CompatibleLoRA(nn.Module):
     保存時は標準LoRA形式に変換可能なモジュール。
     """
 
-    def __init__(self, hidden_size: int, rank: int = 8, alpha: float = 1.0):
+    def __init__(self, hidden_size: int, rank: int = 8, alpha: float = 1.0, device: str = 'cpu'):
         """
         SO(8) Compatible LoRA初期化
 
@@ -32,6 +32,7 @@ class SO8CompatibleLoRA(nn.Module):
             hidden_size: 隠れ層サイズ
             rank: アダプターランク (SO(8)なので8に固定)
             alpha: スケーリング係数
+            device: デバイス指定
         """
         super().__init__()
 
@@ -42,16 +43,26 @@ class SO8CompatibleLoRA(nn.Module):
         # Lie代数パラメータ (8x8の歪対称行列)
         # SO(8)群の生成元として使用
         self.lie_algebra_param = nn.Parameter(
-            torch.randn(rank, rank) * 0.01
+            torch.randn(rank, rank, device=device) * 0.01
         )
 
         # 標準LoRAパラメータ
-        self.lora_A = nn.Parameter(torch.randn(rank, hidden_size) * 0.01)  # Down
-        self.lora_B = nn.Parameter(torch.zeros(hidden_size, rank))         # Up
+        self.lora_A = nn.Parameter(torch.randn(rank, hidden_size, device=device) * 0.01)  # Down
+        self.lora_B = nn.Parameter(torch.zeros(hidden_size, rank, device=device))         # Up
+
+        # アルファゲートパラメータ (アニーリング対象)
+        # 初期値: -0.5, 目標値: Φ^(-2) ≈ 0.382
+        self.alpha_gate_raw = nn.Parameter(
+            torch.tensor(-0.5, device=device)  # 初期値 -0.5
+        )
 
         # 回転行列のキャッシュ (学習時の高速化)
-        self.register_buffer('rotation_matrix', torch.eye(rank))
+        self.register_buffer('rotation_matrix', torch.eye(rank, device=device))
         self._rotation_updated = False
+
+        # アニーリング設定
+        self.phi_minus_2 = (1 + math.sqrt(5)) / 2 ** (-2)  # Φ^(-2) ≈ 0.382
+        self.annealing_step = 0
 
     def _compute_rotation_matrix(self) -> torch.Tensor:
         """
@@ -73,6 +84,46 @@ class SO8CompatibleLoRA(nn.Module):
             self.rotation_matrix.copy_(self._compute_rotation_matrix())
             self._rotation_updated = True
 
+    @property
+    def alpha_gate(self) -> torch.Tensor:
+        """
+        アニーリングされたアルファゲート値を取得
+
+        シグモイド関数を使用して-0.5からΦ^(-2)≈0.382までゆっくり変化
+        """
+        # シグモイド関数でスケーリング
+        # sigmoid(x) は 0-1 の範囲を出力
+        sigmoid_value = torch.sigmoid(self.alpha_gate_raw)
+
+        # -0.5 から Φ^(-2) までの範囲にマッピング
+        annealed_value = -0.5 + sigmoid_value * (self.phi_minus_2 - (-0.5))
+
+        return annealed_value
+
+    def step_annealing(self, total_steps: int, current_step: int):
+        """
+        アニーリングステップを実行
+
+        Args:
+            total_steps: 全トレーニングステップ数
+            current_step: 現在のステップ
+        """
+        # 線形的にアニーリング係数を増加
+        progress = min(current_step / total_steps, 1.0)
+
+        # ゆっくりとした相転移のため、progressを非線形に変換
+        # 最初はゆっくり変化し、後半で加速
+        annealing_factor = progress ** 2  # 2乗でよりゆっくり
+
+        # rawパラメータを徐々に増加させてシグモイド関数を右にシフト
+        target_raw = 2.0  # シグモイド関数で0.88を出力 (ほぼΦ^(-2)に到達)
+        current_raw = -0.5 + annealing_factor * (target_raw - (-0.5))
+
+        # パラメータを更新
+        self.alpha_gate_raw.data.copy_(torch.tensor(current_raw, device=self.alpha_gate_raw.device))
+
+        self.annealing_step = current_step
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         SO(8)回転残差アダプターのForward Pass
@@ -88,12 +139,13 @@ class SO8CompatibleLoRA(nn.Module):
             R = self.rotation_matrix
 
         # SO(8)回転残差計算
-        # y = x + α · lora_B @ R @ lora_A @ x
+        # y = x + α_gate · lora_B @ R @ lora_A @ x
         down_proj = F.linear(x, self.lora_A)  # Down(x)
         rotated = F.linear(down_proj, R)       # R(Down(x))
         up_proj = F.linear(rotated, self.lora_B)  # Up(R(Down(x)))
 
-        return x + self.alpha * up_proj
+        # アニーリングされたアルファゲートを使用
+        return x + self.alpha_gate * up_proj
 
     def merge_to_standard_lora(self) -> Dict[str, torch.Tensor]:
         """
@@ -113,10 +165,12 @@ class SO8CompatibleLoRA(nn.Module):
         standard_lora_B = self.lora_B.clone()            # lora_Bはそのまま
 
         # 標準LoRA形式のstate_dict
+        # アニーリングされたアルファゲートを使用
+        final_alpha = self.alpha_gate.item()
         standard_state_dict = {
             'lora_A.weight': standard_lora_A,
             'lora_B.weight': standard_lora_B,
-            'alpha': torch.tensor(self.alpha),
+            'alpha': torch.tensor(final_alpha),
             'rank': torch.tensor(self.rank),
         }
 
@@ -150,6 +204,21 @@ def inject_so8_adapter_into_model(
     Returns:
         注入されたアダプターマッピング
     """
+    # モデルのデバイスを取得
+    model_device = next(model.parameters()).device
+    device = str(model_device) if model_device.type != 'meta' else 'cpu'
+    """
+    UnslothモデルにSO(8)アダプターを注入
+
+    Args:
+        model: 対象モデル
+        target_modules: 注入対象のモジュール名リスト
+        rank: アダプターランク
+        alpha: スケーリング係数
+
+    Returns:
+        注入されたアダプターマッピング
+    """
     if target_modules is None:
         # デフォルトでattentionとmlp層を対象
         target_modules = [
@@ -166,13 +235,17 @@ def inject_so8_adapter_into_model(
 
             # Linear層をチェック
             if isinstance(child_module, nn.Linear):
-                # 対象モジュールかチェック
-                if any(target in full_name for target in target_modules):
+                # 対象モジュールかチェック (qkv_projは除外)
+                is_target = any(target in full_name for target in target_modules)
+                is_qkv = 'qkv_proj' in full_name
+
+                if is_target and not is_qkv:
                     # SO(8)アダプターを注入
                     adapter = SO8CompatibleLoRA(
                         hidden_size=child_module.out_features,
                         rank=rank,
-                        alpha=alpha
+                        alpha=alpha,
+                        device=device
                     )
 
                     # 元のLinear層を保持し、アダプターを追加
@@ -328,3 +401,16 @@ if __name__ == "__main__":
     print(f"Total memory usage: {total_memory} bytes")
 
     print("SO(8) Compatible LoRA Adapter test completed!")
+
+    # アニーリングテスト
+    print("\n--- Annealing Test ---")
+    print(f"Initial alpha_gate: {adapter.alpha_gate.item():.4f}")
+    print(f"Target value (Φ^(-2)): {adapter.phi_minus_2:.4f}")
+
+    # アニーリング実行
+    for step in [10, 50, 100, 200, 500, 1000]:
+        adapter.step_annealing(1000, step)
+        gate_value = adapter.alpha_gate.item()
+        print(f"Step {step:4d}: alpha_gate = {gate_value:.4f}")
+
+    print("Annealing test completed!")
