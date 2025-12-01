@@ -13,3 +13,18 @@ C:\Users\downl\AppData\Local\Programs\Python\Python312\Lib\site-packages\hugging
 To support symlinks on Windows, you either need to activate Developer Mode or to run Python as an administrator. In order to activate developer mode, see this article: https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
   warnings.warn(message)
 2025-12-01:16:37:22 INFO     [models.huggingface:420] Model parallel was set to False, max memory was not set, and device map was set to {'': 'cuda:0'}
+2025-12-01:16:40:22 INFO     [tasks:695] Selected tasks:
+2025-12-01:16:40:22 INFO     [tasks:686] Task: hellaswag (hellaswag\hellaswag.yaml)
+2025-12-01:16:40:22 INFO     [api.task:434] Building contexts for hellaswag on rank 0...
+  0%|          | 0/10 [00:00<?, ?it/s]100%|##########| 10/10 [00:00<00:00, 2838.21it/s]
+2025-12-01:16:40:22 INFO     [evaluator:574] Running loglikelihood requests
+Running loglikelihood requests:   0%|          | 0/40 [00:00<?, ?it/s]Running loglikelihood requests:   2%|2         | 1/40 [00:03<02:20,  3.61s/it]Running loglikelihood requests: 100%|##########| 40/40 [00:03<00:00, 11.04it/s]
+2025-12-01:16:40:31 INFO     [loggers.evaluation_tracker:280] Output path not provided, skipping saving results aggregated
+Passed argument batch_size = auto:1. Detecting largest batch size
+Determined largest batch size: 64
+hf (pretrained=microsoft/DialoGPT-medium), gen_kwargs: (None), limit: 10.0, num_fewshot: None, batch_size: auto (64)
+|  Tasks  |Version|Filter|n-shot| Metric |   |Value|   |Stderr|
+|---------|------:|------|-----:|--------|---|----:|---|-----:|
+|hellaswag|      1|none  |     0|acc     |ª  |  0.3|}  |0.1528|
+|         |       |none  |     0|acc_norm|ª  |  0.3|}  |0.1528|
+
