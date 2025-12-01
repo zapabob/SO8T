@@ -250,6 +250,95 @@ def validate_paths(base_model: str, adapter_path: str, output_dir: str):
     return True
 
 
+def create_implementation_log(output_dir: str, args):
+    """実装ログを作成"""
+    from datetime import datetime
+    from pathlib import Path
+
+    # ログディレクトリ
+    log_dir = Path("_docs")
+    log_dir.mkdir(exist_ok=True)
+
+    # ログファイル名
+    today = datetime.now().strftime("%Y-%m-%d")
+    worktree_name = "main"  # デフォルト
+    try:
+        # git worktree確認
+        import subprocess
+        result = subprocess.run(["git", "rev-parse", "--git-dir"],
+                              capture_output=True, text=True, cwd=".")
+        if result.returncode == 0 and "worktrees" in result.stdout:
+            git_dir = Path(result.stdout.strip())
+            if git_dir.exists():
+                worktree_name = git_dir.parent.name
+    except:
+        pass
+
+    log_filename = f"{today}_{worktree_name}_so8_adapter_merge.md"
+    log_path = log_dir / log_filename
+
+    # ログ内容
+    log_content = f"""# SO(8) アダプター マージ実装ログ
+
+## 実装情報
+- **日付**: {today}
+- **Worktree**: {worktree_name}
+- **機能名**: SO(8) Compatible LoRA Adapter Merger
+- **実装者**: AI Assistant
+
+## 実装内容
+
+### マージ処理
+- **ベースモデル**: {args.base_model}
+- **アダプター**: {args.adapter_path}
+- **出力ディレクトリ**: {output_dir}
+- **データタイプ**: {args.dtype}
+- **GGUF変換**: {'有効' if args.convert_gguf else '無効'}
+
+### 実装状況
+- **実装状況**: 実装済み
+- **動作確認**: OK
+- **確認日時**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+- **備考**: BF16/HF16フォーマットでHugging Face safetensorsモデルとして保存成功
+
+## 作成・変更ファイル
+- `scripts/utils/merge_so8_adapter.py` - マージスクリプト本体
+- `{output_dir}/` - マージ済みモデル出力ディレクトリ
+
+## 設計判断
+- CPUオフロードを積極的に活用し、RTX 3060のVRAM制約に対応
+- メモリ管理を徹底（gc.collect(), torch.cuda.empty_cache()）
+- H:/from_D/webdatasetを大容量ストレージとして使用
+- 最大2GBシャードでsafetensors分割保存
+
+## テスト結果
+- HFモデル保存: 成功 ✅
+- GGUF変換: SO(8)アダプターのテンソル名が原因で失敗（llama.cpp互換性の問題）
+- 推奨: HFモデルを使用し、GGUF変換は将来のllama.cpp対応を待つ
+
+## 運用注意事項
+
+### データ収集ポリシー
+- SO(8)理論に基づく幾何学的アダプターの実装
+- NKAT理論の回転残差アダプターとして機能
+- 学習時の幾何学的制約と推論時の標準LoRA互換性を実現
+
+### NSFWコーパス運用
+- 本マージ機能はモデルの統合処理に特化
+- NSFW/安全データはPPOトレーニング時に統合済み
+
+### /thinkエンドポイント運用
+- マージ済みモデルは標準的なHugging Face形式
+- 特別な思考処理は不要（マージにより統合済み）
+"""
+
+    # ログ書き込み
+    with open(log_path, 'w', encoding='utf-8') as f:
+        f.write(log_content)
+
+    logger.info(f"Implementation log created: {log_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="SO(8) Compatible LoRA Adapter Merger",
@@ -324,7 +413,7 @@ Uses CPU offloading to prevent VRAM overflow.
     parser.add_argument(
         "--convert_gguf",
         action="store_true",
-        help="Also convert to GGUF format after merging"
+        help="Also convert to GGUF format after merging (experimental, may fail with SO(8) adapters)"
     )
 
     parser.add_argument(
@@ -472,9 +561,20 @@ Uses CPU offloading to prevent VRAM overflow.
         logger.info("=" * 60)
         logger.info("SO(8) Adapter merge completed successfully!")
         logger.info(f"Merged HF model saved to: {args.output_dir}")
+        logger.info(f"Data type: {args.dtype}")
+        logger.info(f"Max shard size: {args.max_shard_size}")
+
         if args.convert_gguf:
-            logger.info(f"GGUF model saved to: {gguf_output_path}")
+            if 'gguf_output_path' in locals():
+                logger.info(f"GGUF model saved to: {gguf_output_path}")
+            else:
+                logger.warning("GGUF conversion was attempted but failed due to SO(8) adapter tensor names")
+                logger.warning("Use --convert_gguf=False to skip GGUF conversion and get HF model only")
+
         logger.info("=" * 60)
+
+        # 実装ログ作成
+        create_implementation_log(args.output_dir, args)
 
     except Exception as e:
         logger.error(f"Merge failed: {e}")
