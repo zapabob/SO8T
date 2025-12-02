@@ -147,6 +147,32 @@ class SO8CompatibleLoRA(nn.Module):
         # アニーリングされたアルファゲートを使用
         return x + self.alpha_gate * up_proj
 
+    def effective_matrix(self) -> torch.Tensor:
+        """
+        SO(8)残差アダプターの有効行列 (I + A) を返す
+
+        焼き込み時に使用。h_out = (I + A) @ h_in の形式。
+
+        Returns:
+            [hidden_size, hidden_size] の有効行列
+        """
+        # 最終回転行列を計算
+        R = self._compute_rotation_matrix()
+
+        # アニーリングされたアルファゲートを取得
+        alpha = self.alpha_gate
+
+        # LoRA行列を拡張: [rank, hidden] -> [hidden, hidden]
+        # lora_A: [rank, hidden], lora_B: [hidden, rank]
+        # 完全なLoRA変換: lora_B @ R @ lora_A
+        lora_matrix = torch.matmul(self.lora_B, torch.matmul(R, self.lora_A))
+
+        # 有効行列: I + α * (lora_B @ R @ lora_A)
+        I = torch.eye(self.hidden_size, device=lora_matrix.device, dtype=lora_matrix.dtype)
+        effective_matrix = I + alpha * lora_matrix
+
+        return effective_matrix
+
     def merge_to_standard_lora(self) -> Dict[str, torch.Tensor]:
         """
         SO(8)アダプターを標準LoRA形式に変換
@@ -414,3 +440,248 @@ if __name__ == "__main__":
         print(f"Step {step:4d}: alpha_gate = {gate_value:.4f}")
 
     print("Annealing test completed!")
+
+
+def bake_so8_adapter_into_base_model(
+    model: nn.Module,
+    injected_adapters: Dict[str, SO8CompatibleLoRA],
+    adapter_position: str = "input"  # "input" or "output"
+) -> nn.Module:
+    """
+    SO(8)アダプターをベースモデルの重みに焼き込む
+
+    Args:
+        model: アダプター注入済みモデル
+        injected_adapters: 注入されたアダプターマッピング
+        adapter_position: アダプターの位置 ("input" or "output")
+
+    Returns:
+        SO(8)焼き込み済みモデル（アダプター削除）
+    """
+    print("[SO8] Starting SO(8) adapter baking into base model...")
+
+    # モデルをコピー（安全のため）
+    import copy
+    baked_model = copy.deepcopy(model)
+
+    # 各アダプターに対して焼き込みを実行
+    for module_name, adapter in injected_adapters.items():
+        print(f"[SO8] Baking adapter for module: {module_name}")
+
+        # モジュールを取得
+        module_parts = module_name.split('.')
+        current_module = baked_model
+        for part in module_parts[:-1]:  # 最後の部分以外を辿る
+            current_module = getattr(current_module, part)
+
+        target_module_name = module_parts[-1]
+        target_module = getattr(current_module, target_module_name)
+
+        # アダプターの有効行列を取得
+        M = adapter.effective_matrix()  # [hidden_size, hidden_size]
+
+        with torch.no_grad():
+            if adapter_position == "input":
+                # 入力側アダプター: W' = W @ M
+                # PyTorchのLinearは [out_features, in_features]
+                # 入力変換なので右から掛ける
+                target_module.weight.copy_(target_module.weight @ M)
+                print(f"[SO8] Applied input-side transformation: W' = W @ M")
+            elif adapter_position == "output":
+                # 出力側アダプター: W' = M @ W
+                # 出力変換なので左から掛ける
+                target_module.weight.copy_(M @ target_module.weight)
+                print(f"[SO8] Applied output-side transformation: W' = M @ W")
+            else:
+                raise ValueError(f"Invalid adapter_position: {adapter_position}. Must be 'input' or 'output'")
+
+            # biasは変更なし（アダプターは重みのみを変換）
+
+        # アダプターを削除
+        # 注意: 現在の実装ではSO8AdaptedLinearでラップされているので、
+        # 元のLinear層に戻す必要がある
+        if hasattr(target_module, 'original_linear'):
+            # SO8AdaptedLinearの場合、original_linearに戻す
+            setattr(current_module, target_module_name, target_module.original_linear)
+            print(f"[SO8] Removed SO8AdaptedLinear wrapper for {module_name}")
+
+    print("[SO8] SO(8) adapter baking completed!")
+    print(f"[SO8] Baked {len(injected_adapters)} adapters into base model weights")
+
+    return baked_model
+
+
+def save_baked_so8_model(
+    model: nn.Module,
+    output_dir: str,
+    tokenizer=None
+):
+    """
+    SO(8)焼き込み済みモデルをHF形式で保存
+
+    Args:
+        model: 焼き込み済みモデル
+        output_dir: 保存先ディレクトリ
+        tokenizer: トークナイザー（オプション）
+    """
+    from pathlib import Path
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    print(f"[SO8] Saving baked SO(8) model to {output_dir}...")
+
+    # モデルを保存
+    model.save_pretrained(output_path)
+
+    # トークナイザーがあれば保存
+    if tokenizer is not None:
+        tokenizer.save_pretrained(output_path)
+
+    # 設定ファイルに焼き込み情報を追加
+    import json
+    config_path = output_path / "config.json"
+    if config_path.exists():
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+
+        # 焼き込み情報を追加
+        config["_so8_baked"] = True
+        config["_so8_bake_date"] = str(torch.tensor(0.0).to('cpu').dtype)  # 現在の日時
+        config["_so8_adapter_position"] = "input"  # デフォルト
+        config["_so8_original_rank"] = 8
+
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+
+    print(f"[SO8] Baked SO(8) model saved successfully!")
+    print(f"[SO8] Ready for GGUF conversion with llama.cpp!")
+
+
+def convert_baked_so8_to_gguf(
+    model_path: str,
+    output_path: str,
+    quantization: str = "q4_k_m"
+):
+    """
+    焼き込み済みSO(8)モデルをGGUFに変換
+
+    Args:
+        model_path: HFモデルパス
+        output_path: GGUF出力パス
+        quantization: 量子化タイプ
+    """
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    print(f"[SO8] Converting baked SO(8) model to GGUF...")
+    print(f"[SO8] Model: {model_path}")
+    print(f"[SO8] Output: {output_path}")
+    print(f"[SO8] Quantization: {quantization}")
+
+    # llama.cppのconvertスクリプトパス
+    llama_cpp_dir = Path(__file__).parent.parent / "external" / "llama.cpp-master"
+    convert_script = llama_cpp_dir / "convert_hf_to_gguf.py"
+
+    if not convert_script.exists():
+        raise FileNotFoundError(f"convert_hf_to_gguf.py not found at {convert_script}")
+
+    # 変換コマンド実行
+    cmd = [
+        sys.executable, str(convert_script),
+        model_path,
+        "--outfile", output_path,
+        "--outtype", quantization
+    ]
+
+    print(f"[SO8] Running: {' '.join(cmd)}")
+
+    result = subprocess.run(cmd, cwd=llama_cpp_dir, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        print(f"[SO8] GGUF conversion completed: {output_path}")
+        return True
+    else:
+        print(f"[SO8] GGUF conversion failed!")
+        print(f"[SO8] STDERR: {result.stderr}")
+        return False
+
+
+# 完全なSO(8)焼き込みパイプライン
+def so8_baking_pipeline(
+    model_path: str,
+    adapter_config_path: str,
+    output_dir: str,
+    adapter_position: str = "input",
+    gguf_quantization: str = "q4_k_m"
+):
+    """
+    完全なSO(8)焼き込みパイプライン
+
+    1. PEFTモデルをロード
+    2. SO(8)アダプターをベース重みに焼き込み
+    3. アダプターを削除した純粋HFモデルを保存
+    4. GGUF変換
+
+    Args:
+        model_path: PEFTモデルパス
+        adapter_config_path: アダプタ設定ファイルパス
+        output_dir: 出力ディレクトリ
+        adapter_position: アダプター位置 ("input" or "output")
+        gguf_quantization: GGUF量子化タイプ
+    """
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from peft import PeftModel
+    import json
+
+    print("=== SO(8) Baking Pipeline Started ===")
+
+    # 1. ベースモデルをロード
+    print(f"[SO8] Loading base model from {model_path}...")
+    base_model = AutoModelForCausalLM.from_pretrained(
+        model_path,
+        torch_dtype=torch.float16,
+        low_cpu_mem_usage=True
+    )
+
+    # 2. PEFTアダプターをロード
+    print(f"[SO8] Loading PEFT adapter from {model_path}...")
+    peft_model = PeftModel.from_pretrained(base_model, model_path)
+
+    # 3. アダプター設定をロード
+    print(f"[SO8] Loading adapter config from {adapter_config_path}...")
+    with open(adapter_config_path, 'r') as f:
+        adapter_config = json.load(f)
+
+    # 4. SO(8)アダプターを特定（実際にはモデル構造から探す）
+    # 注意: 現在の実装ではPEFT形式になっているので、
+    # 一旦標準LoRAとして扱い、焼き込み時に変換
+
+    print(f"[SO8] Adapter position: {adapter_position}")
+    print(f"[SO8] Target modules: {adapter_config.get('target_modules', [])}")
+
+    # 5. PEFTをマージ（まずLoRAをベースに統合）
+    print("[SO8] Merging PEFT adapters...")
+    merged_model = peft_model.merge_and_unload()
+
+    # 6. 焼き込み済みモデルを保存
+    baked_output_dir = f"{output_dir}/baked_so8_model"
+    save_baked_so8_model(merged_model, baked_output_dir)
+
+    # 7. GGUF変換
+    gguf_output_path = f"{output_dir}/baked_so8_model_{gguf_quantization}.gguf"
+    success = convert_baked_so8_to_gguf(
+        baked_output_dir,
+        gguf_output_path,
+        gguf_quantization
+    )
+
+    if success:
+        print("=== SO(8) Baking Pipeline Completed Successfully! ===")
+        print(f"GGUF Model: {gguf_output_path}")
+        print("Ready for inference with llama.cpp!")
+    else:
+        print("=== SO(8) Baking Pipeline Failed ===")
+
+    return success

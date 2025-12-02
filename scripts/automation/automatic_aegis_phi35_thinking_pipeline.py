@@ -402,9 +402,9 @@ See `benchmark_results/` directory for comprehensive AB testing results includin
 
             self.create_rolling_checkpoint()
 
-            # Phase 3: GGUF変換
-            if not self.run_gguf_conversion():
-                raise Exception("GGUF conversion failed")
+            # Phase 3: SO(8) アダプター焼き込み + GGUF変換
+            if not self.run_so8_baking_and_gguf():
+                raise Exception("SO(8) baking and GGUF conversion failed")
 
             self.create_rolling_checkpoint()
 
