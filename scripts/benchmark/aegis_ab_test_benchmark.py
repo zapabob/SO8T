@@ -49,9 +49,9 @@ except ImportError:
 @dataclass
 class ABTestConfig:
     """A/Bテスト設定"""
-    model_a_path: str = "Borea-Phi3.5-mini-Instruct-Jp"  # Borea-Phi3.5-instinct-jp
+    model_a_path: str = "microsoft/Phi-3.5-mini-instruct"  # Base model for comparison
     model_b_path: str = "AEGIS-Phi3.5-thinking-v2.0"  # AEGIS-Phi3.5-thinking-v2.0
-    output_dir: str = "benchmark_results/aegis_ab_test"
+    output_dir: str = r"H:\from_D\webdataset\benchmark_results\aegis_ab_test"  # H:\from_D\webdatasetに保存
     device: str = "auto"  # CUDA優先
     use_4bit: bool = True  # 4bit量子化オン
     max_new_tokens: int = 512  # 標準長
@@ -63,10 +63,14 @@ class ABTestConfig:
     # チェックポイント設定
     checkpoint_interval: int = 180  # 3分間隔 (秒)
     max_checkpoints: int = 5  # ローリングストック数
-    checkpoint_dir: str = "D:/webdataset/checkpoints/ab_test"
+    checkpoint_dir: str = r"H:\from_D\webdataset\checkpoints\ab_test"  # H:\from_D\webdatasetに保存
     # GGUF変換設定
     gguf_convert: bool = True
-    gguf_dir: str = "D:/webdataset/gguf_models"
+    gguf_dir: str = r"H:\from_D\webdataset\gguf_models"  # H:\from_D\webdatasetに保存
+    # LM-Evaluation-Harness設定
+    use_lm_eval_harness: bool = True  # lm-evaluation-harnessを使用
+    lm_eval_tasks: str = "hellaswag,mmlu"  # 評価タスク
+    lm_eval_output_dir: str = r"H:\from_D\webdataset\benchmark_results\lm_eval"  # LM-Eval結果保存先
     # 自動起動設定
     auto_restart: bool = True
 
@@ -216,7 +220,7 @@ class AEGISABTester:
                 )
             print("✓ モデルA読み込み成功")
         except Exception as e:
-            print(f"✗ モデルA読み込み失敗: {e}")
+            print(f"[NG] モデルA読み込み失敗: {e}")
             return False
 
         # モデルB読み込み (AEGISモデル)
@@ -242,7 +246,7 @@ class AEGISABTester:
                 self.model_b = None
                 self.tokenizer_b = self.tokenizer_a  # フォールバック
         except Exception as e:
-            print(f"✗ モデルB読み込み失敗: {e}")
+            print(f"[NG] モデルB読み込み失敗: {e}")
             print("モデルAのみでテストを実行します")
             self.model_b = None
             self.tokenizer_b = self.tokenizer_a
@@ -262,7 +266,7 @@ class AEGISABTester:
                 print(f"✓ ローカルELYZA-100: {len(data)}件読み込みました")
                 return data
             except Exception as e:
-                print(f"✗ ローカルファイル読み込み失敗: {e}")
+                print(f"[NG] ローカルファイル読み込み失敗: {e}")
 
         # HFからダウンロードを試行
         try:
@@ -279,7 +283,7 @@ class AEGISABTester:
             return data
 
         except Exception as e:
-            print(f"✗ ELYZA-100読み込み失敗: {e}")
+            print(f"[NG] ELYZA-100読み込み失敗: {e}")
             # テスト用ダミーデータ作成
             print("⚠ テスト用ダミーデータを作成します")
             return self._create_dummy_elyza_data()
@@ -535,24 +539,84 @@ class AEGISABTester:
 
         try:
             import subprocess
+            from pathlib import Path
 
-            # OllamaでGGUFモデルをロードしてテスト
-            # ここでは簡易的にollama runコマンドを使用
             test_results = {}
 
-            for model_name, gguf_path in [("Model_A", gguf_model_a), ("Model_B", gguf_model_b)]:
-                print(f"\n[GGUF_TEST] Testing {model_name}: {gguf_path}")
+            for model_name, gguf_dir in [("Borea_Phi35_JP", gguf_model_a), ("AEGIS_Phi35_Thinking_v2", gguf_model_b)]:
+                print(f"\n[GGUF_TEST] Testing {model_name}")
 
-                # 簡単なテストプロンプト
-                test_prompt = "こんにちは。自己紹介をお願いします。"
+                gguf_dir_path = Path(gguf_dir)
 
-                # ollama runコマンド（実際には事前にollama createが必要）
-                # ここでは仮定して結果を記録
+                # Q8_0モデルファイルを探す
+                gguf_files = list(gguf_dir_path.glob("*_Q8_0.gguf"))
+                if not gguf_files:
+                    print(f"[WARNING] Q8_0 GGUF file not found in {gguf_dir}")
+                    continue
+
+                gguf_file = gguf_files[0]
+                print(f"[GGUF] Found model: {gguf_file}")
+
+                # Ollama Modelfile作成
+                modelfile_content = f"""FROM {gguf_file}
+
+TEMPLATE \"\"\"{{{{ .System }}}}
+
+{{{{ .Prompt }}}}\"\"\"
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_ctx 4096
+PARAMETER num_thread 8
+"""
+
+                modelfile_path = gguf_dir_path / f"{model_name}.modelfile"
+                with open(modelfile_path, 'w', encoding='utf-8') as f:
+                    f.write(modelfile_content)
+
+                # Ollamaモデル作成
+                ollama_name = f"{model_name.lower()}:latest"
+                create_cmd = ["ollama", "create", ollama_name, "-f", str(modelfile_path)]
+
+                print(f"[OLLAMA] Creating model {ollama_name}")
+                result_create = subprocess.run(create_cmd, capture_output=True, text=True, timeout=300)
+
+                if result_create.returncode != 0:
+                    print(f"[ERROR] Ollama create failed: {result_create.stderr}")
+                    continue
+
+                # Ollamaテスト実行
+                test_prompts = [
+                    "こんにちは。自己紹介をお願いします。",
+                    "日本の首都はどこですか？",
+                    "2+2×3の計算結果を教えてください。",
+                    "人工知能について簡単に説明してください。"
+                ]
+
+                test_responses = {}
+                for i, prompt in enumerate(test_prompts):
+                    print(f"[TEST {i+1}] {prompt[:30]}...")
+                    run_cmd = ["ollama", "run", ollama_name, prompt]
+
+                    try:
+                        result_run = subprocess.run(run_cmd, capture_output=True, text=True, timeout=60)
+                        if result_run.returncode == 0:
+                            test_responses[f"test_{i+1}"] = result_run.stdout.strip()
+                        else:
+                            test_responses[f"test_{i+1}"] = f"ERROR: {result_run.stderr}"
+                    except subprocess.TimeoutExpired:
+                        test_responses[f"test_{i+1}"] = "TIMEOUT"
+
                 test_results[model_name] = {
-                    'gguf_path': gguf_path,
-                    'test_prompt': test_prompt,
-                    'status': 'ready_for_ollama'
+                    'gguf_path': str(gguf_file),
+                    'modelfile_path': str(modelfile_path),
+                    'ollama_name': ollama_name,
+                    'test_responses': test_responses,
+                    'status': 'completed'
                 }
+
+                print(f"[SUCCESS] {model_name} GGUF test completed")
 
             return test_results
 
@@ -560,9 +624,179 @@ class AEGISABTester:
             print(f"[ERROR] GGUF test failed: {e}")
             return None
 
+    def run_lm_eval_test(self):
+        """LM-Evaluation-Harnessテスト実行"""
+        print("\n=== LM-Evaluation-Harnessテスト開始 ===")
+
+        try:
+            import subprocess
+            import json
+            import os
+            from pathlib import Path
+
+            # 出力ディレクトリ作成
+            output_dir = Path(self.config.lm_eval_output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            # 評価タスク設定
+            eval_tasks = self.config.lm_eval_tasks.split(",")
+
+            eval_results = {}
+
+            # HFモデル評価
+            print("\n[HF_MODEL_EVAL] HFモデル評価開始")
+
+            for model_name, model_path in [("Borea_Phi35_JP", self.config.model_a_path),
+                                         ("AEGIS_Phi35_Thinking_v2", self.config.model_b_path)]:
+
+                print(f"\n[HF_EVAL] {model_name} 評価開始")
+
+                for task in eval_tasks:
+                    print(f"[HF_EVAL] {model_name} - {task}")
+
+                    # lm_evalコマンド（HuggingFaceモデル直接評価）
+                    output_path = output_dir / f"hf_{model_name}_{task}.json"
+
+                    cmd = [
+                        "python", "-m", "lm_eval",
+                        "--model", "hf",
+                        "--model_args", f"pretrained={model_path},trust_remote_code=True,dtype=bfloat16",
+                        "--tasks", task,
+                        "--device", "cuda" if torch.cuda.is_available() else "cpu",
+                        "--batch_size", "auto",
+                        "--output_path", str(output_path),
+                        "--log_samples"
+                    ]
+
+                    try:
+                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)  # 1時間タイムアウト
+
+                        if result.returncode == 0:
+                            eval_results[f"hf_{model_name}_{task}"] = {
+                                'status': 'success',
+                                'output': result.stdout,
+                                'task': task,
+                                'output_path': str(output_path)
+                            }
+                            print(f"[OK] {model_name} - {task} 完了")
+                        else:
+                            eval_results[f"hf_{model_name}_{task}"] = {
+                                'status': 'failed',
+                                'error': result.stderr,
+                                'task': task
+                            }
+                            print(f"[NG] {model_name} - {task} 失敗: {result.stderr[:200]}...")
+                    except subprocess.TimeoutExpired:
+                        eval_results[f"hf_{model_name}_{task}"] = {
+                            'status': 'timeout',
+                            'task': task
+                        }
+
+            # GGUFモデル評価（HF backend + gguf_file使用）
+            print("\n[GGUF_MODEL_EVAL] GGUFモデル評価開始")
+
+            # GGUFモデルが利用可能かチェック
+            gguf_base_dir = Path(self.config.gguf_dir)
+            if gguf_base_dir.exists():
+                for model_name, model_path in [("Borea_Phi35_JP", self.config.model_a_path),
+                                             ("AEGIS_Phi35_Thinking_v2", self.config.model_b_path)]:
+
+                    # GGUFディレクトリを探す
+                    model_gguf_dir = None
+                    for gguf_subdir in gguf_base_dir.iterdir():
+                        if gguf_subdir.is_dir() and model_name.lower().replace("_", "").replace("-", "") in gguf_subdir.name.lower():
+                            model_gguf_dir = gguf_subdir
+                            break
+
+                    if model_gguf_dir:
+                        print(f"\n[GGUF_EVAL] {model_name} GGUF評価開始")
+
+                        # GGUFファイルを探す（Q8_0を優先）
+                        gguf_file = None
+                        for ext in ["*.gguf"]:
+                            gguf_files = list(model_gguf_dir.glob(ext))
+                            if gguf_files:
+                                # Q8_0を優先、なければ最初のファイル
+                                for gf in gguf_files:
+                                    if "Q8_0" in gf.name or "q8_0" in gf.name:
+                                        gguf_file = gf
+                                        break
+                                if not gguf_file:
+                                    gguf_file = gguf_files[0]
+                                break
+
+                        if gguf_file:
+                            print(f"[GGUF_EVAL] Found GGUF: {gguf_file}")
+
+                            # トークナイザーディレクトリ（元のHFモデル）
+                            tokenizer_dir = model_path if Path(model_path).exists() else None
+                            if not tokenizer_dir and "microsoft/Phi-3.5-mini-instruct" in model_path:
+                                tokenizer_dir = "microsoft/Phi-3.5-mini-instruct"
+
+                            for task in eval_tasks:
+                                print(f"[GGUF_EVAL] {model_name} - {task}")
+
+                                output_path = output_dir / f"gguf_{model_name}_{task}.json"
+
+                                # HF backendでGGUF評価
+                                if tokenizer_dir:
+                                    model_args = f"pretrained={model_gguf_dir},gguf_file={gguf_file.name},tokenizer={tokenizer_dir}"
+                                else:
+                                    model_args = f"pretrained={model_gguf_dir},gguf_file={gguf_file.name}"
+
+                                cmd = [
+                                    "python", "-m", "lm_eval",
+                                    "--model", "hf",
+                                    "--model_args", model_args,
+                                    "--tasks", task,
+                                    "--device", "cuda" if torch.cuda.is_available() else "cpu",
+                                    "--batch_size", "auto",
+                                    "--output_path", str(output_path),
+                                    "--log_samples"
+                                ]
+
+                                try:
+                                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+
+                                    if result.returncode == 0:
+                                        eval_results[f"gguf_{model_name}_{task}"] = {
+                                            'status': 'success',
+                                            'output': result.stdout,
+                                            'task': task,
+                                            'output_path': str(output_path),
+                                            'gguf_file': str(gguf_file)
+                                        }
+                                        print(f"[OK] GGUF {model_name} - {task} 完了")
+                                    else:
+                                        eval_results[f"gguf_{model_name}_{task}"] = {
+                                            'status': 'failed',
+                                            'error': result.stderr,
+                                            'task': task,
+                                            'gguf_file': str(gguf_file)
+                                        }
+                                        print(f"[NG] GGUF {model_name} - {task} 失敗: {result.stderr[:200]}...")
+                                except subprocess.TimeoutExpired:
+                                    eval_results[f"gguf_{model_name}_{task}"] = {
+                                        'status': 'timeout',
+                                        'task': task,
+                                        'gguf_file': str(gguf_file)
+                                    }
+                        else:
+                            print(f"[SKIP] No GGUF file found for {model_name}")
+                    else:
+                        print(f"[SKIP] No GGUF directory found for {model_name}")
+            else:
+                print(f"[SKIP] GGUF directory not found: {gguf_base_dir}")
+
+            return eval_results
+
+        except Exception as e:
+            print(f"[ERROR] LM-Eval test failed: {e}")
+            return None
+
     def run_ab_test(self):
         """A/Bテスト実行"""
-        print("🎯 AEGIS-phi3.5-v2.0 A/Bテスト開始")
+        print("[TARGET] AEGIS-phi3.5-v2.0 A/Bテスト開始")
         print("=" * 50)
 
         # チェックポイントから復元
@@ -574,12 +808,15 @@ class AEGISABTester:
         # ELYZA-100読み込み
         elyza_data = self.load_elyza_dataset()
         if not elyza_data:
-            print("✗ テストデータなし")
+            print("[NG] テストデータなし")
             return False
 
         results = []
 
         for i, task in enumerate(tqdm(elyza_data, desc="A/Bテスト実行中")):
+            # 定期チェックポイント保存チェック
+            self._check_checkpoint_save()
+
             question = task.get('input', task.get('question', ''))
             task_id = task.get('task_id', f'task_{i}')
             category = task.get('category', 'unknown')
@@ -994,7 +1231,7 @@ AEGIS-phi3.5-v2.0は以下の理論を統合:
 
     def run_full_evaluation(self):
         """完全評価実行"""
-        print("🎯 AEGIS-phi3.5-v2.0 A/Bテスト開始")
+        print("[TARGET] AEGIS-phi3.5-v2.0 A/Bテスト開始")
         print("=" * 60)
 
         # モデル読み込み
@@ -1019,7 +1256,7 @@ AEGIS-phi3.5-v2.0は以下の理論を統合:
         # HF README作成
         self.create_hf_readme(stats)
 
-        print("\n✅ A/Bテスト完了！")
+        print("\n[OK] A/Bテスト完了！")
         print(f"結果保存先: {self.config.output_dir}")
         print(f"Model A平均: {stats['model_a']['mean']:.3f}")
         print(f"Model B平均: {stats['model_b']['mean']:.3f}")
@@ -1029,17 +1266,148 @@ AEGIS-phi3.5-v2.0は以下の理論を統合:
         return True
 
 
+def create_auto_startup_script():
+    """自動起動スクリプト作成"""
+    startup_script = """@echo off
+REM SO8T A/Bテスト自動起動スクリプト
+REM 電源投入時に自動実行されるようにタスクスケジューラーに登録してください
+
+cd /d "%~dp0\\..\\.."
+
+REM H:\\from_D\\webdataset が利用可能か確認
+if not exist "H:\\from_D\\webdataset" (
+    echo [ERROR] H:\\from_D\\webdataset not found >> auto_start.log
+    exit /b 1
+)
+
+REM ログディレクトリ作成
+if not exist "H:\\from_D\\webdataset\\logs" mkdir "H:\\from_D\\webdataset\\logs"
+
+echo [AUTO] Starting SO8T A/B Test at %DATE% %TIME% >> "H:\\from_D\\webdataset\\logs\\auto_start.log"
+
+REM Python環境確認
+python --version >> "H:\\from_D\\webdataset\\logs\\auto_start.log" 2>&1
+if errorlevel 1 (
+    echo [ERROR] Python not found >> "H:\\from_D\\webdataset\\logs\\auto_start.log"
+    exit /b 1
+)
+
+REM A/Bテスト実行
+python scripts/benchmark/aegis_ab_test_benchmark.py >> "H:\\from_D\\webdataset\\logs\\auto_start.log" 2>&1
+
+if errorlevel 0 (
+    echo [SUCCESS] A/B Test completed at %DATE% %TIME% >> "H:\\from_D\\webdataset\\logs\\auto_start.log"
+) else (
+    echo [ERROR] A/B Test failed at %DATE% %TIME% >> "H:\\from_D\\webdataset\\logs\\auto_start.log"
+)
+
+REM 完了通知（オプション）
+powershell -ExecutionPolicy Bypass -File "scripts\\utils\\play_audio_notification.ps1"
+"""
+
+    script_path = Path("scripts/benchmark/auto_start_ab_test.bat")
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(script_path, 'w', encoding='utf-8') as f:
+        f.write(startup_script)
+
+    print(f"[AUTO] Created auto-startup script: {script_path}")
+    print(r"[STORAGE] Using H:\from_D\webdataset for large files")
+
+    # Windowsタスクスケジューラー登録コマンド表示
+    print("\n=== Windowsタスクスケジューラー登録方法 ===")
+    print("1. Windows + R → taskschd.msc")
+    print("2. 「タスクの作成」を選択")
+    print("3. 名前: SO8T_AB_Test_Auto_Start")
+    print("4. 「トリガー」タブ → 「新規」")
+    print("   - ログオン時に開始")
+    print("   - または電源投入時に開始")
+    print("5. 「操作」タブ → 「新規」")
+    print(f"   - プログラム: {script_path}")
+    print("6. 「条件」タブ → 「コンピュータがAC電源で実行されている場合のみタスクを開始する」をオフ")
+    print("7. 「設定」タブ → 「失敗した場合は再起動」をオン")
+    print("   - 再起動間隔: 1分")
+    print("   - 再試行回数: 3回")
+
+    return script_path
+
+
 def main():
     """メイン関数"""
+    print("[START] SO8T AEGIS A/Bテストシステム")
+    print("=" * 50)
+    print(r"H:\from_D\webdataset を大きなファイル保存先として使用")
+
+    # 自動起動スクリプト作成
+    if ABTestConfig().auto_restart:
+        create_auto_startup_script()
+
     config = ABTestConfig()
     tester = AEGISABTester(config)
-    success = tester.run_full_evaluation()
 
-    if success:
-        print("\n🎉 AEGIS A/Bテスト成功！HF公開準備完了")
-    else:
-        print("\n❌ A/Bテスト失敗")
+    try:
+        # メイン評価実行
+        success = tester.run_full_evaluation()
+
+        if success:
+            print("\n[SUCCESS] AEGIS A/Bテスト成功！HF公開準備完了")
+
+            # LM-Evalテスト実行
+            print("\n=== LM-Eval HFモデルテストフェーズ ===")
+            lm_eval_results = tester.run_lm_eval_test()
+            if lm_eval_results:
+                print("[OK] LM-Evalテスト完了")
+            else:
+                print("⚠️ LM-Evalテスト失敗")
+
+            # GGUF変換実行
+            print("\n=== GGUF変換フェーズ ===")
+            gguf_a = tester.convert_to_gguf(config.model_a_path, "Borea_Phi35_JP")
+            gguf_b = tester.convert_to_gguf(config.model_b_path, "AEGIS_Phi35_Thinking_v2")
+
+            if gguf_a and gguf_b:
+                # GGUFテスト実行
+                print("\n=== GGUFモデルテストフェーズ ===")
+                gguf_results = tester.run_gguf_test(gguf_a, gguf_b)
+                if gguf_results:
+                    print("[OK] GGUFテスト完了")
+                else:
+                    print("⚠️ GGUFテスト一部失敗")
+            else:
+                print("⚠️ GGUF変換スキップまたは失敗")
+
+        else:
+            print("\n[NG] A/Bテスト失敗")
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        print("\n[INTERRUPT] User interrupted. Saving checkpoint...")
+        tester._save_checkpoint("interrupted")
         sys.exit(1)
+
+    except Exception as e:
+        print(f"\n[ERROR] Unexpected error: {e}")
+        tester._save_checkpoint("error")
+        sys.exit(1)
+
+    finally:
+        # 最終チェックポイント保存
+        tester._save_checkpoint("final")
+
+        # オーディオ通知
+        try:
+            audio_script = Path("scripts/utils/play_audio_notification.ps1")
+            if audio_script.exists():
+                import subprocess
+                subprocess.run([
+                    "powershell",
+                    "-ExecutionPolicy", "Bypass",
+                    "-File", str(audio_script)
+                ], capture_output=True)
+        except Exception as e:
+            print(f"[WARNING] Audio notification failed: {e}")
+
+    print("\n[OK] すべての処理が完了しました")
 
 
 if __name__ == "__main__":
