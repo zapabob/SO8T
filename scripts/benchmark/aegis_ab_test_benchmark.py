@@ -1412,3 +1412,235 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+) else (
+    echo [ERROR] A/B Test failed at %DATE% %TIME% >> "H:\\from_D\\webdataset\\logs\\auto_start.log"
+)
+
+REM 完了通知（オプション）
+powershell -ExecutionPolicy Bypass -File "scripts\\utils\\play_audio_notification.ps1"
+"""
+
+    script_path = Path("scripts/benchmark/auto_start_ab_test.bat")
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(script_path, 'w', encoding='utf-8') as f:
+        f.write(startup_script)
+
+    print(f"[AUTO] Created auto-startup script: {script_path}")
+    print(r"[STORAGE] Using H:\from_D\webdataset for large files")
+
+    # Windowsタスクスケジューラー登録コマンド表示
+    print("\n=== Windowsタスクスケジューラー登録方法 ===")
+    print("1. Windows + R → taskschd.msc")
+    print("2. 「タスクの作成」を選択")
+    print("3. 名前: SO8T_AB_Test_Auto_Start")
+    print("4. 「トリガー」タブ → 「新規」")
+    print("   - ログオン時に開始")
+    print("   - または電源投入時に開始")
+    print("5. 「操作」タブ → 「新規」")
+    print(f"   - プログラム: {script_path}")
+    print("6. 「条件」タブ → 「コンピュータがAC電源で実行されている場合のみタスクを開始する」をオフ")
+    print("7. 「設定」タブ → 「失敗した場合は再起動」をオン")
+    print("   - 再起動間隔: 1分")
+    print("   - 再試行回数: 3回")
+
+    return script_path
+
+
+def main():
+    """メイン関数"""
+    print("[START] SO8T AEGIS A/Bテストシステム")
+    print("=" * 50)
+    print(r"H:\from_D\webdataset を大きなファイル保存先として使用")
+
+    # 自動起動スクリプト作成
+    if ABTestConfig().auto_restart:
+        create_auto_startup_script()
+
+    config = ABTestConfig()
+    tester = AEGISABTester(config)
+
+    try:
+        # メイン評価実行
+        success = tester.run_full_evaluation()
+
+        if success:
+            print("\n[SUCCESS] AEGIS A/Bテスト成功！HF公開準備完了")
+
+            # LM-Evalテスト実行
+            print("\n=== LM-Eval HFモデルテストフェーズ ===")
+            lm_eval_results = tester.run_lm_eval_test()
+            if lm_eval_results:
+                print("[OK] LM-Evalテスト完了")
+            else:
+                print("⚠️ LM-Evalテスト失敗")
+
+            # GGUF変換実行
+            print("\n=== GGUF変換フェーズ ===")
+            gguf_a = tester.convert_to_gguf(config.model_a_path, "Borea_Phi35_JP")
+            gguf_b = tester.convert_to_gguf(config.model_b_path, "AEGIS_Phi35_Thinking_v2")
+
+            if gguf_a and gguf_b:
+                # GGUFテスト実行
+                print("\n=== GGUFモデルテストフェーズ ===")
+                gguf_results = tester.run_gguf_test(gguf_a, gguf_b)
+                if gguf_results:
+                    print("[OK] GGUFテスト完了")
+                else:
+                    print("⚠️ GGUFテスト一部失敗")
+            else:
+                print("⚠️ GGUF変換スキップまたは失敗")
+
+        else:
+            print("\n[NG] A/Bテスト失敗")
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        print("\n[INTERRUPT] User interrupted. Saving checkpoint...")
+        tester._save_checkpoint("interrupted")
+        sys.exit(1)
+
+    except Exception as e:
+        print(f"\n[ERROR] Unexpected error: {e}")
+        tester._save_checkpoint("error")
+        sys.exit(1)
+
+    finally:
+        # 最終チェックポイント保存
+        tester._save_checkpoint("final")
+
+        # オーディオ通知
+        try:
+            audio_script = Path("scripts/utils/play_audio_notification.ps1")
+            if audio_script.exists():
+                import subprocess
+                subprocess.run([
+                    "powershell",
+                    "-ExecutionPolicy", "Bypass",
+                    "-File", str(audio_script)
+                ], capture_output=True)
+        except Exception as e:
+            print(f"[WARNING] Audio notification failed: {e}")
+
+    print("\n[OK] すべての処理が完了しました")
+
+
+if __name__ == "__main__":
+    main()
+
+) else (
+    echo [ERROR] A/B Test failed at %DATE% %TIME% >> "H:\\from_D\\webdataset\\logs\\auto_start.log"
+)
+
+REM 完了通知（オプション）
+powershell -ExecutionPolicy Bypass -File "scripts\\utils\\play_audio_notification.ps1"
+"""
+
+    script_path = Path("scripts/benchmark/auto_start_ab_test.bat")
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(script_path, 'w', encoding='utf-8') as f:
+        f.write(startup_script)
+
+    print(f"[AUTO] Created auto-startup script: {script_path}")
+    print(r"[STORAGE] Using H:\from_D\webdataset for large files")
+
+    # Windowsタスクスケジューラー登録コマンド表示
+    print("\n=== Windowsタスクスケジューラー登録方法 ===")
+    print("1. Windows + R → taskschd.msc")
+    print("2. 「タスクの作成」を選択")
+    print("3. 名前: SO8T_AB_Test_Auto_Start")
+    print("4. 「トリガー」タブ → 「新規」")
+    print("   - ログオン時に開始")
+    print("   - または電源投入時に開始")
+    print("5. 「操作」タブ → 「新規」")
+    print(f"   - プログラム: {script_path}")
+    print("6. 「条件」タブ → 「コンピュータがAC電源で実行されている場合のみタスクを開始する」をオフ")
+    print("7. 「設定」タブ → 「失敗した場合は再起動」をオン")
+    print("   - 再起動間隔: 1分")
+    print("   - 再試行回数: 3回")
+
+    return script_path
+
+
+def main():
+    """メイン関数"""
+    print("[START] SO8T AEGIS A/Bテストシステム")
+    print("=" * 50)
+    print(r"H:\from_D\webdataset を大きなファイル保存先として使用")
+
+    # 自動起動スクリプト作成
+    if ABTestConfig().auto_restart:
+        create_auto_startup_script()
+
+    config = ABTestConfig()
+    tester = AEGISABTester(config)
+
+    try:
+        # メイン評価実行
+        success = tester.run_full_evaluation()
+
+        if success:
+            print("\n[SUCCESS] AEGIS A/Bテスト成功！HF公開準備完了")
+
+            # LM-Evalテスト実行
+            print("\n=== LM-Eval HFモデルテストフェーズ ===")
+            lm_eval_results = tester.run_lm_eval_test()
+            if lm_eval_results:
+                print("[OK] LM-Evalテスト完了")
+            else:
+                print("⚠️ LM-Evalテスト失敗")
+
+            # GGUF変換実行
+            print("\n=== GGUF変換フェーズ ===")
+            gguf_a = tester.convert_to_gguf(config.model_a_path, "Borea_Phi35_JP")
+            gguf_b = tester.convert_to_gguf(config.model_b_path, "AEGIS_Phi35_Thinking_v2")
+
+            if gguf_a and gguf_b:
+                # GGUFテスト実行
+                print("\n=== GGUFモデルテストフェーズ ===")
+                gguf_results = tester.run_gguf_test(gguf_a, gguf_b)
+                if gguf_results:
+                    print("[OK] GGUFテスト完了")
+                else:
+                    print("⚠️ GGUFテスト一部失敗")
+            else:
+                print("⚠️ GGUF変換スキップまたは失敗")
+
+        else:
+            print("\n[NG] A/Bテスト失敗")
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        print("\n[INTERRUPT] User interrupted. Saving checkpoint...")
+        tester._save_checkpoint("interrupted")
+        sys.exit(1)
+
+    except Exception as e:
+        print(f"\n[ERROR] Unexpected error: {e}")
+        tester._save_checkpoint("error")
+        sys.exit(1)
+
+    finally:
+        # 最終チェックポイント保存
+        tester._save_checkpoint("final")
+
+        # オーディオ通知
+        try:
+            audio_script = Path("scripts/utils/play_audio_notification.ps1")
+            if audio_script.exists():
+                import subprocess
+                subprocess.run([
+                    "powershell",
+                    "-ExecutionPolicy", "Bypass",
+                    "-File", str(audio_script)
+                ], capture_output=True)
+        except Exception as e:
+            print(f"[WARNING] Audio notification failed: {e}")
+
+    print("\n[OK] すべての処理が完了しました")
+
+
+if __name__ == "__main__":
+    main()
