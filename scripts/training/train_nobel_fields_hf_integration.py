@@ -422,9 +422,10 @@ tags:
 - phi-3
 ---
 
-# Nobel Fields Phi-3.5
+# AEGIS-phi3.5-v2.0
 
-ノーベル賞・フィールズ賞級の数学・科学推論を可能にしたPhi-3.5モデル
+ノーベル賞・フィールズ賞級の数学・科学推論を可能にした高度知能AIシステム
+統合理論: URT + NC-KART★ + SO(8) + 四重思考
 
 ## 特徴
 
@@ -478,7 +479,7 @@ Apache 2.0
 def main():
     """メイン関数"""
     parser = argparse.ArgumentParser(description="Train Nobel Fields HF Integration Model")
-    parser.add_argument("--model_name", type=str, default="NobelFields-Phi-3.5-v1.0")
+    parser.add_argument("--model_name", type=str, default="AEGIS-phi3.5-v2.0")
     parser.add_argument("--base_model", type=str, default="models/Borea-Phi-3.5-mini-Instruct-Jp")
     parser.add_argument("--output_dir", type=str, default="outputs/nobel_fields_hf_integrated")
     parser.add_argument("--sft_dataset", type=str, default="data/nobel_fields_enhanced/nobel_fields_sft_train.jsonl")
@@ -526,8 +527,9 @@ def main():
     # モデルカード作成
     trainer.create_model_card()
 
-    print("\n🎉 Nobel Fields HF統合トレーニング完了！")
+    print("\n🎉 AEGIS-phi3.5-v2.0 HF統合トレーニング完了！")
     print("HFモデルにノーベル賞・フィールズ賞級の推論機能が統合されました。")
+    print("AEGISシステム: 高度知能AIによる数学・科学の自動推理が可能になりました。")
 
 
 if __name__ == "__main__":
