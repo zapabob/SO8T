@@ -49,16 +49,26 @@ except ImportError:
 @dataclass
 class ABTestConfig:
     """A/Bテスト設定"""
-    model_a_path: str = "microsoft/Phi-3.5-mini-instruct"  # HFから直接読み込み
-    model_b_path: str = "outputs/aegis_phi35_v2_integrated/best_model"  # AEGISモデル
+    model_a_path: str = "Borea-Phi3.5-mini-Instruct-Jp"  # Borea-Phi3.5-instinct-jp
+    model_b_path: str = "AEGIS-Phi3.5-thinking-v2.0"  # AEGIS-Phi3.5-thinking-v2.0
     output_dir: str = "benchmark_results/aegis_ab_test"
-    device: str = "auto"
-    use_4bit: bool = True
-    max_new_tokens: int = 512
+    device: str = "auto"  # CUDA優先
+    use_4bit: bool = True  # 4bit量子化オン
+    max_new_tokens: int = 512  # 標準長
     temperature: float = 0.7
     top_p: float = 0.9
-    num_samples_per_question: int = 3  # 各質問のサンプル数
+    num_samples_per_question: int = 3  # 各質問3回（統計的有意性）
     random_seed: int = 42
+    test_mode: bool = False  # 本番モード
+    # チェックポイント設定
+    checkpoint_interval: int = 180  # 3分間隔 (秒)
+    max_checkpoints: int = 5  # ローリングストック数
+    checkpoint_dir: str = "D:/webdataset/checkpoints/ab_test"
+    # GGUF変換設定
+    gguf_convert: bool = True
+    gguf_dir: str = "D:/webdataset/gguf_models"
+    # 自動起動設定
+    auto_restart: bool = True
 
     # ELYZA-100設定
     elyza_dataset_url: str = "https://huggingface.co/datasets/elyza/ELYZA-tasks-100/raw/main/elyza_tasks_100.json"
@@ -77,10 +87,82 @@ class AEGISABTester:
         self.tokenizer_a = None
         self.tokenizer_b = None
         self.results = []
+        self.start_time = datetime.now()
+        self.last_checkpoint_time = datetime.now()
+
+        # チェックポイント設定
+        self.checkpoint_dir = Path(config.checkpoint_dir)
+        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # 乱数シード設定
         torch.manual_seed(config.random_seed)
         np.random.seed(config.random_seed)
+
+        # シグナルハンドラー設定（電源遮断対策）
+        import signal
+        signal.signal(signal.SIGINT, self._emergency_save)
+        signal.signal(signal.SIGTERM, self._emergency_save)
+        try:
+            signal.signal(signal.SIGBREAK, self._emergency_save)  # Windows
+        except AttributeError:
+            pass
+
+    def _emergency_save(self, signum, frame):
+        """緊急保存（電源遮断時）"""
+        print(f"\n[EMERGENCY] Signal {signum} received. Performing emergency save...")
+        self._save_checkpoint("emergency")
+        print("[EMERGENCY] Emergency save completed. Exiting...")
+        sys.exit(1)
+
+    def _save_checkpoint(self, suffix: str = ""):
+        """チェックポイント保存"""
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            checkpoint_data = {
+                'timestamp': timestamp,
+                'config': self.config.__dict__,
+                'results': self.results,
+                'start_time': self.start_time.isoformat(),
+                'elapsed_time': str(datetime.now() - self.start_time)
+            }
+
+            checkpoint_file = self.checkpoint_dir / f"ab_test_checkpoint_{timestamp}_{suffix}.json"
+            with open(checkpoint_file, 'w', encoding='utf-8') as f:
+                json.dump(checkpoint_data, f, ensure_ascii=False, indent=2)
+
+            # ローリングストック管理（古いチェックポイント削除）
+            checkpoints = sorted(self.checkpoint_dir.glob("ab_test_checkpoint_*.json"))
+            if len(checkpoints) > self.config.max_checkpoints:
+                for old_checkpoint in checkpoints[:-self.config.max_checkpoints]:
+                    old_checkpoint.unlink()
+
+            print(f"[CHECKPOINT] Saved to {checkpoint_file} ({len(checkpoints)} total)")
+            self.last_checkpoint_time = datetime.now()
+
+        except Exception as e:
+            print(f"[ERROR] Checkpoint save failed: {e}")
+
+    def _check_checkpoint_save(self):
+        """定期チェックポイント保存チェック"""
+        if (datetime.now() - self.last_checkpoint_time).seconds >= self.config.checkpoint_interval:
+            self._save_checkpoint()
+
+    def load_checkpoint(self):
+        """最新チェックポイントから復元"""
+        try:
+            checkpoints = sorted(self.checkpoint_dir.glob("ab_test_checkpoint_*.json"))
+            if checkpoints:
+                latest_checkpoint = checkpoints[-1]
+                with open(latest_checkpoint, 'r', encoding='utf-8') as f:
+                    checkpoint_data = json.load(f)
+
+                self.results = checkpoint_data.get('results', [])
+                self.start_time = datetime.fromisoformat(checkpoint_data['start_time'])
+                print(f"[CHECKPOINT] Loaded from {latest_checkpoint}")
+                return True
+        except Exception as e:
+            print(f"[WARNING] Checkpoint load failed: {e}")
+        return False
 
     def load_models(self):
         """モデル読み込み"""
@@ -99,19 +181,39 @@ class AEGISABTester:
         # モデルA読み込み (ベースモデル)
         print("モデルA (ベース) 読み込み中...")
         try:
-            self.tokenizer_a = AutoTokenizer.from_pretrained(
-                self.config.model_a_path,
-                trust_remote_code=True
-            )
-            if self.tokenizer_a.pad_token is None:
-                self.tokenizer_a.pad_token = self.tokenizer_a.eos_token
+            # HFから直接読み込む場合
+            if "/" in self.config.model_a_path and not Path(self.config.model_a_path).exists():
+                print(f"HFから {self.config.model_a_path} を読み込みます...")
+                self.tokenizer_a = AutoTokenizer.from_pretrained(
+                    self.config.model_a_path,
+                    trust_remote_code=True
+                )
+                if self.tokenizer_a.pad_token is None:
+                    self.tokenizer_a.pad_token = self.tokenizer_a.eos_token
 
-            self.model_a = AutoModelForCausalLM.from_pretrained(
-                self.config.model_a_path,
-                quantization_config=bnb_config,
-                device_map=self.config.device,
-                trust_remote_code=True
-            )
+                self.model_a = AutoModelForCausalLM.from_pretrained(
+                    self.config.model_a_path,
+                    quantization_config=bnb_config,
+                    device_map=self.config.device,
+                    trust_remote_code=True
+                )
+            else:
+                # ローカルファイルの場合
+                local_path = PROJECT_ROOT / self.config.model_a_path
+                print(f"ローカルから {local_path} を読み込みます...")
+                self.tokenizer_a = AutoTokenizer.from_pretrained(
+                    str(local_path),
+                    trust_remote_code=True
+                )
+                if self.tokenizer_a.pad_token is None:
+                    self.tokenizer_a.pad_token = self.tokenizer_a.eos_token
+
+                self.model_a = AutoModelForCausalLM.from_pretrained(
+                    str(local_path),
+                    quantization_config=bnb_config,
+                    device_map=self.config.device,
+                    trust_remote_code=True
+                )
             print("✓ モデルA読み込み成功")
         except Exception as e:
             print(f"✗ モデルA読み込み失敗: {e}")
@@ -228,13 +330,62 @@ class AEGISABTester:
         return extended_data[:100]  # 最大100件
 
     def evaluate_answer_quality(self, question: str, answer: str, reference_answer: str = None) -> Dict[str, float]:
-        """回答品質評価"""
-        # 簡易品質評価 (実際にはより洗練された評価関数が必要)
+        """回答品質評価 (ベストプラクティスに基づく)"""
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+
+        def rouge_l(a: str, b: str) -> float:
+            # ROUGE-Lの簡易実装
+            def lcs(X, Y):
+                m, n = len(X), len(Y)
+                dp = [[0]*(n+1) for _ in range(m+1)]
+                for i in range(m):
+                    for j in range(n):
+                        if X[i] == Y[j]:
+                            dp[i+1][j+1] = dp[i][j]+1
+                        else:
+                            dp[i+1][j+1] = max(dp[i][j+1], dp[i+1][j])
+                return dp[m][n]
+            if not a or not b:
+                return 0.0
+            lcs_len = lcs(a, b)
+            prec = lcs_len / (len(a) + 1e-8)
+            rec = lcs_len / (len(b) + 1e-8)
+            beta = 1.2
+            if (prec + rec) == 0:
+                return 0.0
+            return (1 + beta**2) * prec * rec / ((rec + beta**2 * prec) + 1e-8)
+
+        # 1. 長さスコア：日本語的な適切な長さ（50~300文字内）を1.0、遠いと下がる
+        length = len(answer)
+        min_len, max_len = 50, 300
+        if length < min_len:
+            length_score = length / min_len * 0.6
+        elif length > max_len:
+            length_score = max(0.8, 1.0 - (length - max_len) * 0.002)
+        else:
+            length_score = 1.0
+
+        # 2. 日本語率（元の関数を利用）
+        japanese_score = self._calculate_japanese_ratio(answer)
+
+        # 3. 一貫性スコア：文区切り、重複語、終了記号で評価
+        coherence_score = self._calculate_coherence_score(answer)
+
+        # 4. 関連度（reference_answerが存在すればrouge-l、無ければ質問とのTF-IDFコサイン類似度）
+        if reference_answer:
+            relevance_score = rouge_l(answer, reference_answer)
+        else:
+            tfidf = TfidfVectorizer().fit([question, answer])
+            cosine = cosine_similarity(tfidf.transform([question]), tfidf.transform([answer]))[0][0]
+            # 0.0~1.0正規化
+            relevance_score = min(max(cosine, 0.0), 1.0)
+
         scores = {
-            'length_score': min(len(answer) / 100, 1.0),  # 長さスコア
-            'japanese_score': self._calculate_japanese_ratio(answer),  # 日本語率
-            'coherence_score': self._calculate_coherence_score(answer),  # 一貫性スコア
-            'relevance_score': 0.8 if reference_answer else 0.7  # 関連性スコア (簡易)
+            'length_score': round(length_score, 4),
+            'japanese_score': round(japanese_score, 4),
+            'coherence_score': round(coherence_score, 4),
+            'relevance_score': round(relevance_score, 4)
         }
 
         # 総合スコア
@@ -321,9 +472,104 @@ class AEGISABTester:
                 'output_length': 0
             }
 
+    def convert_to_gguf(self, model_path: str, model_name: str):
+        """GGUF変換"""
+        if not self.config.gguf_convert:
+            return None
+
+        print(f"\n=== GGUF変換: {model_name} ===")
+
+        try:
+            import subprocess
+            from pathlib import Path
+
+            gguf_output_dir = Path(self.config.gguf_dir) / model_name
+            gguf_output_dir.mkdir(parents=True, exist_ok=True)
+
+            # llama.cpp convert_hf_to_gguf.py を使用
+            convert_script = Path("external/llama.cpp-master/convert_hf_to_gguf.py")
+            if not convert_script.exists():
+                print(f"[WARNING] llama.cpp convert script not found: {convert_script}")
+                return None
+
+            # F16変換
+            f16_output = gguf_output_dir / f"{model_name}_f16.gguf"
+            cmd_f16 = [
+                "python", str(convert_script),
+                model_path,
+                "--outfile", str(f16_output),
+                "--outtype", "f16"
+            ]
+
+            print(f"[GGUF] Converting to F16: {f16_output}")
+            result_f16 = subprocess.run(cmd_f16, capture_output=True, text=True)
+            if result_f16.returncode != 0:
+                print(f"[ERROR] F16 conversion failed: {result_f16.stderr}")
+                return None
+
+            # Q8_0変換
+            q8_output = gguf_output_dir / f"{model_name}_Q8_0.gguf"
+            cmd_q8 = [
+                "python", str(convert_script),
+                model_path,
+                "--outfile", str(q8_output),
+                "--outtype", "q8_0"
+            ]
+
+            print(f"[GGUF] Converting to Q8_0: {q8_output}")
+            result_q8 = subprocess.run(cmd_q8, capture_output=True, text=True)
+            if result_q8.returncode != 0:
+                print(f"[ERROR] Q8_0 conversion failed: {result_q8.stderr}")
+                return None
+
+            print(f"[GGUF] Conversion completed: {gguf_output_dir}")
+            return str(gguf_output_dir)
+
+        except Exception as e:
+            print(f"[ERROR] GGUF conversion failed: {e}")
+            return None
+
+    def run_gguf_test(self, gguf_model_a: str, gguf_model_b: str):
+        """GGUFモデルでのA/Bテスト"""
+        print("\n=== GGUFモデル A/Bテスト ===")
+
+        try:
+            import subprocess
+
+            # OllamaでGGUFモデルをロードしてテスト
+            # ここでは簡易的にollama runコマンドを使用
+            test_results = {}
+
+            for model_name, gguf_path in [("Model_A", gguf_model_a), ("Model_B", gguf_model_b)]:
+                print(f"\n[GGUF_TEST] Testing {model_name}: {gguf_path}")
+
+                # 簡単なテストプロンプト
+                test_prompt = "こんにちは。自己紹介をお願いします。"
+
+                # ollama runコマンド（実際には事前にollama createが必要）
+                # ここでは仮定して結果を記録
+                test_results[model_name] = {
+                    'gguf_path': gguf_path,
+                    'test_prompt': test_prompt,
+                    'status': 'ready_for_ollama'
+                }
+
+            return test_results
+
+        except Exception as e:
+            print(f"[ERROR] GGUF test failed: {e}")
+            return None
+
     def run_ab_test(self):
         """A/Bテスト実行"""
-        print("=== A/Bテスト実行 ===")
+        print("🎯 AEGIS-phi3.5-v2.0 A/Bテスト開始")
+        print("=" * 50)
+
+        # チェックポイントから復元
+        if self.load_checkpoint():
+            print("[RESUME] Resumed from checkpoint")
+        else:
+            print("[START] Starting new test")
 
         # ELYZA-100読み込み
         elyza_data = self.load_elyza_dataset()
