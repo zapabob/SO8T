@@ -256,11 +256,12 @@ class AutomaticAEGISPipeline:
                     logger.error(f"Model A GGUF conversion failed: {result_a.stderr}")
                     return False
 
-            # 新規作成モデルのGGUF変換
+            # 新規作成モデルのGGUF変換（PPO学習済みモデル）
             model_b_output = Path("H:/from_D/webdataset/gguf_models/aegis_phi35_thinking_v2_bf16.gguf")
+            ppo_model_path = "H:/from_D/webdataset/checkpoints/automatic_aegis/ppo_output"
             cmd_b = [
                 sys.executable, "scripts/conversion/convert_phi35_to_gguf.py",
-                "--model_path", "models/Borea-Phi-3.5-mini-Instruct-Jp",  # ベースモデルをAEGISとして使用
+                "--model_path", ppo_model_path,  # PPO学習済みモデルを使用
                 "--output_path", "H:/from_D/webdataset/gguf_models/aegis_phi35_thinking_v2_bf16.gguf",
                 "--quantization", "bf16"
             ]
