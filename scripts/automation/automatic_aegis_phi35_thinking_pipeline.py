@@ -194,58 +194,57 @@ class AutomaticAEGISPipeline:
             logger.error(f"SFT integration error: {e}")
             return False
 
-    def run_ppo_training(self):
-        """PPO学習実行"""
-        logger.info("Starting PPO training...")
-        self.current_stage = "ppo_training"
+    def run_so8_adapter_training(self):
+        """SO(8)アダプタートレーニング実行"""
+        logger.info("Starting SO(8) adapter training...")
+        self.current_stage = "so8_adapter_training"
 
         try:
-            # PPO学習スクリプト実行（既存のものを使用）
-            # PPOトレーニング実行
+            # SO(8)アダプタートレーニング実行
             model_path = "models/Borea-Phi-3.5-mini-Instruct-Jp"
             dataset_path = "data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
-            config_path = "scripts/training/so8t_ppo_config.json"
-            output_dir = "H:/from_D/webdataset/checkpoints/automatic_aegis/ppo_output"
+            output_dir = "H:/from_D/webdataset/checkpoints/automatic_aegis/so8_adapter_output"
 
             cmd = [
-                sys.executable, "scripts/training/so8t_integrated_ppo_trainer.py",
+                sys.executable, "scripts/training/train_so8_phi35_adapter.py",
                 "--model_path", model_path,
                 "--dataset_path", dataset_path,
-                "--config_path", config_path,
-                "--output_dir", output_dir
+                "--output_path", output_dir,
+                "--max_steps", "100",  # 短めのトレーニング
+                "--batch_size", "1",
+                "--learning_rate", "1e-5"
             ]
             result = subprocess.run(cmd, cwd=self.base_path, capture_output=True, text=True)
 
             if result.returncode == 0:
-                logger.info("PPO training completed successfully")
+                logger.info("SO(8) adapter training completed successfully")
                 return True
             else:
-                logger.error(f"PPO training failed: {result.stderr}")
+                logger.error(f"SO(8) adapter training failed: {result.stderr}")
                 return False
 
         except Exception as e:
-            logger.error(f"PPO training error: {e}")
+            logger.error(f"SO(8) adapter training error: {e}")
             return False
 
-    def run_gguf_conversion(self):
-        """GGUF変換実行（BF16）"""
-        logger.info("Starting GGUF conversion (BF16)...")
-        self.current_stage = "gguf_conversion"
+    def run_so8_baking_and_gguf(self):
+        """SO(8) アダプター焼き込み + GGUF変換実行"""
+        logger.info("Starting SO(8) baking and GGUF conversion...")
+        self.current_stage = "so8_baking_gguf"
 
         try:
-            # Boreas-phi3.5-instinct-jp のGGUF変換
+            # Model A: Boreas-phi3.5-instinct-jp のGGUF変換
             model_a_output = Path("H:/from_D/webdataset/gguf_models/boreas_phi35_instinct_jp_bf16.gguf")
 
-            # すでに存在する場合はスキップ
             if model_a_output.exists():
                 self.model_a_path = model_a_output
-                logger.info(f"Model A GGUF already exists, skipping conversion: {model_a_output}")
+                logger.info(f"Model A GGUF already exists, skipping: {model_a_output}")
             else:
                 cmd_a = [
-                    sys.executable, "scripts/conversion/convert_phi35_to_gguf.py",
+                    sys.executable, "scripts/conversion/convert_baked_so8_to_gguf.py",
                     "--model_path", "models/Borea-Phi-3.5-mini-Instruct-Jp",
-                    "--output_path", "H:/from_D/webdataset/gguf_models/boreas_phi35_instinct_jp_bf16.gguf",
-                    "--quantization", "bf16"
+                    "--output_path", str(model_a_output),
+                    "--quantization", "f16"  # ベースモデルはF16で保存
                 ]
 
                 result_a = subprocess.run(cmd_a, cwd=self.base_path, capture_output=True, text=True)
@@ -256,27 +255,44 @@ class AutomaticAEGISPipeline:
                     logger.error(f"Model A GGUF conversion failed: {result_a.stderr}")
                     return False
 
-            # 新規作成モデルのGGUF変換（PPO学習済みモデル）
-            model_b_output = Path("H:/from_D/webdataset/gguf_models/aegis_phi35_thinking_v2_bf16.gguf")
+            # Model B: SO(8) 焼き込み済みモデルの作成とGGUF変換
+            logger.info("Starting SO(8) adapter baking for Model B...")
+
+            # PPO学習済みモデルのパス
             ppo_model_path = "H:/from_D/webdataset/checkpoints/automatic_aegis/ppo_output"
-            cmd_b = [
-                sys.executable, "scripts/conversion/convert_phi35_to_gguf.py",
-                "--model_path", ppo_model_path,  # PPO学習済みモデルを使用
-                "--output_path", "H:/from_D/webdataset/gguf_models/aegis_phi35_thinking_v2_bf16.gguf",
-                "--quantization", "bf16"
+
+            # SO(8) 焼き込み済みモデルの出力ディレクトリ
+            baked_model_dir = "H:/from_D/webdataset/models/baked_so8_aegis_phi35"
+
+            # SO(8) アダプター焼き込み実行
+            so8_adapter_model_path = "H:/from_D/webdataset/checkpoints/automatic_aegis/so8_adapter_output"
+            bake_cmd = [
+                sys.executable, "scripts/utils/bake_so8_adapter.py",
+                "--model_path", so8_adapter_model_path,
+                "--output_dir", baked_model_dir,
+                "--adapter_position", "input",  # SO(8) アダプターは入力側
+                "--convert_gguf",  # GGUF変換も実行
+                "--gguf_quantization", "f16"
             ]
 
-            result_b = subprocess.run(cmd_b, cwd=self.base_path, capture_output=True, text=True)
-            if result_b.returncode == 0:
+            logger.info(f"Running SO(8) baking: {' '.join(bake_cmd)}")
+            result_bake = subprocess.run(bake_cmd, cwd=self.base_path, capture_output=True, text=True)
+
+            if result_bake.returncode == 0:
+                # GGUFファイルのパスを設定
+                model_b_output = Path(f"{baked_model_dir}/baked_so8_model_f16.gguf")
                 self.model_b_path = model_b_output
-                logger.info(f"Model B GGUF conversion completed: {model_b_output}")
+                logger.info(f"SO(8) baking and GGUF conversion completed: {model_b_output}")
                 return True
             else:
-                logger.error(f"Model B GGUF conversion failed: {result_b.stderr}")
+                logger.error(f"SO(8) baking failed: {result_bake.stderr}")
+                logger.error(f"SO(8) baking stdout: {result_bake.stdout}")
                 return False
 
         except Exception as e:
-            logger.error(f"GGUF conversion error: {e}")
+            logger.error(f"SO(8) baking and GGUF conversion error: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
 
     def run_benchmarking(self):
@@ -396,9 +412,9 @@ See `benchmark_results/` directory for comprehensive AB testing results includin
 
             self.create_rolling_checkpoint()
 
-            # Phase 2: PPO学習
-            if not self.run_ppo_training():
-                raise Exception("PPO training failed")
+            # Phase 2: SO(8) アダプタートレーニング
+            if not self.run_so8_adapter_training():
+                raise Exception("SO(8) adapter training failed")
 
             self.create_rolling_checkpoint()
 

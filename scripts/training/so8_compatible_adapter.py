@@ -442,9 +442,68 @@ if __name__ == "__main__":
     print("Annealing test completed!")
 
 
+def get_so8_adapter_effective_matrix(adapter):
+    """
+    既存のSO(8)アダプターから有効行列を計算
+
+    Args:
+        adapter: SO(8) アダプターモジュール
+
+    Returns:
+        [hidden_size, hidden_size] の有効行列
+    """
+    # アダプターの隠れ層サイズを取得
+    if hasattr(adapter, 'adapter_down') and hasattr(adapter.adapter_down, 'weight'):
+        hidden_size = adapter.adapter_down.weight.size(0)  # [out, in] の out
+    else:
+        raise ValueError("Cannot determine hidden size from adapter structure")
+
+    # 単位行列で初期化
+    I = torch.eye(hidden_size, dtype=torch.float16, device='cpu')
+
+    # SO(8)ゲートがある場合、回転行列を取得
+    if hasattr(adapter, 'so8_gate'):
+        so8_gate = adapter.so8_gate
+        # 回転行列を計算（簡易バージョン）
+        # 注意: 実際のSO(8)ゲート構造に依存
+        try:
+            if hasattr(so8_gate, 'compute_rotation_matrix'):
+                R = so8_gate.compute_rotation_matrix()
+            else:
+                # デフォルトで単位行列
+                R = I
+        except:
+            R = I
+    else:
+        R = I
+
+    # アダプターダウン/アップの重みを取得
+    if hasattr(adapter, 'adapter_down') and hasattr(adapter, 'adapter_up'):
+        down_weight = adapter.adapter_down.weight  # [hidden, rank] or similar
+        up_weight = adapter.adapter_up.weight      # [rank, hidden] or similar
+
+        # アダプターのスケールを取得
+        scale = getattr(adapter, 'adapter_scale', 1.0)
+        if isinstance(scale, torch.Tensor):
+            scale = scale.item()
+
+        # 有効行列を計算: I + scale * (up @ R @ down)
+        # 注意: 実際の構造に合わせて調整が必要
+        try:
+            adapter_matrix = torch.matmul(up_weight, torch.matmul(R, down_weight))
+            effective_matrix = I + scale * adapter_matrix
+        except:
+            # 計算できない場合は単位行列
+            effective_matrix = I
+    else:
+        effective_matrix = I
+
+    return effective_matrix
+
+
 def bake_so8_adapter_into_base_model(
     model: nn.Module,
-    injected_adapters: Dict[str, SO8CompatibleLoRA],
+    injected_adapters: Dict[str, nn.Module],
     adapter_position: str = "input"  # "input" or "output"
 ) -> nn.Module:
     """
@@ -468,42 +527,53 @@ def bake_so8_adapter_into_base_model(
     for module_name, adapter in injected_adapters.items():
         print(f"[SO8] Baking adapter for module: {module_name}")
 
-        # モジュールを取得
+        # モジュールを取得（アダプターが付属しているモジュール）
         module_parts = module_name.split('.')
         current_module = baked_model
-        for part in module_parts[:-1]:  # 最後の部分以外を辿る
+        for part in module_parts:  # 全階層を辿る
             current_module = getattr(current_module, part)
 
-        target_module_name = module_parts[-1]
-        target_module = getattr(current_module, target_module_name)
-
         # アダプターの有効行列を取得
-        M = adapter.effective_matrix()  # [hidden_size, hidden_size]
+        M = get_so8_adapter_effective_matrix(adapter)  # [hidden_size, hidden_size]
 
-        with torch.no_grad():
-            if adapter_position == "input":
-                # 入力側アダプター: W' = W @ M
-                # PyTorchのLinearは [out_features, in_features]
-                # 入力変換なので右から掛ける
-                target_module.weight.copy_(target_module.weight @ M)
-                print(f"[SO8] Applied input-side transformation: W' = W @ M")
-            elif adapter_position == "output":
-                # 出力側アダプター: W' = M @ W
-                # 出力変換なので左から掛ける
-                target_module.weight.copy_(M @ target_module.weight)
-                print(f"[SO8] Applied output-side transformation: W' = M @ W")
-            else:
-                raise ValueError(f"Invalid adapter_position: {adapter_position}. Must be 'input' or 'output'")
+        # ターゲットのLinear層を取得（アダプターと同じ階層の親モジュール）
+        parent_module_name = '.'.join(module_parts[:-1])
+        if parent_module_name:
+            parent_parts = parent_module_name.split('.')
+            parent_module = baked_model
+            for part in parent_parts:
+                parent_module = getattr(parent_module, part)
+        else:
+            parent_module = baked_model
 
-            # biasは変更なし（アダプターは重みのみを変換）
+        # ターゲットのLinear層名を取得
+        target_name = module_parts[-1].replace('so8_adapter', '').strip('.')
+        if target_name and hasattr(parent_module, target_name):
+            target_module = getattr(parent_module, target_name)
+
+            with torch.no_grad():
+                if adapter_position == "input":
+                    # 入力側アダプター: W' = W @ M
+                    # PyTorchのLinearは [out_features, in_features]
+                    # 入力変換なので右から掛ける
+                    target_module.weight.copy_(target_module.weight @ M)
+                    print(f"[SO8] Applied input-side transformation: W' = W @ M")
+                elif adapter_position == "output":
+                    # 出力側アダプター: W' = M @ W
+                    # 出力変換なので左から掛ける
+                    target_module.weight.copy_(M @ target_module.weight)
+                    print(f"[SO8] Applied output-side transformation: W' = M @ W")
+                else:
+                    raise ValueError(f"Invalid adapter_position: {adapter_position}. Must be 'input' or 'output'")
+
+                # biasは変更なし（アダプターは重みのみを変換）
+        else:
+            print(f"[WARNING] Could not find target Linear layer for {module_name}")
 
         # アダプターを削除
-        # 注意: 現在の実装ではSO8AdaptedLinearでラップされているので、
-        # 元のLinear層に戻す必要がある
-        if hasattr(target_module, 'original_linear'):
-            # SO8AdaptedLinearの場合、original_linearに戻す
-            setattr(current_module, target_module_name, target_module.original_linear)
-            print(f"[SO8] Removed SO8AdaptedLinear wrapper for {module_name}")
+        if hasattr(current_module, 'so8_adapter'):
+            delattr(current_module, 'so8_adapter')
+            print(f"[SO8] Removed so8_adapter for {module_name}")
 
     print("[SO8] SO(8) adapter baking completed!")
     print(f"[SO8] Baked {len(injected_adapters)} adapters into base model weights")

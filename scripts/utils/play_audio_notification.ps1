@@ -1,6 +1,7 @@
-# Audio Notification Script
-# BASIC PRINCIPLE: Play marisa_owattaze.wav first, fallback to beep if it fails
-# STANDARD: This is the standard audio notification script for SO8T project
+# SO(8)T Audio Notification Script
+# 基本はこれを再生: marisa_owattaze.wav
+
+Write-Host "[AUDIO] Playing completion notification..." -ForegroundColor Green
 
 $audioFile = "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav"
 $audioPlayed = $false
@@ -9,7 +10,7 @@ $audioPlayed = $false
 if (Test-Path $audioFile) {
     try {
         Add-Type -AssemblyName System.Windows.Forms
-        $player = New-Object System.Media.SoundPlayer($audioFile)
+        $player = New-Object System.Media.SoundPlayer $audioFile
         $player.PlaySync()
         Write-Host "[OK] marisa_owattaze.wav played successfully" -ForegroundColor Green
         $audioPlayed = $true
