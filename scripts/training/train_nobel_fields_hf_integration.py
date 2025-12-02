@@ -59,9 +59,9 @@ class NobelFieldsHFTrainingConfig:
     model_name: str = "AEGIS-phi3.5-v2.0"
 
     # データセット設定
-    sft_dataset_path: str = "data/nobel_fields_enhanced/nobel_fields_sft_train.jsonl"
-    ppo_dataset_path: str = "data/nobel_fields_enhanced/nobel_fields_ppo_train.jsonl"
-    val_dataset_path: str = "data/nobel_fields_enhanced/nobel_fields_sft_val.jsonl"
+    sft_dataset_path: str = "data/aegis_phi35_v2_datasets/nobel_fields_sft_train.jsonl"
+    ppo_dataset_path: str = "data/aegis_phi35_v2_datasets/nobel_fields_ppo_train.jsonl"
+    val_dataset_path: str = "data/aegis_phi35_v2_datasets/nobel_fields_sft_val.jsonl"
 
     # トレーニング設定
     num_train_epochs: int = 3
@@ -482,8 +482,8 @@ def main():
     parser.add_argument("--model_name", type=str, default="AEGIS-phi3.5-v2.0")
     parser.add_argument("--base_model", type=str, default="models/Borea-Phi-3.5-mini-Instruct-Jp")
     parser.add_argument("--output_dir", type=str, default="outputs/nobel_fields_hf_integrated")
-    parser.add_argument("--sft_dataset", type=str, default="data/nobel_fields_enhanced/nobel_fields_sft_train.jsonl")
-    parser.add_argument("--ppo_dataset", type=str, default="data/nobel_fields_enhanced/nobel_fields_ppo_train.jsonl")
+    parser.add_argument("--sft_dataset", type=str, default="data/aegis_phi35_v2_datasets/nobel_fields_sft_train.jsonl")
+    parser.add_argument("--ppo_dataset", type=str, default="data/aegis_phi35_v2_datasets/nobel_fields_ppo_train.jsonl")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
