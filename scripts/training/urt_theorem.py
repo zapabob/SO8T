@@ -436,3 +436,4 @@ if __name__ == "__main__":
     # 数学的性質表示
     props = urt_field.get_mathematical_properties()
     print(f"数学的性質: {props}")
+

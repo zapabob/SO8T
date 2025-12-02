@@ -730,3 +730,4 @@ if __name__ == "__main__":
     # 思考システムの性質表示
     props = thinking_engine.get_thinking_properties()
     print(f"思考システム性質: {props}")
+

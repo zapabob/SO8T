@@ -496,3 +496,4 @@ if __name__ == "__main__":
     # モデル性質表示
     props = unified_model.get_model_properties()
     print(f"モデル性質: {props}")
+

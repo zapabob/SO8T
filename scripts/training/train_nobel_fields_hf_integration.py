@@ -40,9 +40,14 @@ from peft import (
     get_peft_model,
     prepare_model_for_kbit_training
 )
-from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
+from trl import SFTTrainer
 
 # カスタムモデルインポート
+import sys
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.append(str(PROJECT_ROOT))
+
 from models.Borea_Phi_3_5_mini_Instruct_Jp.modeling_nobel_fields import (
     AEGISPhi35V2ForCausalLM,
     create_aegis_phi35_v2_config,
@@ -329,7 +334,6 @@ class NobelFieldsHFTrainer:
             tokenizer=self.tokenizer,
             data_collator=data_collator,
             max_seq_length=self.config.max_seq_length,
-            dataset_text_field="text",  # SFTTrainer用
             packing=False
         )
 
