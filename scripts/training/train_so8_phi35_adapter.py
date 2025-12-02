@@ -128,7 +128,8 @@ def train_so8_adapter(
         model,
         target_modules=['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'],
         rank=rank,
-        alpha=alpha
+        alpha=alpha,
+        dtype=model.dtype  # モデルのdtypeを使用
     )
 
     logger.info(f"Injected {len(injected_adapters)} SO(8) adapters")

@@ -419,6 +419,7 @@ def main():
     parser = argparse.ArgumentParser(description='Comprehensive AB Benchmark for GGUF Models')
     parser.add_argument('--model_a', required=True, help='Path to Model A GGUF file')
     parser.add_argument('--model_b', required=True, help='Path to Model B GGUF file')
+    parser.add_argument('--output_dir', default='H:/from_D/webdataset/benchmark_results', help='Output directory for results')
     parser.add_argument('--include_elyza', action='store_true', help='Include ELYZA benchmark')
     parser.add_argument('--elyza_full', action='store_true', help='Run full ELYZA-100 benchmark')
 

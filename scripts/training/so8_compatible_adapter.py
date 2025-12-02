@@ -24,7 +24,7 @@ class SO8CompatibleLoRA(nn.Module):
     保存時は標準LoRA形式に変換可能なモジュール。
     """
 
-    def __init__(self, hidden_size: int, rank: int = 8, alpha: float = 1.0, device: str = 'cpu'):
+    def __init__(self, hidden_size: int, rank: int = 8, alpha: float = 1.0, device: str = 'cpu', dtype: torch.dtype = torch.float16):
         """
         SO(8) Compatible LoRA初期化
 
@@ -43,17 +43,17 @@ class SO8CompatibleLoRA(nn.Module):
         # Lie代数パラメータ (8x8の歪対称行列)
         # SO(8)群の生成元として使用
         self.lie_algebra_param = nn.Parameter(
-            torch.randn(rank, rank, device=device) * 0.01
+            torch.randn(rank, rank, device=device, dtype=dtype) * 0.01
         )
 
         # 標準LoRAパラメータ
-        self.lora_A = nn.Parameter(torch.randn(rank, hidden_size, device=device) * 0.01)  # Down
-        self.lora_B = nn.Parameter(torch.zeros(hidden_size, rank, device=device))         # Up
+        self.lora_A = nn.Parameter(torch.randn(rank, hidden_size, device=device, dtype=dtype) * 0.01)  # Down
+        self.lora_B = nn.Parameter(torch.zeros(hidden_size, rank, device=device, dtype=dtype))         # Up
 
         # アルファゲートパラメータ (アニーリング対象)
         # 初期値: -0.5, 目標値: Φ^(-2) ≈ 0.382
         self.alpha_gate_raw = nn.Parameter(
-            torch.tensor(-0.5, device=device)  # 初期値 -0.5
+            torch.tensor(-0.5, device=device, dtype=dtype)  # 初期値 -0.5
         )
 
         # 回転行列のキャッシュ (学習時の高速化)
@@ -216,7 +216,8 @@ def inject_so8_adapter_into_model(
     model: nn.Module,
     target_modules: list = None,
     rank: int = 8,
-    alpha: float = 1.0
+    alpha: float = 1.0,
+    dtype: torch.dtype = None
 ) -> Dict[str, SO8CompatibleLoRA]:
     """
     UnslothモデルにSO(8)アダプターを注入
@@ -230,9 +231,13 @@ def inject_so8_adapter_into_model(
     Returns:
         注入されたアダプターマッピング
     """
-    # モデルのデバイスを取得
+    # モデルのデバイスとdtypeを取得
     model_device = next(model.parameters()).device
     device = str(model_device) if model_device.type != 'meta' else 'cpu'
+
+    # dtypeが指定されていない場合はモデルから取得
+    if dtype is None:
+        dtype = next(model.parameters()).dtype
     """
     UnslothモデルにSO(8)アダプターを注入
 
@@ -271,7 +276,8 @@ def inject_so8_adapter_into_model(
                         hidden_size=child_module.out_features,
                         rank=rank,
                         alpha=alpha,
-                        device=device
+                        device=device,
+                        dtype=dtype
                     )
 
                     # 元のLinear層を保持し、アダプターを追加

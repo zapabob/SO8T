@@ -49,7 +49,7 @@ class AutomaticAEGISPipeline:
 
     def __init__(self):
         self.base_path = Path(__file__).parent.parent.parent
-        self.checkpoint_dir = self.base_path / "checkpoints" / "automatic_aegis"
+        self.checkpoint_dir = Path("H:/from_D/webdataset/checkpoints/automatic_aegis")
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # セッション管理
@@ -200,14 +200,48 @@ class AutomaticAEGISPipeline:
         self.current_stage = "so8_adapter_training"
 
         try:
-            # SO(8)アダプタートレーニング実行
-            model_path = "models/Borea-Phi-3.5-mini-Instruct-Jp"
-            dataset_path = "data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
-            output_dir = "H:/from_D/webdataset/checkpoints/automatic_aegis/so8_adapter_output"
+            # SO(8)アダプタートレーニング実行（既存SO(8)アダプターをスキップしてSO8CompatibleLoRAを使用）
+            model_path = "H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp"
+            dataset_path = "H:/from_D/webdataset/datasets/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
+            output_dir = "H:/from_D/webdataset/checkpoints/automatic_aegis/so8_compatible_adapter_output"
 
+            # 既存のSO(8)アダプターをクリーンアップしてからトレーニング
+            cmd_cleanup = [
+                sys.executable, "-c",
+                """
+import torch
+from transformers import AutoModelForCausalLM
+
+# モデルをロード
+model = AutoModelForCausalLM.from_pretrained('H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp', torch_dtype=torch.float16, low_cpu_mem_usage=True)
+
+# 既存のSO(8)アダプターを削除
+def remove_so8_adapters(module, name=''):
+    for child_name, child_module in module.named_children():
+        full_name = f'{name}.{child_name}' if name else child_name
+        if child_name == 'so8_adapter':
+            print(f'Removing existing so8_adapter: {name}')
+            delattr(module, child_name)
+        else:
+            remove_so8_adapters(child_module, full_name)
+
+remove_so8_adapters(model)
+
+# クリーンなモデルを保存
+model.save_pretrained('H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp-clean')
+print('Cleaned model saved')
+"""
+            ]
+
+            # まず既存SO(8)アダプターをクリーンアップ
+            cleanup_result = subprocess.run(cmd_cleanup, cwd=self.base_path, capture_output=True, text=True)
+            if cleanup_result.returncode != 0:
+                logger.warning(f"SO(8) adapter cleanup failed: {cleanup_result.stderr}")
+
+            # SO8CompatibleLoRAを使用したトレーニング
             cmd = [
                 sys.executable, "scripts/training/train_so8_phi35_adapter.py",
-                "--model_path", model_path,
+                "--model_path", "H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp-clean",  # クリーンなモデルを使用
                 "--dataset_path", dataset_path,
                 "--output_path", output_dir,
                 "--max_steps", "100",  # 短めのトレーニング
@@ -242,7 +276,7 @@ class AutomaticAEGISPipeline:
             else:
                 cmd_a = [
                     sys.executable, "scripts/conversion/convert_baked_so8_to_gguf.py",
-                    "--model_path", "models/Borea-Phi-3.5-mini-Instruct-Jp",
+                    "--model_path", "H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp",
                     "--output_path", str(model_a_output),
                     "--quantization", "f16"  # ベースモデルはF16で保存
                 ]
@@ -306,6 +340,7 @@ class AutomaticAEGISPipeline:
                 sys.executable, "scripts/evaluation/comprehensive_ab_benchmark.py",
                 "--model_a", str(self.model_a_path),
                 "--model_b", str(self.model_b_path),
+                "--output_dir", "H:/from_D/webdataset/benchmark_results",
                 "--include_elyza", "true",
                 "--elyza_full", "true"
             ]
@@ -316,7 +351,7 @@ class AutomaticAEGISPipeline:
                 logger.info("Benchmarking completed successfully")
 
                 # 結果ファイル読み込み
-                results_file = self.base_path / "benchmark_results" / "ab_test_results.json"
+                results_file = Path("H:/from_D/webdataset/benchmark_results/ab_test_results.json")
                 if results_file.exists():
                     with open(results_file, 'r', encoding='utf-8') as f:
                         self.benchmark_results = json.load(f)
@@ -337,7 +372,7 @@ class AutomaticAEGISPipeline:
 
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            upload_dir = self.base_path / "hf_upload" / f"aegis_phi35_thinking_v2_{timestamp}"
+            upload_dir = Path("H:/from_D/webdataset/hf_upload") / f"aegis_phi35_thinking_v2_{timestamp}"
 
             upload_dir.mkdir(parents=True, exist_ok=True)
 
@@ -350,7 +385,7 @@ class AutomaticAEGISPipeline:
                 shutil.copy2(self.model_b_path, upload_dir / "model_b_aegis_phi35_thinking_v2_bf16.gguf")
 
             # ベンチマーク結果コピー
-            benchmark_dir = self.base_path / "benchmark_results"
+            benchmark_dir = Path("H:/from_D/webdataset/benchmark_results")
             if benchmark_dir.exists():
                 shutil.copytree(benchmark_dir, upload_dir / "benchmark_results", dirs_exist_ok=True)
 
