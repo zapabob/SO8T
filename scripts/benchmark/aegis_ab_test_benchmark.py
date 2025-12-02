@@ -49,7 +49,7 @@ except ImportError:
 @dataclass
 class ABTestConfig:
     """A/Bテスト設定"""
-    model_a_path: str = "models/Borea-Phi-3.5-mini-Instruct-Jp"  # ベースモデル
+    model_a_path: str = "microsoft/Phi-3.5-mini-instruct"  # HFから直接読み込み
     model_b_path: str = "outputs/aegis_phi35_v2_integrated/best_model"  # AEGISモデル
     output_dir: str = "benchmark_results/aegis_ab_test"
     device: str = "auto"
