@@ -807,7 +807,7 @@ def main():
         epilog="""
 Example usage:
   python scripts/evaluation/llama_cpp_ab_benchmark.py \\
-    --model_a H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp \\
+    --model_a Boreas-Phi-3.5-mini-Instruct-Jp \\
     --model_b H:/from_D/webdataset/models/aegis_test_bf16 \\
     --output_dir H:/from_D/webdataset/models/aegis_test_bf16/benchmark_results
 

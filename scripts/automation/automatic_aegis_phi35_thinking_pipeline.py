@@ -201,7 +201,7 @@ class AutomaticAEGISPipeline:
 
         try:
             # SO(8)アダプタートレーニング実行（既存SO(8)アダプターをスキップしてSO8CompatibleLoRAを使用）
-            model_path = "H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp"
+            model_path = "Borea-Phi-3.5-mini-Instruct-Jp"  # Hugging Faceから直接ロード
             dataset_path = "H:/from_D/webdataset/datasets/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
             output_dir = "H:/from_D/webdataset/checkpoints/automatic_aegis/so8_compatible_adapter_output"
 
@@ -213,7 +213,7 @@ import torch
 from transformers import AutoModelForCausalLM
 
 # モデルをロード
-model = AutoModelForCausalLM.from_pretrained('H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp', torch_dtype=torch.float16, low_cpu_mem_usage=True)
+model = AutoModelForCausalLM.from_pretrained('Borea-Phi-3.5-mini-Instruct-Jp', torch_dtype=torch.float16, low_cpu_mem_usage=True)
 
 # 既存のSO(8)アダプターを削除
 def remove_so8_adapters(module, name=''):
@@ -228,7 +228,7 @@ def remove_so8_adapters(module, name=''):
 remove_so8_adapters(model)
 
 # クリーンなモデルを保存
-model.save_pretrained('H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp-clean')
+model.save_pretrained('H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp-clean', safe_serialization=True)
 print('Cleaned model saved')
 """
             ]
@@ -244,7 +244,7 @@ print('Cleaned model saved')
                 "--model_path", "H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp-clean",  # クリーンなモデルを使用
                 "--dataset_path", dataset_path,
                 "--output_path", output_dir,
-                "--max_steps", "100",  # 短めのトレーニング
+                "--max_steps", "50",  # さらに短めにトレーニング（容量節約）
                 "--batch_size", "1",
                 "--learning_rate", "1e-5"
             ]
@@ -276,7 +276,7 @@ print('Cleaned model saved')
             else:
                 cmd_a = [
                     sys.executable, "scripts/conversion/convert_baked_so8_to_gguf.py",
-                    "--model_path", "H:/from_D/webdataset/models/Borea-Phi-3.5-mini-Instruct-Jp",
+                    "--model_path", "Borea-Phi-3.5-mini-Instruct-Jp",  # Hugging Faceから直接変換
                     "--output_path", str(model_a_output),
                     "--quantization", "f16"  # ベースモデルはF16で保存
                 ]
