@@ -44,9 +44,9 @@ from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 
 # カスタムモデルインポート
 from models.Borea_Phi_3_5_mini_Instruct_Jp.modeling_nobel_fields import (
-    NobelFieldsPhi3ForCausalLM,
-    create_nobel_fields_phi35_config,
-    save_nobel_fields_model
+    AEGISPhi35V2ForCausalLM,
+    create_aegis_phi35_v2_config,
+    save_aegis_phi35_v2_model
 )
 
 
@@ -59,9 +59,9 @@ class NobelFieldsHFTrainingConfig:
     model_name: str = "AEGIS-phi3.5-v2.0"
 
     # データセット設定
-    sft_dataset_path: str = "data/aegis_phi35_v2_datasets/nobel_fields_sft_train.jsonl"
-    ppo_dataset_path: str = "data/aegis_phi35_v2_datasets/nobel_fields_ppo_train.jsonl"
-    val_dataset_path: str = "data/aegis_phi35_v2_datasets/nobel_fields_sft_val.jsonl"
+    sft_dataset_path: str = "data/aegis_phi35_v2_datasets/aegis_phi35_v2_sft_train.jsonl"
+    ppo_dataset_path: str = "data/aegis_phi35_v2_datasets/aegis_phi35_v2_ppo_train.jsonl"
+    val_dataset_path: str = "data/aegis_phi35_v2_datasets/aegis_phi35_v2_sft_val.jsonl"
 
     # トレーニング設定
     num_train_epochs: int = 3
@@ -212,12 +212,12 @@ class NobelFieldsHFTrainer:
         else:
             bnb_config = None
 
-        # Nobel Fields拡張モデルを使用
+        # AEGIS拡張モデルを使用
         try:
-            # カスタムNobel Fieldsモデルを読み込み
-            self.model = NobelFieldsPhi3ForCausalLM.from_pretrained(
+            # カスタムAEGISモデルを読み込み
+            self.model = AEGISPhi35V2ForCausalLM.from_pretrained(
                 self.config.base_model_path,
-                config=create_nobel_fields_phi35_config(
+                config=create_aegis_phi35_v2_config(
                     enable_mathematical_reasoning=self.config.enable_mathematical_reasoning,
                     reasoning_format=self.config.reasoning_format
                 ),
@@ -225,7 +225,7 @@ class NobelFieldsHFTrainer:
                 device_map="auto",
                 trust_remote_code=True
             )
-            print("Nobel Fields拡張モデルを読み込みました")
+            print("AEGIS拡張モデルを読み込みました")
         except Exception as e:
             print(f"Nobel Fieldsモデル読み込み失敗: {e}")
             print("標準モデルを使用します")
@@ -335,7 +335,7 @@ class NobelFieldsHFTrainer:
 
     def train(self):
         """トレーニング実行"""
-        print("=== Nobel Fields HF Integration Training ===")
+        print("=== AEGIS-phi3.5-v2.0 HF Integration Training ===")
         print(f"モデル: {self.config.model_name}")
         print(f"出力ディレクトリ: {self.config.output_dir}")
         print(f"トレーニングデータ: {len(self.train_dataset) if self.train_dataset else 0} 件")
@@ -348,8 +348,8 @@ class NobelFieldsHFTrainer:
         best_model_path = Path(self.config.output_dir) / "best_model"
         self.trainer.save_model(str(best_model_path))
 
-        # Nobel Fields形式で保存
-        save_nobel_fields_model(
+        # AEGIS形式で保存
+        save_aegis_phi35_v2_model(
             self.model,
             self.tokenizer,
             str(best_model_path),
@@ -366,7 +366,7 @@ class NobelFieldsHFTrainer:
 
     def test_mathematical_reasoning(self):
         """数学推論機能のテスト"""
-        print("\n=== Mathematical Reasoning Test ===")
+        print("\n=== AEGIS Mathematical Reasoning Test ===")
 
         test_problems = [
             {
@@ -482,8 +482,8 @@ def main():
     parser.add_argument("--model_name", type=str, default="AEGIS-phi3.5-v2.0")
     parser.add_argument("--base_model", type=str, default="models/Borea-Phi-3.5-mini-Instruct-Jp")
     parser.add_argument("--output_dir", type=str, default="outputs/nobel_fields_hf_integrated")
-    parser.add_argument("--sft_dataset", type=str, default="data/aegis_phi35_v2_datasets/nobel_fields_sft_train.jsonl")
-    parser.add_argument("--ppo_dataset", type=str, default="data/aegis_phi35_v2_datasets/nobel_fields_ppo_train.jsonl")
+    parser.add_argument("--sft_dataset", type=str, default="data/aegis_phi35_v2_datasets/aegis_phi35_v2_sft_train.jsonl")
+    parser.add_argument("--ppo_dataset", type=str, default="data/aegis_phi35_v2_datasets/aegis_phi35_v2_ppo_train.jsonl")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
