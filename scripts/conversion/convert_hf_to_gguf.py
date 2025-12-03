@@ -28,16 +28,16 @@ except ImportError:
     _checkpoint_available = False
     print("Warning: Checkpoint manager not available. Running without checkpointing.")
 
-
-class GGUFConversionCheckpoint:
-    """GGUF変換専用のチェックポイントマネージャー"""
+# GGUF変換チェックポイントクラスを分離（インポートエラーを避けるため）
+class GGUFCheckpointManager:
+    """GGUF変換専用のチェックポイントマネージャー（シンプル版）"""
 
     def __init__(self, output_dir: str, model_name: str):
         self.output_dir = Path(output_dir)
         self.model_name = model_name
         self.checkpoint_file = self.output_dir / "gguf_conversion_checkpoint.json"
         self.start_time = time.time()
-        self.last_checkpoint_time = self.start_time
+        self.last_save_time = self.start_time
 
         # 変換状態
         self.state = {
@@ -45,21 +45,12 @@ class GGUFConversionCheckpoint:
             "start_time": self.start_time,
             "stage": "init",
             "progress": 0.0,
-            "last_tensor_processed": None,
-            "tensors_processed": 0,
-            "total_tensors": 0,
-            "bytes_written": 0,
             "checkpoint_count": 0
         }
 
-        self._load_checkpoint()
-        if _checkpoint_available:
-            self.ckpt_manager = create_task_manager(
-                task_name=f"gguf_conversion_{model_name}",
-                output_dir=str(self.output_dir / "checkpoints")
-            )
+        self._load_state()
 
-    def _load_checkpoint(self):
+    def _load_state(self):
         """チェックポイントファイルを読み込み"""
         if self.checkpoint_file.exists():
             try:
@@ -70,7 +61,7 @@ class GGUFConversionCheckpoint:
             except Exception as e:
                 print(f"Warning: Could not load checkpoint file: {e}")
 
-    def _save_checkpoint(self):
+    def _save_state(self):
         """チェックポイントファイルを保存"""
         try:
             with open(self.checkpoint_file, 'w', encoding='utf-8') as f:
@@ -78,47 +69,30 @@ class GGUFConversionCheckpoint:
         except Exception as e:
             print(f"Warning: Could not save checkpoint file: {e}")
 
-    def update_progress(self, stage: str, progress: float = None,
-                       tensor_name: str = None, bytes_written: int = None):
+    def update_progress(self, stage: str, progress: float = 0.0):
         """進捗を更新"""
         self.state["stage"] = stage
-        if progress is not None:
-            self.state["progress"] = progress
-        if tensor_name:
-            self.state["last_tensor_processed"] = tensor_name
-            self.state["tensors_processed"] += 1
-        if bytes_written:
-            self.state["bytes_written"] = bytes_written
+        self.state["progress"] = progress
 
         # 3分間隔でチェックポイント保存
         current_time = time.time()
-        if current_time - self.last_checkpoint_time >= 180:  # 3分
+        if current_time - self.last_save_time >= 180:  # 3分
             self.save_checkpoint()
-            self.last_checkpoint_time = current_time
+            self.last_save_time = current_time
 
     def save_checkpoint(self, step_info: str = "auto"):
-        """定期チェックポイント保存"""
-        if _checkpoint_available:
-            self.ckpt_manager.save_checkpoint(
-                data={"conversion_state": self.state},
-                metadata=self.state,
-                step_info=step_info
-            )
-        self._save_checkpoint()
+        """チェックポイント保存"""
+        self._save_state()
         self.state["checkpoint_count"] += 1
         print(f"💾 GGUF conversion checkpoint saved: {self.state['stage']} "
-              f"({self.state['progress']:.1%})")
+              f"({self.state['progress']:.1%}) - Checkpoints: {self.state['checkpoint_count']}")
 
     def mark_completed(self):
         """変換完了をマーク"""
         self.state["stage"] = "completed"
         self.state["completion_time"] = time.time()
         self.state["total_time"] = self.state["completion_time"] - self.start_time
-        self._save_checkpoint()
-
-        if _checkpoint_available:
-            self.ckpt_manager.mark_completed()
-
+        self._save_state()
         print(f"✅ GGUF conversion completed in {self.state['total_time']:.2f} seconds")
 
     def get_status(self) -> dict:
@@ -10028,7 +10002,7 @@ def main() -> None:
 
     # GGUF変換チェックポイントマネージャー初期化
     output_base_dir = Path(args.outfile).parent if args.outfile else dir_model.parent
-    gguf_checkpoint = GGUFConversionCheckpoint(
+    gguf_checkpoint = GGUFCheckpointManager(
         output_dir=str(output_base_dir),
         model_name=dir_model.name
     )
