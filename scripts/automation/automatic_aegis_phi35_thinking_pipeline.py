@@ -181,13 +181,16 @@ class AutomaticAEGISPipeline:
 
         try:
             cmd = [sys.executable, "scripts/data/sft_dataset_integration_phi35_thinking.py"]
-            result = subprocess.run(cmd, cwd=self.base_path, capture_output=True, text=True)
+            result = subprocess.run(cmd, cwd=self.base_path, capture_output=True, text=True, timeout=300)  # 5分タイムアウト
 
             if result.returncode == 0:
                 logger.info("SFT integration completed successfully")
+                logger.info(f"SFT stdout: {result.stdout[-500:]}")  # 最後500文字を表示
                 return True
             else:
-                logger.error(f"SFT integration failed: {result.stderr}")
+                logger.error(f"SFT integration failed (returncode: {result.returncode})")
+                logger.error(f"SFT stderr: {result.stderr}")
+                logger.error(f"SFT stdout: {result.stdout[-500:]}")  # 最後500文字を表示
                 return False
 
         except Exception as e:
