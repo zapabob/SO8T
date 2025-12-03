@@ -48,6 +48,9 @@ from transformers import (
     BitsAndBytesConfig,
     TrainingArguments,
     DataCollatorForLanguageModeling
+
+# 自動チェックポイントマネージャー
+from scripts.utils.checkpoint_manager import RollingCheckpointManager
 )
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
@@ -222,8 +225,21 @@ class NKATPPOTrainer:
             heat_factor=1.5
         )
 
-        # モデル初期化
-        self.model, self.tokenizer, self.peft_config = self._setup_model()
+        # 自動チェックポイントマネージャー初期化
+        self.ckpt_manager = RollingCheckpointManager(
+            base_dir=str(self.output_dir / "rolling_checkpoints"),
+            max_keep=5,
+            save_interval_sec=180  # 3分ごと
+        )
+
+        # モデル初期化（チェックポイント再開対応）
+        latest_ckpt = self.ckpt_manager.get_latest_checkpoint()
+        if latest_ckpt:
+            logger.info(f"🔄 Resuming from checkpoint: {latest_ckpt}")
+            self.model, self.tokenizer, self.peft_config = self._setup_model_from_checkpoint(latest_ckpt)
+        else:
+            logger.info("✨ Starting new training session")
+            self.model, self.tokenizer, self.peft_config = self._setup_model()
 
         # データセット初期化
         self.train_dataset = AEGISDataset(config.dataset_path, self.tokenizer)
@@ -321,6 +337,65 @@ class NKATPPOTrainer:
 
         logger.info(f"Model loaded successfully. Hidden size: {hidden_size}")
         logger.info(f"SO(8) adapter added with dimension: {so8_adapter.so8_dim}")
+
+        return model, tokenizer, peft_config
+
+    def _setup_model_from_checkpoint(self, checkpoint_path: str):
+        """チェックポイントからモデルを再開"""
+        logger.info(f"Loading model from checkpoint: {checkpoint_path}")
+
+        if UNSLOTH_AVAILABLE:
+            try:
+                # Unsloth使用（チェックポイントからロード）
+                model, tokenizer = FastLanguageModel.from_pretrained(
+                    model_name=checkpoint_path,
+                    max_seq_length=self.config.max_new_tokens * 2,
+                    dtype=None,
+                    load_in_4bit=True,
+                )
+                peft_config = None
+
+            except Exception as e:
+                logger.warning(f"Unsloth checkpoint loading failed: {e}, falling back to transformers")
+                UNSLOTH_AVAILABLE = False
+
+        if not UNSLOTH_AVAILABLE:
+            # 標準Transformers使用（チェックポイントからロード）
+            tokenizer = AutoTokenizer.from_pretrained(checkpoint_path)
+            tokenizer.pad_token = tokenizer.eos_token
+
+            # 4bit量子化設定
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4"
+            )
+
+            model = AutoModelForCausalLM.from_pretrained(
+                checkpoint_path,
+                quantization_config=bnb_config,
+                device_map="auto",
+                torch_dtype=torch.float16,
+            )
+
+            peft_config = None  # チェックポイントに含まれているはず
+
+        # SO(8)幾何学アダプター再追加
+        if hasattr(model, 'model') and hasattr(model.model, 'embed_tokens'):
+            hidden_size = model.model.embed_tokens.embedding_dim
+        else:
+            hidden_size = model.config.hidden_size
+
+        so8_adapter = SO8GeometricAdapter(hidden_size)
+        model.so8_adapter = so8_adapter
+
+        # モデルをデバイスに移動
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = model.to(device)
+
+        logger.info(f"Model resumed from checkpoint. Hidden size: {hidden_size}")
+        logger.info(f"SO(8) adapter re-added with dimension: {so8_adapter.so8_dim}")
 
         return model, tokenizer, peft_config
 
@@ -557,6 +632,13 @@ class NKATPPOTrainer:
                        f"Tag Acc: {train_stats['tag_accuracy']:.3f}")
             logger.info(f"  Val - Reward: {val_stats['total_reward']:.3f}, "
                        f"Tag Acc: {val_stats['tag_accuracy']:.3f}")
+
+            # ★★★ 自動チェックポイント保存 ★★★
+            if self.ckpt_manager.should_save():
+                self.ckpt_manager.save_checkpoint(
+                    self.model, self.tokenizer,
+                    step_info=f"epoch{epoch+1}"
+                )
 
             # 最良モデル保存
             if val_stats['total_reward'] > best_val_reward:
