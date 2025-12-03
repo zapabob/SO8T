@@ -1,6 +1,6 @@
 """
-2025.11.5
-2025.11.4
+2025.11.6
+2025.11.6
 4.57.3
 0.24.0
 __UNSLOTH_VERSIONING__
@@ -98,7 +98,7 @@ def calculate_pad_tokens_in_prompt(
     pad_token_id: int
 ) -> torch.Tensor:
     """
-    Given prompt tensor, it returns all the left padded tokens in that sequence. so [pad, pad, pad, cat] = 3 tokens 
+    Given prompt tensor, it returns all the left padded tokens in that sequence. so [pad, pad, pad, cat] = 3 tokens
     """
     if logits_to_keep >= input_ids.shape[1]:
         raise ValueError("logits_to_keep must be smaller than the sequence length.")
@@ -1888,7 +1888,7 @@ class _UnslothRLOOTrainer(BaseTrainer):
                     vllm_inputs = all_prompts_text
 
                 with profiling_context(self, "vLLM.generate"):
-                    all_outputs = self.llm.generate(vllm_inputs, sampling_params=sampling_params, use_tqdm=False, lora_request = self.model.load_lora('rloo_trainer_lora_model_' + (os.environ.get('CUDA_VISIBLE_DEVICES', '0').replace(',','')), load_tensors = True))
+                    all_outputs = self.llm.generate(vllm_inputs, sampling_params=sampling_params, use_tqdm=False, lora_request = self.model.load_lora('rloo_trainer_lora_model', load_tensors = True))
 
                 all_prompt_ids = [output.prompt_token_ids for output in all_outputs]
                 all_completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
@@ -2506,7 +2506,7 @@ class UnslothRLOOTrainer(_UnslothRLOOTrainer):
             force_float32 = True
         mixed_precision_dtype = os.environ.get('UNSLOTH_MIXED_PRECISION', 'float32')
         dtype = getattr(model.config, 'dtype', None) or getattr(model.config, 'torch_dtype', None)
-        if dtype is None: dtype = model.get_input_embeddings().dtype
+        if dtype is None: dtype = model.get_input_embeddings().weight.dtype
         from unsloth_zoo.utils import _get_dtype
         dtype = _get_dtype(dtype)
         float16 = dtype == torch.float16
@@ -2564,7 +2564,7 @@ class UnslothRLOOTrainer(_UnslothRLOOTrainer):
                 max_seq_length = model.max_seq_length
                 if hasattr(args, 'max_seq_length'): args.max_seq_length = max_seq_length
         if model is not None and hasattr(model, 'for_training'):
-            model.for_training()
+            model.for_training(use_gradient_checkpointing=getattr(args, 'gradient_checkpointing', True))
         if 'tokenizer' in locals() and hasattr(tokenizer, 'padding_side'): tokenizer.padding_side = 'right'
         if 'processing_class' in locals():
             if hasattr(processing_class, 'padding_side'): processing_class.padding_side = 'right'
@@ -2613,7 +2613,7 @@ class UnslothRLOOTrainer(_UnslothRLOOTrainer):
             if getattr(args, "_n_gpu", 1) != 1:
                 args._n_gpu = 1
         if "model" in locals() and hasattr(model, "for_training"):
-            model.for_training()
+            model.for_training(use_gradient_checkpointing=getattr(args, 'gradient_checkpointing', True))
         super().__init__(
             model = model,
             reward_funcs = reward_funcs,

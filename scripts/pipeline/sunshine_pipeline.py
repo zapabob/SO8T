@@ -26,6 +26,11 @@ from typing import Dict, List, Optional, Any
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
+# 🚨 CRITICAL: Unsloth MUST be imported BEFORE transformers/peft!
+# This prevents optimization conflicts and gradient detachment issues
+import unsloth  # 必ず一番最初に！
+from unsloth import FastLanguageModel
+
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
@@ -37,7 +42,8 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+from scripts.models.so8t_residual_adapter import monkey_patch_unsloth_layers
+from scripts.utils.nkat_callbacks import NKATDebugCallback
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -243,11 +249,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -265,12 +286,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -280,6 +301,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -359,13 +409,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -497,7 +560,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -703,11 +766,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -725,12 +803,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -740,6 +818,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -819,13 +926,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -957,7 +1077,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -1163,11 +1283,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -1185,12 +1320,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -1200,6 +1335,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -1279,13 +1443,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -1417,7 +1594,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -1623,11 +1800,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -1645,12 +1837,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -1660,6 +1852,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -1739,13 +1960,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -1877,7 +2111,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -2083,11 +2317,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -2105,12 +2354,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -2120,6 +2369,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -2199,13 +2477,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -2337,7 +2628,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -2543,11 +2834,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -2565,12 +2871,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -2580,6 +2886,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -2659,13 +2994,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -2797,7 +3145,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -3003,11 +3351,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -3025,12 +3388,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -3040,6 +3403,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -3119,13 +3511,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -3257,7 +3662,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -3463,11 +3868,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -3485,12 +3905,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -3500,6 +3920,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -3579,13 +4028,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -3717,7 +4179,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -3923,11 +4385,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -3945,12 +4422,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -3960,6 +4437,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -4039,13 +4545,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -4177,7 +4696,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -4383,11 +4902,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -4405,12 +4939,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -4420,6 +4954,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -4499,13 +5062,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -4637,7 +5213,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import attach_nkat_adapters
+# from scripts.models.so8t_residual_adapter import attach_nkat_adapters  # 削除済み関数
 
 # Simple dataset class for testing
 from torch.utils.data import Dataset
@@ -4843,11 +5419,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
+        # ★★★ トレーニング時は device_map="auto" を使用せず直接GPUにロード ★★★
+        # device_map="auto" は分散トレーニングと競合するため
         model = AutoModelForCausalLM.from_pretrained(
             config.model_name,
             torch_dtype=torch.float16,
-            device_map="auto"
-        )
+            device_map=None  # トレーニング時は明示的にNone
+        ).to("cuda")  # 直接GPUに移動
+
+        # ★★★ デバッグ: Phi-3モデルの構造を確認 ★★★
+        print(f"Model type: {type(model)}")
+        print(f"Model attributes: {[attr for attr in dir(model) if not attr.startswith('_')]}")
+        if hasattr(model, 'model'):
+            print(f"model.model type: {type(model.model)}")
+            print(f"model.model attributes: {[attr for attr in dir(model.model) if not attr.startswith('_')]}")
+            if hasattr(model.model, 'layers'):
+                print(f"model.model.layers length: {len(model.model.layers)}")
+                print(f"First layer type: {type(model.model.layers[0])}")
+                print(f"First layer attributes: {[attr for attr in dir(model.model.layers[0]) if not attr.startswith('_')]}")
+                if hasattr(model.model.layers[0], 'mlp'):
+                    print(f"First layer has mlp: {type(model.model.layers[0].mlp)}")
 
         # LoRA適用
         print("[2/5] Applying LoRA...")
@@ -4865,12 +5456,12 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         # SO(8)アダプター適用（so8tの場合）
         if config.so8_config:
-            print("[3/5] Applying SO(8) adapters...")
+            print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
-            model = attach_nkat_adapters(
+            # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
+            model = monkey_patch_unsloth_layers(
                 model,
-                target_layers=config.so8_config['target_layers'],
-                enable_quad_inference=enable_quad
+                target_layers=config.so8_config['target_layers']
             )
 
             print(f"SO(8) Adapter with Quad Inference: {enable_quad}")
@@ -4880,6 +5471,35 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # パラメータ確認
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
+
+        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        if config.so8_config:
+            print("[4.5/5] Manual optimizer registration for SO8T...")
+            # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
+            trainable_params = []
+            for name, param in model.named_parameters():
+                if "lora" in name.lower() or "nkat_adapter" in name.lower():
+                    param.requires_grad = True
+                    trainable_params.append(param)
+                else:
+                    param.requires_grad = False
+
+            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+
+            # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
+            try:
+                from unsloth.optim import AdamW8bit
+                optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Unsloth AdamW8bit")
+            except ImportError:
+                from torch.optim import AdamW
+                optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
+                print("✅ Using Standard AdamW")
+
+            # 3. 後でTrainerに渡すための保存
+            manual_optimizer = optimizer
+        else:
+            manual_optimizer = None
 
         # データセット準備
         print("[5/5] Preparing dataset...")
@@ -4959,13 +5579,26 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         callback = SunshineCallback(logger, model, run_type)
 
         # Trainer設定
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=dataset,
-            data_collator=data_collator,
-            callbacks=[callback]
-        )
+        if manual_optimizer is not None:
+            # SO8Tの場合：手動Optimizerを使用
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)],
+                optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
+            )
+            print("🔧 Using manual optimizer for SO8T training")
+        else:
+            # Baselineの場合：通常のTrainer
+            trainer = Trainer(
+                model=model,
+                args=training_args,
+                train_dataset=dataset,
+                data_collator=data_collator,
+                callbacks=[callback, NKATDebugCallback(model)]
+            )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")

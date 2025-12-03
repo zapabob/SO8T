@@ -10,11 +10,19 @@ echo.
 REM ログディレクトリ作成
 if not exist "logs\sunshine" mkdir logs\sunshine
 
+REM コマンドライン引数チェック: skip_baseline を指定するとBaselineをスキップ
+if "%1"=="skip_baseline" goto skip_baseline
+
 echo [STEP 2] Starting Baseline Run (LoRA only)...
 echo.
 py -3 scripts/pipeline/sunshine_pipeline.py baseline
+goto so8t_run
 
+:skip_baseline
+echo [STEP 2] Skipping Baseline Run (already completed)...
 echo.
+
+:so8t_run
 echo [STEP 3] Starting SO8T Run (LoRA + SO(8) Adapter)...
 echo.
 py -3 scripts/pipeline/sunshine_pipeline.py so8t
@@ -46,45 +54,7 @@ echo [STEP 5] Generating Comparison Report...
 echo.
 
 REM Pythonで比較レポート生成
-py -3 -c "
-import json
-import pandas as pd
-from pathlib import Path
-
-print('📊 SUNSHINE EXPERIMENT RESULTS')
-print('=' * 50)
-
-baseline_metrics = Path('logs/sunshine/sunshine_run_baseline_metrics.json')
-so8t_metrics = Path('logs/sunshine/sunshine_run_so8t_metrics.json')
-
-results = {}
-for name, path in [('Baseline', baseline_metrics), ('SO8T', so8t_metrics)]:
-    if path.exists():
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            results[name] = data
-            print(f'{name}:')
-            print(f'  Final Loss: {data.get(\"final_train_loss\", \"N/A\")}')
-            print(f'  Avg SO8 Ortho Error: {data.get(\"avg_so8_ortho_error\", \"N/A\")}')
-            print(f'  Total Steps: {data.get(\"total_steps\", 0)}')
-    else:
-        print(f'{name}: Metrics file not found')
-    print()
-
-# CSVログ比較
-baseline_csv = Path('logs/sunshine/sunshine_run_baseline_training_log.csv')
-so8t_csv = Path('logs/sunshine/sunshine_run_so8t_training_log.csv')
-
-for name, path in [('Baseline', baseline_csv), ('SO8T', so8t_csv)]:
-    if path.exists():
-        df = pd.read_csv(path)
-        print(f'{name} Training Progress:')
-        print(f'  Steps recorded: {len(df)}')
-        if not df.empty:
-            print(f'  Initial loss: {df[\"train_loss\"].dropna().iloc[0]:.4f}')
-            print(f'  Final loss: {df[\"train_loss\"].dropna().iloc[-1]:.4f}')
-        print()
-"
+py -3 scripts\pipeline\sunshine_analysis.py
 
 echo [STEP 6] Playing completion notification...
 powershell -ExecutionPolicy Bypass -File "scripts/utils/play_audio_notification.ps1"
