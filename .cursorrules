@@ -1,7 +1,46 @@
-# Cursor Rules for SO8T Project
+# Cursor Rules for MOONSHOT Project (AEGIS Autonomous A/B Testing System)
 
 ## Project Overview
-This is the SO8T (SO(8) Transformer) project, implementing advanced multimodal LLM with safety features and local processing capabilities.
+**MOONSHOT: AEGIS Autonomous A/B Testing System**
+This is the ultimate autonomous AI evaluation platform implementing SO(8) NKAT theory with complete A/B testing automation. The system performs end-to-end evaluation from dataset creation to HF upload, featuring 3-minute rolling checkpoints and fully autonomous operation.
+
+## Moonshot Launch Commands
+**CRITICAL**: Use these commands to launch the Moonshot system:
+
+### Primary Launch (Full Automation)
+```batch
+# Administrator privileges required
+setup_ab_test_automation.bat
+```
+
+### Manual Pipeline Launch
+```batch
+# After setup completion
+auto_ab_test_pipeline.bat
+```
+
+### Quick Verification
+```batch
+# System status check
+py -3 simple_rlpo_test.py
+```
+
+## Moonshot Architecture
+- **Phase 1**: AEGIS High-Quality Dataset Creation (Nobel/Fields Medal level + Arxiv top 20% + NSFW safety)
+- **Phase 2**: lm-eval-harness + ELYZA-100 Integration
+- **Phase 3**: AEGIS RLPO Training with SO(8) NKAT Theory (3min rolling checkpoints)
+- **Phase 4**: Dual GGUF Conversion (Baseline BF16 + AEGIS Q8_0/Q4_K_M)
+- **Phase 5**: llama.cpp.python A/B Testing (Full evaluation suite)
+- **Phase 6**: Statistical Analysis (ANOVA, Cohen's d, p-values, error bars)
+- **Phase 7**: HF Upload Preparation (Complete package with metadata)
+- **Phase 8**: Autonomous Completion (Task cleanup, startup removal)
+
+## Moonshot Key Technologies
+- **NKAT Theory**: SO(8) geometric adapters for advanced reasoning
+- **Autonomous A/B Testing**: End-to-end evaluation pipeline
+- **Rolling Checkpoint System**: 3-minute intervals, 5-stock recovery
+- **Statistical Rigor**: ANOVA + effect size analysis
+- **HF Integration**: Complete upload package generation
 
 ## Audio Notification Rules
 **CRITICAL**: At the end of every Agent task or Plan completion, ALWAYS play the audio file:
@@ -45,20 +84,38 @@ if (-not $audioPlayed) {
 }
 ```
 
-## Project Structure
-- `so8t-mmllm/`: Main multimodal LLM implementation
-- `src/`: Source code modules
-- `scripts/`: PowerShell execution scripts
-- `configs/`: Configuration files
-- `docs/`: Documentation
+## Moonshot Project Structure
+- `scripts/data/`: AEGIS dataset creation (Nobel/Fields level + Arxiv + NSFW safety)
+- `scripts/evaluation/`: Complete A/B testing pipeline (lm-eval + llama.cpp + stats)
+- `scripts/training/`: RLPO training with SO(8) NKAT theory
+- `auto_ab_test_pipeline.bat`: Main autonomous pipeline (9 phases)
+- `setup_ab_test_automation.bat`: Moonshot system launcher
+- `results/ab_test_results/`: Statistical analysis and evaluation data
+- `hf_upload_package/`: Complete HF upload package
+- `_docs/`: Implementation logs and documentation
 
-## Key Technologies
-- SO(8) Group Structure: 8-dimensional rotation gates
-- PET Regularization: Second-order difference penalty
-- QLoRA 8bit: Efficient fine-tuning
-- Local OCR: OpenCV + Tesseract
-- SQLite Audit: Complete decision logging
-- GGUF Conversion: llama.cpp inference
+## Moonshot Key Technologies
+- **NKAT Theory**: SO(8) geometric reasoning adapters
+- **Autonomous A/B Testing**: End-to-end evaluation pipeline
+- **Rolling Checkpoint System**: 3-minute intervals, 5-stock recovery
+- **Statistical Analysis**: ANOVA, Cohen's d, p-values, error bars
+- **Multi-Model Evaluation**: Baseline vs AEGIS comparison
+- **HF Integration**: Complete upload package generation
+
+## Moonshot Execution Requirements
+- **Administrator Privileges**: Required for Windows Task Scheduler setup
+- **Estimated Runtime**: 12-24 hours (hardware dependent)
+- **Disk Space**: Minimum 50GB free space (D:\ drive for models)
+- **RAM**: Minimum 16GB (32GB recommended)
+- **GPU**: RTX 3060 or equivalent (12GB VRAM minimum)
+- **Internet**: Required for dataset downloads and HF upload
+
+## Moonshot Output Locations
+- **Evaluation Results**: `results/ab_test_results/`
+- **Statistical Analysis**: `results/ab_test_results/statistics/`
+- **Plots & Visualizations**: `results/ab_test_results/plots/`
+- **HF Upload Package**: `hf_upload_package/`
+- **Implementation Logs**: `_docs/` (dated with worktree names)
 
 ## Model Checkpoint and Output Directory
 **MANDATORY**: All model checkpoints and outputs must be saved to `D:\webdataset`
@@ -671,18 +728,33 @@ def create_implementation_log(feature_name: str, content: str):
     print(f"[INFO] Implementation log created: {log_path}")
 ```
 
-## Project Completion Status
-- [OK] Repository cleanup and organization
-- [OK] Environment setup and dependencies
-- [OK] SO(8) rotation gate implementation
-- [OK] PET regularization implementation
-- [OK] QLoRA 8bit training
-- [OK] OCR processing pipeline
-- [OK] SQLite audit system
-- [OK] Rotation baking functionality
-- [OK] GGUF conversion
-- [OK] Comprehensive evaluation
-- [OK] Final project report
+## Moonshot Completion Status
+- [OK] AEGIS high-quality dataset creation (Nobel/Fields + Arxiv + NSFW)
+- [OK] lm-eval-harness + ELYZA-100 integration
+- [OK] SO(8) NKAT theory RLPO training pipeline
+- [OK] Dual GGUF conversion (Baseline BF16 + AEGIS Q8_0/Q4_K_M)
+- [OK] llama.cpp.python A/B testing framework
+- [OK] Statistical analysis (ANOVA + effect sizes + p-values)
+- [OK] HF upload package generation
+- [OK] Autonomous pipeline (9 phases, rolling checkpoints)
+- [OK] Windows Task Scheduler integration
+- [OK] Startup automation and cleanup system
+- [MOONSHOT READY] Complete autonomous A/B testing platform
+
+## Moonshot Launch Protocol
+1. **System Preparation**: Ensure administrator privileges
+2. **Initial Setup**: Run `setup_ab_test_automation.bat`
+3. **Autonomous Execution**: System starts automatically on boot/login
+4. **Monitoring**: Check `ab_test_automation.log` for progress
+5. **Results**: Access complete results in `results/ab_test_results/`
+6. **HF Upload**: Ready-to-upload package in `hf_upload_package/`
+
+## Moonshot Operational Notes
+- **Autonomous Operation**: 12-24 hour runtime, fully unattended
+- **Recovery System**: 3-minute checkpoints, automatic restart on failure
+- **Resource Management**: GPU memory optimized, rolling cleanup
+- **Data Ethics**: NSFW data for safety training only, Arxiv citations limited
+- **HF Integration**: Complete upload package with metadata and statistics
 
 **Remember**: Always play the audio notification at the end of every Agent task or Plan completion!
 **Remember**: Always create implementation logs with worktree name when in git worktree mode!
