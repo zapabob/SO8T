@@ -1,231 +1,253 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-データセット分割スクリプト
+LLMトレーニング用データセット分割スクリプト
+SFT (Supervised Fine-Tuning) と PPO (Proximal Policy Optimization) 用に層化抽出で分割
 
-統計的ランダム分割で訓練/検証/テストに分割
+要件:
+- SFT: 20% (約14,000件) - 基礎知識とフォーマットの学習
+- PPO: 80% (約56,000件) - 深さと正確性の強化学習
+- Test/Eval: 2% - 評価用データ
 
-Usage:
-    python scripts/split_dataset.py --input data/labeled --output data/splits
+分割ロジック:
+1. 全体の2%を評価用としてランダム確保
+2. 残りのデータをscoreでソートし、上位40%を難問としてPPOに割り当て
+3. 残りのデータをSFT:PPO = 1:2の割合で層化分割
+4. 最終的に全体がSFT:PPO ≈ 1:4になるよう調整
 """
 
 import json
-import logging
-import argparse
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import StratifiedShuffleSplit
+from collections import Counter, defaultdict
 from pathlib import Path
-from typing import List, Dict
-from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+def load_dataset(file_path):
+    """データセットを読み込み"""
+    data = []
+    with open(file_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.strip():
+                try:
+                    item = json.loads(line)
+                    data.append(item)
+                except json.JSONDecodeError as e:
+                    print(f"JSON解析エラー: {e}")
+                    continue
+    return data
 
+def save_dataset(data, file_path):
+    """データセットを保存"""
+    with open(file_path, 'w', encoding='utf-8') as f:
+        for item in data:
+            f.write(json.dumps(item, ensure_ascii=False) + '\n')
 
-class DatasetSplitter:
-    """データセット分割クラス"""
-    
-    def __init__(
-        self,
-        train_ratio: float = 0.8,
-        val_ratio: float = 0.1,
-        test_ratio: float = 0.1,
-        stratify: bool = True,
-        seed: int = 42
-    ):
-        """
-        Args:
-            train_ratio: 訓練データ比率
-            val_ratio: 検証データ比率
-            test_ratio: テストデータ比率
-            stratify: 層化サンプリングを使用するか
-            seed: 乱数シード
-        """
-        assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6, "Ratios must sum to 1.0"
-        
-        self.train_ratio = train_ratio
-        self.val_ratio = val_ratio
-        self.test_ratio = test_ratio
-        self.stratify = stratify
-        self.seed = seed
-        
-        logger.info("Dataset Splitter initialized")
-        logger.info(f"  Train: {train_ratio*100:.1f}%")
-        logger.info(f"  Val: {val_ratio*100:.1f}%")
-        logger.info(f"  Test: {test_ratio*100:.1f}%")
-        logger.info(f"  Stratify: {stratify}")
-    
-    def split_dataset(
-        self,
-        input_dir: Path,
-        output_dir: Path
-    ) -> Dict[str, int]:
-        """データセット分割実行"""
-        logger.info("="*80)
-        logger.info("Dataset Splitting")
-        logger.info("="*80)
-        
-        input_dir = Path(input_dir)
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # 入力ファイル検索
-        input_files = list(input_dir.glob("*.jsonl"))
-        if not input_files:
-            logger.error(f"No JSONL files found in {input_dir}")
-            return {}
-        
-        logger.info(f"Found {len(input_files)} input files")
-        
-        # 全サンプル読み込み
-        all_samples: List[Dict] = []
-        for input_file in input_files:
-            logger.info(f"Loading {input_file.name}...")
-            with open(input_file, 'r', encoding='utf-8') as f:
-                for line in tqdm(f, desc=f"Loading {input_file.name}"):
-                    try:
-                        sample = json.loads(line.strip())
-                        all_samples.append(sample)
-                    except json.JSONDecodeError:
-                        continue
-        
-        logger.info(f"Total samples: {len(all_samples):,}")
-        
-        # ラベル抽出（層化サンプリング用）
-        labels = [s.get("label", "ALLOW") for s in all_samples]
-        
-        # 訓練/検証+テストに分割
-        stratify_labels = labels if self.stratify else None
-        train_samples, temp_samples = train_test_split(
-            all_samples,
-            test_size=(self.val_ratio + self.test_ratio),
-            stratify=stratify_labels,
-            random_state=self.seed
-        )
-        
-        # 検証/テストに分割
-        temp_labels = [s.get("label", "ALLOW") for s in temp_samples]
-        stratify_temp = temp_labels if self.stratify else None
-        val_samples, test_samples = train_test_split(
-            temp_samples,
-            test_size=(self.test_ratio / (self.val_ratio + self.test_ratio)),
-            stratify=stratify_temp,
-            random_state=self.seed
-        )
-        
-        # 統計
-        stats = {
-            "total": len(all_samples),
-            "train": len(train_samples),
-            "val": len(val_samples),
-            "test": len(test_samples)
-        }
-        
-        # 出力ファイルに保存
-        splits = {
-            "train": train_samples,
-            "val": val_samples,
-            "test": test_samples
-        }
-        
-        for split_name, samples in splits.items():
-            output_file = output_dir / f"{split_name}.jsonl"
-            logger.info(f"Saving {split_name} split to {output_file}...")
-            
-            with open(output_file, 'w', encoding='utf-8') as f:
-                for sample in tqdm(samples, desc=f"Writing {split_name}"):
-                    f.write(json.dumps(sample, ensure_ascii=False) + '\n')
-        
-        # 統計レポート
-        logger.info("="*80)
-        logger.info("Split Statistics")
-        logger.info("="*80)
-        logger.info(f"Total: {stats['total']:,}")
-        logger.info(f"Train: {stats['train']:,} ({stats['train']/stats['total']*100:.1f}%)")
-        logger.info(f"Val: {stats['val']:,} ({stats['val']/stats['total']*100:.1f}%)")
-        logger.info(f"Test: {stats['test']:,} ({stats['test']/stats['total']*100:.1f}%)")
-        logger.info("="*80)
-        
-        return stats
+def analyze_distribution(data, title="データ分布"):
+    """データの分布を分析"""
+    domains = [item['domain'] for item in data]
+    scores = [item['score'] for item in data]
 
+    domain_counts = Counter(domains)
+
+    print(f"\n=== {title} ===")
+    print(f"総件数: {len(data)}")
+    print("ドメイン内訳:")
+    for domain, count in sorted(domain_counts.items()):
+        print(f"  {domain}: {count}件 ({count/len(data)*100:.1f}%)")
+
+    print("スコア統計:")
+    print(f"  平均: {np.mean(scores):.3f}")
+    print(f"  中央値: {np.median(scores):.3f}")
+    print(f"  最小: {np.min(scores):.3f}")
+    print(f"  最大: {np.max(scores):.3f}")
+
+    return domain_counts, scores
+
+def stratified_split_by_domain_and_score(data, test_size=0.02):
+    """
+    ドメインとスコアを考慮した層化抽出でテストデータを分割
+
+    Args:
+        data: データセット
+        test_size: テストデータの割合
+
+    Returns:
+        train_data, test_data
+    """
+    print(f"\nテストデータ確保: {test_size*100:.1f}% ({int(len(data)*test_size)}件)")
+
+    # ドメインに基づいて層化
+    domains = [item['domain'] for item in data]
+
+    # StratifiedShuffleSplitで層化抽出
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=42)
+
+    # ドメインをstrataとして使用
+    indices = list(range(len(data)))
+    train_indices, test_indices = next(sss.split(indices, domains))
+
+    train_data = [data[i] for i in train_indices]
+    test_data = [data[i] for i in test_indices]
+
+    print(f"学習データ: {len(train_data)}件")
+    print(f"テストデータ: {len(test_data)}件")
+
+    return train_data, test_data
+
+def split_sft_ppo_by_complexity(train_data, sft_ratio=0.20, ppo_ratio=0.80):
+    """
+    複雑度スコアに基づいてSFTとPPOを分割
+
+    Args:
+        train_data: 学習データ
+        sft_ratio: SFTデータの目標割合
+        ppo_ratio: PPOデータの目標割合
+
+    Returns:
+        sft_data, ppo_data
+    """
+    print(f"\nSFT/PPO分割開始")
+    print(f"目標割合 - SFT: {sft_ratio*100:.1f}%, PPO: {ppo_ratio*100:.1f}%")
+
+    # スコアでソート（降順: 高スコア=難問）
+    sorted_data = sorted(train_data, key=lambda x: x['score'], reverse=True)
+
+    total_count = len(sorted_data)
+    sft_target = int(total_count * sft_ratio)
+    ppo_target = int(total_count * ppo_ratio)
+
+    print(f"目標件数 - SFT: {sft_target}件, PPO: {ppo_target}件")
+
+    # 上位40%の難問をPPOに強制割り当て
+    hard_threshold = int(total_count * 0.4)
+    hard_questions = sorted_data[:hard_threshold]
+
+    print(f"難問閾値: 上位{hard_threshold}件 (スコア >= {sorted_data[hard_threshold]['score']:.2f})")
+
+    # 残りのデータをSFTとPPOに1:2の割合で分割
+    remaining_data = sorted_data[hard_threshold:]
+    remaining_count = len(remaining_data)
+
+    # 1:2の割合 = SFT: 1/3, PPO: 2/3
+    sft_from_remaining = int(remaining_count / 3)
+    ppo_from_remaining = remaining_count - sft_from_remaining
+
+    # 実際の割合を計算して調整
+    current_sft_count = sft_from_remaining
+    current_ppo_count = len(hard_questions) + ppo_from_remaining
+
+    actual_sft_ratio = current_sft_count / total_count
+    actual_ppo_ratio = current_ppo_count / total_count
+
+    print("調整後:")
+    print(f"  SFT: {current_sft_count}件 ({actual_sft_ratio*100:.1f}%)")
+    print(f"  PPO: {current_ppo_count}件 ({actual_ppo_ratio*100:.1f}%)")
+
+    # データ分割
+    sft_data = remaining_data[:sft_from_remaining]
+    ppo_data = hard_questions + remaining_data[sft_from_remaining:]
+
+    return sft_data, ppo_data
+
+def create_visualization(sft_data, ppo_data, test_data, output_dir="data"):
+    """分割結果の可視化"""
+    fig, axes = plt.subplots(3, 2, figsize=(15, 12))
+
+    datasets = [
+        ("SFT", sft_data),
+        ("PPO", ppo_data),
+        ("Test", test_data)
+    ]
+
+    colors = ['lightblue', 'lightgreen', 'lightcoral']
+
+    for i, (name, data) in enumerate(datasets):
+        domains = [item['domain'] for item in data]
+        scores = [item['score'] for item in data]
+
+        domain_counts = Counter(domains)
+
+        # ドメイン分布
+        ax1 = axes[i, 0]
+        ax1.bar(domain_counts.keys(), domain_counts.values(), color=colors[i], alpha=0.7)
+        ax1.set_title(f'{name} Dataset - Domain Distribution')
+        ax1.set_ylabel('Count')
+        ax1.tick_params(axis='x', rotation=45)
+
+        # スコア分布
+        ax2 = axes[i, 1]
+        ax2.hist(scores, bins=20, color=colors[i], alpha=0.7, edgecolor='black')
+        ax2.set_title(f'{name} Dataset - Score Distribution')
+        ax2.set_xlabel('Complexity Score')
+        ax2.set_ylabel('Frequency')
+
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/dataset_split_visualization.png", dpi=150, bbox_inches='tight')
+    plt.close()
+
+    print(f"\n可視化グラフを保存: {output_dir}/dataset_split_visualization.png")
 
 def main():
-    """メイン関数"""
-    parser = argparse.ArgumentParser(
-        description="Split dataset into train/val/test"
-    )
-    parser.add_argument(
-        "--input",
-        type=str,
-        required=True,
-        help="Input directory containing JSONL files"
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        required=True,
-        help="Output directory for split datasets"
-    )
-    parser.add_argument(
-        "--train-ratio",
-        type=float,
-        default=0.8,
-        help="Training data ratio (default: 0.8)"
-    )
-    parser.add_argument(
-        "--val-ratio",
-        type=float,
-        default=0.1,
-        help="Validation data ratio (default: 0.1)"
-    )
-    parser.add_argument(
-        "--test-ratio",
-        type=float,
-        default=0.1,
-        help="Test data ratio (default: 0.1)"
-    )
-    parser.add_argument(
-        "--no-stratify",
-        action="store_true",
-        help="Disable stratified sampling"
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help="Random seed (default: 42)"
-    )
-    
-    args = parser.parse_args()
-    
-    # 分割実行
-    splitter = DatasetSplitter(
-        train_ratio=args.train_ratio,
-        val_ratio=args.val_ratio,
-        test_ratio=args.test_ratio,
-        stratify=not args.no_stratify,
-        seed=args.seed
-    )
-    
-    try:
-        stats = splitter.split_dataset(
-            input_dir=Path(args.input),
-            output_dir=Path(args.output)
-        )
-        
-        logger.info("[SUCCESS] Dataset splitting completed")
-        return 0
-        
-    except Exception as e:
-        logger.error(f"[FAILED] Dataset splitting failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return 1
+    """メイン処理"""
+    print("LLMトレーニング用データセット分割を開始します")
+    print("=" * 60)
 
+    # 設定
+    input_file = "data/science_reasoning_dataset_final.jsonl"
+    output_dir = "data"
+
+    sft_output = f"{output_dir}/train_sft.jsonl"
+    ppo_output = f"{output_dir}/train_ppo.jsonl"
+    test_output = f"{output_dir}/test_eval.jsonl"
+
+    # 1. データセット読み込み
+    print(f"入力ファイル: {input_file}")
+    data = load_dataset(input_file)
+    print(f"総データ数: {len(data)}件")
+
+    # 2. 全体統計の分析
+    analyze_distribution(data, "全体データ統計")
+
+    # 3. テストデータを層化抽出で確保 (2%)
+    train_data, test_data = stratified_split_by_domain_and_score(data, test_size=0.02)
+
+    # 4. 学習データをSFTとPPOに分割
+    sft_data, ppo_data = split_sft_ppo_by_complexity(train_data, sft_ratio=0.20, ppo_ratio=0.80)
+
+    # 5. 分割結果の分析
+    analyze_distribution(sft_data, "SFTデータ統計")
+    analyze_distribution(ppo_data, "PPOデータ統計")
+    analyze_distribution(test_data, "テストデータ統計")
+
+    # 6. 可視化
+    create_visualization(sft_data, ppo_data, test_data, output_dir)
+
+    # 7. ファイル保存
+    print("\nファイルを保存中...")
+    save_dataset(sft_data, sft_output)
+    save_dataset(ppo_data, ppo_output)
+    save_dataset(test_data, test_output)
+
+    print("\n保存完了:")
+    print(f"  SFT: {sft_output} ({len(sft_data)}件)")
+    print(f"  PPO: {ppo_output} ({len(ppo_data)}件)")
+    print(f"  Test: {test_output} ({len(test_data)}件)")
+
+    # 8. 最終確認
+    final_sft_ratio = len(sft_data) / len(data)
+    final_ppo_ratio = len(ppo_data) / len(data)
+    final_test_ratio = len(test_data) / len(data)
+
+    print("\n最終割合確認:")
+    print(f"  SFT: {final_sft_ratio*100:.1f}%")
+    print(f"  PPO: {final_ppo_ratio*100:.1f}%")
+    print(f"  Test: {final_test_ratio*100:.1f}%")
+    print(f"  Total: {(final_sft_ratio + final_ppo_ratio + final_test_ratio)*100:.1f}%")
+
+    print("\nデータセット分割が完了しました！")
 
 if __name__ == "__main__":
-    import sys
-    sys.exit(main())
-
+    main()

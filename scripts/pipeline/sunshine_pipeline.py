@@ -416,11 +416,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -433,7 +433,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -938,11 +938,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -955,7 +955,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -1460,11 +1460,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -1477,7 +1477,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -1982,11 +1982,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -1999,7 +1999,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -2504,11 +2504,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -2521,7 +2521,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -3026,11 +3026,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -3043,7 +3043,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -3548,11 +3548,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -3565,7 +3565,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -4070,11 +4070,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -4087,7 +4087,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -4592,11 +4592,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -4609,7 +4609,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -5114,11 +5114,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -5131,7 +5131,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
@@ -5636,11 +5636,11 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         # Trainer設定
         if manual_optimizer is not None:
             # SO8Tの場合：手動Optimizerを使用
-            trainer = Trainer(
-                model=model,
-                args=training_args,
-                train_dataset=dataset,
-                data_collator=data_collator,
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset,
+            data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
@@ -5653,7 +5653,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 train_dataset=dataset,
                 data_collator=data_collator,
                 callbacks=[callback, NKATDebugCallback(model)]
-            )
+        )
 
         # トレーニング実行
         print(f"🚀 Starting {run_type.upper()} training...")
