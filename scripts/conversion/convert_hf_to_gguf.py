@@ -11,12 +11,22 @@ import json
 import os
 import re
 import sys
+import time
 from enum import IntEnum
 from pathlib import Path
 from hashlib import sha256
 from typing import TYPE_CHECKING, Any, Callable, ContextManager, Iterable, Iterator, Literal, Sequence, TypeVar, cast
 from itertools import chain
 from transformers import AutoConfig
+
+# GGUF変換用チェックポイントマネージャー
+try:
+    sys.path.append(str(Path(__file__).parent.parent / 'utils'))
+    from checkpoint_manager import create_task_manager
+    _checkpoint_available = True
+except ImportError:
+    _checkpoint_available = False
+    print("Warning: Checkpoint manager not available. Running without checkpointing.")
 
 import math
 import numpy as np
