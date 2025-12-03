@@ -18,7 +18,7 @@ class SO8ResidualAdapter(nn.Module):
         - Log-space Alpha による学習安定化
         - Hookベース注入に最適化
     """
-    def __init__(self, hidden_size: int, so8_dim: int = 8, alpha_init: float = 0.01):
+    def __init__(self, hidden_size: int, so8_dim: int = 8, alpha_init: float = 1.0):
         super().__init__()
 
         self.hidden_size = hidden_size
@@ -39,6 +39,9 @@ class SO8ResidualAdapter(nn.Module):
         # 負の値にならないよう、実体は log(alpha) で持つ
         self.log_alpha = nn.Parameter(torch.log(torch.tensor(alpha_init)))
 
+        # 学習しやすいよう、alphaパラメータに特別な初期化
+        # torch.nn.init.normal_(self.log_alpha, mean=0.0, std=0.1)
+
         # 初期化
         self._init_weights()
 
@@ -46,8 +49,8 @@ class SO8ResidualAdapter(nn.Module):
         # Down: Kaiming初期化 (分散を保つ)
         nn.init.kaiming_uniform_(self.down_proj.weight, a=math.sqrt(5))
 
-        # Up: ゼロ初期化 (学習初期はベースモデルの挙動を阻害しない -> 重要！)
-        nn.init.zeros_(self.up_proj.weight)
+        # Up: 小さなランダム初期化 (学習初期に適度な影響を与える)
+        nn.init.normal_(self.up_proj.weight, std=0.01)
 
         # Lie Algebra: 小さなランダム値 (初期はほぼ恒等回転)
         nn.init.normal_(self.lie_algebra, std=0.001)
@@ -94,9 +97,26 @@ class SO8ResidualAdapter(nn.Module):
         """直交性誤差モニタリング (R^T R - I)"""
         with torch.no_grad():
             R = self.get_rotation_matrix()
-            I = torch.eye(self.so8_dim, device=R.device)
+            I = torch.eye(self.so8_dim, device=R.device, dtype=R.dtype)
             err = torch.norm(R.T @ R - I)
         return err.item()
+
+    def get_adapter_stats(self):
+        """アダプター統計情報取得（デバッグ用）"""
+        with torch.no_grad():
+            alpha = torch.exp(self.log_alpha).item()
+            ortho_err = self.get_orthogonality_error()
+            down_norm = torch.norm(self.down_proj.weight).item()
+            up_norm = torch.norm(self.up_proj.weight).item()
+            lie_norm = torch.norm(self.lie_algebra).item()
+
+        return {
+            'alpha': alpha,
+            'orthogonality_error': ortho_err,
+            'down_proj_norm': down_norm,
+            'up_proj_norm': up_norm,
+            'lie_algebra_norm': lie_norm
+        }
 
 def attach_nkat_adapters(model, target_layers: Optional[Union[List[int], str]] = "middle"):
     """
