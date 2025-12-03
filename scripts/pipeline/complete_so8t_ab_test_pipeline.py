@@ -87,7 +87,7 @@ class CompleteSO8TABTestPipeline:
         
         # 基本設定
         self.session_id = datetime.now().strftime(self.config.get('session_id_format', '%Y%m%d_%H%M%S'))
-        self.output_base_dir = Path(self.config.get('output_base_dir', 'D:/webdataset'))
+        self.output_base_dir = Path(self.config.get('output_base_dir', 'H:/from_D/webdataset'))
         self.checkpoint_dir = Path(self.config.get('checkpoint_dir', 'D:/webdataset/checkpoints/complete_so8t_ab_test'))
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         
