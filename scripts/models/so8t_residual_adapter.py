@@ -257,9 +257,106 @@ class NKATMLPWrapper(nn.Module):
         return output + nkat_out
 
 
-def replace_mlp_with_nkat(model, target_layers="middle"):
-    print("🧬 Injecting NKAT SO(8) Adapters (Module Replacement Mode)...")
+class NKATLayerWrapper(nn.Module):
+    """
+    完全なTransformer層をラップし、すべてのサブコンポーネントにNKATアダプターを適用
+    Attention + MLP + 残差接続のすべてにSO(8)変換を適用
+    """
+    def __init__(self, original_layer, adapters):
+        super().__init__()
+        self.original_layer = original_layer
+        self.adapters = adapters  # {'attention': adapter, 'mlp': adapter, 'residual': adapter}
 
+        # 元のコンポーネントを保存
+        self.input_layernorm = original_layer.input_layernorm
+        self.self_attn = original_layer.self_attn
+        self.post_attention_layernorm = getattr(original_layer, 'post_attention_layernorm', None)
+        self.mlp = original_layer.mlp
+        self.resid_attn_dropout = getattr(original_layer, 'resid_attn_dropout', None)
+        self.resid_mlp_dropout = getattr(original_layer, 'resid_mlp_dropout', None)
+
+    def forward(self, hidden_states, attention_mask=None, position_ids=None, past_key_value=None, output_attentions=False, use_cache=False, **kwargs):
+        residual = hidden_states
+
+        # 1. Input LayerNorm + Attention
+        if self.input_layernorm is not None:
+            hidden_states = self.input_layernorm(hidden_states)
+
+        # Attention with NKAT adapter
+        attn_output = self.self_attn(
+            hidden_states,
+            attention_mask=attention_mask,
+            position_ids=position_ids,
+            past_key_value=past_key_value,
+            output_attentions=output_attentions,
+            use_cache=use_cache,
+        )
+
+        if isinstance(attn_output, tuple):
+            hidden_states, attn_weights = attn_output
+        else:
+            hidden_states = attn_output
+            attn_weights = None
+
+        # NKAT adapter on attention output
+        if 'attention' in self.adapters and self.adapters['attention'] is not None:
+            if hidden_states.requires_grad is False and torch.is_grad_enabled():
+                hidden_states.requires_grad_(True)
+            attn_nkat = self.adapters['attention'](hidden_states)
+            hidden_states = hidden_states + attn_nkat
+
+        # Residual connection + dropout
+        if self.resid_attn_dropout is not None:
+            hidden_states = self.resid_attn_dropout(hidden_states)
+        hidden_states = residual + hidden_states
+
+        # 2. Post-Attention LayerNorm + MLP
+        residual = hidden_states
+
+        if self.post_attention_layernorm is not None:
+            hidden_states = self.post_attention_layernorm(hidden_states)
+
+        # MLP with NKAT adapter
+        mlp_output = self.mlp(hidden_states)
+
+        # NKAT adapter on MLP output
+        if 'mlp' in self.adapters and self.adapters['mlp'] is not None:
+            if mlp_output.requires_grad is False and torch.is_grad_enabled():
+                mlp_output.requires_grad_(True)
+            mlp_nkat = self.adapters['mlp'](mlp_output)
+            mlp_output = mlp_output + mlp_nkat
+
+        # Residual connection + dropout
+        if self.resid_mlp_dropout is not None:
+            mlp_output = self.resid_mlp_dropout(mlp_output)
+        hidden_states = residual + mlp_output
+
+        # 3. Final residual NKAT adapter (layer全体の出力に適用)
+        if 'residual' in self.adapters and self.adapters['residual'] is not None:
+            if hidden_states.requires_grad is False and torch.is_grad_enabled():
+                hidden_states.requires_grad_(True)
+            residual_nkat = self.adapters['residual'](hidden_states)
+            hidden_states = hidden_states + residual_nkat
+
+        if output_attentions and attn_weights is not None:
+            return (hidden_states, attn_weights)
+        return hidden_states
+
+
+def replace_mlp_with_nkat(model, target_layers="middle"):
+    """後方互換性のための関数 - MLPのみ適用"""
+    print("🧬 Injecting NKAT SO(8) Adapters (MLP Only Mode - Legacy)...")
+    return inject_nkat_to_all_layers(model, target_layers, mode="mlp_only")
+
+
+def inject_nkat_to_all_layers(model, target_layers="all", mode="full_layer"):
+    """
+    Transformerのすべての層にNKATアダプターを注入
+    mode: "mlp_only" - MLPのみ, "full_layer" - すべてのコンポーネント
+    """
+    print(f"🧬 Injecting NKAT SO(8) Adapters (Mode: {mode})...")
+
+    # モデル構造の探索
     if hasattr(model, "base_model") and hasattr(model.base_model, "model"):
         base_entity = model.base_model.model
         if hasattr(base_entity, "model") and hasattr(base_entity.model, "layers"):
@@ -284,6 +381,7 @@ def replace_mlp_with_nkat(model, target_layers="middle"):
     hidden_size = model.config.hidden_size
     num_layers = len(layers)
 
+    # ターゲット層の決定
     if target_layers == "all":
         target_indices = range(num_layers)
     elif target_layers == "middle":
@@ -295,42 +393,66 @@ def replace_mlp_with_nkat(model, target_layers="middle"):
     else:
         target_indices = range(num_layers)
 
-    print(f"Targeting layers: {list(target_indices)}")
+    print(f"Targeting layers: {list(target_indices)} (Total: {num_layers})")
 
     injected_count = 0
+    adapter_count = 0
+
     for i in target_indices:
         layer = layers[i]
-        if not hasattr(layer, "mlp"): continue
 
-        # 既にラップ済みならスキップ
-        if isinstance(layer.mlp, NKATMLPWrapper): continue
+        if mode == "mlp_only":
+            # 従来のMLPのみモード
+            if not hasattr(layer, "mlp"): continue
+            if isinstance(layer.mlp, NKATMLPWrapper): continue
 
-        original_mlp = layer.mlp
+            original_mlp = layer.mlp
+            sample_param = next(original_mlp.parameters())
+            adapter = SO8ResidualAdapter(hidden_size).to(sample_param.device)
+            adapter.down_proj.to(sample_param.dtype)
+            adapter.up_proj.to(sample_param.dtype)
 
-        # アダプタ作成
-        sample_param = next(original_mlp.parameters())
-        adapter = SO8ResidualAdapter(hidden_size).to(sample_param.device)
-        # Linear層の型合わせ
-        adapter.down_proj.to(sample_param.dtype)
-        adapter.up_proj.to(sample_param.dtype)
+            wrapper = NKATMLPWrapper(original_mlp, adapter)
+            layer.mlp = wrapper
+            injected_count += 1
+            adapter_count += 1
 
-        # ★★★ ここが変更点: ラッパーで物理的に置き換える ★★★
-        wrapper = NKATMLPWrapper(original_mlp, adapter)
+        elif mode == "full_layer":
+            # 完全層モード - Attention + MLP + Residualすべてに適用
+            if isinstance(layer, NKATLayerWrapper): continue
 
-        # レイヤーの属性を上書き
-        layer.mlp = wrapper
+            # 各コンポーネント用のアダプター作成
+            adapters = {}
+            sample_param = next(layer.parameters()) if list(layer.parameters()) else None
+            if sample_param is None:
+                continue
 
-        # ★★★ 勾配センサー設置 ★★★
-        def grad_monitor(grad):
-            if grad is not None and torch.norm(grad) > 0:
-                print(f"⚡ Gradient detected on SO(8) adapter! norm={torch.norm(grad).item():.6f}")
-            return grad
+            # Attention出力用アダプター
+            if hasattr(layer, 'self_attn'):
+                adapters['attention'] = SO8ResidualAdapter(hidden_size).to(sample_param.device)
+                adapters['attention'].down_proj.to(sample_param.dtype)
+                adapters['attention'].up_proj.to(sample_param.dtype)
+                adapter_count += 1
 
-        adapter.lie_algebra.register_hook(grad_monitor)
+            # MLP出力用アダプター
+            if hasattr(layer, 'mlp'):
+                adapters['mlp'] = SO8ResidualAdapter(hidden_size).to(sample_param.device)
+                adapters['mlp'].down_proj.to(sample_param.dtype)
+                adapters['mlp'].up_proj.to(sample_param.dtype)
+                adapter_count += 1
 
-        injected_count += 1
+            # 層全体のResidual用アダプター
+            adapters['residual'] = SO8ResidualAdapter(hidden_size).to(sample_param.device)
+            adapters['residual'].down_proj.to(sample_param.dtype)
+            adapters['residual'].up_proj.to(sample_param.dtype)
+            adapter_count += 1
 
-    print(f"✅ Replaced {injected_count} MLPs with NKAT Wrappers.")
+            # 完全ラッパーで層を置き換え
+            wrapper = NKATLayerWrapper(layer, adapters)
+            layers[i] = wrapper
+            injected_count += 1
+
+    print(f"✅ Injected NKAT adapters to {injected_count} layers ({adapter_count} total adapters)")
 
     # 勾配有効化
     trainable_count = 0
@@ -340,5 +462,6 @@ def replace_mlp_with_nkat(model, target_layers="middle"):
             trainable_count += 1
 
     print(f"🔥 Force-enabled gradients for {trainable_count} SO(8) parameters")
+    print(f"🎯 Mode: {mode} - {'MLP only' if mode == 'mlp_only' else 'Full layer coverage'}")
 
     return model
