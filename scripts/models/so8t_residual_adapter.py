@@ -28,23 +28,24 @@ class SO8ResidualAdapter(nn.Module):
         self.alpha_init_val = alpha_init
         self.reset_parameters()  # PyTorch標準メソッド名に合わせる
 
-    def _init_weights(self):
+    def reset_parameters(self):
         # Linear層の初期化
         nn.init.kaiming_uniform_(self.down_proj.weight, a=math.sqrt(5))
         nn.init.zeros_(self.up_proj.weight)
 
-        # Lie Algebra (FP32): ゼロ初期化で安全に (NaNを防ぐ)
-        with torch.no_grad():
-            self.lie_algebra.zero_()
+        # Lie Algebra: 少し大きめにして「0じゃない」ことを確認しやすくする
+        nn.init.normal_(self.lie_algebra, std=1e-4)
 
-        # Alpha Logit (FP32)
-        # alpha = 1.5 * sigmoid(x) - 0.5
-        # target = -0.4 (安全な範囲で始める)
-        target = -0.4  # -0.5だとp=0になってlog(0)でエラー
-        p = max(1e-7, min(1-1e-7, (target + 0.5) / 1.5))  # 安全にclamp
+        # Alpha Logit
+        target = -0.1
+        p = (target + 0.5) / 1.5
         init_logit = math.log(p / (1.0 - p))
         with torch.no_grad():
             self.alpha_logit.fill_(init_logit)
+
+        # ★念押しでデータ型強制★
+        self.lie_algebra.data = self.lie_algebra.data.float()
+        self.alpha_logit.data = self.alpha_logit.data.float()
 
     # ★ Pytorchの .to() や .half() で FP32 が壊れないようにガード ★
     def _apply(self, fn):
@@ -318,6 +319,14 @@ def replace_mlp_with_nkat(model, target_layers="middle"):
 
         # レイヤーの属性を上書き
         layer.mlp = wrapper
+
+        # ★★★ 勾配センサー設置 ★★★
+        def grad_monitor(grad):
+            if grad is not None and torch.norm(grad) > 0:
+                print(f"⚡ Gradient detected on SO(8) adapter! norm={torch.norm(grad).item():.6f}")
+            return grad
+
+        adapter.lie_algebra.register_hook(grad_monitor)
 
         injected_count += 1
 
