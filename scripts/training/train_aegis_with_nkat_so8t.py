@@ -17,9 +17,7 @@ Hookベースのシンプルアダプター実装で安定した学習を実現
 """
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
@@ -32,19 +30,13 @@ import json
 import logging
 import os
 import numpy as np
-from pathlib import Path
-from typing import Dict, List, Any, Optional
-from datetime import datetime
+from typing import Dict, List, Optional
 
 # SO8Tモジュール
 import sys
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.so8t_residual_adapter import (
-    SO8AdapterConfig,
-    attach_nkat_adapters
-)
+from models.so8t_residual_adapter import attach_nkat_adapters
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -261,18 +253,7 @@ def create_so8t_sft_training_script():
     model_name = "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp"
     output_dir_sft = f"{output_dir}/sft_base"
 
-    # SO(8)アダプター設定（SFT時は基本機能のみ）
-    sft_adapter_config = SO8AdapterConfig(
-        hidden_size=3072,
-        so8_rank=8,
-        adapter_dim=256,
-        num_layers=32,
-        adapter_layers=[8, 16, 24],
-        enable_quad_inference=False,  # SFT時は無効
-        enable_noncommutative_gates=False,
-        enable_topological_transforms=False,
-        enable_soul_weights=False
-    )
+    # SO(8)アダプター設定はattach_nkat_adaptersで直接指定
 
     print(f"Model: {model_name}")
     print(f"SFT Datasets: {[os.path.basename(p) for p in sft_datasets]}")
@@ -304,11 +285,11 @@ def create_so8t_sft_training_script():
 
     # SO(8)アダプター適用
     print("\n[2/4] Applying SO(8) adapters...")
-    model = attach_nkat_adapters(model, sft_adapter_config)
+    model = attach_nkat_adapters(model, target_layers=[8, 16, 24])
 
     # データセット準備
     print("\n[3/4] Preparing SFT dataset...")
-    dataset = SO8TDataset(dataset_path, tokenizer)
+    dataset = SO8TIntegratedDataset(sft_datasets, tokenizer)
 
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
@@ -318,7 +299,7 @@ def create_so8t_sft_training_script():
     # SFTトレーニング引数
     training_args = TrainingArguments(
         output_dir=output_dir_sft,
-        max_steps=1000,  # データセットサイズが不明なのでmax_steps指定
+        max_steps=1000,  # 本格的なトレーニング
         per_device_train_batch_size=1,
         gradient_accumulation_steps=8,
         learning_rate=2e-5,
@@ -365,11 +346,10 @@ def create_so8t_ppo_training_script():
 
     # SFT済みモデルをロード
     sft_model_path = f"{output_dir}/sft_base/sft_model"
-    dataset_path = ppo_dataset_path
     output_dir_ppo = f"{output_dir}/ppo_final"
 
     print(f"Base Model: {sft_model_path}")
-    print(f"PPO Dataset: {dataset_path}")
+    print(f"PPO Dataset: {ppo_datasets}")
     print(f"Output: {output_dir_ppo}")
 
     # SFT済みモデルをロード
@@ -402,7 +382,7 @@ def create_so8t_ppo_training_script():
 
     # PPOデータセット準備
     print("\n[3/5] Preparing PPO dataset...")
-    dataset = SO8TDataset(dataset_path, tokenizer)
+    dataset = SO8TIntegratedDataset(ppo_datasets, tokenizer)
 
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer,
@@ -467,18 +447,7 @@ def create_so8t_sft_training_script():
     # 設定
     sft_output_dir = f"{output_dir}/sft_base"
 
-    # SO(8)アダプター設定（SFT時は基本機能のみ）
-    sft_adapter_config = SO8AdapterConfig(
-        hidden_size=3072,
-        so8_rank=8,
-        adapter_dim=256,
-        num_layers=32,
-        adapter_layers=[8, 16, 24],
-        enable_quad_inference=False,  # SFT時は無効
-        enable_noncommutative_gates=False,
-        enable_topological_transforms=False,
-        enable_soul_weights=False
-    )
+    # SO(8)アダプター設定はattach_nkat_adaptersで直接指定
 
     print(f"Model: {model_name}")
     print(f"SFT Datasets: {[os.path.basename(p) for p in sft_datasets]}")
@@ -506,21 +475,35 @@ def create_so8t_sft_training_script():
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
     )
 
+    # LoRA適用
     model = get_peft_model(model, lora_config)
+    print(f"LoRA parameters: {model.print_trainable_parameters()}")
 
-    # SO(8)アダプター適用（基本機能のみ）
-    print("\n[2/4] Applying SO(8) adapters...")
-    model = attach_nkat_adapters(model, sft_adapter_config)
+    # SO(8)アダプター適用（Hookベース - RTX 3060最適化）
+    print("\n[2/4] Applying SO(8) adapters with hooks...")
+    model = attach_nkat_adapters(model, target_layers=[8, 16, 24])
 
-    # アダプターパラメータがトレーニング可能であることを確認
-    print("Checking trainable parameters...")
+    # 全トレーニング可能パラメータを確認（LoRA + Adapter）
+    print("Checking ALL trainable parameters...")
     trainable_params = 0
+    lora_params = 0
+    adapter_params = 0
     for name, param in model.named_parameters():
         if param.requires_grad:
             trainable_params += param.numel()
-            if "adapter" in name or "lora" in name:
-                print(f"  Trainable: {name}")
+            if 'lora' in name.lower():
+                lora_params += param.numel()
+            elif 'so8_adapter' in name or 'rotation' in name:
+                adapter_params += param.numel()
+    print(f"LoRA parameters: {lora_params}")
+    print(f"Adapter parameters: {adapter_params}")
     print(f"Total trainable parameters: {trainable_params}")
+
+    # LoRAパラメータを強制的にトレーニング可能に
+    if hasattr(model, 'parameters'):
+        for param in model.parameters():
+            if not param.requires_grad:
+                param.requires_grad_(True)
 
     # データセット準備 - SFT用統合データセット
     print("\n[3/4] Preparing SFT integrated dataset...")
@@ -620,40 +603,9 @@ def create_so8t_ppo_training_script():
 
     model = get_peft_model(model, lora_config)
 
-    # Phase 2.5, 3, 4 フル機能SO(8)アダプター適用
-    print("\n[2/5] Applying full SO(8) thinking adapters...")
-    global adapter_config
-    adapter_config = SO8AdapterConfig(
-        hidden_size=3072,
-        so8_rank=8,
-        adapter_dim=256,
-        num_layers=32,
-        adapter_layers=[8, 16, 24],
-
-        # Phase 2.5: 四重推論機能
-        enable_quad_inference=True,
-        quad_thinking_depth=4,
-        observation_factor=0.25,
-        deduction_factor=0.25,
-        abduction_factor=0.25,
-        integration_factor=0.25,
-
-        # Phase 3: 高度幾何学的変換
-        enable_noncommutative_gates=True,
-        enable_topological_transforms=True,
-        lie_algebra_rank=8,
-        homotopy_groups=[0, 1, 1, 1, 2],
-
-        # Phase 4: AGI萌芽機能
-        enable_soul_weights=True,
-        consciousness_dim=8,
-        initial_soul_weight=0.1,
-        enable_self_reflection=True,
-        enable_dual_heads=True,
-        enable_pet=True
-    )
-
-    model = attach_nkat_adapters(model, adapter_config)
+    # SO(8)アダプター適用（Hookベース - RTX 3060最適化）
+    print("\n[2/5] Applying SO(8) adapters with hooks...")
+    model = attach_nkat_adapters(model, target_layers=[8, 16, 24])
 
     # アダプターパラメータがトレーニング可能であることを確認
     print("Checking trainable parameters...")
@@ -661,7 +613,7 @@ def create_so8t_ppo_training_script():
     for name, param in model.named_parameters():
         if param.requires_grad:
             trainable_params += param.numel()
-            if "adapter" in name or "lora" in name:
+            if "so8_adapter" in name or "lora" in name:
                 print(f"  Trainable: {name}")
     print(f"Total trainable parameters: {trainable_params}")
 
@@ -742,36 +694,7 @@ def create_so8t_training_script():
 
     # 設定
 
-    # SO(8)アダプター設定 - Phase 2.5, 3, 4 フル機能有効化
-    adapter_config = SO8AdapterConfig(
-        hidden_size=3072,
-        so8_rank=8,
-        adapter_dim=256,
-        num_layers=32,
-        adapter_layers=[8, 16, 24],  # RTX3060最適化
-
-        # Phase 2.5: 四重推論機能
-        enable_quad_inference=True,
-        quad_thinking_depth=4,
-        observation_factor=0.25,
-        deduction_factor=0.25,
-        abduction_factor=0.25,
-        integration_factor=0.25,
-
-        # Phase 3: 高度幾何学的変換
-        enable_noncommutative_gates=True,
-        enable_topological_transforms=True,
-        lie_algebra_rank=8,
-        homotopy_groups=[0, 1, 1, 1, 2],  # π₀ to π₄
-
-        # Phase 4: AGI萌芽機能
-        enable_soul_weights=True,
-        consciousness_dim=8,
-        initial_soul_weight=0.1,
-        enable_self_reflection=True,
-        enable_dual_heads=True,
-        enable_pet=True
-    )
+    # SO(8)アダプター設定はattach_nkat_adaptersで直接指定
 
     print(f"Model: {model_name}")
     print(f"SFT Datasets: {[os.path.basename(p) for p in sft_datasets]}")
@@ -805,9 +728,9 @@ def create_so8t_training_script():
     model = get_peft_model(model, lora_config)
     print(f"LoRA parameters: {model.print_trainable_parameters()}")
 
-    # Phase 2: HookベースSO(8)アダプター適用
-    print("\n[2/5] Phase 2: Attaching SO(8) adapters with hooks...")
-    model = attach_nkat_adapters(model, adapter_config)
+    # SO(8)アダプター適用（Hookベース - RTX 3060最適化）
+    print("\n[2/5] Applying SO(8) adapters with hooks...")
+    model = attach_nkat_adapters(model, target_layers=[8, 16, 24])
 
     # データセット準備 - 統合データセット
     print("\n[3/5] Preparing integrated dataset...")
@@ -886,24 +809,24 @@ def create_so8t_training_script():
 if __name__ == "__main__":
     # Phase 1-2: Complete SO(8) Thinking Model Training Pipeline
     print("=" * 80)
-    print("🚀 Starting Complete SO(8) Thinking Model Training Pipeline")
+    print("[START] Starting Complete SO(8) Thinking Model Training Pipeline")
     print("Borea-Phi-3.5-mini-Instruct-Jp + SO(8) Residual Adapter")
     print("=" * 80)
 
     try:
         # Phase 1: SFT Training
-        print("\n🎯 Phase 1: SFT Training")
+        print("\n[PHASE 1] SFT Training")
         print("Using datasets:", [os.path.basename(p) for p in sft_datasets])
         sft_trainer, sft_model, tokenizer = create_so8t_sft_training_script()
 
         # Phase 2: PPO Training
-        print("\n🎯 Phase 2: PPO Training")
+        print("\n[PHASE 2] PPO Training")
         print("Using datasets:", [os.path.basename(p) for p in ppo_datasets])
         ppo_trainer, ppo_model, tokenizer = create_so8t_ppo_training_script()
 
-        print("\n🎉 Complete SO(8) Thinking Model Training Pipeline completed!")
+        print("\n[SUCCESS] Complete SO(8) Thinking Model Training Pipeline completed!")
         print("Model saved as HF format for deployment")
 
     except Exception as e:
-        print(f"\n❌ Training failed: {e}")
+        print(f"\n[ERROR] Training failed: {e}")
         raise
