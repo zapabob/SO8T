@@ -42,7 +42,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 
 # Import from scripts directory
-from scripts.models.so8t_residual_adapter import monkey_patch_unsloth_layers
+from scripts.models.so8t_residual_adapter import replace_mlp_with_nkat
 from scripts.utils.nkat_callbacks import NKATDebugCallback
 
 # Simple dataset class for testing
@@ -198,6 +198,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -293,7 +294,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -719,6 +720,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -814,7 +816,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -1240,6 +1242,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -1335,7 +1338,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -1761,6 +1764,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -1856,7 +1860,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -2282,6 +2286,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -2377,7 +2382,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -2803,6 +2808,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -2898,7 +2904,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -3324,6 +3330,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -3419,7 +3426,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -3845,6 +3852,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -3940,7 +3948,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -4366,6 +4374,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -4461,7 +4470,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -4887,6 +4896,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -4982,7 +4992,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )
@@ -5408,6 +5418,7 @@ class SunshineTrainingConfig:
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
             'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
             'dataloader_pin_memory': False,
@@ -5503,7 +5514,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
             print("[3/5] Applying SO(8) adapters (Layer Replacement Mode)...")
             enable_quad = config.so8_config.get('enable_quad_inference', False)
             # ★★★ 最終奥義: モンキーパッチで注入（Unsloth最適化突破）★★★
-            model = monkey_patch_unsloth_layers(
+            model = replace_mlp_with_nkat(
                 model,
                 target_layers=config.so8_config['target_layers']
             )

@@ -221,8 +221,115 @@ def monkey_patch_unsloth_layers(model, target_layers="middle"):
     print(f"✅ Monkey Patched {injected_count} MLPs.")
 
     # 勾配有効化
+    enabled_count = 0
     for name, param in model.named_parameters():
         if "nkat_adapter" in name or "lie_algebra" in name or "alpha_logit" in name:
             param.requires_grad = True
+            enabled_count += 1
+
+    print(f"🔥 Force-enabled gradients for {enabled_count} SO(8) parameters")
+
+    return model
+
+
+class NKATMLPWrapper(nn.Module):
+    """
+    既存のMLPをラップし、NKATアダプタを追加する正規のnn.Module
+    Monkey PatchよりもPyTorchとの親和性が高く、確実に勾配を通す。
+    """
+    def __init__(self, original_mlp, adapter):
+        super().__init__()
+        self.original_mlp = original_mlp
+        self.nkat_adapter = adapter
+
+    def forward(self, x):
+        # 1. 元のMLP実行 (Unslothの最適化カーネルが走る)
+        output = self.original_mlp(x)
+
+        # 2. 勾配の呼び水 (Checkpointing対策)
+        if output.requires_grad is False and torch.is_grad_enabled():
+            output.requires_grad_(True)
+
+        # 3. アダプタ適用 (残差)
+        nkat_out = self.nkat_adapter(output)
+
+        return output + nkat_out
+
+
+def replace_mlp_with_nkat(model, target_layers="middle"):
+    print("🧬 Injecting NKAT SO(8) Adapters (Module Replacement Mode)...")
+
+    if hasattr(model, "base_model") and hasattr(model.base_model, "model"):
+        base_entity = model.base_model.model
+        if hasattr(base_entity, "model") and hasattr(base_entity.model, "layers"):
+            layers = base_entity.model.layers
+        elif hasattr(base_entity, "layers"):
+            layers = base_entity.layers
+    elif hasattr(model, "model") and hasattr(model.model, "layers"):
+        layers = model.model.layers
+    elif hasattr(model, "layers"):
+        layers = model.layers
+    else:
+        # 最後の手段：名前で検索
+        print("⚠️ Layer attribute not found standardly. Searching by name...")
+        layers = None
+        for name, module in model.named_modules():
+            if name.endswith("layers"):
+                layers = module
+                break
+        if layers is None:
+             raise ValueError("Could not find layers.")
+
+    hidden_size = model.config.hidden_size
+    num_layers = len(layers)
+
+    if target_layers == "all":
+        target_indices = range(num_layers)
+    elif target_layers == "middle":
+        start = num_layers // 4
+        end = num_layers * 3 // 4
+        target_indices = range(start, end)
+    elif isinstance(target_layers, list):
+        target_indices = target_layers
+    else:
+        target_indices = range(num_layers)
+
+    print(f"Targeting layers: {list(target_indices)}")
+
+    injected_count = 0
+    for i in target_indices:
+        layer = layers[i]
+        if not hasattr(layer, "mlp"): continue
+
+        # 既にラップ済みならスキップ
+        if isinstance(layer.mlp, NKATMLPWrapper): continue
+
+        original_mlp = layer.mlp
+
+        # アダプタ作成
+        sample_param = next(original_mlp.parameters())
+        adapter = SO8ResidualAdapter(hidden_size).to(sample_param.device)
+        # Linear層の型合わせ
+        adapter.down_proj.to(sample_param.dtype)
+        adapter.up_proj.to(sample_param.dtype)
+
+        # ★★★ ここが変更点: ラッパーで物理的に置き換える ★★★
+        wrapper = NKATMLPWrapper(original_mlp, adapter)
+
+        # レイヤーの属性を上書き
+        layer.mlp = wrapper
+
+        injected_count += 1
+
+    print(f"✅ Replaced {injected_count} MLPs with NKAT Wrappers.")
+
+    # 勾配有効化
+    trainable_count = 0
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name or "lie_algebra" in name or "alpha_logit" in name:
+            param.requires_grad = True
+            trainable_count += 1
+
+    print(f"🔥 Force-enabled gradients for {trainable_count} SO(8) parameters")
 
     return model
