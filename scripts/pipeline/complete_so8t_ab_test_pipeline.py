@@ -100,7 +100,7 @@ class CompleteSO8TABTestPipeline:
         # Model B設定
         model_b_config = self.config.get('model_b', {})
         self.model_b_base_path = Path(model_b_config.get('base_model', 'models/Borea-Phi-3.5-mini-Instruct-Jp'))
-        self.model_b_training_output = self.output_base_dir / 'checkpoints' / 'training' / 'so8t_retrained'
+        self.model_b_training_output = self.output_base_dir / 'checkpoints' / 'automatic_aegis' / 'ppo_output'
         self.model_b_training_output.mkdir(parents=True, exist_ok=True)
         self.model_b_gguf_output = self.output_base_dir / 'gguf_models' / 'model_b'
         self.model_b_gguf_output.mkdir(parents=True, exist_ok=True)
@@ -571,15 +571,31 @@ class CompleteSO8TABTestPipeline:
                 timeout=86400  # 24時間タイムアウト
             )
             
-            # 学習済みモデルのパスを取得（最後のチェックポイントまたは最終モデル）
-            trained_model_path = self.model_b_training_output / "final_model"
+            # 学習済みモデルのパスを取得（PPO出力ディレクトリを使用）
+            trained_model_path = self.model_b_training_output
             if not trained_model_path.exists():
-                # チェックポイントから最新を探す
-                checkpoints = sorted(self.model_b_training_output.glob("checkpoint-*"))
-                if checkpoints:
-                    trained_model_path = checkpoints[-1]
-                else:
-                    trained_model_path = self.model_b_training_output
+                raise FileNotFoundError(f"PPO training output not found: {trained_model_path}")
+
+            # PPO出力ディレクトリ内のモデルファイルを探す
+            model_files = []
+            model_files.extend(trained_model_path.glob("*.bin"))
+            model_files.extend(trained_model_path.glob("*.safetensors"))
+            model_files.extend(trained_model_path.glob("pytorch_model.bin"))
+            model_files.extend(trained_model_path.glob("pytorch_model-*.bin"))
+
+            if not model_files:
+                # サブディレクトリも探す
+                for subdir in trained_model_path.iterdir():
+                    if subdir.is_dir():
+                        model_files.extend(subdir.glob("*.bin"))
+                        model_files.extend(subdir.glob("*.safetensors"))
+                        model_files.extend(subdir.glob("pytorch_model.bin"))
+                        model_files.extend(subdir.glob("pytorch_model-*.bin"))
+
+            if not model_files:
+                logger.warning(f"No model files found in {trained_model_path}, using directory path")
+            else:
+                logger.info(f"Found {len(model_files)} model files in {trained_model_path}")
             
             logger.info(f"[OK] Model B training completed: {trained_model_path}")
             
