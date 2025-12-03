@@ -197,7 +197,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -719,7 +719,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -1241,7 +1241,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -1763,7 +1763,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -2285,7 +2285,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -2807,7 +2807,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -3329,7 +3329,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -3851,7 +3851,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -4373,7 +4373,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -4895,7 +4895,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,
@@ -5417,7 +5417,7 @@ class SunshineTrainingConfig:
             'save_steps': 100,
             'logging_steps': 10,  # 10ステップごとログ
             'eval_steps': 100,
-            'gradient_checkpointing': False,  # RTX3060対応のため無効化
+            'gradient_checkpointing': False,  # 一時的にOFFにして勾配問題を解決
             'ddp_find_unused_parameters': False,  # アダプタパラメータの検出を確実にする
             'optim': "adamw_8bit",
             'bf16': True,

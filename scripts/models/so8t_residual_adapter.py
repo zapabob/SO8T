@@ -26,7 +26,7 @@ class SO8ResidualAdapter(nn.Module):
 
         # 初期化
         self.alpha_init_val = alpha_init
-        self._init_weights()
+        self.reset_parameters()  # PyTorch標準メソッド名に合わせる
 
     def _init_weights(self):
         # Linear層の初期化
