@@ -216,7 +216,16 @@ def with_checkpointing(task_func: Callable, task_name: str, output_dir: str = No
         # 自動再開チェック
         def resume_func(checkpoint_path):
             print(f"Resuming {task_name} from {checkpoint_path}")
-            # 実際の再開ロジックはタスク依存
+            # 本番実装: checkpointファイルをロードして状態を復元する例
+            if checkpoint_path.endswith(".pkl"):
+                import pickle
+                with open(checkpoint_path, "rb") as f:
+                    checkpoint_data = pickle.load(f)
+                # 必要な変数・状態を復元（タスクごとに適切に変更すること）
+                # 例: globals().update(checkpoint_data)
+                print(f"✔️ checkpoint内容: {checkpoint_data}")
+            else:
+                print("⚠️ 未対応のcheckpoint形式")
 
         if manager.auto_resume(resume_func):
             return  # 再開成功したら終了

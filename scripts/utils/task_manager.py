@@ -52,10 +52,11 @@ def run_with_checkpointing(task_func: Callable, task_name: str, output_dir: str 
         result = task_func(manager=manager, **kwargs)
 
         elapsed = time.time() - start_time
-        print(".1f"
+        print(f"Task {task_name} completed in {elapsed:.2f} seconds")
         # 最終チェックポイント保存
         manager.save_checkpoint(data=result, step_info="completed")
         manager.mark_completed()
+        print(f"Result: {re))ult.get('status', 'unknown') if result else 'unknown'}")
 
         return result
 
