@@ -53,9 +53,30 @@ py -3 scripts/training/rlpo_science_nsfw_automated.py --max_steps 10000 >> auto_
 echo [%DATE% %TIME%] RLPO training session completed >> auto_training.log
 
 :: ==========================================
-:: フェーズ4: 評価実行
+:: フェーズ4: GGUF変換実行
 :: ==========================================
-echo [%DATE% %TIME%] Phase 4: Evaluation >> auto_training.log
+echo [%DATE% %TIME%] Phase 4: GGUF Conversion >> auto_training.log
+
+:: 学習済みモデルが存在する場合、GGUF変換を実行
+if exist "checkpoints\rlpo_science_nsfw_automated\final_model" (
+    echo Converting trained model to GGUF format... >> auto_training.log
+
+    :: Q8_0変換
+    echo [%DATE% %TIME%] Converting to Q8_0 quantization... >> auto_training.log
+    py -3 scripts/utils/task_manager.py gguf --model_path "checkpoints\rlpo_science_nsfw_automated\final_model" --quantization q8_0 --output_file "D:/webdataset/gguf_models/rlpo_science_nsfw/rlpo_science_nsfw_Q8_0.gguf" >> auto_training.log 2>&1
+
+    :: Q4_K_M変換（追加）
+    echo [%DATE% %TIME%] Converting to Q4_K_M quantization... >> auto_training.log
+    py -3 scripts/utils/task_manager.py gguf --model_path "checkpoints\rlpo_science_nsfw_automated\final_model" --quantization q4_k_m --output_file "D:/webdataset/gguf_models/rlpo_science_nsfw/rlpo_science_nsfw_Q4_K_M.gguf" >> auto_training.log 2>&1
+
+    echo [%DATE% %TIME%] GGUF conversion completed >> auto_training.log
+) else (
+    echo No trained model found, skipping GGUF conversion >> auto_training.log
+)
+
+:: ==========================================
+:: フェーズ5: 評価実行
+:: ==========================================
 if exist "checkpoints\rlpo_science_nsfw_automated\final_model" (
     echo Running evaluation on trained model... >> auto_training.log
     py -3 run_rlpo_evaluation.py >> auto_training.log 2>&1

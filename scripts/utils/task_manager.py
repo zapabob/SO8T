@@ -102,6 +102,27 @@ def run_benchmark(**kwargs):
     from scripts.benchmark import main as bench_main
     bench_main()
 
+def run_gguf_conversion(model_path: str, **kwargs):
+    """GGUF変換実行"""
+    import subprocess
+    import sys
+
+    cmd = [
+        sys.executable,
+        "scripts/conversion/convert_hf_to_gguf.py",
+        model_path,
+        "--outfile", kwargs.get('output_file', f"{model_path}.gguf"),
+        "--outtype", kwargs.get('quantization', 'q8_0')
+    ]
+
+    # 追加の引数を処理
+    if kwargs.get('vocab_only'):
+        cmd.append('--vocab-only')
+    if kwargs.get('verbose'):
+        cmd.append('--verbose')
+
+    subprocess.run(cmd, check=True)
+
 
 # ============================================================================
 # メイン実行関数
@@ -109,10 +130,13 @@ def run_benchmark(**kwargs):
 
 def main():
     parser = argparse.ArgumentParser(description='Universal Task Manager with Checkpointing')
-    parser.add_argument('task', help='Task to run (rlpo, dataset, evaluation, benchmark)')
+    parser.add_argument('task', help='Task to run (rlpo, dataset, evaluation, benchmark, gguf)')
     parser.add_argument('--task_name', default=None, help='Custom task name')
     parser.add_argument('--output_dir', default=None, help='Output directory')
     parser.add_argument('--dataset_type', default='science', help='Dataset type for dataset creation')
+    parser.add_argument('--model_path', default=None, help='Model path for GGUF conversion')
+    parser.add_argument('--quantization', default='q8_0', help='Quantization type for GGUF conversion')
+    parser.add_argument('--output_file', default=None, help='Output file for GGUF conversion')
 
     # RLPO固有の引数
     parser.add_argument('--model_name', default='microsoft/phi-3.5-mini-instruct')
@@ -152,6 +176,18 @@ def main():
             run_benchmark,
             task_name,
             output_dir
+        )
+    elif args.task == "gguf":
+        if not args.model_path:
+            print("❌ --model_path required for GGUF conversion")
+            sys.exit(1)
+
+        run_with_checkpointing(
+            lambda **kwargs: run_gguf_conversion(args.model_path, **kwargs),
+            task_name,
+            output_dir,
+            quantization=args.quantization,
+            output_file=args.output_file
         )
     else:
         print(f"❌ Unknown task: {args.task}")
