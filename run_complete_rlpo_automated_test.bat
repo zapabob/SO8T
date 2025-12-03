@@ -129,3 +129,6 @@ exit /b 1
 
 :end
 echo [%DATE% %TIME%] Test suite completed >> %LOG_FILE%
+
+
+

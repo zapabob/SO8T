@@ -4,9 +4,14 @@
 :: 電源投入時に自動起動し、すべてのタスクにチェックポイント適用
 :: ==========================================
 
+:: システム監視デーモン起動（バックグラウンド）
+echo [%DATE% %TIME%] Starting system monitor daemon...
+start /B py -3 scripts/utils/system_monitor.py --daemon
+
 :: ログ開始
 echo. >> auto_training.log
 echo [%DATE% %TIME%] ===== AEGIS AUTONOMOUS TRAINING START ===== >> auto_training.log
+echo [%DATE% %TIME%] System monitor daemon started >> auto_training.log
 
 :: カレントディレクトリ設定
 cd /d "C:\Users\downl\Desktop\SO8T"
@@ -95,7 +100,15 @@ py -3 generate_training_report.py >> auto_training.log 2>&1
 :: ==========================================
 echo [%DATE% %TIME%] ===== AEGIS TRAINING CYCLE COMPLETED ===== >> auto_training.log
 echo [%DATE% %TIME%] All checkpoints saved (RLPO: 3min intervals, GGUF: conversion progress) >> auto_training.log
-echo [%DATE% %TIME%] Next cycle will start on next boot >> auto_training.log
+echo [%DATE% %TIME%] System monitor daemon remains active for continuous monitoring >> auto_training.log
+echo [%DATE% %TIME%] Next cycle will start on next boot or system trigger >> auto_training.log
+
+:: システム状態レポート生成
+echo [%DATE% %TIME%] Generating system status report... >> auto_training.log
+py -3 scripts/utils/system_monitor.py --status >> system_status.log 2>&1
+
+:: 完了音を鳴らす
+powershell -c "[console]::beep(1000,300); [console]::beep(1200,300); [console]::beep(1500,500)"
 
 :: 成功音を鳴らす
 powershell -c "[console]::beep(800,300); [console]::beep(1000,300); [console]::beep(1200,500)"

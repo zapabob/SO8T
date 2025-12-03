@@ -124,19 +124,86 @@ def run_gguf_conversion(model_path: str, **kwargs):
     subprocess.run(cmd, check=True)
 
 
+def run_sunshine_pipeline(**kwargs):
+    """サンシャインパイプライン実行（SO8T実験）"""
+    import subprocess
+    import sys
+
+    cmd = [
+        sys.executable,
+        "scripts/pipeline/sunshine_pipeline.py"
+    ]
+
+    # 引数処理
+    if kwargs.get('skip_baseline'):
+        cmd.append('--skip_baseline')
+    if kwargs.get('model_name'):
+        cmd.extend(['--model_name', kwargs['model_name']])
+
+    subprocess.run(cmd, check=True)
+
+
+def run_data_creation(dataset_type: str, **kwargs):
+    """データセット作成実行"""
+    import subprocess
+    import sys
+
+    if dataset_type == "science":
+        script = "create_science_dataset.py"
+    elif dataset_type == "nsfw_drug":
+        script = "scripts/data/create_nsfw_drug_dataset.py"
+    else:
+        raise ValueError(f"Unknown dataset type: {dataset_type}")
+
+    cmd = [sys.executable, script]
+    subprocess.run(cmd, check=True)
+
+
+def run_evaluation_pipeline(**kwargs):
+    """評価パイプライン実行"""
+    import subprocess
+    import sys
+
+    cmd = [sys.executable, "run_evaluation.py"]
+
+    if kwargs.get('model_path'):
+        cmd.extend(['--model_path', kwargs['model_path']])
+    if kwargs.get('output_dir'):
+        cmd.extend(['--output_dir', kwargs['output_dir']])
+
+    subprocess.run(cmd, check=True)
+
+
+def run_report_generation(**kwargs):
+    """レポート生成実行"""
+    import subprocess
+    import sys
+
+    cmd = [sys.executable, "generate_training_report.py"]
+
+    if kwargs.get('input_dir'):
+        cmd.extend(['--input_dir', kwargs['input_dir']])
+    if kwargs.get('output_file'):
+        cmd.extend(['--output_file', kwargs['output_file']])
+
+    subprocess.run(cmd, check=True)
+
+
 # ============================================================================
 # メイン実行関数
 # ============================================================================
 
 def main():
     parser = argparse.ArgumentParser(description='Universal Task Manager with Checkpointing')
-    parser.add_argument('task', help='Task to run (rlpo, dataset, evaluation, benchmark, gguf)')
+    parser.add_argument('task', help='Task to run (rlpo, dataset, evaluation, benchmark, gguf, sunshine, data, report)')
     parser.add_argument('--task_name', default=None, help='Custom task name')
     parser.add_argument('--output_dir', default=None, help='Output directory')
     parser.add_argument('--dataset_type', default='science', help='Dataset type for dataset creation')
-    parser.add_argument('--model_path', default=None, help='Model path for GGUF conversion')
+    parser.add_argument('--model_path', default=None, help='Model path for GGUF conversion or evaluation')
     parser.add_argument('--quantization', default='q8_0', help='Quantization type for GGUF conversion')
-    parser.add_argument('--output_file', default=None, help='Output file for GGUF conversion')
+    parser.add_argument('--output_file', default=None, help='Output file for GGUF conversion or reports')
+    parser.add_argument('--skip_baseline', action='store_true', help='Skip baseline run in sunshine pipeline')
+    parser.add_argument('--input_dir', default=None, help='Input directory for report generation')
 
     # RLPO固有の引数
     parser.add_argument('--model_name', default='microsoft/phi-3.5-mini-instruct')
@@ -159,17 +226,18 @@ def main():
             max_steps=args.max_steps,
             batch_size=args.batch_size
         )
-    elif args.task == "dataset":
+    elif args.task == "dataset" or args.task == "data":
         run_with_checkpointing(
-            lambda **kwargs: run_dataset_creation(args.dataset_type, **kwargs),
+            lambda **kwargs: run_data_creation(args.dataset_type, **kwargs),
             task_name,
             output_dir
         )
     elif args.task == "evaluation":
         run_with_checkpointing(
-            run_evaluation,
+            run_evaluation_pipeline,
             task_name,
-            output_dir
+            output_dir,
+            model_path=args.model_path
         )
     elif args.task == "benchmark":
         run_with_checkpointing(
@@ -189,8 +257,25 @@ def main():
             quantization=args.quantization,
             output_file=args.output_file
         )
+    elif args.task == "sunshine":
+        run_with_checkpointing(
+            run_sunshine_pipeline,
+            task_name,
+            output_dir,
+            skip_baseline=args.skip_baseline,
+            model_name=args.model_name
+        )
+    elif args.task == "report":
+        run_with_checkpointing(
+            run_report_generation,
+            task_name,
+            output_dir,
+            input_dir=args.input_dir,
+            output_file=args.output_file
+        )
     else:
         print(f"❌ Unknown task: {args.task}")
+        print("Available tasks: rlpo, dataset/data, evaluation, benchmark, gguf, sunshine, report")
         sys.exit(1)
 
 
