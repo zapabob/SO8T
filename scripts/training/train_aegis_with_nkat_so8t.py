@@ -119,6 +119,33 @@ class SO8TIntegratedDataset(Dataset):
         print(f"Integrated {len(data_paths)} datasets: {len(self.data)} total samples")
         print(f"Domain distribution: {dict(zip(*np.unique(self.domain_info, return_counts=True)))}")
 
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        item = self.data[idx]
+
+        # instruction + input を組み合わせ
+        if 'instruction' in item and 'output' in item:
+            text = f"Instruction: {item['instruction']}\nOutput: {item['output']}"
+        else:
+            text = item.get('text', '')
+
+        # トークナイズ
+        tokenized = self.tokenizer(
+            text,
+            truncation=True,
+            padding='max_length',
+            max_length=self.max_length,
+            return_tensors='pt'
+        )
+
+        return {
+            'input_ids': tokenized['input_ids'].squeeze(),
+            'attention_mask': tokenized['attention_mask'].squeeze(),
+            'labels': tokenized['input_ids'].squeeze()
+        }
+
     def _extract_domain_name(self, path: str) -> str:
         """パスからドメイン名を抽出"""
         path_lower = path.lower()
@@ -291,7 +318,7 @@ def create_so8t_sft_training_script():
     # SFTトレーニング引数
     training_args = TrainingArguments(
         output_dir=output_dir_sft,
-        num_train_epochs=2,  # SFTは短め
+        max_steps=1000,  # データセットサイズが不明なのでmax_steps指定
         per_device_train_batch_size=1,
         gradient_accumulation_steps=8,
         learning_rate=2e-5,
@@ -485,6 +512,16 @@ def create_so8t_sft_training_script():
     print("\n[2/4] Applying SO(8) adapters...")
     model = attach_nkat_adapters(model, sft_adapter_config)
 
+    # アダプターパラメータがトレーニング可能であることを確認
+    print("Checking trainable parameters...")
+    trainable_params = 0
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            trainable_params += param.numel()
+            if "adapter" in name or "lora" in name:
+                print(f"  Trainable: {name}")
+    print(f"Total trainable parameters: {trainable_params}")
+
     # データセット準備 - SFT用統合データセット
     print("\n[3/4] Preparing SFT integrated dataset...")
     print(f"Datasets: {[os.path.basename(p) for p in sft_datasets]}")
@@ -618,6 +655,16 @@ def create_so8t_ppo_training_script():
 
     model = attach_nkat_adapters(model, adapter_config)
 
+    # アダプターパラメータがトレーニング可能であることを確認
+    print("Checking trainable parameters...")
+    trainable_params = 0
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            trainable_params += param.numel()
+            if "adapter" in name or "lora" in name:
+                print(f"  Trainable: {name}")
+    print(f"Total trainable parameters: {trainable_params}")
+
     # PPOデータセット準備 - 統合データセット
     print("\n[3/5] Preparing PPO integrated dataset...")
     print(f"Datasets: {[os.path.basename(p) for p in ppo_datasets]}")
@@ -641,7 +688,7 @@ def create_so8t_ppo_training_script():
     # PPOトレーニング引数
     training_args = TrainingArguments(
         output_dir=ppo_output_dir,
-        num_train_epochs=1,  # PPOは短め
+        max_steps=500,  # PPOは短めの学習
         per_device_train_batch_size=1,
         gradient_accumulation_steps=4,
         learning_rate=1e-6,  # PPOは低学習率
