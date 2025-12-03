@@ -108,7 +108,7 @@ def test_full_layer_adapters():
         return False
 
 def main():
-    print("🚀 RLPO Integration Test Suite")
+    print("[START] RLPO Integration Test Suite")
     print("=" * 50)
 
     tests = [

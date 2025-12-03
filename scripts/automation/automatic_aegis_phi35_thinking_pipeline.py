@@ -202,7 +202,7 @@ class AutomaticAEGISPipeline:
         try:
             # SO(8)アダプタートレーニング実行（既存SO(8)アダプターをスキップしてSO8CompatibleLoRAを使用）
             model_path = "Borea-Phi-3.5-mini-Instruct-Jp"  # Hugging Faceから直接ロード
-            dataset_path = "H:/from_D/webdataset/datasets/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
+            dataset_path = "H:/from_D/webdataset/datasets/integrated/phi35_thinking_sft_integrated_20251204_055241.jsonl"
             output_dir = "H:/from_D/webdataset/checkpoints/automatic_aegis/so8_compatible_adapter_output"
 
             # 既存のSO(8)アダプターをクリーンアップしてからトレーニング
@@ -213,7 +213,7 @@ import torch
 from transformers import AutoModelForCausalLM
 
 # モデルをロード
-model = AutoModelForCausalLM.from_pretrained('Borea-Phi-3.5-mini-Instruct-Jp', torch_dtype=torch.float16, low_cpu_mem_usage=True)
+model = AutoModelForCausalLM.from_pretrained('Borea-Phi-3.5-mini-Instruct-Jp', torch_dtype=torch.float16, low_cpu_mem_usage=True, local_files_only=True)
 
 # 既存のSO(8)アダプターを削除
 def remove_so8_adapters(module, name=''):
