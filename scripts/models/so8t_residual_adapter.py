@@ -33,13 +33,14 @@ class SO8ResidualAdapter(nn.Module):
         nn.init.kaiming_uniform_(self.down_proj.weight, a=math.sqrt(5))
         nn.init.zeros_(self.up_proj.weight)
 
-        # Lie Algebra (FP32): 極小分散
-        nn.init.normal_(self.lie_algebra, std=1e-5)
+        # Lie Algebra (FP32): ゼロ初期化で安全に (NaNを防ぐ)
+        with torch.no_grad():
+            self.lie_algebra.zero_()
 
         # Alpha Logit (FP32)
         # alpha = 1.5 * sigmoid(x) - 0.5
-        # target = -0.1
-        target = -0.1
+        # target = -0.5 (最初は最小値から始める)
+        target = -0.5
         p = (target + 0.5) / 1.5
         init_logit = math.log(p / (1.0 - p))
         with torch.no_grad():
@@ -48,11 +49,20 @@ class SO8ResidualAdapter(nn.Module):
     # ★ Pytorchの .to() や .half() で FP32 が壊れないようにガード ★
     def _apply(self, fn):
         super()._apply(fn)
-        # 強制的に FP32 に戻す
+        # 強制的に FP32 に戻す (NaNチェックも追加)
         if self.lie_algebra.dtype != torch.float32:
             self.lie_algebra.data = self.lie_algebra.data.to(dtype=torch.float32)
+        # NaNが発生していたらゼロにリセット
+        if torch.isnan(self.lie_algebra).any():
+            self.lie_algebra.data.zero_()
+
         if self.alpha_logit.dtype != torch.float32:
             self.alpha_logit.data = self.alpha_logit.data.to(dtype=torch.float32)
+        # NaNが発生していたら安全値にリセット
+        if torch.isnan(self.alpha_logit):
+            init_val = math.log(0.5 / 0.5)  # sigmoid(0) = 0.5, alpha = 0
+            self.alpha_logit.data.fill_(init_val)
+
         return self
 
     @property
@@ -62,10 +72,20 @@ class SO8ResidualAdapter(nn.Module):
     def get_rotation_matrix(self):
         # lie_algebra は FP32 なのでそのまま計算
         A = self.lie_algebra
+
+        # 完全にゼロの場合は単位行列を返す (初期状態)
+        if torch.allclose(A, torch.zeros_like(A), atol=1e-8):
+            return torch.eye(self.so8_dim, device=A.device, dtype=torch.float32)
+
         skew = A - A.T
 
         # 安全装置
         skew = torch.nan_to_num(skew, nan=0.0)
+
+        # ノルムが大きすぎる場合はクリッピング
+        norm = torch.norm(skew)
+        if norm > 1.0:  # より保守的な閾値
+            skew = skew * (1.0 / norm)
 
         # 行列指数関数 (FP32)
         R = torch.matrix_exp(skew)
@@ -112,6 +132,12 @@ class SO8ResidualAdapter(nn.Module):
             alpha = 1.5 * alpha_raw - 0.5
             ortho_err = self.get_orthogonality_error()
             lie_norm = torch.norm(self.lie_algebra).item()
+
+            # NaN安全策
+            if math.isnan(lie_norm):
+                lie_norm = 0.0
+            if math.isnan(alpha.item()):
+                alpha = torch.tensor(0.0)
 
         return {
             'alpha': alpha.item(),
