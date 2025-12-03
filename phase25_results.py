@@ -35,9 +35,47 @@ try:
         print(f'  Total Steps: {so8t.get("total_steps", 0)}')
         print()
 
-    print('✅ Phase 2.5 Training Completed Successfully!')
-    print('🎯 SO(8) Adapter is now integrated with NKAT Theory data')
-    print('🚀 Ready for Quadruple Inference Integration!')
+    # 比較分析
+    print('=== Performance Comparison Analysis ===')
+    baseline_loss = baseline.get("final_train_loss", float('inf'))
+    so8t_loss = so8t.get("final_train_loss", float('inf'))
+
+    if baseline_loss != float('inf') and so8t_loss != float('inf'):
+        if baseline_loss > 0:
+            loss_ratio = so8t_loss / baseline_loss
+            loss_improvement = (baseline_loss - so8t_loss) / baseline_loss * 100
+            print('.2f')
+            print('.2f')
+        else:
+            print('❌ Baseline loss is 0 or invalid - cannot compute ratio')
+    print()
+
+    # 問題点の分析
+    issues = []
+    if so8t_loss == 0.0:
+        issues.append("SO8T Final Loss is 0.0 - adapter may not be learning")
+    if str(so8t.get("avg_grad_norm", "")).lower() == 'nan':
+        issues.append("SO8T gradient norms are NaN - training not working")
+    if str(so8t.get("avg_so8_ortho_error", "")).lower() == 'nan':
+        issues.append("SO8T orthogonality error not computed")
+
+    if issues:
+        print("⚠️  WARNING: Issues detected:")
+        for issue in issues:
+            print(f"   - {issue}")
+        print()
+        print("🔧 DEBUGGING REQUIRED:")
+        print("   1. Check SO(8) adapter alpha parameter updates")
+        print("   2. Verify gradient flow to adapter parameters")
+        print("   3. Confirm orthogonality constraints are working")
+        print("   4. Test with higher learning rate for adapter")
+        print()
+        print("❌ NOT READY for LM-eval testing - fix training issues first")
+    else:
+        print("✅ Phase 2.5 Training Completed Successfully!")
+        print("🎯 SO(8) Adapter is now integrated with NKAT Theory data")
+        print("🚀 Ready for Quadruple Inference Integration!")
+        print("📊 Ready for LM-eval AB testing")
 
 except Exception as e:
     print(f'Error reading results: {e}')

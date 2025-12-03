@@ -19,7 +19,7 @@ class SO8ResidualAdapter(nn.Module):
         - Hookベース注入に最適化
         - Phase 2.5: 四重推論統合
     """
-    def __init__(self, hidden_size: int, so8_dim: int = 8, alpha_init: float = 1.0,
+    def __init__(self, hidden_size: int, so8_dim: int = 8, alpha_init: float = 0.1,
                  enable_quad_inference: bool = False):
         super().__init__()
 
@@ -137,8 +137,7 @@ class SO8ResidualAdapter(nn.Module):
             'lie_algebra_norm': lie_norm
         }
 
-def attach_nkat_adapters(model, target_layers: Optional[Union[List[int], str]] = "middle",
-                        enable_quad_inference: bool = False):
+def attach_nkat_adapters(model, target_layers: Optional[Union[List[int], str]] = "middle"):
     """
     Unsloth/HFモデルにSO(8)アダプターをHookとして注入する関数
     """
@@ -197,7 +196,7 @@ def attach_nkat_adapters(model, target_layers: Optional[Union[List[int], str]] =
         device = sample_param.device
         dtype = sample_param.dtype
 
-        adapter = SO8ResidualAdapter(hidden_size, enable_quad_inference=enable_quad_inference).to(device).to(dtype)
+        adapter = SO8ResidualAdapter(hidden_size).to(device).to(dtype)
 
         # パラメータとして登録
         layer.add_module("nkat_adapter", adapter)
@@ -209,6 +208,206 @@ def attach_nkat_adapters(model, target_layers: Optional[Union[List[int], str]] =
             # hidden_states は計算グラフの一部である必要がある
             if isinstance(output, tuple):
                 hidden_states = output[0]
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
+                # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
+                new_hidden = module.nkat_adapter(hidden_states)
+                return (new_hidden,) + output[1:]
+            elif isinstance(output, torch.Tensor):
+                return module.nkat_adapter(output)
+            else:
+                return output
+
+        # Hook登録
+        layer.register_forward_hook(nkat_hook)
+        injected_count += 1
+
+    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+
+    # 勾配有効化 (重要！)
+    for name, param in model.named_parameters():
+        if "nkat_adapter" in name:
+            param.requires_grad = True
+
+    return model
                 # アダプター適用 (新たなTensorが生成され、グラフが分岐・合流する)
                 new_hidden = module.nkat_adapter(hidden_states)
                 return (new_hidden,) + output[1:]
