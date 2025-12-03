@@ -39,9 +39,9 @@ class SO8ResidualAdapter(nn.Module):
 
         # Alpha Logit (FP32)
         # alpha = 1.5 * sigmoid(x) - 0.5
-        # target = -0.5 (最初は最小値から始める)
-        target = -0.5
-        p = (target + 0.5) / 1.5
+        # target = -0.4 (安全な範囲で始める)
+        target = -0.4  # -0.5だとp=0になってlog(0)でエラー
+        p = max(1e-7, min(1-1e-7, (target + 0.5) / 1.5))  # 安全にclamp
         init_logit = math.log(p / (1.0 - p))
         with torch.no_grad():
             self.alpha_logit.fill_(init_logit)
