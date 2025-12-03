@@ -85,15 +85,16 @@ if exist "checkpoints\rlpo_science_nsfw_automated\final_model" (
 )
 
 :: ==========================================
-:: フェーズ5: レポート生成
+:: フェーズ6: レポート生成
 :: ==========================================
-echo [%DATE% %TIME%] Phase 5: Report Generation >> auto_training.log
+echo [%DATE% %TIME%] Phase 6: Report Generation >> auto_training.log
 py -3 generate_training_report.py >> auto_training.log 2>&1
 
 :: ==========================================
 :: 完了処理
 :: ==========================================
 echo [%DATE% %TIME%] ===== AEGIS TRAINING CYCLE COMPLETED ===== >> auto_training.log
+echo [%DATE% %TIME%] All checkpoints saved (RLPO: 3min intervals, GGUF: conversion progress) >> auto_training.log
 echo [%DATE% %TIME%] Next cycle will start on next boot >> auto_training.log
 
 :: 成功音を鳴らす

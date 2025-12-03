@@ -10069,13 +10069,32 @@ def main() -> None:
 
         if args.vocab_only:
             logger.info("Exporting model vocab...")
+            gguf_checkpoint.update_progress("vocab_export", 0.1)
             model_instance.write_vocab()
+            gguf_checkpoint.update_progress("vocab_export", 1.0)
+            gguf_checkpoint.save_checkpoint("vocab_complete")
             logger.info(f"Model vocab successfully exported to {model_instance.fname_out}")
         else:
             logger.info("Exporting model...")
+            gguf_checkpoint.update_progress("model_export_start", 0.0)
+
+            # 変換開始前にチェックポイント保存
+            gguf_checkpoint.save_checkpoint("conversion_start")
+
+            # 変換実行（時間がかかる処理）
+            start_conversion_time = time.time()
             model_instance.write()
+            conversion_time = time.time() - start_conversion_time
+
+            gguf_checkpoint.update_progress("model_export_complete", 1.0)
+            gguf_checkpoint.save_checkpoint("conversion_complete")
+
             out_path = f"{model_instance.fname_out.parent}{os.sep}" if is_split else model_instance.fname_out
             logger.info(f"Model successfully exported to {out_path}")
+            logger.info(f"GGUF conversion completed in {conversion_time:.2f} seconds")
+
+            # 変換完了をマーク
+            gguf_checkpoint.mark_completed()
 
 
 if __name__ == '__main__':
