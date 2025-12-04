@@ -594,7 +594,7 @@ class CompleteSO8TABTestPipeline:
 
             if not model_files:
                 logger.warning(f"No model files found in {trained_model_path}, using directory path")
-            else:
+                else:
                 logger.info(f"Found {len(model_files)} model files in {trained_model_path}")
             
             logger.info(f"[OK] Model B training completed: {trained_model_path}")
