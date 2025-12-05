@@ -47,8 +47,8 @@ class SO8CompatibleLoRA(nn.Module):
         )
 
         # 標準LoRAパラメータ
-        self.lora_A = nn.Parameter(torch.randn(rank, hidden_size, device=device, dtype=dtype) * 0.01)  # Down
-        self.lora_B = nn.Parameter(torch.zeros(hidden_size, rank, device=device, dtype=dtype))         # Up
+        self.lora_A = nn.Parameter(torch.randn(hidden_size, rank, device=device, dtype=dtype) * 0.01)  # Down
+        self.lora_B = nn.Parameter(torch.zeros(rank, hidden_size, device=device, dtype=dtype))         # Up
 
         # アルファゲートパラメータ (アニーリング対象)
         # 初期値: -0.5, 目標値: Φ^(-2) ≈ 0.382
@@ -140,9 +140,9 @@ class SO8CompatibleLoRA(nn.Module):
 
         # SO(8)回転残差計算
         # y = x + α_gate · lora_B @ R @ lora_A @ x
-        down_proj = F.linear(x, self.lora_A)  # Down(x)
-        rotated = F.linear(down_proj, R)       # R(Down(x))
-        up_proj = F.linear(rotated, self.lora_B)  # Up(R(Down(x)))
+        down_proj = F.linear(x, self.lora_A.T)  # Down(x) - lora_A.Tを使用
+        rotated = F.linear(down_proj, R)         # R(Down(x))
+        up_proj = F.linear(rotated, self.lora_B.T)  # Up(R(Down(x))) - lora_B.Tを使用
 
         # アニーリングされたアルファゲートを使用
         return x + self.alpha_gate * up_proj

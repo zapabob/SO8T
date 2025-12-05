@@ -205,38 +205,68 @@ class AutomaticAEGISPipeline:
         try:
             # SO(8)アダプタートレーニング実行（既存SO(8)アダプターをスキップしてSO8CompatibleLoRAを使用）
             model_path = "H:/from_D/webdataset/models/AXCXEPT-Borea-Phi-3.5-mini-Instruct-Jp"  # 正式なHFモデル名称
-            dataset_path = "H:/from_D/webdataset/datasets/integrated/phi35_thinking_sft_integrated_20251204_055241.jsonl"
+            dataset_path = "H:/from_D/webdataset/datasets/integrated/phi35_thinking_sft_integrated_minimal.jsonl"  # 最小限データセットを使用
             output_dir = "H:/from_D/webdataset/checkpoints/automatic_aegis/so8_compatible_adapter_output"
 
             # クリーンなモデルが既に存在するか確認
             clean_model_path = "H:/from_D/webdataset/models/AXCXEPT-Borea-Phi-3.5-mini-Instruct-Jp-clean"
             if not os.path.exists(clean_model_path):
                 logger.info("Creating clean model copy...")
-                # 既存のSO(8)アダプターをクリーンアップしてからトレーニング
+                # 既存のSO(8)アダプターを徹底的にクリーンアップしてからトレーニング
                 cmd_cleanup = [
                     sys.executable, "-c",
                     f"""
 import torch
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import os
+
+# クリーンなモデルを新規作成
+clean_path = '{clean_model_path}'
+
+# 既存のクリーンモデルを完全に削除
+if os.path.exists(clean_path):
+    import shutil
+    shutil.rmtree(clean_path)
+
+os.makedirs(clean_path, exist_ok=True)
 
 # モデルをロード
 model = AutoModelForCausalLM.from_pretrained('H:/from_D/webdataset/models/AXCXEPT-Borea-Phi-3.5-mini-Instruct-Jp', torch_dtype=torch.float16, low_cpu_mem_usage=True, local_files_only=True)
 
-# 既存のSO(8)アダプターを削除
+# トークナイザーをロード
+tokenizer = AutoTokenizer.from_pretrained('H:/from_D/webdataset/models/AXCXEPT-Borea-Phi-3.5-mini-Instruct-Jp', local_files_only=True)
+
+# 既存のSO(8)アダプターを徹底的に削除
 def remove_so8_adapters(module, name=''):
-    for child_name, child_module in module.named_children():
+    removed_count = 0
+    for child_name, child_module in list(module.named_children()):
         full_name = f'{{name}}.{{child_name}}' if name else child_name
         if child_name == 'so8_adapter':
             print(f'Removing existing so8_adapter: {{name}}')
             delattr(module, child_name)
+            removed_count += 1
         else:
-            remove_so8_adapters(child_module, full_name)
+            removed_count += remove_so8_adapters(child_module, full_name)
+    return removed_count
 
-remove_so8_adapters(model)
+removed = remove_so8_adapters(model)
+print(f'Removed {{removed}} existing SO(8) adapters')
 
 # クリーンなモデルを保存
-model.save_pretrained('{clean_model_path}', safe_serialization=True)
-print('Cleaned model saved')
+model.save_pretrained(clean_path, safe_serialization=True)
+tokenizer.save_pretrained(clean_path)
+
+# 必要な設定ファイルをコピー
+import shutil
+config_files = ['configuration_phi3.py', 'modeling_phi3.py']
+for config_file in config_files:
+    src = f'H:/from_D/webdataset/models/AXCXEPT-Borea-Phi-3.5-mini-Instruct-Jp/{{config_file}}'
+    dst = f'{{clean_path}}/{{config_file}}'
+    if os.path.exists(src):
+        shutil.copy2(src, dst)
+        print(f'Copied {{config_file}}')
+
+print('Clean model created successfully')
 """
                 ]
 
