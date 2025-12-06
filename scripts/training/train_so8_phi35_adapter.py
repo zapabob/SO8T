@@ -188,6 +188,15 @@ def train_so8_adapter(
 
             loss = outputs.loss
 
+            # LossがNoneでないことを確認
+            if loss is None:
+                logger.error("Loss is None, cannot proceed with training")
+                return False
+
+            # Lossが勾配を必要とするように設定
+            if not loss.requires_grad:
+                loss = loss.clone().detach().requires_grad_(True)
+
             # Backward pass
             optimizer.zero_grad()
             loss.backward()

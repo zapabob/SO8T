@@ -10,6 +10,7 @@ import os
 import sys
 import json
 import subprocess
+import argparse
 from pathlib import Path
 from typing import Dict, List, Any
 
@@ -30,7 +31,7 @@ class LMEvalSetup:
 
     def setup_elyza_100(self):
         """ELYZA-100データセットのダウンロードとセットアップ"""
-        print("📥 Setting up ELYZA-100 dataset...")
+        print("[DOWNLOAD] Setting up ELYZA-100 dataset...")
 
         try:
             from datasets import load_dataset
@@ -57,20 +58,20 @@ class LMEvalSetup:
                         json.dump(sample, f, ensure_ascii=False)
                         f.write('\n')
 
-            print(f"✅ ELYZA-100 saved to {output_file}")
+            print(f"[SUCCESS] ELYZA-100 saved to {output_file}")
 
         except ImportError:
-            print("❌ datasets library not found. Installing...")
+            print("[ERROR] datasets library not found. Installing...")
             subprocess.check_call([sys.executable, "-m", "pip", "install", "datasets"])
             self.setup_elyza_100()  # 再試行
 
         except Exception as e:
-            print(f"❌ Failed to setup ELYZA-100: {e}")
+            print(f"[ERROR] Failed to setup ELYZA-100: {e}")
             raise
 
     def setup_lm_eval_config(self):
         """lm-eval-harnessの設定ファイル作成"""
-        print("⚙️ Creating lm-eval configuration...")
+        print("[CONFIG] Creating lm-eval configuration...")
 
         # カスタムタスク設定
         custom_tasks_config = {
@@ -97,38 +98,38 @@ class LMEvalSetup:
             import yaml
             yaml.dump([custom_tasks_config], f, allow_unicode=True, default_flow_style=False)
 
-        print(f"✅ lm-eval config saved to {config_file}")
+        print(f"[SUCCESS] lm-eval config saved to {config_file}")
 
     def verify_lm_eval_setup(self):
         """lm-eval-harnessのセットアップ確認"""
-        print("🔍 Verifying lm-eval setup...")
+        print("[VERIFY] Verifying lm-eval setup...")
 
         try:
             # lm-eval-harnessのインポートテスト
             sys.path.insert(0, str(self.lm_eval_dir))
 
             import lm_eval
-            print("✅ lm-eval-harness import successful")
+            print("[SUCCESS] lm-eval-harness import successful")
 
             # 利用可能なタスク一覧を取得
             tasks = lm_eval.list_tasks()
-            print(f"📋 Available tasks: {len(tasks)} tasks loaded")
+            print(f"[INFO] Available tasks: {len(tasks)} tasks loaded")
 
             # ELYZA-100タスクの確認
             if "elyza_100" in tasks:
-                print("✅ ELYZA-100 task registered")
+                print("[SUCCESS] ELYZA-100 task registered")
             else:
-                print("⚠️ ELYZA-100 task not found in registry")
+                print("[WARNING] ELYZA-100 task not found in registry")
 
         except ImportError as e:
-            print(f"❌ lm-eval import failed: {e}")
+            print(f"[ERROR] lm-eval import failed: {e}")
             return False
 
         return True
 
     def create_ab_test_config(self):
         """A/Bテスト設定ファイル作成"""
-        print("🆚 Creating A/B test configuration...")
+        print("[ABTEST] Creating A/B test configuration...")
 
         ab_config = {
             "baseline_model": {
@@ -160,11 +161,11 @@ class LMEvalSetup:
         with open(config_file, 'w', encoding='utf-8') as f:
             json.dump(ab_config, f, indent=2, ensure_ascii=False)
 
-        print(f"✅ A/B test config saved to {config_file}")
+        print(f"[SUCCESS] A/B test config saved to {config_file}")
 
     def run(self):
         """メイン実行関数"""
-        print("🚀 Setting up lm-eval-harness and ELYZA-100 for A/B testing")
+        print("[START] Setting up lm-eval-harness and ELYZA-100 for A/B testing")
         print("=" * 70)
 
         try:
@@ -179,14 +180,14 @@ class LMEvalSetup:
 
             # セットアップ検証
             if self.verify_lm_eval_setup():
-                print("\n🎉 lm-eval and ELYZA-100 setup completed successfully!")
-                print("📊 Ready for A/B testing with statistical analysis")
+                print("\n[SUCCESS] lm-eval and ELYZA-100 setup completed successfully!")
+                print("[READY] Ready for A/B testing with statistical analysis")
             else:
-                print("\n❌ Setup verification failed")
+                print("\n[ERROR] Setup verification failed")
                 return False
 
         except Exception as e:
-            print(f"\n❌ Setup failed: {e}")
+            print(f"\n[ERROR] Setup failed: {e}")
             return False
 
         return True
@@ -204,10 +205,10 @@ def main():
     success = setup.run()
 
     if success:
-        print("\n✅ All components ready for A/B testing!")
+        print("\n[SUCCESS] All components ready for A/B testing!")
         print("Next: Run scripts/evaluation/run_llama_cpp_ab_test.py")
     else:
-        print("\n❌ Setup failed. Please check errors above.")
+        print("\n[ERROR] Setup failed. Please check errors above.")
         sys.exit(1)
 
 if __name__ == "__main__":

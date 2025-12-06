@@ -70,7 +70,7 @@ class RollingCheckpointManager:
         checkpoint_name = f"ckpt_{timestamp}_{step_info}"
         save_path = self.base_dir / checkpoint_name
 
-        print(f"💾 [{self.task_name}] Saving checkpoint: {checkpoint_name} ...")
+        print(f"[SAVE] [{self.task_name}] Saving checkpoint: {checkpoint_name} ...")
 
         # カスタム保存関数があれば使用
         if custom_save_func:
@@ -113,7 +113,7 @@ class RollingCheckpointManager:
         if len(checkpoints) > self.max_keep:
             to_delete = checkpoints[: -self.max_keep]
             for ckpt in to_delete:
-                print(f"🗑️ Removing old checkpoint: {ckpt}")
+                print(f"[CLEAN] Removing old checkpoint: {ckpt}")
                 try:
                     shutil.rmtree(ckpt) # ディレクトリごと削除
                 except Exception as e:
@@ -136,10 +136,10 @@ class RollingCheckpointManager:
             checkpoint_path = self.get_latest_checkpoint()
 
         if checkpoint_path is None or not checkpoint_path.exists():
-            print(f"❌ No checkpoint found for {self.task_name}")
+            print(f"[ERROR] No checkpoint found for {self.task_name}")
             return None
 
-        print(f"🔄 [{self.task_name}] Loading checkpoint: {checkpoint_path.name}")
+        print(f"[LOAD] [{self.task_name}] Loading checkpoint: {checkpoint_path.name}")
 
         # カスタム読み込み関数があれば使用
         if custom_load_func:
@@ -162,12 +162,12 @@ class RollingCheckpointManager:
         """自動再開機能"""
         latest_ckpt = self.get_latest_checkpoint()
         if latest_ckpt and not self.current_state.get("is_completed", False):
-            print(f"🚀 [{self.task_name}] Auto-resuming from: {latest_ckpt.name}")
+            print(f"[RESUME] [{self.task_name}] Auto-resuming from: {latest_ckpt.name}")
             try:
                 resume_func(latest_ckpt)
                 return True
             except Exception as e:
-                print(f"❌ Auto-resume failed: {e}")
+                print(f"[ERROR] Auto-resume failed: {e}")
                 return False
         return False
 
@@ -176,7 +176,7 @@ class RollingCheckpointManager:
         self.current_state["is_completed"] = True
         self.current_state["completion_time"] = datetime.now().isoformat()
         self.update_state()
-        print(f"✅ [{self.task_name}] Task completed!")
+        print(f"[SUCCESS] [{self.task_name}] Task completed!")
 
     def get_status(self) -> Dict:
         """現在の状態を取得"""
@@ -224,9 +224,9 @@ def with_checkpointing(task_func: Callable, task_name: str, output_dir: str = No
                     checkpoint_data = pickle.load(f)
                 # 必要な変数・状態を復元（タスクごとに適切に変更すること）
                 # 例: globals().update(checkpoint_data)
-                print(f"✔️ checkpoint内容: {checkpoint_data}")
+                print(f"[INFO] checkpoint内容: {checkpoint_data}")
             else:
-                print("⚠️ 未対応のcheckpoint形式")
+                print("[WARNING] 未対応のcheckpoint形式")
 
         if manager.auto_resume(resume_func):
             return  # 再開成功したら終了
@@ -242,11 +242,11 @@ def with_checkpointing(task_func: Callable, task_name: str, output_dir: str = No
             return result
 
         except KeyboardInterrupt:
-            print(f"\n⚠️  {task_name} interrupted. Saving checkpoint...")
+            print(f"\n[WARNING] {task_name} interrupted. Saving checkpoint...")
             manager.save_checkpoint(step_info="interrupted")
             raise
         except Exception as e:
-            print(f"\n❌ {task_name} failed: {e}. Saving checkpoint...")
+            print(f"\n[ERROR] {task_name} failed: {e}. Saving checkpoint...")
             manager.save_checkpoint(step_info="error")
             raise
 
@@ -274,7 +274,7 @@ def checkpoint_context(task_name: str, output_dir: str = None):
             if exc_type is None:
                 manager.mark_completed()
             else:
-                print(f"\n⚠️  Task {task_name} exited with exception. Saving checkpoint...")
+                print(f"\n[WARNING] Task {task_name} exited with exception. Saving checkpoint...")
                 manager.save_checkpoint(step_info="error_exit")
 
     return CheckpointContext()
