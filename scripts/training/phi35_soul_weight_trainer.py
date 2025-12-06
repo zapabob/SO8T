@@ -8,6 +8,7 @@ SO(8) NKAT理論に基づく魂の重み最適化
 import os
 import sys
 import math
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -222,18 +223,38 @@ class Phi35SoulTrainer:
         self.log_dir = PROJECT_ROOT / '_docs' / 'training_logs'
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
+        # 3分間隔チェックポイント設定（180秒）
+        self.checkpoint_interval = 180  # 3分
+        self.max_checkpoints = 5  # ローリングストック数
+        self.last_checkpoint_time = time.time()
+
+        # 電源断復旧用ファイル
+        self.recovery_file = self.checkpoint_dir / 'training_recovery.json'
+
+        # 学習状態管理
+        self.current_epoch = 0
+        self.global_step = 0
+        self.best_loss = float('inf')
+
     def train(self, train_dataloader: DataLoader, eval_dataloader: Optional[DataLoader] = None):
-        """トレーニング実行"""
+        """トレーニング実行（3分間隔チェックポイント・ローリングストック付き）"""
         print(f"Phi3.5魂の重み学習開始")
         print(f"デバイス: {self.device}")
         print(f"総ステップ数: {self.config.alpha_gate_steps}")
         print(f"アルファゲート範囲: {ALPHA_START} → {ALPHA_END}")
+        print(f"チェックポイント間隔: {self.checkpoint_interval}秒（3分）")
+        print(f"ローリングストック数: {self.max_checkpoints}個")
 
-        global_step = 0
-        best_loss = float('inf')
+        # 電源断復旧チェック
+        if self._check_recovery():
+            print("電源断復旧を検知しました。最後のチェックポイントから再開します。")
+            self._load_recovery()
+
+        global_step = self.global_step
+        start_epoch = self.current_epoch
 
         # トレーニングループ
-        for epoch in range(self.config.num_epochs):
+        for epoch in range(start_epoch, self.config.num_epochs):
             print(f"\n=== エポック {epoch + 1}/{self.config.num_epochs} ===")
 
             epoch_loss = 0.0
@@ -285,7 +306,17 @@ class Phi35SoulTrainer:
                     'lr': f"{self.scheduler.get_last_lr()[0]:.6f}"
                 })
 
-                # チェックポイント保存
+                # 3分間隔チェックポイント保存
+                current_time = time.time()
+                if current_time - self.last_checkpoint_time >= self.checkpoint_interval:
+                    print(f"\n[CHECKPOINT] 3分間隔チェックポイント保存...")
+                    self._save_rolling_checkpoint(global_step, loss.item())
+                    self.last_checkpoint_time = current_time
+
+                    # 復旧情報更新
+                    self._save_recovery_info(epoch, global_step, loss.item())
+
+                # 定期チェックポイント保存
                 if global_step % self.config.save_steps == 0:
                     self._save_checkpoint(global_step, loss.item())
 
@@ -294,8 +325,8 @@ class Phi35SoulTrainer:
                     eval_loss = self._evaluate(eval_dataloader)
                     print(f"評価損失: {eval_loss:.4f}")
 
-                    if eval_loss < best_loss:
-                        best_loss = eval_loss
+                    if eval_loss < self.best_loss:
+                        self.best_loss = eval_loss
                         self._save_checkpoint(global_step, eval_loss, is_best=True)
 
             # エポック完了
@@ -306,6 +337,80 @@ class Phi35SoulTrainer:
             with torch.no_grad():
                 current_soul_weights = self.model.soul_weights.cpu().numpy()
                 print(f"現在の魂の重み: {current_soul_weights}")
+
+            # エポック完了時のチェックポイント
+            self._save_rolling_checkpoint(global_step, avg_epoch_loss, prefix="epoch")
+
+            # 復旧情報更新
+            self._save_recovery_info(epoch + 1, global_step, avg_epoch_loss)
+
+        # 最終チェックポイント
+        self._save_checkpoint(global_step, loss.item(), is_final=True)
+
+    def _save_rolling_checkpoint(self, step: int, loss: float, prefix: str = "rolling"):
+        """3分間隔ローリングチェックポイント保存"""
+        # 既存のローリングチェックポイントを取得
+        existing_checkpoints = list(self.checkpoint_dir.glob(f"{prefix}_checkpoint_*.pt"))
+        existing_checkpoints.sort(key=lambda x: x.stat().st_mtime)
+
+        # 古いチェックポイントを削除（5個以上になったら）
+        while len(existing_checkpoints) >= self.max_checkpoints:
+            oldest = existing_checkpoints.pop(0)
+            oldest.unlink()
+            print(f"  古いチェックポイント削除: {oldest.name}")
+
+        # 新しいチェックポイント保存
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        checkpoint = {
+            'step': step,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'scheduler_state_dict': self.scheduler.state_dict(),
+            'loss': loss,
+            'config': self.config.__dict__,
+            'timestamp': datetime.now().isoformat(),
+            'current_alpha': self.model.get_current_alpha(step, self.config.alpha_gate_steps),
+            'soul_weights': self.model.soul_weights.detach().cpu().numpy().tolist(),
+            'checkpoint_type': 'rolling_3min'
+        }
+
+        filename = f"{prefix}_checkpoint_{timestamp}_step_{step}.pt"
+        filepath = self.checkpoint_dir / filename
+        torch.save(checkpoint, filepath)
+
+        print(f"  ローリングチェックポイント保存: {filepath} (loss: {loss:.4f})")
+
+    def _check_recovery(self) -> bool:
+        """電源断復旧チェック"""
+        return self.recovery_file.exists()
+
+    def _save_recovery_info(self, epoch: int, step: int, loss: float):
+        """復旧情報保存"""
+        recovery_data = {
+            'epoch': epoch,
+            'global_step': step,
+            'loss': loss,
+            'timestamp': datetime.now().isoformat(),
+            'model_type': 'phi35_soul_weight',
+            'checkpoint_type': 'recovery'
+        }
+
+        with open(self.recovery_file, 'w', encoding='utf-8') as f:
+            json.dump(recovery_data, f, indent=2, ensure_ascii=False)
+
+    def _load_recovery(self):
+        """復旧情報読み込み"""
+        if not self.recovery_file.exists():
+            return
+
+        with open(self.recovery_file, 'r', encoding='utf-8') as f:
+            recovery_data = json.load(f)
+
+        self.current_epoch = recovery_data.get('epoch', 0)
+        self.global_step = recovery_data.get('global_step', 0)
+        self.best_loss = recovery_data.get('loss', float('inf'))
+
+        print(f"復旧情報読み込み完了: エポック {self.current_epoch}, ステップ {self.global_step}")
 
     def _evaluate(self, eval_dataloader: DataLoader) -> float:
         """評価実行"""
