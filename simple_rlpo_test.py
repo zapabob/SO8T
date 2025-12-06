@@ -149,7 +149,7 @@ def test_torch_cuda():
 
 def main():
     """メイン実行関数"""
-    print("🚀 MOONSHOT Simple RLPO Test開始")
+    print("[START] MOONSHOT Simple RLPO Test開始")
     print("=" * 50)
 
     # システム情報
