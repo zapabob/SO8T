@@ -46,6 +46,7 @@ class Phi35SoulConfig:
     learning_rate: float = 1e-4  # Grokkingを見逃さないようやや高めに設定
     batch_size: int = 1  # 4,000件データセット用に最適化
     num_epochs: int = 1  # 45,000件の高品質データで1エポックで十分
+    max_steps: int = 1000  # 総ステップ数を1000に制限
     warmup_steps: int = 100
     max_grad_norm: float = 1.0
     gradient_accumulation_steps: int = 16  # GPUメモリ節約版（実質バッチサイズ16）- MOONSHOT GPU学習用
@@ -185,7 +186,8 @@ class SoulWeightModule(nn.Module):
 
         # アルファゲートアニーリング (GPU/float32対応)
         t = current_step / max(total_steps - 1, 1)
-        sigmoid_value = 1 / (1 + torch.exp(torch.tensor(-6 * (t - 0.5), dtype=torch.float32, device=self.device)))
+        sigmoid_input = torch.tensor(-6 * (t - 0.5), dtype=torch.float32, device=self.device)
+        sigmoid_value = 1 / (1 + torch.exp(sigmoid_input))
         annealed_alpha = ALPHA_START + (ALPHA_END - ALPHA_START) * sigmoid_value
 
         # NKATアダプター適用 (学習対象)
@@ -409,6 +411,7 @@ class Phi35SoulTrainer:
             accumulation_step = 0
 
             print(f"実質バッチサイズ: {self.config.batch_size * self.config.gradient_accumulation_steps} (勾配蓄積)")
+            print(f"目標総ステップ数: {self.config.max_steps}")
 
             progress_bar = tqdm(
                 enumerate(train_dataloader),
@@ -417,6 +420,11 @@ class Phi35SoulTrainer:
             )
 
             for step, batch in progress_bar:
+                # max_stepsチェック
+                if global_step >= self.config.max_steps:
+                    print(f"\n[STOP] 最大ステップ数 {self.config.max_steps} に到達しました。トレーニングを終了します。")
+                    break
+
                 # データをGPUに配置 (GPU優先モード)
                 input_ids = batch['input_ids'].to(self.device)
                 labels = batch['labels'].to(self.device)
