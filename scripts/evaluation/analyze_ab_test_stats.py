@@ -1,463 +1,426 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-A/B Test Statistical Analysis
-ANOVA, Cohen's d, p-values, error bars付き統計分析
+A/Bテスト結果の統計解析スクリプト
 
-分析内容：
-1. 記述統計
-2. 推論統計（t検定、ANOVA）
-3. 効果量分析（Cohen's d）
-4. 信頼区間とエラーバー
-5. 視覚化レポート
+ANOVA、効果量、p値、エラーバー付きグラフを含む統計分析を実行
 """
 
 import os
 import sys
 import json
+import argparse
+from pathlib import Path
+from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
 import pandas as pd
+from scipy import stats
+from scipy.stats import ttest_ind, f_oneway, cohen_d
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Any, Tuple
-from scipy import stats
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
+
+# tqdm for progress bars
+from tqdm import tqdm
 
 # Add project root to path
-sys.path.append(str(Path(__file__).parent.parent.parent))
+project_root = Path(__file__).parent.parent.parent
+sys.path.append(str(project_root))
 
-def load_ab_test_results(results_dir: str) -> pd.DataFrame:
-    """A/Bテスト結果の読み込み"""
-    print("[STATS] Loading A/B test results...")
+class ABTestStatisticalAnalyzer:
+    """A/Bテスト統計解析クラス"""
 
-    results_files = list(Path(results_dir).glob("ab_test_results_*.json"))
+    def __init__(self, results_dir: str = "results/ab_test_results"):
+        self.results_dir = Path(results_dir)
+        self.plots_dir = self.results_dir / "plots"
+        self.stats_dir = self.results_dir / "statistics"
+        self.plots_dir.mkdir(parents=True, exist_ok=True)
+        self.stats_dir.mkdir(parents=True, exist_ok=True)
 
-    if not results_files:
-        print("[ERROR] No A/B test results found")
-        return pd.DataFrame()
+        # スタイル設定
+        plt.style.use('default')
+        sns.set_palette("husl")
 
-    # 最新の結果ファイルを使用
-    latest_file = max(results_files, key=lambda x: x.stat().st_mtime)
+    def load_latest_results(self) -> Dict[str, Any]:
+        """最新のA/Bテスト結果を読み込み"""
+        result_files = list(self.results_dir.glob("ab_test_results_final_*.json"))
 
-    with open(latest_file, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+        if not result_files:
+            raise FileNotFoundError("No final A/B test results found")
 
-    df = pd.DataFrame(data["results"])
-    print(f"[STATS] Loaded {len(df)} test results from {latest_file}")
+        # 最新のファイルを取得
+        latest_file = max(result_files, key=lambda x: x.stat().st_mtime)
 
-    return df
+        print(f"📂 Loading results from {latest_file}")
 
-def perform_descriptive_statistics(df: pd.DataFrame) -> Dict[str, Any]:
-    """記述統計の実行"""
-    print("[STATS] Computing descriptive statistics...")
+        with open(latest_file, 'r', encoding='utf-8') as f:
+            results = json.load(f)
 
-    desc_stats = {}
+        return results
 
-    # モデル別統計
-    for model in df["model"].unique():
-        model_df = df[df["model"] == model]
-        desc_stats[model] = {
-            "count": len(model_df),
-            "mean_inference_time": model_df["inference_time"].mean(),
-            "std_inference_time": model_df["inference_time"].std(),
-            "min_inference_time": model_df["inference_time"].min(),
-            "max_inference_time": model_df["inference_time"].max(),
-            "median_inference_time": model_df["inference_time"].median()
+    def prepare_data_for_analysis(self, results: Dict[str, Any]) -> pd.DataFrame:
+        """統計分析用データ準備"""
+        data_rows = []
+
+        baseline = results.get("baseline", {})
+        aegis = results.get("aegis", {})
+
+        for task in results.get("comparison", {}):
+            for fewshot_str in results["comparison"][task]:
+                fewshot = int(fewshot_str)
+
+                baseline_result = baseline.get(task, {}).get(fewshot_str, {})
+                aegis_result = aegis.get(task, {}).get(fewshot_str, {})
+
+                baseline_acc = baseline_result.get("accuracy", 0)
+                aegis_acc = aegis_result.get("accuracy", 0)
+
+                # 個別のサンプル結果を取得
+                baseline_samples = baseline_result.get("results", [])
+                aegis_samples = aegis_result.get("results", [])
+
+                # 正解/不正解のバイナリデータを作成
+                for i, (b_sample, a_sample) in enumerate(zip(baseline_samples, aegis_samples)):
+                    data_rows.append({
+                        "task": task,
+                        "fewshot": fewshot,
+                        "model": "baseline",
+                        "sample_id": i,
+                        "correct": b_sample.get("exact_match", False),
+                        "accuracy": baseline_acc,
+                        "inference_time": b_sample.get("inference_time", 0)
+                    })
+
+                    data_rows.append({
+                        "task": task,
+                        "fewshot": fewshot,
+                        "model": "aegis",
+                        "sample_id": i,
+                        "correct": a_sample.get("exact_match", False),
+                        "accuracy": aegis_acc,
+                        "inference_time": a_sample.get("inference_time", 0)
+                    })
+
+        df = pd.DataFrame(data_rows)
+        return df
+
+    def calculate_effect_size(self, group1: np.ndarray, group2: np.ndarray) -> float:
+        """Cohen's d効果量計算"""
+        try:
+            return cohen_d(group1, group2).statistic
+        except:
+            # 手動計算
+            mean1, mean2 = np.mean(group1), np.mean(group2)
+            std1, std2 = np.std(group1, ddof=1), np.std(group2, ddof=1)
+            n1, n2 = len(group1), len(group2)
+
+            # pooled standard deviation
+            pooled_std = np.sqrt(((n1 - 1) * std1**2 + (n2 - 1) * std2**2) / (n1 + n2 - 2))
+
+            if pooled_std == 0:
+                return 0.0
+
+            return (mean2 - mean1) / pooled_std
+
+    def perform_statistical_tests(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """統計検定実行（ANOVA、t-test、効果量）"""
+        print("🔬 Performing statistical analysis...")
+
+        stats_results = {
+            "overall_comparison": {},
+            "task_wise_comparison": {},
+            "fewshot_analysis": {},
+            "anova_results": {},
+            "effect_sizes": {}
         }
 
-    # カテゴリ別統計
-    category_stats = {}
-    for category in df["test_category"].unique():
-        cat_df = df[df["test_category"] == category]
-        category_stats[category] = {
-            "baseline_mean": cat_df[cat_df["model"] == "baseline"]["inference_time"].mean(),
-            "aegis_mean": cat_df[cat_df["model"] == "aegis"]["inference_time"].mean(),
-            "baseline_std": cat_df[cat_df["model"] == "baseline"]["inference_time"].std(),
-            "aegis_std": cat_df[cat_df["model"] == "aegis"]["inference_time"].std(),
-            "sample_size": len(cat_df)
-        }
+        # 全体比較（全タスク・全fewshot統合）
+        baseline_overall = df[df["model"] == "baseline"]["correct"].astype(int)
+        aegis_overall = df[df["model"] == "aegis"]["correct"].astype(int)
 
-    return {
-        "model_stats": desc_stats,
-        "category_stats": category_stats,
-        "overall_stats": {
-            "total_tests": len(df),
-            "models_tested": len(df["model"].unique()),
-            "categories_tested": len(df["test_category"].unique())
-        }
-    }
+        # t-test
+        t_stat, p_value = ttest_ind(baseline_overall, aegis_overall)
 
-def perform_statistical_tests(df: pd.DataFrame) -> Dict[str, Any]:
-    """統計検定の実行"""
-    print("[STATS] Performing statistical tests...")
+        # 効果量
+        effect_size = self.calculate_effect_size(baseline_overall.values, aegis_overall.values)
 
-    results = {}
-
-    # モデル間の推論時間比較（t検定）
-    baseline_times = df[df["model"] == "baseline"]["inference_time"]
-    aegis_times = df[df["model"] == "aegis"]["inference_time"]
-
-    if len(baseline_times) > 1 and len(aegis_times) > 1:
-        t_stat, p_value = stats.ttest_ind(baseline_times, aegis_times)
-
-        # Cohen's d (効果量)
-        pooled_std = np.sqrt((baseline_times.var() + aegis_times.var()) / 2)
-        cohens_d = abs(baseline_times.mean() - aegis_times.mean()) / pooled_std
-
-        results["inference_time_comparison"] = {
-            "test_type": "independent_t_test",
+        stats_results["overall_comparison"] = {
+            "baseline_mean": baseline_overall.mean(),
+            "aegis_mean": aegis_overall.mean(),
+            "improvement": aegis_overall.mean() - baseline_overall.mean(),
             "t_statistic": t_stat,
             "p_value": p_value,
-            "significant": p_value < 0.05,
-            "cohens_d": cohens_d,
-            "effect_size_interpretation": interpret_cohens_d(cohens_d),
-            "baseline_mean": baseline_times.mean(),
-            "aegis_mean": aegis_times.mean(),
-            "baseline_std": baseline_times.std(),
-            "aegis_std": aegis_times.std()
+            "effect_size_cohen_d": effect_size,
+            "effect_size_interpretation": self.interpret_effect_size(effect_size),
+            "sample_size_baseline": len(baseline_overall),
+            "sample_size_aegis": len(aegis_overall)
         }
 
-    # カテゴリ別ANOVA（3つ以上のグループがある場合）
-    if len(df["test_category"].unique()) > 2:
-        try:
-            model = ols('inference_time ~ C(model) + C(test_category) + C(model):C(test_category)',
-                       data=df).fit()
-            anova_table = sm.stats.anova_lm(model, typ=2)
+        # タスク別比較
+        for task in df["task"].unique():
+            task_df = df[df["task"] == task]
 
-            results["anova_analysis"] = {
-                "model_effect": {
-                    "f_statistic": anova_table.loc["C(model)", "F"],
-                    "p_value": anova_table.loc["C(model)", "PR(>F)"],
-                    "significant": anova_table.loc["C(model)", "PR(>F)"] < 0.05
-                },
-                "category_effect": {
-                    "f_statistic": anova_table.loc["C(test_category)", "F"],
-                    "p_value": anova_table.loc["C(test_category)", "PR(>F)"],
-                    "significant": anova_table.loc["C(test_category)", "PR(>F)"] < 0.05
-                },
-                "interaction_effect": {
-                    "f_statistic": anova_table.loc["C(model):C(test_category)", "F"],
-                    "p_value": anova_table.loc["C(model):C(test_category)", "PR(>F)"],
-                    "significant": anova_table.loc["C(model):C(test_category)", "PR(>F)"] < 0.05
+            baseline_task = task_df[task_df["model"] == "baseline"]["correct"].astype(int)
+            aegis_task = task_df[task_df["model"] == "aegis"]["correct"].astype(int)
+
+            if len(baseline_task) > 0 and len(aegis_task) > 0:
+                t_stat_task, p_value_task = ttest_ind(baseline_task, aegis_task)
+                effect_size_task = self.calculate_effect_size(baseline_task.values, aegis_task.values)
+
+                stats_results["task_wise_comparison"][task] = {
+                    "baseline_mean": baseline_task.mean(),
+                    "aegis_mean": aegis_task.mean(),
+                    "improvement": aegis_task.mean() - baseline_task.mean(),
+                    "t_statistic": t_stat_task,
+                    "p_value": p_value_task,
+                    "effect_size_cohen_d": effect_size_task,
+                    "effect_size_interpretation": self.interpret_effect_size(effect_size_task),
+                    "sample_size_baseline": len(baseline_task),
+                    "sample_size_aegis": len(aegis_task)
                 }
-            }
+
+        # Few-shot分析
+        for fewshot in df["fewshot"].unique():
+            fewshot_df = df[df["fewshot"] == fewshot]
+
+            baseline_fs = fewshot_df[fewshot_df["model"] == "baseline"]["correct"].astype(int)
+            aegis_fs = fewshot_df[fewshot_df["model"] == "aegis"]["correct"].astype(int)
+
+            if len(baseline_fs) > 0 and len(aegis_fs) > 0:
+                t_stat_fs, p_value_fs = ttest_ind(baseline_fs, aegis_fs)
+                effect_size_fs = self.calculate_effect_size(baseline_fs.values, aegis_fs.values)
+
+                stats_results["fewshot_analysis"][str(fewshot)] = {
+                    "baseline_mean": baseline_fs.mean(),
+                    "aegis_mean": aegis_fs.mean(),
+                    "improvement": aegis_fs.mean() - baseline_fs.mean(),
+                    "t_statistic": t_stat_fs,
+                    "p_value": p_value_fs,
+                    "effect_size_cohen_d": effect_size_fs,
+                    "effect_size_interpretation": self.interpret_effect_size(effect_size_fs)
+                }
+
+        # ANOVA分析（fewshotの効果）
+        try:
+            anova_data = []
+            for fewshot in df["fewshot"].unique():
+                fs_data = df[df["fewshot"] == fewshot]["correct"].astype(int)
+                anova_data.append(fs_data.values)
+
+            if len(anova_data) >= 2:
+                f_stat, p_anova = f_oneway(*anova_data)
+                stats_results["anova_results"]["fewshot_effect"] = {
+                    "f_statistic": f_stat,
+                    "p_value": p_anova,
+                    "significant": p_anova < 0.05
+                }
         except Exception as e:
-            print(f"[WARNING] ANOVA analysis failed: {e}")
+            print(f"⚠️ ANOVA analysis failed: {e}")
 
-    return results
+        return stats_results
 
-def interpret_cohens_d(d: float) -> str:
-    """Cohen's dの解釈"""
-    abs_d = abs(d)
-    if abs_d < 0.2:
-        return "negligible"
-    elif abs_d < 0.5:
-        return "small"
-    elif abs_d < 0.8:
-        return "medium"
-    else:
-        return "large"
+    def interpret_effect_size(self, d: float) -> str:
+        """Cohen's dの解釈"""
+        abs_d = abs(d)
+        if abs_d < 0.2:
+            return "negligible"
+        elif abs_d < 0.5:
+            return "small"
+        elif abs_d < 0.8:
+            return "medium"
+        else:
+            return "large"
 
-def calculate_confidence_intervals(df: pd.DataFrame, confidence: float = 0.95) -> Dict[str, Any]:
-    """信頼区間の計算"""
-    print("[STATS] Calculating confidence intervals...")
+    def create_comparison_plots(self, df: pd.DataFrame, stats_results: Dict[str, Any]):
+        """比較グラフ作成（エラーバー付き）"""
+        print("📊 Creating comparison plots...")
 
-    ci_results = {}
+        # タスク別比較グラフ
+        plt.figure(figsize=(15, 10))
 
-    for model in df["model"].unique():
-        model_data = df[df["model"] == "model"]["inference_time"]
-        if len(model_data) > 1:
-            mean = model_data.mean()
-            sem = stats.sem(model_data)
-            ci = stats.t.interval(confidence, len(model_data)-1, loc=mean, scale=sem)
+        # 集計データ作成
+        summary_df = df.groupby(["task", "model"])["correct"].agg(["mean", "std", "count"]).reset_index()
+        summary_df["se"] = summary_df["std"] / np.sqrt(summary_df["count"])  # 標準誤差
 
-            ci_results[model] = {
-                "mean": mean,
-                "confidence_interval": ci,
-                "margin_of_error": (ci[1] - ci[0]) / 2,
-                "confidence_level": confidence
-            }
+        # タスク別プロット
+        plt.subplot(2, 2, 1)
+        tasks = summary_df["task"].unique()
+        x = np.arange(len(tasks))
+        width = 0.35
 
-    return ci_results
+        baseline_data = summary_df[summary_df["model"] == "baseline"]
+        aegis_data = summary_df[summary_df["model"] == "aegis"]
 
-def create_statistical_plots(df: pd.DataFrame, stats: Dict, output_dir: str):
-    """統計分析の可視化"""
-    print("[STATS] Creating statistical plots...")
+        plt.bar(x - width/2, baseline_data["mean"], width, label="Baseline",
+                yerr=baseline_data["se"], capsize=5, alpha=0.8)
+        plt.bar(x + width/2, aegis_data["mean"], width, label="AEGIS",
+                yerr=aegis_data["se"], capsize=5, alpha=0.8)
 
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+        plt.xlabel("Task")
+        plt.ylabel("Accuracy")
+        plt.title("Model Comparison by Task (with Error Bars)")
+        plt.xticks(x, tasks, rotation=45)
+        plt.legend()
+        plt.grid(True, alpha=0.3)
 
-    # スタイル設定
-    plt.style.use('seaborn-v0_8')
-    sns.set_palette("husl")
+        # Few-shot分析グラフ
+        plt.subplot(2, 2, 2)
+        fewshot_summary = df.groupby(["fewshot", "model"])["correct"].agg(["mean", "std", "count"]).reset_index()
+        fewshot_summary["se"] = fewshot_summary["std"] / np.sqrt(fewshot_summary["count"])
 
-    # 1. 推論時間の箱ひげ図
-    plt.figure(figsize=(12, 8))
+        fewshots = sorted(fewshot_summary["fewshot"].unique())
+        x_fs = np.arange(len(fewshots))
 
-    plt.subplot(2, 2, 1)
-    sns.boxplot(data=df, x="model", y="inference_time", showfliers=True)
-    plt.title("Inference Time Distribution by Model", fontsize=14, fontweight='bold')
-    plt.ylabel("Inference Time (seconds)")
-    plt.grid(True, alpha=0.3)
+        baseline_fs = fewshot_summary[fewshot_summary["model"] == "baseline"]
+        aegis_fs = fewshot_summary[fewshot_summary["model"] == "aegis"]
 
-    # 2. カテゴリ別推論時間
-    plt.subplot(2, 2, 2)
-    sns.barplot(data=df, x="test_category", y="inference_time", hue="model",
-                errorbar="sd", capsize=0.1)
-    plt.title("Inference Time by Category", fontsize=14, fontweight='bold')
-    plt.xticks(rotation=45)
-    plt.ylabel("Inference Time (seconds)")
-    plt.legend(title="Model", bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.grid(True, alpha=0.3)
+        plt.bar(x_fs - width/2, baseline_fs["mean"], width, label="Baseline",
+                yerr=baseline_fs["se"], capsize=5, alpha=0.8)
+        plt.bar(x_fs + width/2, aegis_fs["mean"], width, label="AEGIS",
+                yerr=aegis_fs["se"], capsize=5, alpha=0.8)
 
-    # 3. 分布比較
-    plt.subplot(2, 2, 3)
-    for model in df["model"].unique():
-        model_data = df[df["model"] == model]["inference_time"]
-        sns.kdeplot(data=model_data, label=model, fill=True, alpha=0.3)
-    plt.title("Inference Time Density Distribution", fontsize=14, fontweight='bold')
-    plt.xlabel("Inference Time (seconds)")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+        plt.xlabel("Few-shot Examples")
+        plt.ylabel("Accuracy")
+        plt.title("Few-shot Analysis (with Error Bars)")
+        plt.xticks(x_fs, fewshots)
+        plt.legend()
+        plt.grid(True, alpha=0.3)
 
-    # 4. Q-Qプロット（正規性チェック）
-    plt.subplot(2, 2, 4)
-    baseline_data = df[df["model"] == "baseline"]["inference_time"]
-    aegis_data = df[df["model"] == "aegis"]["inference_time"]
+        # 効果量プロット
+        plt.subplot(2, 2, 3)
+        if "task_wise_comparison" in stats_results:
+            tasks_effect = list(stats_results["task_wise_comparison"].keys())
+            effect_sizes = [stats_results["task_wise_comparison"][task]["effect_size_cohen_d"]
+                          for task in tasks_effect]
 
-    # 理論的な正規分布
-    theoretical_quantiles = np.linspace(0.01, 0.99, len(baseline_data))
-    normal_quantiles = stats.norm.ppf(theoretical_quantiles)
+            colors = ['red' if x < 0 else 'green' for x in effect_sizes]
+            plt.barh(tasks_effect, effect_sizes, color=colors, alpha=0.7)
+            plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
+            plt.xlabel("Effect Size (Cohen's d)")
+            plt.title("Effect Size by Task")
+            plt.grid(True, alpha=0.3)
 
-    plt.scatter(np.sort(stats.norm.cdf(baseline_data, baseline_data.mean(), baseline_data.std())),
-               np.sort(baseline_data), alpha=0.6, label="Baseline", s=30)
-    plt.scatter(np.sort(stats.norm.cdf(aegis_data, aegis_data.mean(), aegis_data.std())),
-               np.sort(aegis_data), alpha=0.6, label="AEGIS", s=30)
+        # p値分布
+        plt.subplot(2, 2, 4)
+        if "task_wise_comparison" in stats_results:
+            p_values = [stats_results["task_wise_comparison"][task]["p_value"]
+                       for task in tasks_effect]
 
-    # 理想的な対角線
-    min_val = min(baseline_data.min(), aegis_data.min())
-    max_val = max(baseline_data.max(), aegis_data.max())
-    plt.plot([min_val, max_val], [min_val, max_val], 'r--', alpha=0.7, label="Ideal Normal")
-
-    plt.title("Q-Q Plot (Normality Check)", fontsize=14, fontweight='bold')
-    plt.xlabel("Theoretical Quantiles")
-    plt.ylabel("Sample Quantiles")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    plt.savefig(output_path / "statistical_analysis_plots.png", dpi=300, bbox_inches='tight')
-    plt.close()
-
-    # 効果量プロット
-    if "inference_time_comparison" in stats:
-        plt.figure(figsize=(8, 6))
-        comparison = stats["inference_time_comparison"]
-
-        models = ["Baseline", "AEGIS"]
-        means = [comparison["baseline_mean"], comparison["aegis_mean"]]
-        errors = [comparison["baseline_std"], comparison["aegis_std"]]
-
-        bars = plt.bar(models, means, yerr=errors, capsize=5,
-                      color=['skyblue', 'lightcoral'], alpha=0.7)
-
-        plt.title(f"Inference Time Comparison\nCohen's d = {comparison['cohens_d']:.3f} ({comparison['effect_size_interpretation']})",
-                 fontsize=14, fontweight='bold')
-        plt.ylabel("Inference Time (seconds)")
-        plt.grid(True, alpha=0.3, axis='y')
-
-        # 値ラベル追加
-        for bar, mean in zip(bars, means):
-            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + bar.get_y() + 0.01,
-                    f'{mean:.3f}s', ha='center', va='bottom', fontweight='bold')
+            plt.scatter(range(len(p_values)), p_values, alpha=0.7, s=50)
+            plt.axhline(y=0.05, color='red', linestyle='--', alpha=0.7, label='p=0.05')
+            plt.axhline(y=0.01, color='orange', linestyle='--', alpha=0.7, label='p=0.01')
+            plt.xlabel("Task Index")
+            plt.ylabel("p-value")
+            plt.title("p-values by Task")
+            plt.yscale('log')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
 
         plt.tight_layout()
-        plt.savefig(output_path / "effect_size_analysis.png", dpi=300, bbox_inches='tight')
+        plot_file = self.plots_dir / "ab_test_comparison_plots.png"
+        plt.savefig(plot_file, dpi=300, bbox_inches='tight')
         plt.close()
 
-def generate_comprehensive_report(desc_stats: Dict, stat_tests: Dict, ci_results: Dict, output_dir: str):
-    """包括的なレポート生成"""
-    print("[STATS] Generating comprehensive statistical report...")
+        print(f"📊 Plots saved to {plot_file}")
 
-    report_path = Path(output_dir) / f"comprehensive_statistical_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+    def generate_statistical_report(self, stats_results: Dict[str, Any]) -> str:
+        """統計レポート生成"""
+        report = []
+        report.append("# A/B Test Statistical Analysis Report")
+        report.append("")
+        report.append("## Overall Comparison")
+        overall = stats_results["overall_comparison"]
+        report.append(".4f"        report.append(".4f"        report.append(".4f"        report.append(".4f"        report.append(f"- Effect Size (Cohen's d): {overall['effect_size_cohen_d']:.4f} ({overall['effect_size_interpretation']})")
+        report.append(".6f"        report.append(f"- Sample sizes: Baseline={overall['sample_size_baseline']}, AEGIS={overall['sample_size_aegis']}")
+        report.append("")
+        report.append("## Task-wise Comparison")
+        for task, results in stats_results["task_wise_comparison"].items():
+            report.append(f"### {task}")
+            report.append(".4f"            report.append(".4f"            report.append(".4f"            report.append(f"- Effect Size: {results['effect_size_cohen_d']:.4f} ({results['effect_size_interpretation']})")
+            report.append(".6f"            report.append("")
+        report.append("## Few-shot Analysis")
+        for fewshot, results in stats_results["fewshot_analysis"].items():
+            report.append(f"### {fewshot}-shot")
+            report.append(".4f"            report.append(".4f"            report.append(".4f"            report.append(f"- Effect Size: {results['effect_size_cohen_d']:.4f} ({results['effect_size_interpretation']})")
+            report.append(".6f"            report.append("")
 
-    report = f"""# A/B Test Statistical Analysis Report
+        if "anova_results" in stats_results and stats_results["anova_results"]:
+            report.append("## ANOVA Results")
+            anova = stats_results["anova_results"]["fewshot_effect"]
+            report.append(".4f"            report.append(".6f"            report.append(f"- Significant: {'Yes' if anova['significant'] else 'No'}")
+            report.append("")
 
-**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+        report.append("## Interpretation")
+        report.append("- **p < 0.05**: Statistically significant difference")
+        report.append("- **Effect Size**: negligible (<0.2), small (0.2-0.5), medium (0.5-0.8), large (>0.8)")
+        report.append("- **ANOVA**: Tests if few-shot examples significantly affect performance")
 
-## Executive Summary
+        return "\n".join(report)
 
-This report presents a comprehensive statistical analysis of the A/B testing results comparing Baseline and AEGIS models across multiple performance metrics.
+    def run_analysis(self):
+        """統計分析実行"""
+        print("🚀 Starting A/B Test Statistical Analysis")
+        print("=" * 60)
 
-## 1. Descriptive Statistics
+        try:
+            # 結果読み込み
+            results = self.load_latest_results()
 
-### Overall Statistics
-- **Total Tests:** {desc_stats['overall_stats']['total_tests']}
-- **Models Tested:** {desc_stats['overall_stats']['models_tested']}
-- **Categories Tested:** {desc_stats['overall_stats']['categories_tested']}
+            # データ準備
+            df = self.prepare_data_for_analysis(results)
+            print(f"📊 Prepared {len(df)} data points for analysis")
 
-### Model Performance Statistics
+            # 統計検定
+            stats_results = self.perform_statistical_tests(df)
 
-"""
+            # グラフ作成
+            self.create_comparison_plots(df, stats_results)
 
-    # モデル別統計
-    for model, stats in desc_stats['model_stats'].items():
-        report += f"""#### {model.upper()} Model
-- **Sample Size:** {stats['count']}
-- **Mean Inference Time:** {stats['mean_inference_time']:.4f} seconds
-- **Standard Deviation:** {stats['std_inference_time']:.4f} seconds
-- **Median Inference Time:** {stats['median_inference_time']:.4f} seconds
-- **Range:** {stats['min_inference_time']:.4f} - {stats['max_inference_time']:.4f} seconds
+            # レポート生成
+            report = self.generate_statistical_report(stats_results)
 
-"""
+            # 結果保存
+            stats_file = self.stats_dir / "statistical_analysis_results.json"
+            with open(stats_file, 'w', encoding='utf-8') as f:
+                json.dump(stats_results, f, indent=2, ensure_ascii=False)
 
-    # 統計検定結果
-    if "inference_time_comparison" in stat_tests:
-        comp = stat_tests["inference_time_comparison"]
-        report += f"""## 2. Statistical Tests
+            report_file = self.stats_dir / "statistical_analysis_report.md"
+            with open(report_file, 'w', encoding='utf-8') as f:
+                f.write(report)
 
-### Inference Time Comparison (Independent t-test)
+            # CSVエクスポート
+            df.to_csv(self.stats_dir / "ab_test_raw_data.csv", index=False)
 
-- **Test Type:** Independent Samples t-test
-- **t-statistic:** {comp['t_statistic']:.4f}
-- **p-value:** {comp['p_value']:.4f}
-- **Significant Difference:** {'Yes' if comp['significant'] else 'No'} (α = 0.05)
-- **Cohen's d:** {comp['cohens_d']:.4f} ({comp['effect_size_interpretation']} effect)
-- **Baseline Mean:** {comp['baseline_mean']:.4f} seconds
-- **AEGIS Mean:** {comp['aegis_mean']:.4f} seconds
+            print("
+🎉 Statistical analysis completed!"            print(f"📊 Results saved to {self.stats_dir}")
+            print(f"📈 Plots saved to {self.plots_dir}")
 
-#### Effect Size Interpretation
-Cohen's d = {comp['cohens_d']:.4f} indicates a **{comp['effect_size_interpretation']}** effect size.
-- Negligible: < 0.2
-- Small: 0.2 - 0.5
-- Medium: 0.5 - 0.8
-- Large: > 0.8
+            # 主要結果表示
+            overall = stats_results["overall_comparison"]
+            print("
+📈 Key Results:"            print(".4f"            print(".4f"            print(".4f"            print(".4f"            print(f"📏 Effect Size: {overall['effect_size_cohen_d']:.4f} ({overall['effect_size_interpretation']})")
+            print(".6f"
+            return stats_results
 
-"""
-
-    # ANOVA結果
-    if "anova_analysis" in stat_tests:
-        anova = stat_tests["anova_analysis"]
-        report += f"""### ANOVA Analysis
-
-#### Model Effect
-- **F-statistic:** {anova['model_effect']['f_statistic']:.4f}
-- **p-value:** {anova['model_effect']['p_value']:.4f}
-- **Significant:** {'Yes' if anova['model_effect']['significant'] else 'No'}
-
-#### Category Effect
-- **F-statistic:** {anova['category_effect']['f_statistic']:.4f}
-- **p-value:** {anova['category_effect']['p_value']:.4f}
-- **Significant:** {'Yes' if anova['category_effect']['significant'] else 'No'}
-
-#### Interaction Effect
-- **F-statistic:** {anova['interaction_effect']['f_statistic']:.4f}
-- **p-value:** {anova['interaction_effect']['p_value']:.4f}
-- **Significant:** {'Yes' if anova['interaction_effect']['significant'] else 'No'}
-
-"""
-
-    # 信頼区間
-    if ci_results:
-        report += f"""## 3. Confidence Intervals (95%)
-
-"""
-        for model, ci_data in ci_results.items():
-            report += f"""### {model.upper()} Model
-- **Mean:** {ci_data['mean']:.4f} seconds
-- **95% CI:** [{ci_data['confidence_interval'][0]:.4f}, {ci_data['confidence_interval'][1]:.4f}] seconds
-- **Margin of Error:** ±{ci_data['margin_of_error']:.4f} seconds
-
-"""
-
-    # カテゴリ別分析
-    report += f"""## 4. Category-wise Analysis
-
-"""
-    for category, stats in desc_stats['category_stats'].items():
-        report += f"""### {category.replace('_', ' ').title()}
-- **Baseline Mean:** {stats['baseline_mean']:.4f} seconds
-- **AEGIS Mean:** {stats['aegis_mean']:.4f} seconds
-- **Performance Ratio (Baseline/AEGIS):** {stats['baseline_mean']/stats['aegis_mean']:.2f}x
-- **Sample Size:** {stats['sample_size']}
-
-"""
-
-    # 結論
-    if "inference_time_comparison" in stat_tests:
-        comp = stat_tests["inference_time_comparison"]
-        winner = "AEGIS" if comp['aegis_mean'] < comp['baseline_mean'] else "Baseline"
-        improvement = abs(comp['baseline_mean'] - comp['aegis_mean']) / comp['baseline_mean'] * 100
-
-        report += f"""## 5. Conclusions
-
-### Performance Comparison
-The statistical analysis reveals that **{winner}** demonstrates {'better' if winner == 'AEGIS' else 'equivalent'} performance compared to the baseline.
-
-- **Winner:** {winner}
-- **Performance Improvement:** {improvement:.1f}%
-- **Effect Size:** {comp['effect_size_interpretation']} ({comp['cohens_d']:.3f})
-- **Statistical Significance:** {'Significant' if comp['significant'] else 'Not significant'} (p = {comp['p_value']:.4f})
-
-### Recommendations
-1. {'Deploy AEGIS model for production use' if winner == 'AEGIS' else 'Continue with Baseline model'}
-2. {'Further optimization may be beneficial' if not comp['significant'] else 'Results are statistically robust'}
-3. Consider additional testing with larger sample sizes for more precise effect size estimation
-
-### Data Quality Notes
-- All statistical tests assume normality and independence of observations
-- Effect sizes should be interpreted in the context of the specific use case
-- Confidence intervals provide a range of plausible values for the true population parameters
-
----
-*Report generated automatically by MOONSHOT Statistical Analysis Framework*
-"""
-
-    with open(report_path, 'w', encoding='utf-8') as f:
-        f.write(report)
-
-    print(f"[STATS] Comprehensive report saved to {report_path}")
-    return report_path
+        except Exception as e:
+            print(f"❌ Analysis failed: {e}")
+            raise
 
 def main():
-    """メイン統計分析実行関数"""
-    print("📊 Starting A/B Test Statistical Analysis...")
-    print("=" * 60)
+    parser = argparse.ArgumentParser(description="Analyze A/B Test Results Statistically")
+    parser.add_argument("--results_dir", type=str, default="results/ab_test_results",
+                       help="Directory containing A/B test results")
 
-    # 結果ディレクトリ
-    results_dir = "results/ab_test_results"
-    output_dir = "results/ab_test_results/statistics"
+    args = parser.parse_args()
 
-    # A/Bテスト結果読み込み
-    df = load_ab_test_results(results_dir)
+    analyzer = ABTestStatisticalAnalyzer(args.results_dir)
+    results = analyzer.run_analysis()
 
-    if df.empty:
-        print("[ERROR] No A/B test results to analyze")
-        return 1
-
-    # 記述統計
-    desc_stats = perform_descriptive_statistics(df)
-
-    # 統計検定
-    stat_tests = perform_statistical_tests(df)
-
-    # 信頼区間
-    ci_results = calculate_confidence_intervals(df)
-
-    # 可視化
-    create_statistical_plots(df, stat_tests, output_dir)
-
-    # 包括的レポート生成
-    report_path = generate_comprehensive_report(desc_stats, stat_tests, ci_results, output_dir)
-
-    print(f"\n🎉 Statistical analysis completed!")
-    print(f"📊 Results saved to {output_dir}")
-    print(f"📋 Comprehensive report: {report_path}")
-
-    return 0
+    if results:
+        print("\n✅ Statistical analysis completed!")
+        print("📊 Next: Prepare for HF upload with scripts/evaluation/prepare_hf_upload.py")
+    else:
+        print("\n❌ Statistical analysis failed")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

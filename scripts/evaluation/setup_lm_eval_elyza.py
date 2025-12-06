@@ -1,203 +1,214 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-lm-eval-harness and ELYZA-100 Setup for A/B Testing
+lm-eval-harnessとELYZA-100セットアップスクリプト
 
-セットアップ内容：
-1. lm-eval-harnessのインストールと検証
-2. ELYZA-100データセットのダウンロード
-3. 評価パイプラインの準備
+A/Bテスト用の評価環境を構築する
 """
 
 import os
 import sys
-import subprocess
 import json
+import subprocess
 from pathlib import Path
-from datetime import datetime
+from typing import Dict, List, Any
+
+# tqdm for progress bars
+from tqdm import tqdm
 
 # Add project root to path
-sys.path.append(str(Path(__file__).parent.parent.parent))
+project_root = Path(__file__).parent.parent.parent
+sys.path.append(str(project_root))
 
-def install_lm_eval_harness():
-    """lm-eval-harnessのインストール"""
-    print("[SETUP] Installing lm-eval-harness...")
+class LMEvalSetup:
+    """lm-eval-harnessとELYZA-100セットアップクラス"""
 
-    try:
-        # pipでインストール
-        subprocess.check_call([
-            sys.executable, "-m", "pip", "install",
-            "lm-eval", "--upgrade"
-        ])
-        print("[OK] lm-eval-harness installed successfully")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"[ERROR] Failed to install lm-eval-harness: {e}")
-        return False
+    def __init__(self, lm_eval_dir: str = "lm-evaluation-harness"):
+        self.lm_eval_dir = Path(lm_eval_dir)
+        self.eval_data_dir = Path("data/evaluation")
+        self.eval_data_dir.mkdir(parents=True, exist_ok=True)
 
-def download_elyza_100():
-    """ELYZA-100データセットのダウンロード"""
-    print("[SETUP] Downloading ELYZA-100 dataset...")
+    def setup_elyza_100(self):
+        """ELYZA-100データセットのダウンロードとセットアップ"""
+        print("📥 Setting up ELYZA-100 dataset...")
 
-    try:
-        # ELYZA-100はHugging Faceからダウンロード
-        from huggingface_hub import snapshot_download
+        try:
+            from datasets import load_dataset
 
-        output_dir = Path("data/elyza100")
-        output_dir.mkdir(parents=True, exist_ok=True)
+            # ELYZA-100データセットをダウンロード
+            print("Downloading ELYZA-100 from Hugging Face...")
+            dataset = load_dataset("elyza/ELYZA-tasks-100")
 
-        # ELYZA-100のダウンロード
-        snapshot_download(
-            repo_id="elyza/ELYZA-japanese-tasks",
-            local_dir=str(output_dir),
-            local_dir_use_symlinks=False
-        )
+            # データセットをJSONL形式で保存
+            output_file = self.eval_data_dir / "elyza_100.jsonl"
 
-        print(f"[OK] ELYZA-100 downloaded to {output_dir}")
-        return True
+            with open(output_file, 'w', encoding='utf-8') as f:
+                for split_name, split_data in dataset.items():
+                    print(f"Processing {split_name} split...")
+                    for item in tqdm(split_data, desc=f"Processing {split_name}"):
+                        # ELYZA-100のフォーマットを統一
+                        sample = {
+                            "task_id": item.get("task_id", ""),
+                            "input": item.get("input", ""),
+                            "output": item.get("output", ""),
+                            "eval_aspect": item.get("eval_aspect", ""),
+                            "split": split_name
+                        }
+                        json.dump(sample, f, ensure_ascii=False)
+                        f.write('\n')
 
-    except Exception as e:
-        print(f"[ERROR] Failed to download ELYZA-100: {e}")
-        return False
+            print(f"✅ ELYZA-100 saved to {output_file}")
 
-def verify_lm_eval_setup():
-    """lm-evalのセットアップ検証"""
-    print("[SETUP] Verifying lm-eval setup...")
+        except ImportError:
+            print("❌ datasets library not found. Installing...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "datasets"])
+            self.setup_elyza_100()  # 再試行
 
-    try:
-        # lm-evalの基本機能をテスト
-        result = subprocess.run([
-            sys.executable, "-c",
-            "import lm_eval; print('lm-eval version:', lm_eval.__version__)"
-        ], capture_output=True, text=True, check=True)
+        except Exception as e:
+            print(f"❌ Failed to setup ELYZA-100: {e}")
+            raise
 
-        print(f"[OK] lm-eval verification passed: {result.stdout.strip()}")
-        return True
+    def setup_lm_eval_config(self):
+        """lm-eval-harnessの設定ファイル作成"""
+        print("⚙️ Creating lm-eval configuration...")
 
-    except subprocess.CalledProcessError as e:
-        print(f"[ERROR] lm-eval verification failed: {e}")
-        return False
-
-def create_evaluation_config():
-    """評価設定ファイル作成"""
-    print("[SETUP] Creating evaluation configuration...")
-
-    config = {
-        "model_args": {
-            "model_name": "local_model",
-            "model_path": "models/to/evaluate",
-            "dtype": "float16"
-        },
-        "tasks": [
-            {
-                "task_name": "elyza_tasks",
-                "task_type": "japanese_qa",
-                "dataset_path": "data/elyza100"
+        # カスタムタスク設定
+        custom_tasks_config = {
+            "group": "custom_aegis_tasks",
+            "task": "elyza_100",
+            "dataset_path": str(self.eval_data_dir / "elyza_100.jsonl"),
+            "output_type": "generate_until",
+            "test_split": "test",
+            "doc_to_text": "{{input}}",
+            "doc_to_target": "{{output}}",
+            "generation_kwargs": {
+                "until": ["\n"],
+                "do_sample": False,
+                "temperature": 0.0
             },
-            {
-                "task_name": "mmlu",
-                "task_type": "multiple_choice",
-                "categories": ["mathematics", "physics", "computer_science"]
-            },
-            {
-                "task_name": "hellaswag",
-                "task_type": "commonsense_reasoning"
-            }
-        ],
-        "evaluation_settings": {
-            "batch_size": 8,
-            "max_length": 2048,
-            "num_fewshot": 5,
-            "seed": 42
-        },
-        "output_settings": {
-            "results_dir": "results/ab_test_results",
-            "log_interval": 10,
-            "save_predictions": True
+            "metric_list": [
+                {"metric": "exact_match", "aggregation": "mean"}
+            ]
         }
-    }
 
-    config_path = Path("configs/evaluation_config.json")
-    config_path.parent.mkdir(parents=True, exist_ok=True)
+        # 設定ファイルを保存
+        config_file = self.eval_data_dir / "custom_tasks.yaml"
+        with open(config_file, 'w', encoding='utf-8') as f:
+            import yaml
+            yaml.dump([custom_tasks_config], f, allow_unicode=True, default_flow_style=False)
 
-    with open(config_path, 'w', encoding='utf-8') as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
+        print(f"✅ lm-eval config saved to {config_file}")
 
-    print(f"[OK] Evaluation config created: {config_path}")
-    return config_path
+    def verify_lm_eval_setup(self):
+        """lm-eval-harnessのセットアップ確認"""
+        print("🔍 Verifying lm-eval setup...")
 
-def setup_ab_test_directories():
-    """A/Bテスト用ディレクトリ作成"""
-    print("[SETUP] Setting up A/B test directories...")
+        try:
+            # lm-eval-harnessのインポートテスト
+            sys.path.insert(0, str(self.lm_eval_dir))
 
-    directories = [
-        "results/ab_test_results",
-        "results/ab_test_results/baseline",
-        "results/ab_test_results/aegis",
-        "results/ab_test_results/statistics",
-        "results/ab_test_results/plots",
-        "models/ab_test_models/baseline",
-        "models/ab_test_models/aegis"
-    ]
+            import lm_eval
+            print("✅ lm-eval-harness import successful")
 
-    for dir_path in directories:
-        Path(dir_path).mkdir(parents=True, exist_ok=True)
-        print(f"[OK] Created directory: {dir_path}")
+            # 利用可能なタスク一覧を取得
+            tasks = lm_eval.list_tasks()
+            print(f"📋 Available tasks: {len(tasks)} tasks loaded")
 
-    return directories
+            # ELYZA-100タスクの確認
+            if "elyza_100" in tasks:
+                print("✅ ELYZA-100 task registered")
+            else:
+                print("⚠️ ELYZA-100 task not found in registry")
+
+        except ImportError as e:
+            print(f"❌ lm-eval import failed: {e}")
+            return False
+
+        return True
+
+    def create_ab_test_config(self):
+        """A/Bテスト設定ファイル作成"""
+        print("🆚 Creating A/B test configuration...")
+
+        ab_config = {
+            "baseline_model": {
+                "name": "baseline_phi35_bf16",
+                "path": "microsoft/phi-3.5-mini-instruct",
+                "quantization": "bf16",
+                "gguf_path": "D:/webdataset/gguf_models/baseline_phi35_bf16.gguf"
+            },
+            "aegis_model": {
+                "name": "aegis_phi35_so8t",
+                "path": "checkpoints/rlpo_science_nsfw_automated/final_model",
+                "quantization": "q8_0",
+                "gguf_path": "D:/webdataset/gguf_models/aegis_phi35_so8t/aegis_phi35_so8t_Q8_0.gguf"
+            },
+            "evaluation_tasks": [
+                "elyza_100",
+                "arc_challenge",
+                "hellaswag",
+                "truthfulqa_mc2",
+                "winogrande",
+                "gsm8k"
+            ],
+            "batch_size": 8,
+            "num_fewshot": [0, 5, 10],
+            "output_dir": "results/ab_test_results"
+        }
+
+        config_file = self.eval_data_dir / "ab_test_config.json"
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(ab_config, f, indent=2, ensure_ascii=False)
+
+        print(f"✅ A/B test config saved to {config_file}")
+
+    def run(self):
+        """メイン実行関数"""
+        print("🚀 Setting up lm-eval-harness and ELYZA-100 for A/B testing")
+        print("=" * 70)
+
+        try:
+            # ELYZA-100セットアップ
+            self.setup_elyza_100()
+
+            # lm-eval設定
+            self.setup_lm_eval_config()
+
+            # A/Bテスト設定
+            self.create_ab_test_config()
+
+            # セットアップ検証
+            if self.verify_lm_eval_setup():
+                print("\n🎉 lm-eval and ELYZA-100 setup completed successfully!")
+                print("📊 Ready for A/B testing with statistical analysis")
+            else:
+                print("\n❌ Setup verification failed")
+                return False
+
+        except Exception as e:
+            print(f"\n❌ Setup failed: {e}")
+            return False
+
+        return True
 
 def main():
-    """メインセットアップ関数"""
-    print("🚀 Setting up lm-eval-harness and ELYZA-100 for A/B testing...")
-    print("=" * 60)
+    parser = argparse.ArgumentParser(description="Setup lm-eval-harness and ELYZA-100")
+    parser.add_argument("--lm_eval_dir", type=str, default="lm-evaluation-harness",
+                       help="Path to lm-evaluation-harness directory")
+    parser.add_argument("--eval_data_dir", type=str, default="data/evaluation",
+                       help="Directory to store evaluation data")
 
-    setup_steps = [
-        ("Install lm-eval-harness", install_lm_eval_harness),
-        ("Download ELYZA-100", download_elyza_100),
-        ("Verify lm-eval setup", verify_lm_eval_setup),
-        ("Create evaluation config", create_evaluation_config),
-        ("Setup A/B test directories", setup_ab_test_directories)
-    ]
+    args = parser.parse_args()
 
-    results = {}
-    for step_name, step_func in setup_steps:
-        print(f"\n🔧 {step_name}...")
-        try:
-            result = step_func()
-            results[step_name] = result
-            if result:
-                print(f"[PASS] {step_name}")
-            else:
-                print(f"[FAIL] {step_name}")
-        except Exception as e:
-            print(f"[ERROR] {step_name}: {e}")
-            results[step_name] = False
+    setup = LMEvalSetup(args.lm_eval_dir)
+    success = setup.run()
 
-    # 結果サマリー
-    print("\n" + "=" * 60)
-    print("📊 SETUP RESULTS SUMMARY")
-    print("=" * 60)
-
-    all_passed = True
-    for step_name, result in results.items():
-        status = "[PASS]" if result else "[FAIL]"
-        print(f"{status} {step_name}")
-        if not result:
-            all_passed = False
-
-    if all_passed:
-        print("\n🎉 All setup steps completed successfully!")
-        print("🚀 Ready for A/B testing with lm-eval-harness and ELYZA-100")
-
-        # セットアップ完了ログ
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with open("lm_eval_setup_complete.log", 'a', encoding='utf-8') as f:
-            f.write(f"[{timestamp}] lm-eval-harness and ELYZA-100 setup completed successfully\n")
-
-        return 0
+    if success:
+        print("\n✅ All components ready for A/B testing!")
+        print("Next: Run scripts/evaluation/run_llama_cpp_ab_test.py")
     else:
-        print("\n❌ Some setup steps failed. Please check the errors above.")
-        return 1
+        print("\n❌ Setup failed. Please check errors above.")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

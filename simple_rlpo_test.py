@@ -1,147 +1,200 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MOONSHOT System Test - AEGIS Autonomous A/B Testing Platform
-
-簡易システムテスト：Python環境、PyTorch、Transformersの基本機能を検証
+Simple RLPO Test for MOONSHOT Quick Verification
+SO(8) NKAT Theory RLPO機能の基本テスト
 """
 
 import sys
+import os
 import torch
-import platform
+import torch.nn as nn
+import numpy as np
 from pathlib import Path
 
-def test_python_environment():
-    """Python環境テスト"""
-    print(f"[TEST] Python version: {sys.version}")
-    print(f"[TEST] Platform: {platform.platform()}")
+# Add project root to path
+sys.path.append(str(Path(__file__).parent))
 
-    # Python 3.8+ チェック
-    if sys.version_info < (3, 8):
-        print("[ERROR] Python 3.8+ required")
-        return False
+def test_so8t_imports():
+    """SO8Tモジュールのインポートテスト"""
+    print("🔍 SO8Tモジュールインポートテスト...")
 
-    return True
-
-def test_pytorch():
-    """PyTorchテスト"""
     try:
-        print(f"[TEST] PyTorch version: {torch.__version__}")
-
-        # CUDA利用可能かチェック
-        if torch.cuda.is_available():
-            print(f"[TEST] CUDA available: {torch.cuda.get_device_name(0)}")
-            print(f"[TEST] CUDA version: {torch.version.cuda}")
-        else:
-            print("[WARNING] CUDA not available, using CPU")
-
-        # 基本的なテンソル操作テスト
-        x = torch.randn(3, 3)
-        y = torch.randn(3, 3)
-        z = x + y
-        print("[TEST] Basic tensor operations: OK")
-
+        from so8t_core import (
+            SO8TRotationGate,
+            PETRegularizer,
+            PETSchedule,
+            TrialityHead,
+            SelfVerifier,
+            SO8TModelConfig,
+            BurnInManager
+        )
+        print("✅ SO8Tコアモジュールインポート成功")
         return True
-
-    except Exception as e:
-        print(f"[ERROR] PyTorch test failed: {e}")
+    except ImportError as e:
+        print(f"❌ SO8Tインポートエラー: {e}")
         return False
 
-def test_transformers():
-    """Transformersライブラリテスト"""
+def test_so8t_rotation_gate():
+    """SO8TRotationGateの基本テスト"""
+    print("🔍 SO8T Rotation Gateテスト...")
+
     try:
-        import transformers
-        print(f"[TEST] Transformers version: {transformers.__version__}")
+        from so8t_core import SO8TRotationGate
 
-        # AutoModel, AutoTokenizerのインポートテスト
-        from transformers import AutoTokenizer, AutoModelForCausalLM
-        print("[TEST] Auto imports: OK")
+        # 基本的な回転ゲートテスト (hidden_sizeは8の倍数である必要がある)
+        gate = SO8TRotationGate(hidden_size=256)
+        x = torch.randn(2, 10, 256)  # (batch, seq, hidden_size)
 
+        output = gate(x)
+        assert output.shape == x.shape, f"Shape mismatch: {output.shape} vs {x.shape}"
+
+        print("✅ SO8T Rotation Gateテスト成功")
         return True
-
     except Exception as e:
-        print(f"[ERROR] Transformers test failed: {e}")
+        print(f"❌ Rotation Gateテスト失敗: {e}")
         return False
 
-def test_peft():
-    """PEFTライブラリテスト"""
+def test_pet_regularizer():
+    """PET Regularizerの基本テスト"""
+    print("🔍 PET Regularizerテスト...")
+
     try:
-        import peft
-        print(f"[TEST] PEFT version: {peft.__version__}")
+        from so8t_core import PETRegularizer, PETSchedule
 
-        # LoRA設定テスト
-        from peft import LoraConfig
-        config = LoraConfig(r=8, lora_alpha=16, target_modules=["q_proj", "v_proj"])
-        print("[TEST] LoRA config: OK")
+        # PET Regularizerテスト
+        schedule = PETSchedule()
+        regularizer = PETRegularizer(schedule=schedule)
 
+        # hidden_statesでテスト (B, T, D)
+        hidden_states = torch.randn(2, 10, 256)
+        progress = 0.5  # トレーニング進捗 (0-1)
+
+        reg_loss = regularizer(hidden_states, progress)
+        assert isinstance(reg_loss, torch.Tensor), "Regularizer should return tensor"
+
+        print("✅ PET Regularizerテスト成功")
         return True
-
     except Exception as e:
-        print(f"[ERROR] PEFT test failed: {e}")
+        print(f"❌ PET Regularizerテスト失敗: {e}")
         return False
 
-def test_project_structure():
-    """プロジェクト構造テスト"""
-    required_files = [
-        "scripts/data/create_aegis_high_quality_dataset.py",
-        "scripts/evaluation/setup_lm_eval_elyza.py",
-        "scripts/evaluation/run_llama_cpp_ab_test.py",
-        "scripts/evaluation/analyze_ab_test_stats.py",
-        "scripts/evaluation/prepare_hf_upload.py",
-        "scripts/utils/system_monitor.py",
-        "auto_ab_test_pipeline.bat"
-    ]
+def test_triality_head():
+    """Triality Headの基本テスト"""
+    print("🔍 Triality Headテスト...")
 
-    missing_files = []
-    for file_path in required_files:
-        if not Path(file_path).exists():
-            missing_files.append(file_path)
+    try:
+        from so8t_core import TrialityHead
 
-    if missing_files:
-        print("[WARNING] Missing required files:")
-        for file in missing_files:
-            print(f"  - {file}")
+        # Triality Headテスト
+        head = TrialityHead(hidden_size=256)
+        x = torch.randn(2, 10, 256)  # (batch, seq, hidden_size)
+
+        output = head(x)
+        assert hasattr(output, 'logits'), "TrialityOutput should have logits"
+        assert hasattr(output, 'probabilities'), "TrialityOutput should have probabilities"
+        assert hasattr(output, 'predicted'), "TrialityOutput should have predicted"
+
+        print("✅ Triality Headテスト成功")
+        return True
+    except Exception as e:
+        print(f"❌ Triality Headテスト失敗: {e}")
         return False
 
-    print("[TEST] All required files present")
-    return True
+def test_self_verifier():
+    """Self-Verifierの基本テスト"""
+    print("🔍 Self-Verifierテスト...")
+
+    try:
+        from so8t_core import SelfVerifier
+
+        # Self-Verifierテスト
+        verifier = SelfVerifier()
+        reasoning = "This is a test reasoning."
+        logits = torch.randn(1, 10)  # (batch, vocab_size)
+        compliance_score = 0.8  # コンプライアンススコア
+
+        result = verifier.score_pass(reasoning, logits, compliance_score)
+        assert isinstance(result, float), "score_pass should return float"
+
+        print("✅ Self-Verifierテスト成功")
+        return True
+    except Exception as e:
+        print(f"❌ Self-Verifierテスト失敗: {e}")
+        return False
+
+def test_torch_cuda():
+    """PyTorch CUDA利用可能性テスト"""
+    print("🔍 PyTorch CUDAテスト...")
+
+    if torch.cuda.is_available():
+        device_count = torch.cuda.device_count()
+        current_device = torch.cuda.current_device()
+        device_name = torch.cuda.get_device_name(current_device)
+
+        print(f"✅ CUDA利用可能: {device_count}デバイス")
+        print(f"   現在のデバイス: {current_device} ({device_name})")
+
+        # 簡単なCUDAテンソルテスト
+        x = torch.randn(100, 100).cuda()
+        y = torch.randn(100, 100).cuda()
+        z = torch.matmul(x, y)
+        assert z.shape == (100, 100), "CUDA matrix multiplication failed"
+
+        print("✅ CUDAテンソル演算成功")
+        return True
+    else:
+        print("⚠️ CUDA利用不可 - CPUモードで実行")
+        return True
 
 def main():
-    """メインシステムテスト"""
-    print("🚀 MOONSHOT System Test Starting...")
+    """メイン実行関数"""
+    print("🚀 MOONSHOT Simple RLPO Test開始")
     print("=" * 50)
 
+    # システム情報
+    print(f"Python: {sys.version}")
+    print(f"PyTorch: {torch.__version__}")
+    print(f"CUDA Available: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"CUDA Version: {torch.version.cuda}")
+    print()
+
+    # テスト実行
     tests = [
-        ("Python Environment", test_python_environment),
-        ("PyTorch", test_pytorch),
-        ("Transformers", test_transformers),
-        ("PEFT", test_peft),
-        ("Project Structure", test_project_structure)
+        ("SO8T Imports", test_so8t_imports),
+        ("CUDA Support", test_torch_cuda),
+        ("SO8T Rotation Gate", test_so8t_rotation_gate),
+        ("PET Regularizer", test_pet_regularizer),
+        ("Triality Head", test_triality_head),
+        ("Self-Verifier", test_self_verifier),
     ]
 
     passed = 0
     total = len(tests)
 
     for test_name, test_func in tests:
-        print(f"\n🧪 Testing {test_name}...")
         try:
             if test_func():
-                print(f"[PASS] {test_name}")
                 passed += 1
+                print(f"✅ {test_name}: PASSED")
             else:
-                print(f"[FAIL] {test_name}")
+                print(f"❌ {test_name}: FAILED")
         except Exception as e:
-            print(f"[ERROR] {test_name}: {e}")
+            print(f"❌ {test_name}: ERROR - {e}")
+        print()
 
-    print("\n" + "=" * 50)
-    print(f"📊 Test Results: {passed}/{total} passed")
+    # 結果サマリー
+    print("=" * 50)
+    print(f"テスト結果: {passed}/{total} 通過")
 
     if passed == total:
-        print("🎉 All system tests passed! MOONSHOT ready to launch.")
+        print("🎉 すべてのテストが成功しました！MOONSHOT Ready!")
         return 0
     else:
-        print("❌ Some tests failed. Please check the errors above.")
+        print("⚠️ 一部のテストが失敗しました。システムを確認してください。")
         return 1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    exit_code = main()
+    sys.exit(exit_code)

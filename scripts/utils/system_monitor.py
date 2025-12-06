@@ -1,15 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-MOONSHOT System Monitor Daemon
-電源投入時自動起動 + システム監視 + バックアップ管理
-
-監視機能：
-1. システムリソース監視（CPU、メモリ、GPU）
-2. プロセス監視（パイプライン実行状態）
-3. 自動バックアップ（5分間隔）
-4. 異常検知とリカバリー
-5. ログ管理
+AEGISシステム監視・自動復旧マネージャー
+電源断やクラッシュからの自動復旧を担当
 """
 
 import os
@@ -18,461 +10,278 @@ import time
 import json
 import psutil
 import logging
-import threading
-import subprocess
 from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Any, Optional
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 
-# Add project root to path
+# プロジェクトルートをパスに追加
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('system_monitor.log'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger('SystemMonitor')
+class AEGISSystemMonitor:
+    """AEGISシステムの完全自動監視・復旧マネージャー"""
 
-class SystemMonitor:
-    """システム監視デーモン"""
+    def __init__(self, project_dir: str = None):
+        self.project_dir = Path(project_dir) if project_dir else Path(__file__).parent.parent.parent
+        self.monitor_file = self.project_dir / "system_monitor.json"
+        self.log_file = self.project_dir / "system_monitor.log"
+        self.check_interval = 60  # 1分間隔でチェック
 
-    def __init__(self, daemon_mode: bool = False):
-        self.daemon_mode = daemon_mode
-        self.monitoring = False
-        self.monitor_thread: Optional[threading.Thread] = None
-        self.backup_thread: Optional[threading.Thread] = None
-
-        # 監視設定
-        self.monitor_interval = 60  # 1分毎
-        self.backup_interval = 300  # 5分毎
-        self.max_backups = 10
-
-        # パス設定
-        self.project_root = Path(__file__).parent.parent.parent
-        self.monitor_data_dir = self.project_root / "system_monitor_data"
-        self.backup_dir = self.project_root / "system_backups"
-
-        # ディレクトリ作成
-        self.monitor_data_dir.mkdir(parents=True, exist_ok=True)
-        self.backup_dir.mkdir(parents=True, exist_ok=True)
-
-        logger.info("SystemMonitor initialized")
-
-    def start_monitoring(self):
-        """監視開始"""
-        if self.monitoring:
-            logger.warning("Monitoring already running")
-            return
-
-        self.monitoring = True
-        logger.info("Starting system monitoring daemon")
-
-        # 監視スレッド開始
-        self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
-        self.monitor_thread.start()
-
-        # バックアップスレッド開始
-        self.backup_thread = threading.Thread(target=self._backup_loop, daemon=True)
-        self.backup_thread.start()
-
-        # デーモンモードの場合はメインスレッド維持
-        if self.daemon_mode:
-            try:
-                while self.monitoring:
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                logger.info("Received shutdown signal")
-                self.stop_monitoring()
-        else:
-            logger.info("Monitoring started in background")
-
-    def stop_monitoring(self):
-        """監視停止"""
-        logger.info("Stopping system monitoring")
-        self.monitoring = False
-
-        if self.monitor_thread and self.monitor_thread.is_alive():
-            self.monitor_thread.join(timeout=5)
-
-        if self.backup_thread and self.backup_thread.is_alive():
-            self.backup_thread.join(timeout=5)
-
-        logger.info("System monitoring stopped")
-
-    def _monitor_loop(self):
-        """監視メインループ"""
-        logger.info("Monitor loop started")
-
-        while self.monitoring:
-            try:
-                # システム状態収集
-                system_stats = self._collect_system_stats()
-
-                # パイプライン状態確認
-                pipeline_stats = self._check_pipeline_status()
-
-                # 統合データ
-                monitor_data = {
-                    "timestamp": datetime.now().isoformat(),
-                    "system_stats": system_stats,
-                    "pipeline_stats": pipeline_stats,
-                    "health_status": self._assess_system_health(system_stats, pipeline_stats)
-                }
-
-                # データ保存
-                self._save_monitor_data(monitor_data)
-
-                # 異常検知
-                self._check_anomalies(monitor_data)
-
-            except Exception as e:
-                logger.error(f"Monitor loop error: {e}")
-
-            time.sleep(self.monitor_interval)
-
-        logger.info("Monitor loop stopped")
-
-    def _backup_loop(self):
-        """バックアップループ"""
-        logger.info("Backup loop started")
-
-        while self.monitoring:
-            try:
-                self._perform_backup()
-                self._cleanup_old_backups()
-
-            except Exception as e:
-                logger.error(f"Backup loop error: {e}")
-
-            time.sleep(self.backup_interval)
-
-        logger.info("Backup loop stopped")
-
-    def _collect_system_stats(self) -> Dict[str, Any]:
-        """システム統計収集"""
-        try:
-            # CPU情報
-            cpu_stats = {
-                "cpu_percent": psutil.cpu_percent(interval=1),
-                "cpu_count": psutil.cpu_count(),
-                "cpu_freq": psutil.cpu_freq().current if psutil.cpu_freq() else None
-            }
-
-            # メモリ情報
-            memory = psutil.virtual_memory()
-            memory_stats = {
-                "total": memory.total,
-                "available": memory.available,
-                "percent": memory.percent,
-                "used": memory.used
-            }
-
-            # ディスク情報
-            disk = psutil.disk_usage('/')
-            disk_stats = {
-                "total": disk.total,
-                "free": disk.free,
-                "percent": disk.percent
-            }
-
-            # GPU情報（利用可能であれば）
-            gpu_stats = {}
-            try:
-                import GPUtil
-                gpus = GPUtil.getGPUs()
-                if gpus:
-                    gpu = gpus[0]
-                    gpu_stats = {
-                        "name": gpu.name,
-                        "memory_total": gpu.memoryTotal,
-                        "memory_free": gpu.memoryFree,
-                        "memory_used": gpu.memoryUsed,
-                        "memory_percent": gpu.memoryUtil * 100,
-                        "gpu_percent": gpu.load * 100,
-                        "temperature": gpu.temperature
-                    }
-            except ImportError:
-                gpu_stats = {"gpu_available": False}
-            except Exception as e:
-                gpu_stats = {"gpu_error": str(e)}
-
-            return {
-                "cpu": cpu_stats,
-                "memory": memory_stats,
-                "disk": disk_stats,
-                "gpu": gpu_stats
-            }
-
-        except Exception as e:
-            logger.error(f"Failed to collect system stats: {e}")
-            return {"error": str(e)}
-
-    def _check_pipeline_status(self) -> Dict[str, Any]:
-        """パイプライン実行状態確認"""
-        pipeline_status = {}
-
-        # 実行中のプロセス確認
-        target_processes = [
-            "python.exe", "py.exe", "auto_ab_test_pipeline.bat",
-            "create_aegis_high_quality_dataset.py",
-            "train_so8_phi35_adapter.py",
-            "run_llama_cpp_ab_test.py"
+        # 監視対象プロセス
+        self.target_processes = [
+            "python.exe",  # Pythonスクリプト
+            "ollama.exe",  # Ollamaサーバー
         ]
 
-        running_processes = []
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        # システム状態
+        self.system_state = {
+            "last_check": None,
+            "active_tasks": [],
+            "failed_tasks": [],
+            "system_health": "unknown",
+            "restarts_count": 0,
+            "last_restart": None,
+            "uptime_start": datetime.now().isoformat()
+        }
+
+        self._load_state()
+        self._setup_logging()
+
+    def _setup_logging(self):
+        """ログ設定"""
+        logging.basicConfig(
+            filename=str(self.log_file),
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
+        self.logger = logging.getLogger("AEGIS_Monitor")
+
+    def _load_state(self):
+        """状態ファイル読み込み"""
+        if self.monitor_file.exists():
             try:
-                if proc.info['name'] and any(tp in proc.info['name'].lower() for tp in target_processes):
-                    running_processes.append({
-                        "pid": proc.info['pid'],
-                        "name": proc.info['name'],
-                        "cmdline": proc.info['cmdline'][:3] if proc.info['cmdline'] else None
-                    })
+                with open(self.monitor_file, 'r', encoding='utf-8') as f:
+                    self.system_state.update(json.load(f))
+            except Exception as e:
+                self.logger.error(f"Failed to load monitor state: {e}")
+
+    def _save_state(self):
+        """状態ファイル保存"""
+        try:
+            with open(self.monitor_file, 'w', encoding='utf-8') as f:
+                json.dump(self.system_state, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            self.logger.error(f"Failed to save monitor state: {e}")
+
+    def check_system_health(self) -> Dict:
+        """システム全体の健康状態をチェック"""
+        health_status = {
+            "cpu_usage": psutil.cpu_percent(interval=1),
+            "memory_usage": psutil.virtual_memory().percent,
+            "disk_usage": psutil.disk_usage('/').percent,
+            "gpu_available": False,
+            "gpu_memory": 0,
+            "network_available": self._check_network(),
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # GPUチェック（PyTorchが利用可能な場合）
+        try:
+            import torch
+            health_status["gpu_available"] = torch.cuda.is_available()
+            if health_status["gpu_available"]:
+                health_status["gpu_memory"] = torch.cuda.mem_get_info()[0] / 1024**3  # GB
+        except:
+            pass
+
+        # 健康度判定
+        if (health_status["cpu_usage"] < 90 and
+            health_status["memory_usage"] < 90 and
+            health_status["disk_usage"] < 95):
+            health_status["overall_health"] = "good"
+        elif (health_status["cpu_usage"] < 95 and
+              health_status["memory_usage"] < 95):
+            health_status["overall_health"] = "warning"
+        else:
+            health_status["overall_health"] = "critical"
+
+        return health_status
+
+    def _check_network(self) -> bool:
+        """ネットワーク接続チェック"""
+        try:
+            import urllib.request
+            urllib.request.urlopen('http://www.google.com', timeout=5)
+            return True
+        except:
+            return False
+
+    def check_running_processes(self) -> List[Dict]:
+        """実行中の関連プロセスをチェック"""
+        running_processes = []
+
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'cpu_percent', 'memory_percent']):
+            try:
+                if proc.info['name'] and any(target in proc.info['name'].lower() for target in ['python', 'ollama']):
+                    # AEGIS関連プロセスかチェック
+                    if self._is_aegis_process(proc):
+                        running_processes.append({
+                            "pid": proc.info['pid'],
+                            "name": proc.info['name'],
+                            "cmdline": proc.info['cmdline'],
+                            "cpu_percent": proc.info['cpu_percent'],
+                            "memory_percent": proc.info['memory_percent'],
+                            "is_aegis": True
+                        })
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
 
-        pipeline_status["running_processes"] = running_processes
-        pipeline_status["pipeline_active"] = len(running_processes) > 0
+        return running_processes
 
-        # ログファイルの最終更新確認
-        log_files = [
-            "ab_test_automation.log",
-            "automatic_aegis_pipeline.log",
-            "system_monitor.log"
-        ]
-
-        log_status = {}
-        for log_file in log_files:
-            log_path = self.project_root / log_file
-            if log_path.exists():
-                mtime = datetime.fromtimestamp(log_path.stat().st_mtime)
-                age_minutes = (datetime.now() - mtime).total_seconds() / 60
-                log_status[log_file] = {
-                    "last_modified": mtime.isoformat(),
-                    "age_minutes": age_minutes,
-                    "is_recent": age_minutes < 30  # 30分以内
-                }
-            else:
-                log_status[log_file] = {"status": "not_found"}
-
-        pipeline_status["log_files"] = log_status
-
-        return pipeline_status
-
-    def _assess_system_health(self, system_stats: Dict, pipeline_stats: Dict) -> str:
-        """システム健全性評価"""
-        health_score = 100
-
-        # CPU使用率チェック
-        if system_stats.get("cpu", {}).get("cpu_percent", 0) > 90:
-            health_score -= 20
-
-        # メモリ使用率チェック
-        if system_stats.get("memory", {}).get("percent", 0) > 90:
-            health_score -= 25
-
-        # ディスク使用率チェック
-        if system_stats.get("disk", {}).get("percent", 0) > 95:
-            health_score -= 30
-
-        # GPUチェック
-        gpu_stats = system_stats.get("gpu", {})
-        if gpu_stats.get("memory_percent", 0) > 95:
-            health_score -= 15
-
-        # パイプラインチェック
-        if not pipeline_stats.get("pipeline_active", False):
-            health_score -= 10
-
-        # ログファイルの鮮度チェック
-        log_files = pipeline_stats.get("log_files", {})
-        stale_logs = sum(1 for log_info in log_files.values()
-                        if isinstance(log_info, dict) and not log_info.get("is_recent", True))
-        health_score -= stale_logs * 5
-
-        # ヘルスステータス決定
-        if health_score >= 90:
-            return "excellent"
-        elif health_score >= 75:
-            return "good"
-        elif health_score >= 60:
-            return "warning"
-        elif health_score >= 40:
-            return "critical"
-        else:
-            return "emergency"
-
-    def _check_anomalies(self, monitor_data: Dict):
-        """異常検知"""
-        anomalies = []
-
-        system_stats = monitor_data.get("system_stats", {})
-        pipeline_stats = monitor_data.get("pipeline_stats", {})
-
-        # 高リソース使用率検知
-        if system_stats.get("memory", {}).get("percent", 0) > 95:
-            anomalies.append("High memory usage (>95%)")
-
-        if system_stats.get("cpu", {}).get("cpu_percent", 0) > 95:
-            anomalies.append("High CPU usage (>95%)")
-
-        # GPUメモリ不足検知
-        gpu_stats = system_stats.get("gpu", {})
-        if gpu_stats.get("memory_percent", 0) > 95:
-            anomalies.append("High GPU memory usage (>95%)")
-
-        # パイプライン停止検知
-        if not pipeline_stats.get("pipeline_active", False):
-            # ログファイルの鮮度で判断
-            log_files = pipeline_stats.get("log_files", {})
-            recent_logs = sum(1 for log_info in log_files.values()
-                            if isinstance(log_info, dict) and log_info.get("is_recent", False))
-
-            if recent_logs == 0:
-                anomalies.append("Pipeline appears to be inactive")
-
-        # 異常があればログ出力
-        if anomalies:
-            logger.warning(f"Anomalies detected: {anomalies}")
-
-            # 緊急時対応
-            health_status = monitor_data.get("health_status", "")
-            if health_status in ["critical", "emergency"]:
-                logger.error(f"Critical system health: {health_status}")
-                self._emergency_response(anomalies)
-
-    def _emergency_response(self, anomalies: List[str]):
-        """緊急時対応"""
-        logger.error("Initiating emergency response")
-
-        # システム状態保存
-        emergency_data = {
-            "timestamp": datetime.now().isoformat(),
-            "anomalies": anomalies,
-            "system_snapshot": self._collect_system_stats()
-        }
-
-        emergency_file = self.monitor_data_dir / f"emergency_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(emergency_file, 'w', encoding='utf-8') as f:
-            json.dump(emergency_data, f, indent=2, ensure_ascii=False)
-
-        logger.info(f"Emergency data saved to {emergency_file}")
-
-    def _save_monitor_data(self, data: Dict):
-        """監視データ保存"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"monitor_{timestamp}.json"
-        filepath = self.monitor_data_dir / filename
-
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-        # 古いファイル削除（最新10個のみ保持）
-        monitor_files = sorted(self.monitor_data_dir.glob("monitor_*.json"),
-                              key=lambda x: x.stat().st_mtime, reverse=True)
-        if len(monitor_files) > 10:
-            for old_file in monitor_files[10:]:
-                old_file.unlink()
-
-    def _perform_backup(self):
-        """バックアップ実行"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_name = f"backup_{timestamp}"
-        backup_path = self.backup_dir / backup_name
-
+    def _is_aegis_process(self, proc) -> bool:
+        """AEGIS関連プロセスかどうか判定"""
         try:
-            # 重要なファイルのバックアップ
-            important_files = [
-                "ab_test_automation.log",
-                "automatic_aegis_pipeline.log",
-                "system_monitor.log",
-                "results/ab_test_results/",
-                "models/",
-                "checkpoints/"
+            cmdline = proc.info['cmdline'] or []
+            cmdline_str = ' '.join(cmdline).lower()
+
+            # AEGIS関連キーワード
+            aegis_keywords = [
+                'aegis', 'so8t', 'rlpo', 'sunshine', 'training',
+                'convert_hf_to_gguf', 'task_manager', 'auto_aegis'
             ]
 
-            backup_path.mkdir(parents=True, exist_ok=True)
+            return any(keyword in cmdline_str for keyword in aegis_keywords)
+        except:
+            return False
 
-            for file_path in important_files:
-                src_path = self.project_root / file_path
-                dst_path = backup_path / file_path
+    def restart_failed_services(self):
+        """失敗したサービスを再開"""
+        self.logger.info("Checking for services to restart...")
 
-                if src_path.exists():
-                    if src_path.is_file():
-                        dst_path.parent.mkdir(parents=True, exist_ok=True)
-                        import shutil
-                        shutil.copy2(src_path, dst_path)
-                    elif src_path.is_dir():
-                        import shutil
-                        shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+        # Pythonプロセスが実行中かチェック
+        running_python = any(
+            proc['is_aegis'] for proc in self.check_running_processes()
+        )
 
-            logger.info(f"Backup completed: {backup_path}")
+        if not running_python:
+            self.logger.warning("No AEGIS Python processes running. Attempting restart...")
+            self._restart_aegis_pipeline()
+
+    def _restart_aegis_pipeline(self):
+        """AEGISパイプラインを再開"""
+        try:
+            import subprocess
+
+            pipeline_script = self.project_dir / "auto_aegis_pipeline.bat"
+            if pipeline_script.exists():
+                self.logger.info("Restarting AEGIS pipeline...")
+                subprocess.Popen(
+                    [str(pipeline_script)],
+                    cwd=str(self.project_dir),
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+                self.system_state["restarts_count"] += 1
+                self.system_state["last_restart"] = datetime.now().isoformat()
+                self._save_state()
+                self.logger.info("AEGIS pipeline restarted successfully")
+            else:
+                self.logger.error("AEGIS pipeline script not found")
 
         except Exception as e:
-            logger.error(f"Backup failed: {e}")
+            self.logger.error(f"Failed to restart AEGIS pipeline: {e}")
 
-    def _cleanup_old_backups(self):
-        """古いバックアップ削除"""
-        backup_dirs = sorted(self.backup_dir.glob("backup_*"),
-                           key=lambda x: x.stat().st_mtime, reverse=True)
+    def monitor_loop(self):
+        """メイン監視ループ"""
+        self.logger.info("Starting AEGIS system monitor...")
 
-        if len(backup_dirs) > self.max_backups:
-            for old_backup in backup_dirs[self.max_backups:]:
-                try:
-                    import shutil
-                    shutil.rmtree(old_backup)
-                    logger.info(f"Removed old backup: {old_backup}")
-                except Exception as e:
-                    logger.error(f"Failed to remove old backup {old_backup}: {e}")
+        while True:
+            try:
+                # システム健康チェック
+                health = self.check_system_health()
+                self.logger.info(f"System health: {health['overall_health']} "
+                               f"(CPU: {health['cpu_usage']}%, "
+                               f"Memory: {health['memory_usage']}%, "
+                               f"Disk: {health['disk_usage']}%)")
+
+                # プロセスチェック
+                processes = self.check_running_processes()
+                aegis_processes = [p for p in processes if p['is_aegis']]
+
+                if aegis_processes:
+                    self.logger.info(f"Active AEGIS processes: {len(aegis_processes)}")
+                    for proc in aegis_processes[:3]:  # 最初の3つだけログ
+                        self.logger.info(f"  PID {proc['pid']}: {proc['name']} "
+                                       f"(CPU: {proc['cpu_percent']}%, "
+                                       f"Memory: {proc['memory_percent']}%)")
+                else:
+                    self.logger.warning("No active AEGIS processes found")
+
+                # 自動復旧チェック
+                if health['overall_health'] != 'critical':
+                    self.restart_failed_services()
+
+                # 状態更新
+                self.system_state["last_check"] = datetime.now().isoformat()
+                self.system_state["system_health"] = health['overall_health']
+                self._save_state()
+
+            except Exception as e:
+                self.logger.error(f"Monitor loop error: {e}")
+
+            # チェック間隔待機
+            time.sleep(self.check_interval)
+
+    def get_system_status(self) -> Dict:
+        """現在のシステム状態を取得"""
+        health = self.check_system_health()
+        processes = self.check_running_processes()
+
+        return {
+            "system_health": health,
+            "running_processes": processes,
+            "monitor_state": self.system_state,
+            "timestamp": datetime.now().isoformat()
+        }
 
 def main():
-    """メイン実行関数"""
+    """メイン関数"""
     import argparse
 
-    parser = argparse.ArgumentParser(description="MOONSHOT System Monitor Daemon")
-    parser.add_argument("--daemon", action="store_true",
-                       help="Run as daemon (continuous monitoring)")
-    parser.add_argument("--once", action="store_true",
-                       help="Run monitoring once and exit")
+    parser = argparse.ArgumentParser(description='AEGIS System Monitor')
+    parser.add_argument('--daemon', action='store_true', help='Run as daemon')
+    parser.add_argument('--status', action='store_true', help='Show current status')
+    parser.add_argument('--restart-services', action='store_true', help='Restart failed services')
 
     args = parser.parse_args()
 
-    monitor = SystemMonitor(daemon_mode=args.daemon)
+    monitor = AEGISSystemMonitor()
 
-    if args.once:
-        # 一回のみ実行
-        system_stats = monitor._collect_system_stats()
-        pipeline_stats = monitor._check_pipeline_status()
-        health = monitor._assess_system_health(system_stats, pipeline_stats)
+    if args.status:
+        status = monitor.get_system_status()
+        print("=== AEGIS System Status ===")
+        print(json.dumps(status, indent=2, ensure_ascii=False))
 
-        print("System Monitor - Single Run")
-        print("=" * 40)
-        print(f"Timestamp: {datetime.now().isoformat()}")
-        print(f"Health Status: {health}")
-        print(f"CPU Usage: {system_stats.get('cpu', {}).get('cpu_percent', 'N/A')}%")
-        print(f"Memory Usage: {system_stats.get('memory', {}).get('percent', 'N/A')}%")
-        print(f"Pipeline Active: {pipeline_stats.get('pipeline_active', False)}")
-        print(f"Running Processes: {len(pipeline_stats.get('running_processes', []))}")
+    elif args.restart_services:
+        print("🔄 Restarting failed services...")
+        monitor.restart_failed_services()
+        print("✅ Service restart completed")
+
+    elif args.daemon:
+        print("🤖 Starting AEGIS system monitor daemon...")
+        try:
+            monitor.monitor_loop()
+        except KeyboardInterrupt:
+            print("\n🛑 Monitor stopped by user")
+        except Exception as e:
+            print(f"\n❌ Monitor crashed: {e}")
 
     else:
-        # デーモンモード
-        print("Starting MOONSHOT System Monitor Daemon...")
-        print("Press Ctrl+C to stop")
-
-        try:
-            monitor.start_monitoring()
-        except KeyboardInterrupt:
-            print("\nShutting down monitor daemon...")
-            monitor.stop_monitoring()
-        except Exception as e:
-            logger.error(f"Monitor daemon error: {e}")
-            monitor.stop_monitoring()
-            sys.exit(1)
+        print("AEGIS System Monitor")
+        print("Usage:")
+        print("  python system_monitor.py --daemon        # Run as background monitor")
+        print("  python system_monitor.py --status        # Show current system status")
+        print("  python system_monitor.py --restart-services  # Restart failed services")
 
 if __name__ == "__main__":
     main()
+
+
