@@ -757,63 +757,99 @@ tags:
 - alpha-gate
 - autonomous
 - ab-testing
+- adapter
 license: mit
 ---
 
-# SO8T-Phi3.5-AEGIS-Final
+# SO8T-Phi3.5-AEGIS-Adapter
 
-## SO(8) NKAT Soul Weight Integrated Model
+## SO(8) NKAT Soul Weight Adapter for Phi-3.5
 
-This model integrates SO(8) NKAT theory with Microsoft's Phi-3.5 architecture, featuring:
+This is a parameter-efficient adapter model that integrates SO(8) NKAT theory with Microsoft's Phi-3.5 architecture. The base Phi-3.5 model remains frozen, and only the SO(8) adapter parameters are trained.
+
+### Features
+- **Base Model**: `microsoft/phi-3.5-mini-instruct` (frozen)
 - **Soul Weight Learning**: 8-dimensional SO(8) representation
 - **Alpha Gate Annealing**: Sigmoid annealing from -0.5 to Φ^(-2)
-- **NKAT Layers**: 4-layer SO(8) rotation adapters
+- **NKAT Adapter**: Efficient adapter layer for SO(8) transformations
+- **Parameter Efficient**: Only adapter parameters are trained
 
 ## Model Details
 
 ### Architecture
-- **Base Model**: Phi-3.5 (3.2B parameters)
+- **Base Model**: Phi-3.5 Mini Instruct (3.8B parameters, frozen)
 - **Soul Weight Dimension**: {self.config.soul_weight_dim}
-- **NKAT Layers**: {self.config.nkat_layers}
-- **Rotation Groups**: {self.config.rotation_groups}
+- **Adapter Hidden Size**: {self.config.nkat_hidden}
+- **Trainable Parameters**: ~{sum(p.numel() for p in self.model.get_trainable_parameters()):,}
 
 ### Training
 - **Steps**: {final_step:,}
 - **Final Loss**: {final_loss:.4f}
 - **Alpha Range**: {ALPHA_START} → {PHI_NEG_2:.4f}
 - **Annealing**: Sigmoid function
+- **Training Method**: Adapter tuning (base model frozen)
 
 ### Files
-- `config.json`: Model configuration
-- `model.safetensors`: Model weights (SafeTensors format)
-- `pytorch_model.bin`: PyTorch model (compatibility)
-- `tokenizer.json`: Tokenizer configuration
+- `config.json`: Model and adapter configuration
+- `model.safetensors`: Adapter weights (SafeTensors format)
+- `adapter_model.bin`: PyTorch adapter parameters (compatibility)
+- `tokenizer.json`: Phi-3.5 tokenizer configuration
 - `generation_config.json`: Generation settings
 
 ## Usage
 
-### Transformers
+### With SO(8) Adapter
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
+from phi35_soul_weight_trainer import SoulWeightModule, Phi35SoulConfig
 
-model = AutoModelForCausalLM.from_pretrained("so8t-phi35-aegis-final")
-tokenizer = AutoTokenizer.from_pretrained("so8t-phi35-aegis-final")
+# Load base model and tokenizer
+base_model = AutoModelForCausalLM.from_pretrained("microsoft/phi-3.5-mini-instruct")
+tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-3.5-mini-instruct")
 
-inputs = tokenizer("Solve this math problem: 2x + 3 = 7", return_tensors="pt")
-outputs = model.generate(**inputs, max_length=200)
-print(tokenizer.decode(outputs[0]))
+# Load SO(8) adapter
+config = Phi35SoulConfig()
+adapter = SoulWeightModule(config)
+adapter_weights = torch.load("adapter_model.bin")["adapter_state_dict"]
+adapter.load_state_dict(adapter_weights)
+
+# Combine base model + adapter
+def generate_with_adapter(prompt, max_length=200):
+    inputs = tokenizer(prompt, return_tensors="pt")
+
+    # Base model forward pass
+    with torch.no_grad():
+        base_outputs = base_model(**inputs, output_hidden_states=True)
+        hidden_states = base_outputs.hidden_states[-1]
+
+    # Apply SO(8) adapter
+    adapted_hidden = adapter(hidden_states)
+
+    # Generate with adapted representations
+    outputs = base_model.generate(
+        **inputs,
+        max_length=max_length,
+        do_sample=True,
+        temperature=0.7
+    )
+    return tokenizer.decode(outputs[0])
+
+# Example usage
+result = generate_with_adapter("Solve this math problem: 2x + 3 = 7")
+print(result)
 ```
 
-### SafeTensors Direct
+### Direct Adapter Loading
 ```python
 import safetensors.torch
 from phi35_soul_weight_trainer import SoulWeightModule, Phi35SoulConfig
 
-# Load model
+# Load adapter parameters
 config = Phi35SoulConfig()
-model = SoulWeightModule(config)
+adapter = SoulWeightModule(config)
 weights = safetensors.torch.load_file("model.safetensors")
-model.load_state_dict(weights)
+adapter.load_state_dict(weights)
 ```
 
 ## SO(8) NKAT Features
