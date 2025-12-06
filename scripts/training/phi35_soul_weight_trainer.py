@@ -557,7 +557,7 @@ def main():
             import safetensors.torch
 
             # 保存ディレクトリ
-            hf_model_dir = self.project_root / 'D:' / 'webdataset' / 'models' / 'final' / 'so8t_phi35_final'
+            hf_model_dir = Path('H:') / 'from_D' / 'webdataset' / 'models' / 'final' / 'so8t_phi35_final'
             hf_model_dir.mkdir(parents=True, exist_ok=True)
 
             # Phi3.5設定に基づくconfig.json作成
