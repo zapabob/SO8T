@@ -17417,6 +17417,2210 @@ _**User (2025-12-06 18:55Z)**_
 
 _**Agent (model grok-code-fast-1, mode Agent)**_
 
+<think><details><summary>Thought Process</summary>
+ユーザーが「続けて」と言っているので、前の会話の続きを進める必要があります。前の会話では、MOONSHOTプロジェクトのSFTデータセットとRLPO学習用データセットの内容について説明しました。
+</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: scripts/utils/advanced_monitor.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+`advanced_monitor.py`ファイルの内容を見ると、これはMOONSHOTプロジェクトの高度な監視システムのスクリプトです。tqdmとloggingを使ってリアルタイムで進捗を監視するものです。
+</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: scripts/utils/advanced_monitor.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+advanced_monitor.pyの続きを見ると、プロセスチェック、システムリソース監視、GPU監視などの機能があるようです。残りの部分を確認して、この高度な監視システムについて詳しく説明しましょう。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: scripts/utils/advanced_monitor.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+advanced_monitor.pyの機能がわかってきました。エラーチェック、システムリソース監視、GPU監視などの機能があるようです。最後の部分も確認しましょう。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: scripts/utils/advanced_monitor.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+advanced_monitor.pyの最後の部分を確認しましょう。メインの実行関数とコマンドラインインターフェースがあるはずです。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: scripts/utils/advanced_monitor.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+最後の部分も確認しましょう。コマンドラインインターフェースとメイン関数があるはずです。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: scripts/utils/advanced_monitor.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+advanced_monitor.pyの最後の部分を確認しましょう。コマンドライン引数の処理とメイン実行部分があります。</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: scripts/utils/advanced_monitor.py</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+advanced_monitor.pyの全体像がわかりました。これはMOONSHOTプロジェクトの高度な監視システムで、以下の機能を持っています：
+
+
+## Examining advanced_monitor.py
+
+- Found that advanced_monitor.</details></think>
+
+---
+
+Tool call errored or timed out
+
+---
+
+_**User (2025-12-06 18:55Z)**_
+
+エラー修正を自動的に行いチェックポイントに保存して
+
+---
+
+_**Agent (model grok-code-fast-1, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+ユーザーはエラー修正を自動的に行い、チェックポイントに保存することを求めています。まず現在の状態を確認して、エラーが何かを特定し、それから修正してチェックポイントを作成する必要があります。
+</details></think>
+
+---
+
+Tool call errored or timed out
+
+---
+
+_**User (2025-12-06 18:55Z)**_
+
+OR OCCURRED =====
+
+2025-12-07 04:01:55,609 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:01:55,609 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:01:55,609 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:01:55,610 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:01:55,610 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:01:55,610 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:06,613 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:02:06,613 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:02:06,613 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:02:06,614 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:06,615 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:02:06,615 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:17,573 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:02:17,573 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:02:17,574 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:02:17,574 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:17,575 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:02:17,575 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:28,521 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:02:28,521 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:02:28,521 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:02:28,522 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:28,523 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:02:28,523 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:39,505 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:02:39,505 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:02:39,505 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:02:39,506 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:39,506 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:02:39,507 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:50,534 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:02:50,534 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:02:50,535 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:02:50,536 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:02:50,537 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:02:50,538 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:01,712 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:03:01,712 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:03:01,712 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:03:01,713 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:01,713 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:03:01,713 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:12,830 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:03:12,830 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:03:12,830 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:03:12,831 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:12,831 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:03:12,832 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:23,833 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:03:23,833 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:03:23,833 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:03:23,835 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:23,835 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:03:23,835 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:34,837 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:03:34,837 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:03:34,837 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:03:34,838 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:34,839 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:03:34,840 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:45,928 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:03:45,929 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:03:45,929 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:03:45,930 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:45,930 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:03:45,930 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:56,980 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:03:56,981 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:03:56,981 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:03:56,982 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:03:56,982 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:03:56,982 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:08,030 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:04:08,030 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:04:08,031 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:04:08,032 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:08,032 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:04:08,032 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:19,179 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:04:19,179 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:04:19,180 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:04:19,181 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:19,181 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:04:19,181 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:30,235 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:04:30,235 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:04:30,235 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:04:30,235 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:30,235 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:04:30,237 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:41,395 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:04:41,395 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:04:41,395 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:04:41,397 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:41,397 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:04:41,398 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:52,556 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:04:52,556 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:04:52,556 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:04:52,558 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:04:52,558 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:04:52,558 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:03,617 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:05:03,617 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:05:03,617 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:05:03,619 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:03,619 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:05:03,619 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:14,677 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:05:14,677 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:05:14,677 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:05:14,679 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:14,679 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:05:14,679 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:25,711 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:05:25,711 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:05:25,711 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:05:25,712 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:25,712 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:05:25,712 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:36,760 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:05:36,760 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:05:36,761 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:05:36,762 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:36,762 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:05:36,762 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:47,838 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:05:47,838 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:05:47,838 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:05:47,840 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:05:47,840 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:05:47,840 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+---
+
+_**Agent (model grok-code-fast-1, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+ユーザーが提供したログを見ると、MOONSHOTシステムで継続的なエラーが発生していることがわかります。主なエラーは：
+
+
+## Examining System Errors  
+- Found ongoing errors in the MOONSHOT system from user-provided logs.</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "[\u2700-\u27BF]|[\u1f600-\u1f64F]|[\u1f300-\u1f5FF]|[\u1f680-\u1f6FF]|[\u1f1E0-\u1f1FF]|[\u2600-\u26FF]|[\u1f900-\u1f9FF]" in "scripts" • 716 matches</summary>
+
+Output mode: files_with_matches
+
+
+| File |
+|------|
+| `scripts\utils\checkpoint_manager.py` |
+| `scripts\training\rlpo_science_nsfw_automated.py` |
+| `scripts\evaluation\setup_lm_eval_elyza.py` |
+| `scripts\utils\advanced_monitor.py` |
+| `scripts\training\train_so8_phi35_adapter.py` |
+| `scripts\automation\automatic_aegis_phi35_thinking_pipeline.py` |
+| `scripts\training\so8_compatible_adapter.py` |
+| `scripts\evaluation\prepare_hf_upload.py` |
+| `scripts\evaluation\analyze_ab_test_stats.py` |
+| `scripts\evaluation\run_llama_cpp_ab_test.py` |
+| `scripts\utils\system_monitor.py` |
+| `scripts\pipeline\complete_so8t_ab_test_pipeline.py` |
+| `scripts\pipeline\sunshine_pipeline.py` |
+| `scripts\models\so8t_residual_adapter.py` |
+| `scripts\training\train_ppo_aegis.py` |
+| `scripts\setup\launch_on_boot.bat` |
+| `scripts\automation\setup_full_automation.bat` |
+| `scripts\automation\auto_aegis_pipeline.bat` |
+| `scripts\training\run_complete_rlpo_automated_test.bat` |
+| `scripts\training\run_rlpo_science_nsfw_automated_test.py` |
+| `scripts\setup\setup_autonomous_system.ps1` |
+| `scripts\utils\task_manager.py` |
+| `scripts\conversion\convert_hf_to_gguf.py` |
+| `scripts\setup\install_startup_hook.ps1` |
+| `scripts\utils\nkat_callbacks.py` |
+| `scripts\pipeline\run_sunshine_pipeline.bat` |
+| `scripts\pipeline\sunshine_analysis.py` |
+| `scripts\training\nkat_reward_function.py` |
+| `scripts\analysis\compare_baseline_so8t.py` |
+| `scripts\utils\phase25_results.py` |
+| `scripts\models\so8t_residual_adapter_new.py` |
+| `scripts\analysis\compare_baseline_so8t_models.py` |
+| `scripts\models\so8t_residual_adapter_old.py` |
+| `scripts\testing\debug_training.py` |
+| `scripts\analysis\analyze_sunshine_results.py` |
+| `scripts\auto_resume_benchmark.bat` |
+| `scripts\deploy.py` |
+| `scripts\setup.py` |
+| `scripts\utils\check_gguf_config.py` |
+| `scripts\training\run_so8t_integrated_ppo_training.bat` |
+| `scripts\training\so8t_ppo_config.json` |
+| `scripts\evaluation\industry_standard_benchmark.py` |
+| `scripts\evaluation\visualize_industry_benchmark.py` |
+| `scripts\evaluation\run_industry_benchmark.bat` |
+| `scripts\evaluation\integrated_industry_benchmark.py` |
+| `scripts\evaluation\lm_eval_benchmark.py` |
+| `scripts\evaluation\update_readme_benchmarks.py` |
+| `scripts\testing\run_gguf_benchmark_suite.bat` |
+| `scripts\comprehensive_ab_benchmark.py` |
+| `scripts\conversion\so8t_gguf_conversion_pipeline.py` |
+| `scripts\upload_aegis_hf.sh` |
+| `scripts\training\aegis_v2_training_pipeline.py` |
+| `scripts\training\so8t_sft_training_pipeline.py` |
+| `scripts\evaluation\check_tasks.py` |
+| `scripts\training\test_so8t_ppo_pipeline.py` |
+| `scripts\evaluation\elyza_benchmark.py` |
+| `scripts\evaluation\lm_eval_ab_test.py` |
+| `scripts\evaluation\gguf_benchmark_suite.py` |
+| `scripts\benchmark_visualization.py` |
+| `scripts\upload_aegis_hf.bat` |
+| `scripts\upload_aegis_to_huggingface.py` |
+| `scripts\testing\extended_abc_benchmark.py` |
+| `scripts\testing\debug_phi3_structure.py` |
+| `scripts\evaluation\simple_ab_test.py` |
+| `scripts\testing\critical_infrastructure_abc_benchmark.py` |
+| `scripts\testing\optimized_abc_benchmark.py` |
+| `scripts\utils\final_results.py` |
+| `scripts\testing\debug_lora_model.py` |
+| `scripts\testing\debug_model_structure.py` |
+| `scripts\training\train_aegis_with_nkat_so8t.py` |
+| `scripts\training\so8t_ppo_training_pipeline.py` |
+| `scripts\benchmark\so8t_lm_eval_benchmark.py` |
+| `scripts\benchmark\so8t_benchmark_pipeline.py` |
+| `scripts\automation\so8t_automated_pipeline.py` |
+| `scripts\models\so8_residual_adapter.py` |
+| `scripts\utils\play_audio_notification.ps1` |
+| `scripts\utils\show_pipeline_progress_realtime.ps1` |
+| `scripts\utils\merge_so8_adapter.py` |
+| `scripts\utils\bake_so8_adapter.py` |
+| `scripts\training\urt_theorem.py` |
+| `scripts\training\train_nobel_fields_mathematical_model.py` |
+| `scripts\training\train_nobel_fields_hf_integration.py` |
+| `scripts\training\train_hodachi_borea_phi35_thinking_sft.py` |
+| `scripts\training\train_aegis_v2_ppo_so8t.py` |
+| `scripts\training\test_hodachi_borea_phi35_thinking_model.py` |
+| `scripts\training\so8t_integrated_ppo_trainer.py` |
+| `scripts\training\run_so8_phi35_pipeline.py` |
+| `scripts\training\run_hodachi_borea_phi35_thinking_sft.bat` |
+| `scripts\training\quadruple_thinking.py` |
+| `scripts\training\nc_kart_theorem.py` |
+| `scripts\training\fuse_soul_for_gguf.py` |
+| `scripts\training\enhanced_so8_mathematical_adapter.py` |
+| `scripts\train_aegis_phi35_v2.ps1` |
+| `scripts\training\advanced_mathematical_reasoning.py` |
+| `scripts\train.py` |
+| `scripts\startup\test_startup.bat` |
+| `scripts\startup\start_rtx3060_pipeline.bat` |
+| `scripts\startup\so8t_power_on_startup.bat` |
+| `scripts\startup\setup_task_scheduler.ps1` |
+| `scripts\startup\setup_task_scheduler.bat` |
+| `scripts\startup\setup_aegis_task.bat` |
+| `scripts\startup\setup_aegis_automatic_pipeline.ps1` |
+| `scripts\startup\remove_task_scheduler.bat` |
+| `scripts\startup\README.md` |
+| `scripts\startup\create_rtx3060_task_scheduler.ps1` |
+| `scripts\startup\recreate_task_scheduler.bat` |
+| `scripts\run_aegis_phi35_v2_training.py` |
+| `scripts\monitoring\streamlit_dashboard.py` |
+| `scripts\models\so8t_transformer_adapter.py` |
+| `scripts\evaluation\lm_eval_ab_test_comprehensive.py` |
+| `scripts\evaluation\lm_eval_ab_benchmark.py` |
+| `scripts\evaluation\comprehensive_ab_benchmark.py` |
+| `scripts\evaluation\llama_cpp_ab_benchmark.py` |
+| `scripts\evaluation\ab_test_so8t_vs_original_phi3.py` |
+| `scripts\conversion\convert_so8_lora_to_gguf.py` |
+| `scripts\conversion\convert_phi35_to_gguf.py` |
+| `scripts\benchmark\test_lm_eval.ps1` |
+| `scripts\conversion\convert_baked_so8_to_gguf.py` |
+| `scripts\benchmark\install_lm_eval.ps1` |
+| `scripts\benchmark\create_hf_dataset.py` |
+| `scripts\benchmark\auto_start_ab_test.bat` |
+| `scripts\benchmark\aegis_ab_test_benchmark.py` |
+| `scripts\automation\so8t_power_on_pipeline_monitor.bat` |
+| `scripts\automation\so8t_pipeline_monitor.py` |
+| `scripts\testing\debug_unsloth_model.py` |
+| `scripts\testing\debug_unsloth_detailed.py` |
+| `scripts\utils\check_unsloth.py` |
+| `scripts\utils\check_lm_eval_tasks.py` |
+| `scripts\utils\verify_coding_pipeline.py` |
+| `scripts\utils\so8t_model_loader.py` |
+| `scripts\utils\monitor_training_and_resume_pipeline.py` |
+| `scripts\utils\keyword_coordinator.py` |
+| `scripts\utils\env_loader.py` |
+| `scripts\utils\check_scraping_status.py` |
+| `scripts\utils\check_progress.py` |
+| `scripts\utils\check_production_environment.py` |
+| `scripts\utils\check_integrated.py` |
+| `scripts\utils\check_dataset_status.py` |
+| `scripts\utils\check_data_files.py` |
+| `scripts\utils\check_checkpoint_status.py` |
+| `scripts\utils\check_aegis_data.py` |
+| `scripts\utils\analyze_coding_data.py` |
+| `scripts\upload\upload_optimized_models.py` |
+| `scripts\training\verify_borea_phi35_retraining.py` |
+| `scripts\training\train_so8t_ppo_balanced.py` |
+| `scripts\training\train_so8t_phi35_ppo_final.py` |
+| `scripts\training\train_alpha_gate_sigmoid_bayesian.py` |
+| `scripts\training\train\train_so8t_with_bayesian.py` |
+| `scripts\training\train\train_so8t_thinking.bat` |
+| `scripts\training\train\train_so8t_quadruple_ppo.py` |
+| `scripts\training\train\train_so8t_phi3_qlora_with_soul.py` |
+| `scripts\training\train\train_so8t_phi3_qlora.py` |
+| `scripts\training\train\train_so8t_lora.py` |
+| `scripts\training\train\train_so8t_borea_phi35_bayesian_recovery.py` |
+| `scripts\training\train\train_phi35_so8t_ppo_annealing.py` |
+| `scripts\training\train\train_phi35_so8t_annealing.bat` |
+| `scripts\training\train\train_phi35_advanced_pipeline.py` |
+| `scripts\training\train\train_borea_phi35_so8t_thinking.py` |
+| `scripts\training\so8t_thinking_complete_workflow.py` |
+| `scripts\training\so8t_thinking_complete_workflow.bat` |
+| `scripts\training\run_phi35_advanced_pipeline.bat` |
+| `scripts\training\run_hyperparameter_optimization.bat` |
+| `scripts\training\run_complete_pipeline.py` |
+| `scripts\training\retrain_borea_phi35_so8t_thinking_rtx3060.bat` |
+| `scripts\training\convert_and_quantize.sh` |
+| `scripts\training\convert_and_quantize.bat` |
+| `scripts\training\calibrate_aed.py` |
+| `scripts\training\bakein_o_proj.py` |
+| `scripts\training\auto_resume_so8t_training.py` |
+| `scripts\training\auto_power_on_resume.bat` |
+| `scripts\training\alpha_gate\alpha_gate_bayesian_optimization_orthogonal.py` |
+| `scripts\training\aegis\aegis_finetuning_pipeline.py` |
+| `scripts\training\aegis\aegis_bayesian_hyperparameter_optimization.py` |
+| `scripts\testing\run_lm_eval_benchmark.bat` |
+| `scripts\testing\run_complete_abc_test.bat` |
+| `scripts\setup\setup_pipeline_environment.py` |
+| `scripts\setup\run_pipeline_setup.bat` |
+| `scripts\setup\run_complete_pipeline_with_setup.bat` |
+| `scripts\reproduce_aegis_training.py` |
+| `scripts\post_training_workflow.py` |
+| `scripts\pipeline\vector_store_creation.py` |
+| `scripts\pipeline\unified\unified_master_pipeline.py` |
+| `scripts\pipeline\unified\unified_auto_scraping_pipeline.py` |
+| `scripts\pipeline\training\finetune_and_ab_test_pipeline.py` |
+| `scripts\pipeline\training\coding_focused_retraining_pipeline.py` |
+| `scripts\pipeline\safety\nsfw_drug_detection_qlora_training_data_pipeline.py` |
+| `scripts\pipeline\run_phi35_pipeline.bat` |
+| `scripts\pipeline\production\download_and_start_production.py` |
+| `scripts\pipeline\phi35_so8t_thinking_pipeline.py` |
+| `scripts\pipeline\phase4_run_benchmarks.py` |
+| `scripts\pipeline\phase3_register_ollama_models.py` |
+| `scripts\pipeline\phase2_prepare_model_b.py` |
+| `scripts\pipeline\phase1_prepare_model_a.py` |
+| `scripts\pipeline\manual\run_japanese_training_dataset_collection.bat` |
+| `scripts\pipeline\manual\run_complete_so8t_ab_pipeline.py` |
+| `scripts\pipeline\checkpoint_manager.py` |
+| `scripts\pipeline\borea_phi35_so8t_thinking_pipeline.py` |
+| `scripts\pipeline\automated\run_complete_automated_ab_pipeline.py` |
+| `scripts\pipeline\automated\master_automated_pipeline.py` |
+| `scripts\pipeline\automated\automated_so8t_pipeline.py` |
+| `scripts\pipeline\automated\aegis_v2_automated_pipeline.py` |
+| `scripts\monitoring\realtime_system_monitor.py` |
+| `scripts\monitor_training_completion.py` |
+| `scripts\evaluation\promptfoo_ab_test.py` |
+| `scripts\evaluation\industry_standard_agi_abc_test.py` |
+| `scripts\evaluation\hf_submission_statistics.py` |
+| `scripts\evaluation\evaluate_so8t_phi3.py` |
+| `scripts\evaluation\evaluate_coding_capability.py` |
+| `scripts\evaluation\deepeval_ethics_test.py` |
+| `scripts\evaluation\comprehensive_llm_benchmark.py` |
+| `scripts\evaluation\benchmark_comparison_llama_cpp.py` |
+| `scripts\evaluation\ab_test_with_hf_benchmark.py` |
+| `scripts\download_benchmark_datasets.py` |
+| `scripts\dashboard\unified_scraping_monitoring_dashboard.py` |
+| `scripts\dashboard\unified_scraping_dashboard.py` |
+| `scripts\dashboard\unified_pipeline_dashboard.py` |
+| `scripts\dashboard\so8t_training_dashboard.py` |
+| `scripts\dashboard\so8t_scraping_dashboard.py` |
+| `scripts\cuda_accelerated_benchmark.py` |
+| `scripts\conversion\quantize_abc_models.py` |
+| `scripts\conversion\integrate_phi3_so8t.py` |
+| `scripts\conversion\convert_borea_so8t_to_gguf.py` |
+| `scripts\conversion\convert_borea_phi35_to_gguf.py` |
+| `scripts\conversion\convert_ab_models_to_gguf.py` |
+| `scripts\conversion\bake_and_convert_to_gguf.bat` |
+| `scripts\automation\error_detection_and_recovery_rtx3060.py` |
+| `scripts\automation\error_detection_and_recovery.py` |
+| `scripts\automation\complete_so8t_automation_pipeline_rtx3060.py` |
+| `scripts\automation\complete_so8t_automation_pipeline.py` |
+| `scripts\automation\complete_ppo_pipeline_with_power_on_automation.py` |
+| `scripts\api\unified_agent_api.py` |
+| `scripts\analysis\analyze_model_degradation.py` |
+| `scripts\agents\unified_ai_agent.py` |
+| `scripts\evaluation\aegis_v2_benchmark_evaluation.py` |
+| `scripts\automation\setup_power_on_automation.ps1` |
+| `scripts\automation\run_ppo_pipeline_task.bat` |
+| `scripts\automation\setup_ppo_pipeline_automation.bat` |
+| `scripts\automation\run_complete_ppo_pipeline.bat` |
+| `scripts\utils\create_gitkeep_for_data_dirs.py` |
+| `scripts\setup\install_so8t_dependencies.bat` |
+| `scripts\training\run_so8t_enhanced_ppo_training.bat` |
+| `scripts\training\train_so8t_ppo_enhanced.py` |
+| `scripts\training\run_so8t_ppo_enhanced_checkpoint.bat` |
+| `scripts\utils\nkat_utils.py` |
+| `scripts\training\run_so8t_final_ppo_training.bat` |
+| `scripts\training\train_so8t_adapter_ppo.py` |
+| `scripts\training\run_so8t_phi35_ppo_final.bat` |
+| `scripts\automation\so8t_auto_pipeline_runner.py` |
+| `scripts\models\so8t_thinking_model.py` |
+| `scripts\training\auto_train.bat` |
+| `scripts\training\train_borea_phi35_so8t_ppo.py` |
+| `scripts\models\so8_quad_inference.py` |
+| `scripts\training\nkat_ppo_training.py` |
+| `scripts\inference\nkat_thermostat.py` |
+| `scripts\models\so8vit.py` |
+| `scripts\training\run_so8t_ppo_training.bat` |
+| `scripts\automation\run_so8t_auto_pipeline.bat` |
+| `scripts\utils\test_rolling_checkpoint.py` |
+| `scripts\eval.py` |
+| `scripts\nobel_fields_dataset_validation.py` |
+| `scripts\nobel_fields_quad_inference.py` |
+| `scripts\nobel_fields_data_cleansing.py` |
+| `scripts\nobel_fields_cot_dataset_collector.py` |
+| `scripts\utils\check_system_resources.py` |
+| `scripts\training\test_auto_train.bat` |
+| `scripts\training\nkat_quad_inference_prompt.py` |
+| `scripts\upload_requirements.txt` |
+| `scripts\training\ppo_internal_inference.py` |
+| `scripts\run_complete_aegis_v2_pipeline.bat` |
+| `scripts\setup\create_windows_auto_start.bat` |
+| `scripts\training\alpha_gate_annealing.py` |
+| `scripts\rename_aegis_files.py` |
+| `scripts\analyze_structure.py` |
+| `scripts\utils\common\__init__.py` |
+| `scripts\utils\common\file_utils.py` |
+| `scripts\utils\check_environment.py` |
+| `scripts\utils\common\data_utils.py` |
+| `scripts\utils\common\cuda_utils.py` |
+| `scripts\utils\common\config_utils.py` |
+| `scripts\utils\common\logging_utils.py` |
+| `scripts\organize_repository.py` |
+| `scripts\training\train\train_reward_learning.py` |
+| `scripts\utils\check_json.py` |
+| `scripts\utils\fix_unicode.py` |
+| `scripts\automation\setup_power_on_automation_rtx3060.ps1` |
+| `scripts\automation\run_complete_so8t_pipeline_rtx3060.bat` |
+| `scripts\testing\run_frozen_weight_training.bat` |
+| `scripts\training\train\train_dpo_reward_learning.py` |
+| `scripts\automation\run_complete_pipeline.bat` |
+| `scripts\utils\setup_phi35_power_on_task.ps1` |
+| `scripts\pipeline\phi35_power_on_resume.ps1` |
+| `scripts\utils\show_phi35_pipeline_progress.ps1` |
+| `scripts\conversion\verify_so8t_baking.py` |
+| `scripts\conversion\bake_so8t_into_transformer.py` |
+| `scripts\start_training_monitor.bat` |
+| `scripts\run_post_training_workflow.bat` |
+| `scripts\utils\README_Desktop_Progress_Display.md` |
+| `scripts\utils\show_desktop_progress_now.bat` |
+| `scripts\utils\create_desktop_progress_task_manual.ps1` |
+| `scripts\utils\create_desktop_progress_task.bat` |
+| `scripts\utils\setup_desktop_progress_display.ps1` |
+| `scripts\utils\show_progress_report.ps1` |
+| `scripts\monitor_progress.bat` |
+| `scripts\monitor_progress_quiet.bat` |
+| `scripts\utils\monitor_so8t_progress.ps1` |
+| `scripts\monitor_progress_continuous.bat` |
+| `scripts\testing\test_so8t_adapter_direct.py` |
+| `scripts\testing\test_so8t_adapter_compatibility.py` |
+| `scripts\utils\show_pipeline_progress.ps1` |
+| `scripts\utils\check_dataset_format.py` |
+| `scripts\setup\setup` |
+| `scripts\utils\check_deep_research_log.py` |
+| `scripts\utils\check_training_log.py` |
+| `scripts\pipeline\manual\run_codex_to_so8t_ppo_pipeline.py` |
+| `scripts\training\hyperparameter_optimization_with_cv.py` |
+| `scripts\training\train\train_ppo_reward_learning.py` |
+| `scripts\analysis\visualize_benchmark_summary.py` |
+| `scripts\utils\start_training_monitor.bat` |
+| `scripts\monitoring\run_realtime_monitor.bat` |
+| `scripts\pipeline\manual\run_aegis_v2_pipeline.bat` |
+| `scripts\testing\test_frozen_weight_training.py` |
+| `scripts\testing\run_industry_standard_with_elyza.bat` |
+| `scripts\analysis\analyze_industry_standard_agi_results.py` |
+| `scripts\evaluation\generate_agi_abc_report.py` |
+| `scripts\testing\run_industry_standard_agi_abc.bat` |
+| `scripts\evaluation\agi_final_challenge_tasks.py` |
+| `scripts\utils\check_nodejs.bat` |
+| `scripts\conversion\check_gguf_help.bat` |
+| `scripts\conversion\rename_gguf_folders.ps1` |
+| `scripts\conversion\rename_gguf_folders.bat` |
+| `scripts\conversion\rename_gguf_files.ps1` |
+| `scripts\conversion\rename_gguf_files.bat` |
+| `scripts\conversion\check_gguf_metadata.bat` |
+| `scripts\training\train\train_soul_injection.py` |
+| `scripts\training\train\train_borea_so8t_adapter.py` |
+| `scripts\training\test_soul_fusion_workflow.ps1` |
+| `scripts\training\test_AEGIS_soul_injection.bat` |
+| `scripts\training\run_AEGIS_soul_injection.bat` |
+| `scripts\training\monitor_AEGIS_training.py` |
+| `scripts\training\inject_soul_into_borea.py` |
+| `scripts\training\fuse_soul_final.py` |
+| `scripts\training\finetune_phi3_AEGIS.py` |
+| `scripts\training\aegis\aegis_recalibration_by_diff.py` |
+| `scripts\training\aegis\aegis_alpha_gate_adjustment.py` |
+| `scripts\testing\simple_model_comparison.bat` |
+| `scripts\testing\quick_model_comparison.py` |
+| `scripts\testing\quick_benchmark_test.ps1` |
+| `scripts\testing\public_sector_security_test.py` |
+| `scripts\testing\model_comparison_benchmark.py` |
+| `scripts\testing\model_a_vs_AEGIS_comprehensive_benchmark.bat` |
+| `scripts\testing\japanese_science_problems.py` |
+| `scripts\testing\high_risk_sector_test.py` |
+| `scripts\testing\high_risk_sector_evaluation.py` |
+| `scripts\testing\generate_comparison_report.py` |
+| `scripts\testing\financial_medical_sector_test.py` |
+| `scripts\testing\critical_sector_information_test.py` |
+| `scripts\testing\comprehensive_model_comparison.py` |
+| `scripts\testing\comprehensive_AEGIS_benchmark_test.ps1` |
+| `scripts\testing\comprehensive_AEGIS_benchmark_test.bat` |
+| `scripts\testing\comprehensive_abc_benchmark.py` |
+| `scripts\testing\borea_vs_AEGIS_benchmark_test.ps1` |
+| `scripts\testing\borea_vs_AEGIS_benchmark_test.bat` |
+| `scripts\testing\automated_llm_benchmark_pipeline.py` |
+| `scripts\testing\advanced_security_code_test.py` |
+| `scripts\testing\advanced_japanese_science_problems.py` |
+| `scripts\inference\ollama\register_AEGIS_model.bat` |
+| `scripts\inference\test_AEGIS.py` |
+| `scripts\inference\chat_with_AEGIS.py` |
+| `scripts\download_wikipedia.py` |
+| `scripts\testing\test_AEGIS_structure.py` |
+| `scripts\utils\bulk_rename_AEGIS_to_aegis.bat` |
+| `scripts\analysis\generate_alpha_gate_charts.py` |
+| `scripts\analysis\benchmark_statistics.py` |
+| `scripts\training\alpha_gate\alpha_gate_bayesian_optimization.py` |
+| `scripts\testing\lightweight_abc_benchmark.py` |
+| `scripts\testing\simple_abc_benchmark.py` |
+| `scripts\analysis\analyze_benchmarks.py` |
+| `scripts\testing\elyza_benchmark.py` |
+| `scripts\testing\mmlu_benchmark.py` |
+| `scripts\utils\debug_load.py` |
+| `scripts\utils\inspect_soul.py` |
+| `scripts\testing\prepare_elyza100.py` |
+| `scripts\testing\aegis_improvement_benchmark.py` |
+| `scripts\testing\analyze_benchmark_results.py` |
+| `scripts\training\aegis\aegis_logic_tuning.py` |
+| `scripts\testing\generate_abc_report.py` |
+| `scripts\testing\hf_model_benchmark.bat` |
+| `scripts\testing\japanese_llm_benchmark.bat` |
+| `scripts\agents\scraping_reasoning_agent.py` |
+| `scripts\agents\integrated_reasoning_pipeline.py` |
+| `scripts\monitoring\run_dashboard.bat` |
+| `scripts\dashboard\run_unified_pipeline_dashboard.bat` |
+| `scripts\dashboard\run_unified_dashboard.bat` |
+| `scripts\dashboard\dashboard_utils.py` |
+| `scripts\pipeline\safety\run_nsfw_drug_detection_qlora_training_data_pipeline.bat` |
+| `scripts\pipeline\training\prepare_coding_training_data.py` |
+| `scripts\training\run_complete_pipeline.bat` |
+| `scripts\utils\setup\install_flash_attn_wsl2_one_liner.sh` |
+| `scripts\utils\setup\auto_install_flash_attn_wsl2.sh` |
+| `scripts\utils\setup\install_cuda_toolkit_wsl2.sh` |
+| `scripts\utils\setup\auto_install_flash_attn_wsl2.ps1` |
+| `scripts\utils\mcp_client.py` |
+| `scripts\utils\set_virtual_memory_e_drive.ps1` |
+| `scripts\utils\setup\install_dependencies_uv.ps1` |
+| `scripts\utils\setup\install_all_dependencies_wsl2.sh` |
+| `scripts\utils\chrome_devtools_launcher.py` |
+| `scripts\utils\setup\install_flash_attn_wsl2_no_sudo.sh` |
+| `scripts\utils\setup\install_flash_attn_wsl2.sh` |
+| `scripts\dashboard\run_scraping_dashboard.bat` |
+| `scripts\utils\setup\fix_uv_python_path.ps1` |
+| `scripts\agents\domain_knowledge_integrator.py` |
+| `scripts\pipeline\manual\run_complete_so8t_ab_test_pipeline.bat` |
+| `scripts\pipeline\safety\run_nsfw_drug_detection_qlora_training_data_pipeline_from_scratch.bat` |
+| `scripts\utils\cuda_distributed_processor.py` |
+| `scripts\utils\create_impl_log.py` |
+| `scripts\pipeline\setup_auto_resume_on_startup.ps1` |
+| `scripts\training\check_four_class_datasets.bat` |
+| `scripts\training\auto_resume_training.ps1` |
+| `scripts\training\check_datasets.bat` |
+| `scripts\utils\commit_with_audio.ps1` |
+| `scripts\utils\fix_encoding_issues.py` |
+| `scripts\utils\keyword_generator.py` |
+| `scripts\utils\README_AUDIO.md` |
+| `scripts\training\resume_training.bat` |
+| `scripts\training\run_complete_pipeline.ps1` |
+| `scripts\training\train\train_borea_phi35_so8t_thinking_fast.bat` |
+| `scripts\utils\setup\run_install_wsl2.bat` |
+| `scripts\utils\setup\reset_wsl2_password.ps1` |
+| `scripts\utils\setup\install_flash_attn_wsl2_with_cuda.sh` |
+| `scripts\evaluation\run_evaluate_coding_capability.bat` |
+| `scripts\utils\setup\install_flash_attn_uv.ps1` |
+| `scripts\utils\run_verify_coding_pipeline.bat` |
+| `scripts\utils\setup\fix_uv_python_path.sh` |
+| `scripts\testing\run_actual_benchmarks.bat` |
+| `scripts\visualization\benchmark_ab_test_visualization.py` |
+| `scripts\benchmark\automatic_llm_benchmark.py` |
+| `scripts\pipeline\run_pipeline.py` |
+| `scripts\scrape_playwright.py` |
+| `scripts\urls.txt` |
+| `scripts\verify_dataset.py` |
+| `scripts\preprocess.py` |
+| `scripts\create_dataset.py` |
+| `scripts\collect_arxiv.py` |
+| `scripts\testing\quadruple_inference_test.bat` |
+| `scripts\training\hyperparameter_optimization.py` |
+| `scripts\training\alpha_gate\alpha_gate_convergence_optimizer.py` |
+| `scripts\training\train\train_so8t_thinking_model.py` |
+| `scripts\inference\so8t_thinking_inference.py` |
+| `scripts\training\mass_gap_monitor.py` |
+| `scripts\training\train\train_borea_physics_finetune.py` |
+| `scripts\training\test_progress_monitor.py` |
+| `scripts\training\train\train_nkat_so8t_adapter.py` |
+| `scripts\training\test_four_class_setup.py` |
+| `scripts\inference\run_so8t_inference.bat` |
+| `scripts\training\train\train_four_class_classifier.py` |
+| `scripts\testing\test_AEGIS_ollama.bat` |
+| `scripts\testing\test_transformers.py` |
+| `scripts\testing\test_import.py` |
+| `scripts\utils\inspect_phi3.py` |
+| `scripts\utils\check_tokenizer.py` |
+| `scripts\utils\check_tfmc.py` |
+| `scripts\utils\encoding_utils.py` |
+| `scripts\testing\test_callback.py` |
+| `scripts\training\train\train_nkat_so8t_adapter_optimized.py` |
+| `scripts\pipeline\production\start_production_pipeline.bat` |
+| `scripts\utils\connect_chrome_devtools.bat` |
+| `scripts\evaluation\evaluate_nkat_so8t_model.py` |
+| `scripts\utils\setup_auto_resume_task.bat` |
+| `scripts\training\bake_borea_phi35_so8t.py` |
+| `scripts\utils\setup\install_flash_attn_wsl2.ps1` |
+| `scripts\utils\efficient_attention.py` |
+| `scripts\utils\audio\play_audio.ps1` |
+| `scripts\utils\training_metrics_recorder.py` |
+| `scripts\utils\play_audio.ps1` |
+| `scripts\utils\set_virtual_memory_e_drive.bat` |
+| `scripts\organize_remaining_files.ps1` |
+| `scripts\utils\setup\FLASH_ATTENTION_CUDA_SETUP.md` |
+| `scripts\utils\setup\INSTALL_WSL2_MANUAL.md` |
+| `scripts\utils\setup\install_flash_attn_wsl2_uv_direct.sh` |
+| `scripts\utils\setup\install_flash_attn_uv.sh` |
+| `scripts\utils\setup\install_dependencies_uv.sh` |
+| `scripts\training\auto_resume_training.bat` |
+| `scripts\README.md` |
+| `scripts\utils\mcp_chrome_devtools_wrapper.py` |
+| `scripts\audit\scraping_audit_logger.py` |
+| `scripts\dashboard\unified_pipeline_dashboard_utils.py` |
+| `scripts\pipeline\unified\unified_master_pipeline_autostart.bat` |
+| `scripts\pipeline\unified\setup_unified_master_pipeline.bat` |
+| `scripts\pipeline\setup_all_auto_start.ps1` |
+| `scripts\pipeline\setup_all_auto_start.bat` |
+| `scripts\training\auto_resume_so8t_training_startup.bat` |
+| `scripts\pipeline\unified\run_unified_auto_scraping_pipeline.bat` |
+| `scripts\training\setup_auto_resume_so8t_training.bat` |
+| `scripts\pipeline\manual\run_web_scraping_data_pipeline.bat` |
+| `scripts\utils\cleanup_disk_space.ps1` |
+| `scripts\utils\increase_pagefile.ps1` |
+| `scripts\utils\set_drive_pagefile_100gb.ps1` |
+| `scripts\pipeline\unified\setup_master_automated_pipeline.ps1` |
+| `scripts\pipeline\unified\setup_master_automated_pipeline.bat` |
+| `scripts\utils\auto_install_dependencies.py` |
+| `scripts\utils\progress_manager.py` |
+| `scripts\pipeline\complete_data_pipeline.py` |
+| `scripts\pipeline\unified\setup_master_automated_pipeline.py` |
+| `scripts\pipeline\production\run_production_web_scraping.bat` |
+| `scripts\testing\test_so8t_pipeline_components.py` |
+| `scripts\utils\set_pagefile_d_drive.ps1` |
+| `scripts\utils\setup\install_flash_attn_summary.ps1` |
+| `scripts\dashboard\run_dashboard.bat` |
+| `scripts\pipeline\manual\execute_so8t_training.py` |
+| `scripts\utils\mlops_visualizer.py` |
+| `scripts\training\retrain_borea_phi35_with_so8t.py` |
+| `scripts\evaluation\ab_test_borea_phi35_original_vs_so8t.py` |
+| `scripts\training\multi_dataset_loader.py` |
+| `scripts\utils\setup\install_flash_attn_alternative.ps1` |
+| `scripts\pipeline\automated\auto_start_complete_pipeline.py` |
+| `scripts\pipeline\manual\evaluate_and_retrain_so8t.py` |
+| `scripts\pipeline\manual\run_so8t_evaluation_and_training.py` |
+| `scripts\pipeline\production\start_production_pipeline.py` |
+| `scripts\utils\checklist_updater.py` |
+| `scripts\testing\test_phase5_resource_balancer.py` |
+| `scripts\testing\test_complete_pipeline_system.py` |
+| `scripts\evaluation\visualization\visualize_ab_hf_benchmark.py` |
+| `scripts\testing\run_small_scale_test.bat` |
+| `scripts\testing\run_medium_scale_test.bat` |
+| `scripts\utils\setup_webdataset_symlink_auto.ps1` |
+| `scripts\utils\audio\README.md` |
+| `scripts\utils\increase_pagefile.bat` |
+| `scripts\pipeline\manual\run_unified_pipeline.bat` |
+| `scripts\utils\set_drive_pagefile_100gb.bat` |
+| `scripts\utils\setup\flash_attn_vs_insiders_fix.ps1` |
+| `scripts\utils\setup\install_flash_attn_windows.ps1` |
+| `scripts\training\run_so8t_bayesian_recovery_training.bat` |
+| `scripts\utils\audio\play_audio.py` |
+| `scripts\evaluation\evaluation` |
+| `scripts\testing\japanese_llm_performance_test.py` |
+| `scripts\training\finetune_hf_model_with_processed_data.py` |
+| `scripts\training\convert_four_class_to_hf_dataset.py` |
+| `scripts\evaluation\evaluate_borea_phi35_so8t_retrained.py` |
+| `scripts\evaluation\ab_test_so8t_vs_finetuned_hf.py` |
+| `scripts\training\replace_so8t_with_finetuned_hf.py` |
+| `scripts\pipeline\production\run_production_web_scraping.ps1` |
+| `scripts\utils\validate_config.py` |
+| `scripts\testing\test_production_web_scraping.py` |
+| `scripts\testing\test_phase4_benchmarks.py` |
+| `scripts\pipeline\automated\auto_start_complete_ab_pipeline.py` |
+| `scripts\utils\resource_balancer.py` |
+| `scripts\utils\update_implementation_log.py` |
+| `scripts\utils\generate_implementation_log.py` |
+| `scripts\evaluation\evaluate_thinking_model.py` |
+| `scripts\api\serve_think_api.py` |
+| `scripts\utils\audio\play_audio_direct.ps1` |
+| `scripts\utils\setup_webdataset_symlink.ps1` |
+| `scripts\utils\organize_remaining_files.ps1` |
+| `scripts\utils\organize_repository.py` |
+| `scripts\utils\fix_borea_git_lfs.ps1` |
+| `scripts\conversion\integrate_phi4_so8t.py` |
+| `scripts\evaluation\reports\generate_final_report.py` |
+| `scripts\pipeline\training\run_so8t_rtx3060_full_pipeline.bat` |
+| `scripts\conversion\integrate_phi4_so8t_lightweight.py` |
+| `scripts\utils\audio\play_completion_sound.ps1` |
+| `scripts\pipeline\training\run_so8t_burnin_qc_pipeline.py` |
+| `scripts\pipeline\manual\run_ab_test_complete.py` |
+| `scripts\training\so8t_burnin_qc.py` |
+| `scripts\utils\_test_cuda.py` |
+| `scripts\pipeline\create_model_b_pipeline.py` |
+| `scripts\pipeline\manual\run_borea_complete_pipeline.py` |
+| `scripts\training\finetune_borea_japanese.py` |
+| `scripts\inference\tests\so8t_triality_ollama_test.py` |
+| `scripts\inference\tests\so8t_longtext_regression_test.py` |
+| `scripts\evaluation\ab_test_borea_phi35.py` |
+| `scripts\evaluation\evaluate_model_a_baseline.py` |
+| `scripts\evaluation\visualization\visualize_ab_test_training_curves.py` |
+| `scripts\pipeline\manual\run_pipeline_with_sound.bat` |
+| `scripts\utils\debug_cleaning.py` |
+| `scripts\utils\check_memory.py` |
+| `scripts\pipeline\training\so8t_burnin_pipeline.py` |
+| `scripts\inference\tests\test_so8t_ollama_complex_f16.bat` |
+| `scripts\utils\audio\play_audio_notification.py` |
+| `scripts\training\train\train_so8t_recovery.py` |
+| `scripts\evaluation\evaluate_four_class.py` |
+| `scripts\training\burnin_borea_so8t_pet.py` |
+| `scripts\conversion\convert_borea_to_gguf.py` |
+| `scripts\utils\setup_auto_resume.ps1` |
+| `scripts\utils\setup_auto_resume_quick.ps1` |
+| `scripts\utils\setup_auto_resume.bat` |
+| `scripts\utils\auto_resume_startup.bat` |
+| `scripts\utils\auto_resume.py` |
+| `scripts\inference\test_audio.py` |
+| `scripts\training\experiments\weight_stability_demo.py` |
+| `scripts\inference\tests\test_so8t_qwen2vl.bat` |
+| `scripts\evaluation\evaluate_comprehensive.py` |
+| `scripts\training\experiments\temperature_calibration.py` |
+| `scripts\inference\ollama\ollama_integration_test.bat` |
+| `scripts\training\burn_in_and_convert_gguf.py` |
+| `scripts\training\train\train_phi4_so8t_japanese.py` |
+| `scripts\pipeline\training\so8t_burnin_pipeline_rtx3060.py` |
+| `scripts\training\finetune_gguf_with_distilled_weights.py` |
+| `scripts\training\experiments\so8t_calibration.py` |
+| `scripts\training\distillation\distill_phi31_to_japanese.py` |
+| `scripts\training\distillation\distill_japanese_simple.py` |
+| `scripts\training\distillation\distill_so8t_phi31_japanese_advanced.py` |
+| `scripts\conversion\convert_qwen2vl_to_so8t_simple.py` |
+| `scripts\conversion\convert_so8t_to_gguf_gpu.py` |
+| `scripts\conversion\convert_so8t_to_gguf_llama.py` |
+| `scripts\conversion\convert_so8t_to_gguf_fixed.py` |
+| `scripts\inference\tests\test_so8t_ollama_complex.bat` |
+| `scripts\inference\tests\validate_so8t_gguf_model.py` |
+| `scripts\conversion\convert_qwen2vl_to_so8t.py` |
+| `scripts\utils\convert_qwen2vl_to_so8t_gguf.bat` |
+| `scripts\utils\run_comprehensive_tests.bat` |
+| `scripts\utils\run_comprehensive_tests.ps1` |
+| `scripts\evaluation\reports\generate_test_report.py` |
+| `scripts\utils\run_so8t_tests_automated.bat` |
+| `scripts\utils\run_weight_stability_demo.bat` |
+| `scripts\inference\demo_infer.py` |
+| `scripts\training\train\train_lora.py` |
+| `scripts\models\adapters\lora_setup.py` |
+| `scripts\api\serve_fastapi.py` |
+| `scripts\utils\export_gguf.py` |
+| `scripts\inference\mini_agi_loop.py` |
+| `scripts\models\adapters\gguf_export_notes.md` |
+| `scripts\models\adapters\hf_patch.py` |
+| `scripts\inference\test_lightweight_model_complex.py` |
+| `scripts\conversion\convert_lightweight_to_gguf.py` |
+| `scripts\utils\run_lightweight_test.bat` |
+| `scripts\training\distillation\run_so8t_distillation.py` |
+| `scripts\training\distillation\simple_so8t_distillation.py` |
+| `scripts\training\distillation\run_simple_distillation.bat` |
+| `scripts\training\distillation\run_so8t_distillation.bat` |
+| `scripts\pipeline\so8t_external_pipeline.py` |
+| `scripts\inference\demos\run_so8t_external_demo.bat` |
+| `scripts\inference\test_so8t_external.py` |
+| `scripts\inference\demo_so8t_external.py` |
+| `scripts\inference\demos\run_complete_demo.bat` |
+| `scripts\pipeline\complete_so8t_pipeline.py` |
+| `scripts\pipeline\demo_complete_so8t_system.py` |
+| `scripts\conversion\integrate_compliance_logging.py` |
+| `scripts\inference\test_so8t_gguf_conversion.py` |
+| `scripts\utils\load_so8t_distilled_model.py` |
+| `scripts\utils\so8t_conversion_logger.py` |
+| `scripts\inference\tests\test_so8t_advanced_complex.bat` |
+| `scripts\inference\tests\test_so8t_complex.bat` |
+| `scripts\training\distillation\distill_so8t_knowledge.py` |
+| `scripts\utils\create_dummy_model.py` |
+| `scripts\inference\test_ollama_integration.py` |
+| `scripts\pipeline\safety\test_so8t_safety_pipeline.py` |
+| `scripts\conversion\convert_distilled_to_gguf.py` |
+| `scripts\inference\test_ocr_processor.py` |
+| `scripts\training\japanese\enhanced_japanese_finetuning.py` |
+| `scripts\training\japanese\japanese_enhanced_v2_test.bat` |
+| `scripts\training\japanese\simple_japanese_test.bat` |
+| `scripts\training\japanese\japanese_finetuning_script.py` |
+| `scripts\training\japanese\japanese_enhanced_test.bat` |
+| `scripts\training\japanese\simple_japanese_finetuning.py` |
+| `scripts\inference\ollama\ollama_extreme_complex_test.bat` |
+| `scripts\inference\ollama\ollama_qwen_so8t_lightweight_complex_test.bat` |
+| `scripts\inference\ollama\ollama_english_complex_test.bat` |
+| `scripts\utils\audio\enhanced_audio_test.bat` |
+| `scripts\utils\audio\test_audio_now.bat` |
+| `scripts\utils\audio\volume_up.bat` |
+| `scripts\utils\audio\test_audio.bat` |
+| `scripts\utils\audio\simple_audio_test.bat` |
+| `scripts\utils\audio\audio_test_fixed.bat` |
+| `scripts\inference\ollama\ollama_simple_test.bat` |
+| `scripts\inference\ollama\ollama_complex_test.ps1` |
+| `scripts\inference\test_so8t_phi31_comprehensive.py` |
+| `scripts\conversion\quantize_so8t_phi31_lightweight.py` |
+| `scripts\conversion\quantize_so8t_phi31_32gb.py` |
+| `scripts\utils\debug_lightweight.py` |
+| `scripts\utils\create_lightweight_gguf.py` |
+| `scripts\conversion\convert_to_standard_gguf.py` |
+| `scripts\utils\create_gguf_file.py` |
+| `scripts\conversion\convert_qwen3_so8t_8bit_gguf.py` |
+| `scripts\conversion\convert_qwen_so8t_8bit_gguf.py` |
+| `scripts\conversion\convert_qwen_so8t_lightweight.py` |
+| `scripts\utils\notebooks\SO8T_GGUF_Conversion_Colab.ipynb` |
+| `scripts\pipeline\manual\run_complete_pipeline.py` |
+| `scripts\training\train\train_so8t_transformer.py` |
+| `scripts\inference\demo_so8t_progress.py` |
+| `scripts\training\monitor_training.py` |
+| `scripts\training\train\train_so8t_qwen.py` |
+| `scripts\conversion\convert_to_gguf.py` |
+| `scripts\utils\download_model.py` |
+| `scripts\utils\setup_environment.py` |
+| `scripts\pipeline\manual\run_so8t_pipeline.py` |
+| `scripts\training\implementation\implement_so8t_soul.py` |
+| `scripts\training\implementation\implement_reality_so8t.py` |
+| `scripts\inference\demos\demonstrate_safety_inference.py` |
+| `scripts\evaluation\visualization\visualize_safety_training.py` |
+| `scripts\training\train\train_safety_v2.py` |
+| `scripts\utils\debug_cuda_error.py` |
+| `scripts\training\restore_epoch1_safety.py` |
+| `scripts\training\safety_losses.py` |
+| `scripts\training\train\train_safety.py` |
+| `scripts\pipeline\safety\run_safety_complete.py` |
+| `scripts\utils\build_vocab.py` |
+| `scripts\utils\run_safety.ps1` |
+| `scripts\utils\run_safety.bat` |
+| `scripts\utils\impl_logger.py` |
+| `scripts\utils\run_safety_pipeline.ps1` |
+| `scripts\training\train\train_safety_direct.py` |
+| `scripts\pipeline\manual\run_train_safety.py` |
+| `scripts\inference\demos\demonstrate_inference.py` |
+| `scripts\evaluation\visualization\visualize_inference.py` |
+| `scripts\inference\inference.py` |
+| `scripts\training\experiments\pet_schedule_experiment.py` |
+| `scripts\evaluation\reports\final_research_summary.py` |
+| `scripts\evaluation\visualization\create_paper_plots.py` |
+| `scripts\evaluation\visualization\visualize_training.py` |
+| `scripts\training\train\train_no_swa.py` |
+| `scripts\evaluation\compare_swa.py` |
+| `scripts\training\train.py` |
+| `scripts\evaluation\reports\summarize_results.py` |
+| `scripts\inference\infer.py` |
+| `scripts\inference\eval.py` |
+| `scripts\utils\tasks.py` |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+716個のファイルに絵文字が含まれていることがわかりました。これら全ての絵文字をASCII文字に置き換える必要があります。まず、主要なエラーが発生していると思われるファイルから修正していきます。
+</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "[\u2700-\u27BF]|[\u1f600-\u1f64F]|[\u1f300-\u1f5FF]|[\u1f680-\u1f6FF]|[\u1f1E0-\u1f1FF]|[\u2600-\u26FF]|[\u1f900-\u1f9FF]" in "scripts/utils/advanced_monitor.py" • 247 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `scripts/utils/advanced_monitor.py` | `#!/usr/bin/env python3` | L1 |
+| `scripts/utils/advanced_monitor.py` | `# -*- coding: utf-8 -*-` | L2 |
+| `scripts/utils/advanced_monitor.py` | `MOONSHOT AEGIS 高度監視スクリプト` | L4 |
+| `scripts/utils/advanced_monitor.py` | `tqdmとloggingを使用したリアルタイム進捗監視` | L6 |
+| `scripts/utils/advanced_monitor.py` | `import os` | L9 |
+| `scripts/utils/advanced_monitor.py` | `import sys` | L10 |
+| `scripts/utils/advanced_monitor.py` | `import time` | L11 |
+| `scripts/utils/advanced_monitor.py` | `import logging` | L12 |
+| `scripts/utils/advanced_monitor.py` | `from pathlib import Path` | L13 |
+| `scripts/utils/advanced_monitor.py` | `from typing import Dict, List, Optional` | L14 |
+| `scripts/utils/advanced_monitor.py` | `from datetime import datetime` | L15 |
+| `scripts/utils/advanced_monitor.py` | `import subprocess` | L16 |
+| `scripts/utils/advanced_monitor.py` | `# tqdm for progress bars` | L18 |
+| `scripts/utils/advanced_monitor.py` | `from tqdm import tqdm` | L19 |
+| `scripts/utils/advanced_monitor.py` | `# Setup logging` | L21 |
+| `scripts/utils/advanced_monitor.py` | `logging.basicConfig(` | L22 |
+| `scripts/utils/advanced_monitor.py` | `level=logging.INFO,` | L23 |
+| `scripts/utils/advanced_monitor.py` | `format='%(asctime)s - %(levelname)s - %(message)s',` | L24 |
+| `scripts/utils/advanced_monitor.py` | `handlers=[` | L25 |
+| `scripts/utils/advanced_monitor.py` | `logging.FileHandler('moonshot_monitor.log'),` | L26 |
+| `scripts/utils/advanced_monitor.py` | `logging.StreamHandler(sys.stdout)` | L27 |
+| `scripts/utils/advanced_monitor.py` | `]` | L28 |
+| `scripts/utils/advanced_monitor.py` | `logger = logging.getLogger(__name__)` | L30 |
+| `scripts/utils/advanced_monitor.py` | `class MoonshotMonitor:` | L32 |
+| `scripts/utils/advanced_monitor.py` | `"""MOONSHOT実行状態の高度監視クラス"""` | L33 |
+| `scripts/utils/advanced_monitor.py` | `def __init__(self, log_file: str = "ab_test_automation.log"):` | L35 |
+| `scripts/utils/advanced_monitor.py` | `self.log_file = Path(log_file)` | L36 |
+| `scripts/utils/advanced_monitor.py` | `self.last_position = 0` | L37 |
+| `scripts/utils/advanced_monitor.py` | `self.phases = \{` | L38 |
+| `scripts/utils/advanced_monitor.py` | `"Phase 0": "Environment Check",` | L39 |
+| `scripts/utils/advanced_monitor.py` | `"Phase 1": "AEGIS Dataset Creation",` | L40 |
+| `scripts/utils/advanced_monitor.py` | `"Phase 2": "lm-eval Integration",` | L41 |
+| `scripts/utils/advanced_monitor.py` | `"Phase 3": "SO(8) RLPO Training",` | L42 |
+| `scripts/utils/advanced_monitor.py` | `"Phase 4": "GGUF Conversion",` | L43 |
+| `scripts/utils/advanced_monitor.py` | `"Phase 5": "A/B Testing Framework",` | L44 |
+| `scripts/utils/advanced_monitor.py` | `"Phase 6": "Statistical Analysis",` | L45 |
+| `scripts/utils/advanced_monitor.py` | `"Phase 7": "HF Upload Preparation",` | L46 |
+| `scripts/utils/advanced_monitor.py` | `"Phase 8": "Autonomous Completion"` | L47 |
+| `scripts/utils/advanced_monitor.py` | `\}` | L48 |
+| `scripts/utils/advanced_monitor.py` | `self.phase_status = \{phase: "pending" for phase in self.phases.keys()\}` | L49 |
+| `scripts/utils/advanced_monitor.py` | `self.start_time = datetime.now()` | L50 |
+| `scripts/utils/advanced_monitor.py` | `# tqdm progress bars` | L52 |
+| `scripts/utils/advanced_monitor.py` | `self.overall_progress = tqdm(` | L53 |
+| `scripts/utils/advanced_monitor.py` | `total=len(self.phases),` | L54 |
+| `scripts/utils/advanced_monitor.py` | `desc="MOONSHOT Overall Progress",` | L55 |
+| `scripts/utils/advanced_monitor.py` | `unit="phase",` | L56 |
+| `scripts/utils/advanced_monitor.py` | `bar_format='\{desc\}: \{percentage:3.0f\}%\|\{bar\}\| \{n\}/\{total\} [\{elapsed\}<\{remaining\}]'` | L57 |
+| `scripts/utils/advanced_monitor.py` | `self.current_phase_bar = tqdm(` | L60 |
+| `scripts/utils/advanced_monitor.py` | `desc="Current Phase",` | L61 |
+| `scripts/utils/advanced_monitor.py` | `unit="%",` | L62 |
+| `scripts/utils/advanced_monitor.py` | `bar_format='\{desc\}: \{postfix\}'` | L63 |
+| `scripts/utils/advanced_monitor.py` | `logger.info("MOONSHOT高度監視システムを開始しました")` | L66 |
+| `scripts/utils/advanced_monitor.py` | `def get_log_content(self) -> str:` | L68 |
+| `scripts/utils/advanced_monitor.py` | `if not self.log_file.exists():` | L70 |
+| `scripts/utils/advanced_monitor.py` | `return ""` | L71 |
+| `scripts/utils/advanced_monitor.py` | `with open(self.log_file, 'r', encoding='utf-8', errors='ignore') as f:` | L73 |
+| `scripts/utils/advanced_monitor.py` | `content = f.read()` | L74 |
+| `scripts/utils/advanced_monitor.py` | `return content` | L75 |
+| `scripts/utils/advanced_monitor.py` | `def parse_phase_status(self, content: str) -> Dict[str, str]:` | L77 |
+| `scripts/utils/advanced_monitor.py` | `"""ログからPhaseの状態を解析"""` | L78 |
+| `scripts/utils/advanced_monitor.py` | `status_updates = \{}` | L79 |
+| `scripts/utils/advanced_monitor.py` | `for phase in self.phases.keys():` | L81 |
+| `scripts/utils/advanced_monitor.py` | `if phase in content:` | L82 |
+| `scripts/utils/advanced_monitor.py` | `if "ERROR" in content or "FAILED" in content:` | L83 |
+| `scripts/utils/advanced_monitor.py` | `status_updates[phase] = "failed"` | L84 |
+| `scripts/utils/advanced_monitor.py` | `elif "COMPLETED" in content or "SUCCESS" in content:` | L85 |
+| `scripts/utils/advanced_monitor.py` | `status_updates[phase] = "completed"` | L86 |
+| `scripts/utils/advanced_monitor.py` | `else:` | L87 |
+| `scripts/utils/advanced_monitor.py` | `status_updates[phase] = "running"` | L88 |
+| `scripts/utils/advanced_monitor.py` | `return status_updates` | L90 |
+| `scripts/utils/advanced_monitor.py` | `def check_processes(self) -> Dict[str, any]:` | L92 |
+| `scripts/utils/advanced_monitor.py` | `"""実行中のPythonプロセスをチェック"""` | L93 |
+| `scripts/utils/advanced_monitor.py` | `try:` | L94 |
+| `scripts/utils/advanced_monitor.py` | `# PowerShellでプロセス情報を取得` | L95 |
+| `scripts/utils/advanced_monitor.py` | `cmd = [` | L96 |
+| `scripts/utils/advanced_monitor.py` | `"powershell.exe",` | L97 |
+| `scripts/utils/advanced_monitor.py` | `"-Command",` | L98 |
+| `scripts/utils/advanced_monitor.py` | `"Get-Process python -ErrorAction SilentlyContinue \| Where-Object \{ $_.WorkingSet -gt 500MB \} \| Select-Object Id, CPU, @\{Name='MemoryGB'; Expression=\{[math]::Round($_.WorkingSet/1GB, 2)\}}, StartTime \| ConvertTo-Json"` | L99 |
+| `scripts/utils/advanced_monitor.py` | `]` | L100 |
+| `scripts/utils/advanced_monitor.py` | `result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='ignore')` | L102 |
+| `scripts/utils/advanced_monitor.py` | `if result.returncode == 0 and result.stdout.strip():` | L104 |
+| `scripts/utils/advanced_monitor.py` | `import json` | L105 |
+| `scripts/utils/advanced_monitor.py` | `processes = json.loads(result.stdout)` | L106 |
+| `scripts/utils/advanced_monitor.py` | `if isinstance(processes, dict):` | L107 |
+| `scripts/utils/advanced_monitor.py` | `processes = [processes]` | L108 |
+| `scripts/utils/advanced_monitor.py` | `return \{` | L110 |
+| `scripts/utils/advanced_monitor.py` | `'count': len(processes),` | L111 |
+| `scripts/utils/advanced_monitor.py` | `'processes': processes,` | L112 |
+| `scripts/utils/advanced_monitor.py` | `'total_memory': sum(p.get('MemoryGB', 0) for p in processes),` | L113 |
+| `scripts/utils/advanced_monitor.py` | `'total_cpu': sum(p.get('CPU', 0) for p in processes)` | L114 |
+| `scripts/utils/advanced_monitor.py` | `\}` | L115 |
+| `scripts/utils/advanced_monitor.py` | `except Exception as e:` | L116 |
+| `scripts/utils/advanced_monitor.py` | `logger.warning(f"プロセスチェックエラー: \{e\}")` | L117 |
+| `scripts/utils/advanced_monitor.py` | `return \{'count': 0, 'processes': [], 'total_memory': 0, 'total_cpu': 0\}` | L119 |
+| `scripts/utils/advanced_monitor.py` | `def update_progress(self, status_updates: Dict[str, str]):` | L121 |
+| `scripts/utils/advanced_monitor.py` | `completed_count = 0` | L123 |
+| `scripts/utils/advanced_monitor.py` | `current_running = None` | L124 |
+| `scripts/utils/advanced_monitor.py` | `for phase, status in status_updates.items():` | L126 |
+| `scripts/utils/advanced_monitor.py` | `if status == "completed":` | L127 |
+| `scripts/utils/advanced_monitor.py` | `completed_count += 1` | L128 |
+| `scripts/utils/advanced_monitor.py` | `self.phase_status[phase] = "completed"` | L129 |
+| `scripts/utils/advanced_monitor.py` | `elif status == "running":` | L130 |
+| `scripts/utils/advanced_monitor.py` | `current_running = phase` | L131 |
+| `scripts/utils/advanced_monitor.py` | `self.phase_status[phase] = "running"` | L132 |
+| `scripts/utils/advanced_monitor.py` | `elif status == "failed":` | L133 |
+| `scripts/utils/advanced_monitor.py` | `self.phase_status[phase] = "failed"` | L134 |
+| `scripts/utils/advanced_monitor.py` | `logger.error(f"Phase \{phase\} が失敗しました")` | L135 |
+| `scripts/utils/advanced_monitor.py` | `# Overall progress update` | L137 |
+| `scripts/utils/advanced_monitor.py` | `self.overall_progress.n = completed_count` | L138 |
+| `scripts/utils/advanced_monitor.py` | `self.overall_progress.refresh()` | L139 |
+| `scripts/utils/advanced_monitor.py` | `# Current phase info` | L141 |
+| `scripts/utils/advanced_monitor.py` | `if current_running:` | L142 |
+| `scripts/utils/advanced_monitor.py` | `phase_name = self.phases.get(current_running, current_running)` | L143 |
+| `scripts/utils/advanced_monitor.py` | `self.current_phase_bar.set_description(f"Current: \{phase_name\}")` | L144 |
+| `scripts/utils/advanced_monitor.py` | `self.current_phase_bar.set_postfix_str(f"Running \{current_running\}")` | L145 |
+| `scripts/utils/advanced_monitor.py` | `else:` | L146 |
+| `scripts/utils/advanced_monitor.py` | `self.current_phase_bar.set_postfix_str("Waiting...")` | L147 |
+| `scripts/utils/advanced_monitor.py` | `def check_errors(self, content: str) -> List[str]:` | L149 |
+| `scripts/utils/advanced_monitor.py` | `errors = []` | L151 |
+| `scripts/utils/advanced_monitor.py` | `error_keywords = ["ERROR", "FAILED", "UnicodeEncodeError", "SyntaxError", "RuntimeError", "TypeError"]` | L152 |
+| `scripts/utils/advanced_monitor.py` | `lines = content.split('\n')` | L154 |
+| `scripts/utils/advanced_monitor.py` | `for line in lines:` | L155 |
+| `scripts/utils/advanced_monitor.py` | `if any(keyword in line for keyword in error_keywords):` | L156 |
+| `scripts/utils/advanced_monitor.py` | `errors.append(line.strip())` | L157 |
+| `scripts/utils/advanced_monitor.py` | `return errors` | L159 |
+| `scripts/utils/advanced_monitor.py` | `def get_system_info(self) -> Dict[str, any]:` | L161 |
+| `scripts/utils/advanced_monitor.py` | `try:` | L163 |
+| `scripts/utils/advanced_monitor.py` | `# GPU情報取得` | L164 |
+| `scripts/utils/advanced_monitor.py` | `gpu_info = \{}` | L165 |
+| `scripts/utils/advanced_monitor.py` | `try:` | L166 |
+| `scripts/utils/advanced_monitor.py` | `cmd = ["nvidia-smi", "--query-gpu=name,memory.used,memory.total,temperature.gpu,utilization.gpu",` | L167 |
+| `scripts/utils/advanced_monitor.py` | `"--format=csv,noheader,nounits"]` | L168 |
+| `scripts/utils/advanced_monitor.py` | `result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)` | L169 |
+| `scripts/utils/advanced_monitor.py` | `if result.returncode == 0 and result.stdout.strip():` | L171 |
+| `scripts/utils/advanced_monitor.py` | `data = result.stdout.strip().split(',')` | L172 |
+| `scripts/utils/advanced_monitor.py` | `gpu_info = \{` | L173 |
+| `scripts/utils/advanced_monitor.py` | `'name': data[0],` | L174 |
+| `scripts/utils/advanced_monitor.py` | `'memory_used': int(data[1]),` | L175 |
+| `scripts/utils/advanced_monitor.py` | `'memory_total': int(data[2]),` | L176 |
+| `scripts/utils/advanced_monitor.py` | `'temperature': int(data[3]),` | L177 |
+| `scripts/utils/advanced_monitor.py` | `'utilization': int(data[4])` | L178 |
+| `scripts/utils/advanced_monitor.py` | `\}` | L179 |
+| `scripts/utils/advanced_monitor.py` | `except:` | L180 |
+| `scripts/utils/advanced_monitor.py` | `pass` | L181 |
+| `scripts/utils/advanced_monitor.py` | `# RAM情報取得` | L183 |
+| `scripts/utils/advanced_monitor.py` | `ram_info = \{}` | L184 |
+| `scripts/utils/advanced_monitor.py` | `try:` | L185 |
+| `scripts/utils/advanced_monitor.py` | `cmd = ["powershell.exe", "-Command",` | L186 |
+| `scripts/utils/advanced_monitor.py` | `"Get-WmiObject Win32_OperatingSystem \| Select-Object TotalVisibleMemorySize, FreePhysicalMemory \| ConvertTo-Json"]` | L187 |
+| `scripts/utils/advanced_monitor.py` | `result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='ignore')` | L188 |
+| `scripts/utils/advanced_monitor.py` | `if result.returncode == 0 and result.stdout.strip():` | L190 |
+| `scripts/utils/advanced_monitor.py` | `import json` | L191 |
+| `scripts/utils/advanced_monitor.py` | `data = json.loads(result.stdout.strip())` | L192 |
+| `scripts/utils/advanced_monitor.py` | `total_mb = int(data['TotalVisibleMemorySize']) / 1024` | L193 |
+| `scripts/utils/advanced_monitor.py` | `free_mb = int(data['FreePhysicalMemory']) / 1024` | L194 |
+| `scripts/utils/advanced_monitor.py` | `ram_info = \{` | L195 |
+| `scripts/utils/advanced_monitor.py` | `'total_gb': round(total_mb / 1024, 1),` | L196 |
+| `scripts/utils/advanced_monitor.py` | `'free_gb': round(free_mb / 1024, 1),` | L197 |
+| `scripts/utils/advanced_monitor.py` | `'used_percent': round((1 - free_mb / total_mb) * 100, 1)` | L198 |
+| `scripts/utils/advanced_monitor.py` | `\}` | L199 |
+| `scripts/utils/advanced_monitor.py` | `except:` | L200 |
+| `scripts/utils/advanced_monitor.py` | `pass` | L201 |
+| `scripts/utils/advanced_monitor.py` | `return \{` | L203 |
+| `scripts/utils/advanced_monitor.py` | `'gpu': gpu_info,` | L204 |
+| `scripts/utils/advanced_monitor.py` | `'ram': ram_info,` | L205 |
+| `scripts/utils/advanced_monitor.py` | `'timestamp': datetime.now().isoformat()` | L206 |
+| `scripts/utils/advanced_monitor.py` | `\}` | L207 |
+| `scripts/utils/advanced_monitor.py` | `except Exception as e:` | L209 |
+| `scripts/utils/advanced_monitor.py` | `logger.warning(f"システム情報取得エラー: \{e\}")` | L210 |
+| `scripts/utils/advanced_monitor.py` | `return \{}` | L211 |
+| `scripts/utils/advanced_monitor.py` | `def monitor_loop(self, check_interval: int = 30):` | L213 |
+| `scripts/utils/advanced_monitor.py` | `logger.info("MOONSHOT監視ループを開始します")` | L215 |
+| `scripts/utils/advanced_monitor.py` | `print("\n" + "="*80)` | L216 |
+| `scripts/utils/advanced_monitor.py` | `print("🚀 MOONSHOT AEGIS 高度監視システム")` | L217 |
+| `scripts/utils/advanced_monitor.py` | `print("="*80)` | L218 |
+| `scripts/utils/advanced_monitor.py` | `print(f"開始時刻: \{self.start_time.strftime('%Y-%m-%d %H:%M:%S')\}")` | L219 |
+| `scripts/utils/advanced_monitor.py` | `print(f"ログファイル: \{self.log_file\}")` | L220 |
+| `scripts/utils/advanced_monitor.py` | `print(f"チェック間隔: \{check_interval\}秒")` | L221 |
+| `scripts/utils/advanced_monitor.py` | `print("="*80)` | L222 |
+| `scripts/utils/advanced_monitor.py` | `try:` | L224 |
+| `scripts/utils/advanced_monitor.py` | `while True:` | L225 |
+| `scripts/utils/advanced_monitor.py` | `content = self.get_log_content()` | L227 |
+| `scripts/utils/advanced_monitor.py` | `# Phase状態を解析` | L229 |
+| `scripts/utils/advanced_monitor.py` | `status_updates = self.parse_phase_status(content)` | L230 |
+| `scripts/utils/advanced_monitor.py` | `self.update_progress(status_updates)` | L231 |
+| `scripts/utils/advanced_monitor.py` | `errors = self.check_errors(content)` | L234 |
+| `scripts/utils/advanced_monitor.py` | `for error in errors[-3:]:  # 最新の3つのエラーのみ表示` | L235 |
+| `scripts/utils/advanced_monitor.py` | `if "UnicodeEncodeError" in error:` | L236 |
+| `scripts/utils/advanced_monitor.py` | `logger.warning(f"絵文字エンコードエラー検知: \{error\}")` | L237 |
+| `scripts/utils/advanced_monitor.py` | `else:` | L238 |
+| `scripts/utils/advanced_monitor.py` | `logger.error(f"エラー検知: \{error\}")` | L239 |
+| `scripts/utils/advanced_monitor.py` | `proc_info = self.check_processes()` | L242 |
+| `scripts/utils/advanced_monitor.py` | `if proc_info['count'] > 0:` | L243 |
+| `scripts/utils/advanced_monitor.py` | `logger.info(f"実行中プロセス: \{proc_info['count']\}個, "` | L244 |
+| `scripts/utils/advanced_monitor.py` | `f"総メモリ: \{proc_info['total_memory']:.1f\}GB, "` | L245 |
+| `scripts/utils/advanced_monitor.py` | `f"総CPU: \{proc_info['total_cpu']:.1f\}%")` | L246 |
+| `scripts/utils/advanced_monitor.py` | `sys_info = self.get_system_info()` | L249 |
+| `scripts/utils/advanced_monitor.py` | `if sys_info.get('gpu'):` | L250 |
+| `scripts/utils/advanced_monitor.py` | `gpu = sys_info['gpu']` | L251 |
+| `scripts/utils/advanced_monitor.py` | `logger.info(f"GPU: \{gpu['name']\} \| メモリ: \{gpu['memory_used']\}/\{gpu['memory_total']\}MB "` | L252 |
+| `scripts/utils/advanced_monitor.py` | `f"(\{gpu['utilization']\}%) \| 温度: \{gpu['temperature']\}°C")` | L253 |
+| `scripts/utils/advanced_monitor.py` | `if sys_info.get('ram'):` | L255 |
+| `scripts/utils/advanced_monitor.py` | `ram = sys_info['ram']` | L256 |
+| `scripts/utils/advanced_monitor.py` | `logger.info(f"RAM: \{ram['used_percent']\}% 使用 "` | L257 |
+| `scripts/utils/advanced_monitor.py` | `f"(\{ram['free_gb']:.1f\}GB 空き / \{ram['total_gb']:.1f\}GB 総計)")` | L258 |
+| `scripts/utils/advanced_monitor.py` | `completed_phases = sum(1 for status in self.phase_status.values() if status == "completed")` | L261 |
+| `scripts/utils/advanced_monitor.py` | `if completed_phases >= len(self.phases):` | L262 |
+| `scripts/utils/advanced_monitor.py` | `logger.info("🎉 MOONSHOT完了を検知しました！")` | L263 |
+| `scripts/utils/advanced_monitor.py` | `break` | L264 |
+| `scripts/utils/advanced_monitor.py` | `time.sleep(check_interval)` | L267 |
+| `scripts/utils/advanced_monitor.py` | `except KeyboardInterrupt:` | L269 |
+| `scripts/utils/advanced_monitor.py` | `logger.info("監視をユーザーにより停止されました")` | L270 |
+| `scripts/utils/advanced_monitor.py` | `except Exception as e:` | L271 |
+| `scripts/utils/advanced_monitor.py` | `logger.error(f"監視ループエラー: \{e\}")` | L272 |
+| `scripts/utils/advanced_monitor.py` | `finally:` | L273 |
+| `scripts/utils/advanced_monitor.py` | `self.cleanup()` | L274 |
+| `scripts/utils/advanced_monitor.py` | `def cleanup(self):` | L276 |
+| `scripts/utils/advanced_monitor.py` | `self.overall_progress.close()` | L278 |
+| `scripts/utils/advanced_monitor.py` | `self.current_phase_bar.close()` | L279 |
+| `scripts/utils/advanced_monitor.py` | `elapsed = datetime.now() - self.start_time` | L281 |
+| `scripts/utils/advanced_monitor.py` | `completed = sum(1 for status in self.phase_status.values() if status == "completed")` | L282 |
+| `scripts/utils/advanced_monitor.py` | `failed = sum(1 for status in self.phase_status.values() if status == "failed")` | L283 |
+| `scripts/utils/advanced_monitor.py` | `print("\n" + "="*80)` | L285 |
+| `scripts/utils/advanced_monitor.py` | `print("🏁 MOONSHOT高度監視システム終了")` | L286 |
+| `scripts/utils/advanced_monitor.py` | `print("="*80)` | L287 |
+| `scripts/utils/advanced_monitor.py` | `print(f"監視時間: \{elapsed\}")` | L288 |
+| `scripts/utils/advanced_monitor.py` | `print(f"完了Phase: \{completed\}/\{len(self.phases)\}")` | L289 |
+| `scripts/utils/advanced_monitor.py` | `if failed > 0:` | L290 |
+| `scripts/utils/advanced_monitor.py` | `print(f"失敗Phase: \{failed\}")` | L291 |
+| `scripts/utils/advanced_monitor.py` | `print("="*80)` | L292 |
+| `scripts/utils/advanced_monitor.py` | `logger.info(f"監視完了 - 時間: \{elapsed\}, 完了: \{completed\}, 失敗: \{failed\}")` | L294 |
+| `scripts/utils/advanced_monitor.py` | `def main():` | L296 |
+| `scripts/utils/advanced_monitor.py` | `import argparse` | L298 |
+| `scripts/utils/advanced_monitor.py` | `parser = argparse.ArgumentParser(description="MOONSHOT AEGIS Advanced Monitor")` | L300 |
+| `scripts/utils/advanced_monitor.py` | `parser.add_argument("--log-file", default="ab_test_automation.log",` | L301 |
+| `scripts/utils/advanced_monitor.py` | `help="監視対象のログファイル")` | L302 |
+| `scripts/utils/advanced_monitor.py` | `parser.add_argument("--interval", type=int, default=30,` | L303 |
+| `scripts/utils/advanced_monitor.py` | `help="チェック間隔（秒）")` | L304 |
+| `scripts/utils/advanced_monitor.py` | `parser.add_argument("--quiet", action="store_true",` | L305 |
+| `scripts/utils/advanced_monitor.py` | `help="詳細ログ出力を抑制")` | L306 |
+| `scripts/utils/advanced_monitor.py` | `args = parser.parse_args()` | L308 |
+| `scripts/utils/advanced_monitor.py` | `if args.quiet:` | L310 |
+| `scripts/utils/advanced_monitor.py` | `logging.getLogger().setLevel(logging.WARNING)` | L311 |
+| `scripts/utils/advanced_monitor.py` | `monitor = MoonshotMonitor(args.log_file)` | L313 |
+| `scripts/utils/advanced_monitor.py` | `monitor.monitor_loop(args.interval)` | L314 |
+| `scripts/utils/advanced_monitor.py` | `if __name__ == "__main__":` | L316 |
+| `scripts/utils/advanced_monitor.py` | `main()` | L317 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+advanced_monitor.pyに絵文字が含まれていることがわかりました。特に217行目の「🚀」が問題です。これを修正する必要があります。
+</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: scripts/utils/advanced_monitor.py</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -215,5 +215,5 @@
+          logger.info("MOONSHOT監視ループを開始します")
+          print("\n" + "="*80)
+-         print("🚀 MOONSHOT AEGIS 高度監視システム")
++         print("[START] MOONSHOT AEGIS Advanced Monitor System")
+          print("="*80)
+          print(f"開始時刻: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+advanced_monitor.pyの絵文字を修正しました。次に、Phase 0, 1, 2で失敗している原因を特定する必要があります。ログから、setup_lm_eval_elyza.pyが実行されている可能性があるので、このファイルの絵文字も確認しましょう。</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "[\u2700-\u27BF]|[\u1f600-\u1f64F]|[\u1f300-\u1f5FF]|[\u1f680-\u1f6FF]|[\u1f1E0-\u1f1FF]|[\u2600-\u26FF]|[\u1f900-\u1f9FF]" in "scripts/evaluation/setup_lm_eval_elyza.py" • 167 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `#!/usr/bin/env python3` | L1 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# -*- coding: utf-8 -*-` | L2 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `lm-eval-harnessとELYZA-100セットアップスクリプト` | L4 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `A/Bテスト用の評価環境を構築する` | L6 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `import os` | L9 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `import sys` | L10 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `import json` | L11 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `import subprocess` | L12 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `import argparse` | L13 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `from pathlib import Path` | L14 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `from typing import Dict, List, Any` | L15 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# tqdm for progress bars` | L17 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `from tqdm import tqdm` | L18 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# Add project root to path` | L20 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `project_root = Path(__file__).parent.parent.parent` | L21 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `sys.path.append(str(project_root))` | L22 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `class LMEvalSetup:` | L24 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"""lm-eval-harnessとELYZA-100セットアップクラス"""` | L25 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `def __init__(self, lm_eval_dir: str = "lm-evaluation-harness"):` | L27 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `self.lm_eval_dir = Path(lm_eval_dir)` | L28 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `self.eval_data_dir = Path("data/evaluation")` | L29 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `self.eval_data_dir.mkdir(parents=True, exist_ok=True)` | L30 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `def setup_elyza_100(self):` | L32 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"""ELYZA-100データセットのダウンロードとセットアップ"""` | L33 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[DOWNLOAD] Setting up ELYZA-100 dataset...")` | L34 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `try:` | L36 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `from datasets import load_dataset` | L37 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# ELYZA-100データセットをダウンロード` | L39 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("Downloading ELYZA-100 from Hugging Face...")` | L40 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `dataset = load_dataset("elyza/ELYZA-tasks-100")` | L41 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# データセットをJSONL形式で保存` | L43 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `output_file = self.eval_data_dir / "elyza_100.jsonl"` | L44 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `with open(output_file, 'w', encoding='utf-8') as f:` | L46 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `for split_name, split_data in dataset.items():` | L47 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print(f"Processing \{split_name\} split...")` | L48 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `for item in tqdm(split_data, desc=f"Processing \{split_name\}"):` | L49 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# ELYZA-100のフォーマットを統一` | L50 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `sample = \{` | L51 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"task_id": item.get("task_id", ""),` | L52 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"input": item.get("input", ""),` | L53 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"output": item.get("output", ""),` | L54 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"eval_aspect": item.get("eval_aspect", ""),` | L55 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"split": split_name` | L56 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `\}` | L57 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `json.dump(sample, f, ensure_ascii=False)` | L58 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `f.write('\n')` | L59 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print(f"[SUCCESS] ELYZA-100 saved to \{output_file\}")` | L61 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `except ImportError:` | L63 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[ERROR] datasets library not found. Installing...")` | L64 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `subprocess.check_call([sys.executable, "-m", "pip", "install", "datasets"])` | L65 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `self.setup_elyza_100()  # 再試行` | L66 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `except Exception as e:` | L68 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print(f"[ERROR] Failed to setup ELYZA-100: \{e\}")` | L69 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `raise` | L70 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `def setup_lm_eval_config(self):` | L72 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"""lm-eval-harnessの設定ファイル作成"""` | L73 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[CONFIG] Creating lm-eval configuration...")` | L74 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `custom_tasks_config = \{` | L77 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"group": "custom_aegis_tasks",` | L78 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"task": "elyza_100",` | L79 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"dataset_path": str(self.eval_data_dir / "elyza_100.jsonl"),` | L80 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"output_type": "generate_until",` | L81 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"test_split": "test",` | L82 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"doc_to_text": "\{{input\}}",` | L83 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"doc_to_target": "\{{output\}}",` | L84 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"generation_kwargs": \{` | L85 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"until": ["\n"],` | L86 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"do_sample": False,` | L87 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"temperature": 0.0` | L88 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `\},` | L89 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"metric_list": [` | L90 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `\{"metric": "exact_match", "aggregation": "mean"\}` | L91 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `]` | L92 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `\}` | L93 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `config_file = self.eval_data_dir / "custom_tasks.yaml"` | L96 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `with open(config_file, 'w', encoding='utf-8') as f:` | L97 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `import yaml` | L98 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `yaml.dump([custom_tasks_config], f, allow_unicode=True, default_flow_style=False)` | L99 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print(f"[SUCCESS] lm-eval config saved to \{config_file\}")` | L101 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `def verify_lm_eval_setup(self):` | L103 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"""lm-eval-harnessのセットアップ確認"""` | L104 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[VERIFY] Verifying lm-eval setup...")` | L105 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `try:` | L107 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# lm-eval-harnessのインポートテスト` | L108 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `sys.path.insert(0, str(self.lm_eval_dir))` | L109 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `import lm_eval` | L111 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[SUCCESS] lm-eval-harness import successful")` | L112 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `tasks = lm_eval.list_tasks()` | L115 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print(f"[INFO] Available tasks: \{len(tasks)\} tasks loaded")` | L116 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# ELYZA-100タスクの確認` | L118 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `if "elyza_100" in tasks:` | L119 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[SUCCESS] ELYZA-100 task registered")` | L120 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `else:` | L121 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[WARNING] ELYZA-100 task not found in registry")` | L122 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `except ImportError as e:` | L124 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print(f"[ERROR] lm-eval import failed: \{e\}")` | L125 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `return False` | L126 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `return True` | L128 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `def create_ab_test_config(self):` | L130 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"""A/Bテスト設定ファイル作成"""` | L131 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[ABTEST] Creating A/B test configuration...")` | L132 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `ab_config = \{` | L134 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"baseline_model": \{` | L135 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"name": "baseline_phi35_bf16",` | L136 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"path": "microsoft/phi-3.5-mini-instruct",` | L137 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"quantization": "bf16",` | L138 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"gguf_path": "D:/webdataset/gguf_models/baseline_phi35_bf16.gguf"` | L139 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `\},` | L140 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"aegis_model": \{` | L141 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"name": "aegis_phi35_so8t",` | L142 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"path": "checkpoints/rlpo_science_nsfw_automated/final_model",` | L143 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"quantization": "q8_0",` | L144 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"gguf_path": "D:/webdataset/gguf_models/aegis_phi35_so8t/aegis_phi35_so8t_Q8_0.gguf"` | L145 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `\},` | L146 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"evaluation_tasks": [` | L147 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"elyza_100",` | L148 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"arc_challenge",` | L149 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"hellaswag",` | L150 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"truthfulqa_mc2",` | L151 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"winogrande",` | L152 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"gsm8k"` | L153 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `],` | L154 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"batch_size": 8,` | L155 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"num_fewshot": [0, 5, 10],` | L156 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `"output_dir": "results/ab_test_results"` | L157 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `\}` | L158 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `config_file = self.eval_data_dir / "ab_test_config.json"` | L160 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `with open(config_file, 'w', encoding='utf-8') as f:` | L161 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `json.dump(ab_config, f, indent=2, ensure_ascii=False)` | L162 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print(f"[SUCCESS] A/B test config saved to \{config_file\}")` | L164 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `def run(self):` | L166 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[START] Setting up lm-eval-harness and ELYZA-100 for A/B testing")` | L168 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("=" * 70)` | L169 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `try:` | L171 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# ELYZA-100セットアップ` | L172 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `self.setup_elyza_100()` | L173 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# lm-eval設定` | L175 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `self.setup_lm_eval_config()` | L176 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `# A/Bテスト設定` | L178 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `self.create_ab_test_config()` | L179 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `if self.verify_lm_eval_setup():` | L182 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("\n[SUCCESS] lm-eval and ELYZA-100 setup completed successfully!")` | L183 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("[READY] Ready for A/B testing with statistical analysis")` | L184 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `else:` | L185 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("\n[ERROR] Setup verification failed")` | L186 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `return False` | L187 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `except Exception as e:` | L189 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print(f"\n[ERROR] Setup failed: \{e\}")` | L190 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `return False` | L191 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `return True` | L193 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `def main():` | L195 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `parser = argparse.ArgumentParser(description="Setup lm-eval-harness and ELYZA-100")` | L196 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `parser.add_argument("--lm_eval_dir", type=str, default="lm-evaluation-harness",` | L197 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `help="Path to lm-evaluation-harness directory")` | L198 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `parser.add_argument("--eval_data_dir", type=str, default="data/evaluation",` | L199 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `help="Directory to store evaluation data")` | L200 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `args = parser.parse_args()` | L202 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `setup = LMEvalSetup(args.lm_eval_dir)` | L204 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `success = setup.run()` | L205 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `if success:` | L207 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("\n[SUCCESS] All components ready for A/B testing!")` | L208 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("Next: Run scripts/evaluation/run_llama_cpp_ab_test.py")` | L209 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `else:` | L210 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `print("\n[ERROR] Setup failed. Please check errors above.")` | L211 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `sys.exit(1)` | L212 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `if __name__ == "__main__":` | L214 |
+| `scripts/evaluation/setup_lm_eval_elyza.py` | `main()` | L215 |
+
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+setup_lm_eval_elyza.pyにもまだ絵文字が含まれていることがわかりました。以前修正したはずですが、まだ残っているようです。全ての絵文字をASCII文字に置き換える必要があります。
+</details></think>
+
+---
+
+Model performed no edit
+
+---
+
+<think><details><summary>Thought Process</summary>
+同じ文字列を置き換えようとしているので、エラーが発生しました。絵文字が含まれている行を特定して修正する必要があります。まず、具体的にどの行に絵文字があるかを確認しましょう。</details></think>
+
+---
+
+Tool call errored or timed out
+
+---
+
+_**User (2025-12-06 18:55Z)**_
+
+2025-12-07 04:08:33,904 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:08:45,258 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:08:45,258 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:08:45,258 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:08:45,259 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:08:45,259 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:08:45,259 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+---
+
+_**Agent (model grok-code-fast-1, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+ユーザーはMOONSHOTシステムで継続的に発生しているUnicodeEncodeError（絵文字エンコードエラー）を報告しています。ログから、Phase 0, 1, 2が失敗し続けていることがわかります。
+
+
+## Investigating user-reported issue  
+- The user reported recurring UnicodeEncodeError in the MOONSHOT system, specifically related to emoji encoding.</details></think>
+
+---
+
+Tool call errored or timed out
+
+---
+
+_**User (2025-12-06 18:55Z)**_
+
+OR OCCURRED =====
+
+
+
+2025-12-07 04:09:19,624 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:09:19,625 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:09:19,625 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:09:19,626 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:19,626 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:09:19,626 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:30,640 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:09:30,640 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:09:30,640 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:09:30,641 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:30,641 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:09:30,641 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:41,668 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:09:41,668 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:09:41,668 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:09:41,669 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:41,670 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:09:41,670 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:52,685 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:09:52,685 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:09:52,685 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:09:52,686 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:52,686 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:09:52,686 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:10:03,706 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:10:03,706 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:10:03,706 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:10:03,707 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:10:03,707 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:10:03,707 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:10:14,806 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:10:14,806 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:10:14,807 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:10:14,808 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:10:14,808 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:10:14,808 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =　cursorrulesにcp９３２エラー防止を書き込んで
+
+---
+
+_**Agent (model grok-code-fast-1, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+ユーザーはMOONSHOTシステムで継続的にUnicodeEncodeErrorが発生していることを報告しています。Phase 0, 1, 2が失敗し続け、絵文字エンコードエラーが発生しています。
+
+
+## Investigating User Issue  
+- The user reports continuous UnicodeEncodeError issues with the MOONSHOT system.</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: .cursor/rules/derived-cursor-rules.mdc</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Cursor Rulesファイルを確認しました。このファイルの最後にcp932エンコードエラーを防ぐためのルールを追加する必要があります。
+</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: .cursor/rules/derived-cursor-rules.mdc</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Cursor Rulesファイルの最後の方を見ました。このファイルの最後にcp932エンコードエラーを防ぐための新しいルールを追加する必要があります。
+</details></think>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: .cursor/rules/derived-cursor-rules.mdc</summary>
+
+**Chunk 1**
+Lines added: 101, lines removed: undefined
+
+```diff
+@@ -994,2 +994,103 @@
+  - Windows固有のファイルパス制限を考慮
+  - PowerShell/PowerShell Core両対応
++ 
++ ---
++ 
++ ## CP932 ENCODING ERROR PREVENTION RULES
++ 
++ ### UnicodeEncodeError対策（CRITICAL）
++ 
++ **MANDATORY**: Windows環境でのPythonスクリプト実行時に発生するcp932エンコードエラーを完全に防止すること。
++ 
++ #### エラー原因
++ - Pythonスクリプト内のUnicode絵文字使用
++ - Windowsコンソールのcp932エンコーディング制限
++ - print()文での絵文字出力時のエンコード変換失敗
++ 
++ #### 禁止事項
++ - **❌ ABSOLUTELY FORBIDDEN**: Pythonコード内での絵文字使用
++ - **❌ ABSOLUTELY FORBIDDEN**: print文でのUnicode絵文字出力
++ - **❌ ABSOLUTELY FORBIDDEN**: コメント内の絵文字使用
++ - **❌ ABSOLUTELY FORBIDDEN**: 文字列リテラル内の絵文字
++ 
++ #### 許可される代替表現
++ &#96;&#96;&#96;python
++ # ❌ 絶対禁止
++ print("🚀 処理を開始します")
++ print("✅ 成功しました")
++ print("❌ エラーが発生しました")
++ 
++ # ✅ 必須のASCII表現
++ print("[START] 処理を開始します")
++ print("[SUCCESS] 成功しました")
++ print("[ERROR] エラーが発生しました")
++ &#96;&#96;&#96;
++ 
++ #### 絵文字変換ルール（MANDATORY）
++ | Unicode絵文字 | ASCII表現 | 使用例 |
++ |---------------|-----------|--------|
++ | 🚀 | [START] | 起動・開始時 |
++ | 📥 | [DOWNLOAD] | ダウンロード時 |
++ | ⚙️ | [CONFIG] | 設定・構成時 |
++ | 🔍 | [VERIFY] | 検証・確認時 |
++ | ✅ | [SUCCESS] | 成功時 |
++ | ❌ | [ERROR] | エラー時 |
++ | 📊 | [INFO] | 情報表示時 |
++ | 🆚 | [ABTEST] | A/Bテスト時 |
++ | 🎉 | [SUCCESS] | 完了・成功時 |
++ | 🏁 | [FINISH] | 終了時 |
++ | 🔄 | [RESTART] | 再起動時 |
++ | ⏳ | [WAIT] | 待機時 |
++ | ⚡ | [FAST] | 高速処理時 |
++ | 🧠 | [CPU] | CPU関連 |
++ | 💾 | [STORAGE] | ストレージ関連 |
++ | 🎯 | [TARGET] | 目標・対象 |
++ | 📋 | [LIST] | リスト表示 |
++ | 🔥 | [HOT] | 高負荷時 |
++ | 🌟 | [STAR] | 強調表示 |
++ | 💡 | [IDEA] | アイデア・提案 |
++ | 🔧 | [TOOL] | ツール・ユーティリティ |
++ | 📈 | [UP] | 上昇・増加 |
++ | 📉 | [DOWN] | 下降・減少 |
++ 
++ #### 実装要件
++ 1. **MANDATORY**: 全Pythonファイルの絵文字をASCII表現に置換
++ 2. **MANDATORY**: 新規コードでは一切の絵文字を使用しない
++ 3. **MANDATORY**: コードレビューの際に絵文字使用をチェック
++ 4. **MANDATORY**: CI/CDパイプラインで絵文字検知を追加
++ 5. **MANDATORY**: エラー発生時の自動絵文字修正機能を準備
++ 
++ #### 検知・修正ツール
++ &#96;&#96;&#96;python
++ # 絵文字検知関数（推奨）
++ def detect_emojis(text: str) -&gt; List[str]:
++     """テキスト内の絵文字を検知"""
++     emoji_pattern = r'[\u2700-\u27BF]|[\u1f600-\u1f64F]|[\u1f300-\u1f5FF]|[\u1f680-\u1f6FF]|[\u1f1E0-\u1f1FF]|[\u2600-\u26FF]|[\u1f900-\u1f9FF]'
++     return re.findall(emoji_pattern, text)
++ 
++ # 自動置換関数（推奨）
++ def replace_emojis(text: str) -&gt; str:
++     """絵文字をASCII表現に置換"""
++     replacements = {
++         '🚀': '[START]', '📥': '[DOWNLOAD]', '⚙️': '[CONFIG]',
++         '🔍': '[VERIFY]', '✅': '[SUCCESS]', '❌': '[ERROR]',
++         '📊': '[INFO]', '🆚': '[ABTEST]', '🎉': '[SUCCESS]',
++         '🏁': '[FINISH]', '🔄': '[RESTART]', '⏳': '[WAIT]',
++         # ... 他の置換ルールを追加
++     }
++     for emoji, replacement in replacements.items():
++         text = text.replace(emoji, replacement)
++     return text
++ &#96;&#96;&#96;
++ 
++ #### 影響と重要性
++ - **CRITICAL**: このルール違反によりMOONSHOT Phase 0,1,2が継続的に失敗
++ - **CRITICAL**: UnicodeEncodeErrorによりシステム全体が停止
++ - **MANDATORY**: 全開発者がこのルールを厳守
++ - **MANDATORY**: 新規参加者への必須教育項目
++ 
++ #### 監視と対応
++ - **MANDATORY**: コミット前に絵文字チェックを実施
++ - **MANDATORY**: エラー検知時の自動修正ワークフロー
++ - **MANDATORY**: 定期的な全ファイル絵文字スキャン
++ - **MANDATORY**: 違反検知時の即時是正
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+Cursor Rulesにcp932エンコードエラーを防ぐためのルールを追加しました。これで今後、絵文字によるUnicodeEncodeErrorを防ぐことができます。
+</details></think>
+
+---
+
+Tool call errored or timed out
+
+---
+
+_**User (2025-12-06 18:55Z)**_
+
+OR OCCURRED =====
+
+2025-12-07 04:09:19,624 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:09:19,625 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:09:19,625 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:09:19,626 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:19,626 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:09:19,626 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:30,640 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:09:30,640 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:09:30,640 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:09:30,641 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:30,641 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:09:30,641 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:41,668 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:09:41,668 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:09:41,668 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:09:41,669 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:41,670 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:09:41,670 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:52,685 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:09:52,685 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:09:52,685 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:09:52,686 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:09:52,686 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:09:52,686 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:10:03,706 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:10:03,706 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:10:03,706 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:10:03,707 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:10:03,707 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:10:03,707 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =====
+
+2025-12-07 04:10:14,806 - ERROR - Phase Phase 0 が失敗しました
+
+2025-12-07 04:10:14,806 - ERROR - Phase Phase 1 が失敗しました
+
+2025-12-07 04:10:14,807 - ERROR - Phase Phase 2 が失敗しました
+
+MOONSHOT Overall Progress: 2025-12-07 04:10:14,808 - ERROR - エラー検知: [2025/12/07  3:06:52.35] ===== ERROR OCCURRED =====
+
+2025-12-07 04:10:14,808 - WARNING - 絵文字エンコードエラー検知: UnicodeEncodeError: 'cp932' codec can't encode character '\U0001f680' in position 0: illegal multibyte sequence
+
+2025-12-07 04:10:14,808 - ERROR - エラー検知: [2025/12/07  3:08:10.10] ===== ERROR OCCURRED =
+
+---
+
+_**Agent (model grok-code-fast-1, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+ユーザーは引き続きMOONSHOTシステムでUnicodeEncodeErrorが発生していることを報告しています。ログを見ると、Phase 0, 1, 2が失敗し続け、絵文字エンコードエラーが発生しています。
+
+
+## Investigating MOONSHOT System Issues
+- Users report ongoing UnicodeEncodeError in the MOONSHOT system, specifically during Phases 0, 1, and 2.
+- Logs show consistent failures linked to emoji encoding errors, suggesting a text processing issue.</details></think>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: auto_ab_test_pipeline.bat</summary>
+
+</details>
+</tool-use>
+
+---
+
+<think><details><summary>Thought Process</summary>
+auto_ab_test_pipeline.batを見ると、Phase 0, 1, 2で実行されるスクリプトは：
+
+
+## Examining Auto AB Test Pipeline
+
+- The auto_ab_test_pipeline.</details></think>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "[\u2700-\u27BF]|[\u1f600-\u1f64F]|[\u1f300-\u1f5FF]|[\u1f680-\u1f6FF]|[\u1f1E0-\u1f1FF]|[\u2600-\u26FF]|[\u1f900-\u1f9FF]" in "simple_rlpo_test.py" • 155 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `simple_rlpo_test.py` | `#!/usr/bin/env python3` | L1 |
+| `simple_rlpo_test.py` | `# -*- coding: utf-8 -*-` | L2 |
+| `simple_rlpo_test.py` | `Simple RLPO Test for MOONSHOT Quick Verification` | L4 |
+| `simple_rlpo_test.py` | `SO(8) NKAT Theory RLPO機能の基本テスト` | L5 |
+| `simple_rlpo_test.py` | `import sys` | L8 |
+| `simple_rlpo_test.py` | `import os` | L9 |
+| `simple_rlpo_test.py` | `import torch` | L10 |
+| `simple_rlpo_test.py` | `import torch.nn as nn` | L11 |
+| `simple_rlpo_test.py` | `import numpy as np` | L12 |
+| `simple_rlpo_test.py` | `from pathlib import Path` | L13 |
+| `simple_rlpo_test.py` | `# Add project root to path` | L15 |
+| `simple_rlpo_test.py` | `sys.path.append(str(Path(__file__).parent))` | L16 |
+| `simple_rlpo_test.py` | `def test_so8t_imports():` | L18 |
+| `simple_rlpo_test.py` | `"""SO8Tモジュールのインポートテスト"""` | L19 |
+| `simple_rlpo_test.py` | `print("[INFO] SO8Tモジュールインポートテスト...")` | L20 |
+| `simple_rlpo_test.py` | `try:` | L22 |
+| `simple_rlpo_test.py` | `from so8t_core import (` | L23 |
+| `simple_rlpo_test.py` | `SO8TRotationGate,` | L24 |
+| `simple_rlpo_test.py` | `PETRegularizer,` | L25 |
+| `simple_rlpo_test.py` | `PETSchedule,` | L26 |
+| `simple_rlpo_test.py` | `TrialityHead,` | L27 |
+| `simple_rlpo_test.py` | `SelfVerifier,` | L28 |
+| `simple_rlpo_test.py` | `SO8TModelConfig,` | L29 |
+| `simple_rlpo_test.py` | `BurnInManager` | L30 |
+| `simple_rlpo_test.py` | `print("[OK] SO8Tコアモジュールインポート成功")` | L32 |
+| `simple_rlpo_test.py` | `return True` | L33 |
+| `simple_rlpo_test.py` | `except ImportError as e:` | L34 |
+| `simple_rlpo_test.py` | `print(f"[NG] SO8Tインポートエラー: \{e\}")` | L35 |
+| `simple_rlpo_test.py` | `return False` | L36 |
+| `simple_rlpo_test.py` | `def test_so8t_rotation_gate():` | L38 |
+| `simple_rlpo_test.py` | `"""SO8TRotationGateの基本テスト"""` | L39 |
+| `simple_rlpo_test.py` | `print("[INFO] SO8T Rotation Gateテスト...")` | L40 |
+| `simple_rlpo_test.py` | `try:` | L42 |
+| `simple_rlpo_test.py` | `from so8t_core import SO8TRotationGate` | L43 |
+| `simple_rlpo_test.py` | `# 基本的な回転ゲートテスト (hidden_sizeは8の倍数である必要がある)` | L45 |
+| `simple_rlpo_test.py` | `gate = SO8TRotationGate(hidden_size=256)` | L46 |
+| `simple_rlpo_test.py` | `x = torch.randn(2, 10, 256)  # (batch, seq, hidden_size)` | L47 |
+| `simple_rlpo_test.py` | `output = gate(x)` | L49 |
+| `simple_rlpo_test.py` | `assert output.shape == x.shape, f"Shape mismatch: \{output.shape\} vs \{x.shape\}"` | L50 |
+| `simple_rlpo_test.py` | `print("[OK] SO8T Rotation Gateテスト成功")` | L52 |
+| `simple_rlpo_test.py` | `return True` | L53 |
+| `simple_rlpo_test.py` | `except Exception as e:` | L54 |
+| `simple_rlpo_test.py` | `print(f"[NG] Rotation Gateテスト失敗: \{e\}")` | L55 |
+| `simple_rlpo_test.py` | `return False` | L56 |
+| `simple_rlpo_test.py` | `def test_pet_regularizer():` | L58 |
+| `simple_rlpo_test.py` | `"""PET Regularizerの基本テスト"""` | L59 |
+| `simple_rlpo_test.py` | `print("[INFO] PET Regularizerテスト...")` | L60 |
+| `simple_rlpo_test.py` | `try:` | L62 |
+| `simple_rlpo_test.py` | `from so8t_core import PETRegularizer, PETSchedule` | L63 |
+| `simple_rlpo_test.py` | `# PET Regularizerテスト` | L65 |
+| `simple_rlpo_test.py` | `schedule = PETSchedule()` | L66 |
+| `simple_rlpo_test.py` | `regularizer = PETRegularizer(schedule=schedule)` | L67 |
+| `simple_rlpo_test.py` | `# hidden_statesでテスト (B, T, D)` | L69 |
+| `simple_rlpo_test.py` | `hidden_states = torch.randn(2, 10, 256)` | L70 |
+| `simple_rlpo_test.py` | `progress = 0.5  # トレーニング進捗 (0-1)` | L71 |
+| `simple_rlpo_test.py` | `reg_loss = regularizer(hidden_states, progress)` | L73 |
+| `simple_rlpo_test.py` | `assert isinstance(reg_loss, torch.Tensor), "Regularizer should return tensor"` | L74 |
+| `simple_rlpo_test.py` | `print("[OK] PET Regularizerテスト成功")` | L76 |
+| `simple_rlpo_test.py` | `return True` | L77 |
+| `simple_rlpo_test.py` | `except Exception as e:` | L78 |
+| `simple_rlpo_test.py` | `print(f"[NG] PET Regularizerテスト失敗: \{e\}")` | L79 |
+| `simple_rlpo_test.py` | `return False` | L80 |
+| `simple_rlpo_test.py` | `def test_triality_head():` | L82 |
+| `simple_rlpo_test.py` | `"""Triality Headの基本テスト"""` | L83 |
+| `simple_rlpo_test.py` | `print("[INFO] Triality Headテスト...")` | L84 |
+| `simple_rlpo_test.py` | `try:` | L86 |
+| `simple_rlpo_test.py` | `from so8t_core import TrialityHead` | L87 |
+| `simple_rlpo_test.py` | `# Triality Headテスト` | L89 |
+| `simple_rlpo_test.py` | `head = TrialityHead(hidden_size=256)` | L90 |
+| `simple_rlpo_test.py` | `x = torch.randn(2, 10, 256)  # (batch, seq, hidden_size)` | L91 |
+| `simple_rlpo_test.py` | `output = head(x)` | L93 |
+| `simple_rlpo_test.py` | `assert hasattr(output, 'logits'), "TrialityOutput should have logits"` | L94 |
+| `simple_rlpo_test.py` | `assert hasattr(output, 'probabilities'), "TrialityOutput should have probabilities"` | L95 |
+| `simple_rlpo_test.py` | `assert hasattr(output, 'predicted'), "TrialityOutput should have predicted"` | L96 |
+| `simple_rlpo_test.py` | `print("[OK] Triality Headテスト成功")` | L98 |
+| `simple_rlpo_test.py` | `return True` | L99 |
+| `simple_rlpo_test.py` | `except Exception as e:` | L100 |
+| `simple_rlpo_test.py` | `print(f"[NG] Triality Headテスト失敗: \{e\}")` | L101 |
+| `simple_rlpo_test.py` | `return False` | L102 |
+| `simple_rlpo_test.py` | `def test_self_verifier():` | L104 |
+| `simple_rlpo_test.py` | `"""Self-Verifierの基本テスト"""` | L105 |
+| `simple_rlpo_test.py` | `print("[INFO] Self-Verifierテスト...")` | L106 |
+| `simple_rlpo_test.py` | `try:` | L108 |
+| `simple_rlpo_test.py` | `from so8t_core import SelfVerifier` | L109 |
+| `simple_rlpo_test.py` | `# Self-Verifierテスト` | L111 |
+| `simple_rlpo_test.py` | `verifier = SelfVerifier()` | L112 |
+| `simple_rlpo_test.py` | `reasoning = "This is a test reasoning."` | L113 |
+| `simple_rlpo_test.py` | `logits = torch.randn(1, 10)  # (batch, vocab_size)` | L114 |
+| `simple_rlpo_test.py` | `compliance_score = 0.8  # コンプライアンススコア` | L115 |
+| `simple_rlpo_test.py` | `result = verifier.score_pass(reasoning, logits, compliance_score)` | L117 |
+| `simple_rlpo_test.py` | `assert isinstance(result, float), "score_pass should return float"` | L118 |
+| `simple_rlpo_test.py` | `print("[OK] Self-Verifierテスト成功")` | L120 |
+| `simple_rlpo_test.py` | `return True` | L121 |
+| `simple_rlpo_test.py` | `except Exception as e:` | L122 |
+| `simple_rlpo_test.py` | `print(f"[NG] Self-Verifierテスト失敗: \{e\}")` | L123 |
+| `simple_rlpo_test.py` | `return False` | L124 |
+| `simple_rlpo_test.py` | `def test_torch_cuda():` | L126 |
+| `simple_rlpo_test.py` | `"""PyTorch CUDA利用可能性テスト"""` | L127 |
+| `simple_rlpo_test.py` | `print("[INFO] PyTorch CUDAテスト...")` | L128 |
+| `simple_rlpo_test.py` | `if torch.cuda.is_available():` | L130 |
+| `simple_rlpo_test.py` | `device_count = torch.cuda.device_count()` | L131 |
+| `simple_rlpo_test.py` | `current_device = torch.cuda.current_device()` | L132 |
+| `simple_rlpo_test.py` | `device_name = torch.cuda.get_device_name(current_device)` | L133 |
+| `simple_rlpo_test.py` | `print(f"[OK] CUDA利用可能: \{device_count\}デバイス")` | L135 |
+| `simple_rlpo_test.py` | `print(f"   現在のデバイス: \{current_device\} (\{device_name\})")` | L136 |
+| `simple_rlpo_test.py` | `# 簡単なCUDAテンソルテスト` | L138 |
+| `simple_rlpo_test.py` | `x = torch.randn(100, 100).cuda()` | L139 |
+| `simple_rlpo_test.py` | `y = torch.randn(100, 100).cuda()` | L140 |
+| `simple_rlpo_test.py` | `z = torch.matmul(x, y)` | L141 |
+| `simple_rlpo_test.py` | `assert z.shape == (100, 100), "CUDA matrix multiplication failed"` | L142 |
+| `simple_rlpo_test.py` | `print("[OK] CUDAテンソル演算成功")` | L144 |
+| `simple_rlpo_test.py` | `return True` | L145 |
+| `simple_rlpo_test.py` | `else:` | L146 |
+| `simple_rlpo_test.py` | `print("[WARNING] CUDA利用不可 - CPUモードで実行")` | L147 |
+| `simple_rlpo_test.py` | `return True` | L148 |
+| `simple_rlpo_test.py` | `def main():` | L150 |
+| `simple_rlpo_test.py` | `print("[START] MOONSHOT Simple RLPO Test開始")` | L152 |
+| `simple_rlpo_test.py` | `print("=" * 50)` | L153 |
+| `simple_rlpo_test.py` | `print(f"Python: \{sys.version\}")` | L156 |
+| `simple_rlpo_test.py` | `print(f"PyTorch: \{torch.__version__\}")` | L157 |
+| `simple_rlpo_test.py` | `print(f"CUDA Available: \{torch.cuda.is_available()\}")` | L158 |
+| `simple_rlpo_test.py` | `if torch.cuda.is_available():` | L159 |
+| `simple_rlpo_test.py` | `print(f"CUDA Version: \{torch.version.cuda\}")` | L160 |
+| `simple_rlpo_test.py` | `print()` | L161 |
+| `simple_rlpo_test.py` | `tests = [` | L164 |
+| `simple_rlpo_test.py` | `("SO8T Imports", test_so8t_imports),` | L165 |
+| `simple_rlpo_test.py` | `("CUDA Support", test_torch_cuda),` | L166 |
+| `simple_rlpo_test.py` | `("SO8T Rotation Gate", test_so8t_rotation_gate),` | L167 |
+| `simple_rlpo_test.py` | `("PET Regularizer", test_pet_regularizer),` | L168 |
+| `simple_rlpo_test.py` | `("Triality Head", test_triality_head),` | L169 |
+| `simple_rlpo_test.py` | `("Self-Verifier", test_self_verifier),` | L170 |
+| `simple_rlpo_test.py` | `]` | L171 |
+| `simple_rlpo_test.py` | `passed = 0` | L173 |
+| `simple_rlpo_test.py` | `total = len(tests)` | L174 |
+| `simple_rlpo_test.py` | `for test_name, test_func in tests:` | L176 |
+| `simple_rlpo_test.py` | `try:` | L177 |
+| `simple_rlpo_test.py` | `if test_func():` | L178 |
+| `simple_rlpo_test.py` | `passed += 1` | L179 |
+| `simple_rlpo_test.py` | `print(f"[OK] \{test_name\}: PASSED")` | L180 |
+| `simple_rlpo_test.py` | `else:` | L181 |
+| `simple_rlpo_test.py` | `print(f"[NG] \{test_name\}: FAILED")` | L182 |
+| `simple_rlpo_test.py` | `except Exception as e:` | L183 |
+| `simple_rlpo_test.py` | `print(f"[ERROR] \{test_name\}: ERROR - \{e\}")` | L184 |
+| `simple_rlpo_test.py` | `print()` | L185 |
+| `simple_rlpo_test.py` | `print("=" * 50)` | L188 |
+| `simple_rlpo_test.py` | `print(f"テスト結果: \{passed\}/\{total\} 通過")` | L189 |
+| `simple_rlpo_test.py` | `if passed == total:` | L191 |
+| `simple_rlpo_test.py` | `print("[SUCCESS] すべてのテストが成功しました！MOONSHOT Ready!")` | L192 |
+| `simple_rlpo_test.py` | `return 0` | L193 |
+| `simple_rlpo_test.py` | `else:` | L194 |
+| `simple_rlpo_test.py` | `print("[WARNING] 一部のテストが失敗しました。システムを確認してください。")` | L195 |
+| `simple_rlpo_test.py` | `return 1` | L196 |
+| `simple_rlpo_test.py` | `if __name__ == "__main__":` | L198 |
+| `simple_rlpo_test.py` | `exit_code = main()` | L199 |
+| `simple_rlpo_test.py` | `sys.exit(exit_code)` | L200 |
+
+
+</details>
+</tool-use>
+
+---
+
 
 
 ---

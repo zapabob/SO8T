@@ -29,7 +29,7 @@ def test_so8t_imports():
             SO8TModelConfig,
             BurnInManager
         )
-        print("[OK] SO8Tコアモジュールインポート成功")
+        print("[SUCCESS] SO8T core modules imported successfully")
         return True
     except ImportError as e:
         print(f"[NG] SO8Tインポートエラー: {e}")

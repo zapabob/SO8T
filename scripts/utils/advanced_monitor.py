@@ -214,7 +214,7 @@ class MoonshotMonitor:
         """メイン監視ループ"""
         logger.info("MOONSHOT監視ループを開始します")
         print("\n" + "="*80)
-        print("🚀 MOONSHOT AEGIS 高度監視システム")
+        print("[START] MOONSHOT AEGIS Advanced Monitor System")
         print("="*80)
         print(f"開始時刻: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"ログファイル: {self.log_file}")
