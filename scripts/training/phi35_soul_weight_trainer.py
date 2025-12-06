@@ -64,16 +64,17 @@ class SoulWeightModule(nn.Module):
         super().__init__()
         self.config = config
 
-        # Phi3.5事前学習モデルをロード (全GPUモード - RTX3060対応)
-        print("Phi3.5事前学習モデルをロード中 (GPUモード: float16)...")
+        # Phi3.5事前学習モデルをロードして凍結 (CPU/GPUハイブリッド - メモリ節約)
+        print("Phi3.5事前学習モデルをロード中 (CPUベース)...")
         self.base_model = AutoModelForCausalLM.from_pretrained(
             "microsoft/phi-3.5-mini-instruct",
-            torch_dtype=torch.float16,  # GPU用float16（メモリ半減＆高速化）
-            device_map="cuda",          # GPUに配置
+            torch_dtype=torch.float32,  # CPU用float32
+            device_map={"": "cpu"},     # CPUに配置
             trust_remote_code=True,
             low_cpu_mem_usage=True
         )
-        # GPUに配置済みなのでto()不要
+        # 明示的にCPUに配置
+        self.base_model = self.base_model.to('cpu')
 
         # メモリ節約のための設定
         self.base_model.gradient_checkpointing_enable()
@@ -122,14 +123,10 @@ class SoulWeightModule(nn.Module):
         nn.init.constant_(self.adapter_norm.weight, 1.0)
         nn.init.constant_(self.adapter_norm.bias, 0.0)
 
-        # アダプターパラメータをGPUに移動 (GPU優先)
-        self.soul_weights.data = self.soul_weights.data.cuda()
-        self.alpha_gate.data = self.alpha_gate.data.cuda()
-        self.nkat_adapter.cuda()
-        self.adapter_norm.cuda()
-        self.adapter_lm_head.cuda()
+        # GPU移動はforwardで初回に遅延実行（メモリ節約）
+        self._gpu_moved = False
 
-        print("SO(8)アダプターパラメータを初期化しました (float16)")
+        print("SO(8)アダプターパラメータを初期化しました (CPU)")
 
     def get_trainable_parameters(self):
         """学習対象のパラメータのみを返す"""
@@ -160,24 +157,26 @@ class SoulWeightModule(nn.Module):
             self.alpha_gate.data = torch.tensor(ALPHA_START)
 
     def forward(self, input_ids: torch.Tensor, current_step: int = 0, total_steps: int = 1000) -> torch.Tensor:
-        """順伝播 (Phi3.5 + SO(8)アダプター - 全GPUモード)"""
-        # Phi3.5ベースモデルで順伝播 (GPUで計算、凍結されたパラメータ)
+        """順伝播 (Phi3.5 + SO(8)アダプター - CPU/GPUハイブリッド)"""
+        # Phi3.5ベースモデルで順伝播 (CPUで計算、凍結されたパラメータ)
         with torch.no_grad():
             base_outputs = self.base_model(
-                input_ids,  # GPUでPhi3.5計算（そのまま）
+                input_ids.to('cpu'),  # CPUでPhi3.5計算
                 output_hidden_states=True,
                 use_cache=False
             )
-            hidden_states = base_outputs.hidden_states[-1]  # 既にGPUにあるのでto()不要
+            hidden_states = base_outputs.hidden_states[-1].to(self.device)  # GPUに移動してアダプター計算
 
-        # アダプターパラメータをGPUに移動（初回のみ）
-        if not hasattr(self, '_moved_to_gpu'):
+        # アダプターパラメータをGPUに移動（初回のみ、メモリ節約）
+        if not self._gpu_moved:
+            print("アダプターパラメータをGPUに移動中...")
             self.soul_weights.data = self.soul_weights.data.to(self.device)
             self.alpha_gate.data = self.alpha_gate.data.to(self.device)
             self.nkat_adapter = self.nkat_adapter.to(self.device)
             self.adapter_norm = self.adapter_norm.to(self.device)
             self.adapter_lm_head = self.adapter_lm_head.to(self.device)
-            self._moved_to_gpu = True
+            self._gpu_moved = True
+            print("GPU移動完了")
 
         # SO(8)魂の重みスケーリング適用
         soul_scale = torch.mean(torch.abs(self.soul_weights))  # SO(8)次元のスケール
@@ -314,21 +313,34 @@ class Phi35SoulTrainer:
 
     def __init__(self, config: Phi35SoulConfig):
         self.config = config
-        # GPU優先設定（MOONSHOT GPU学習用 - CPU/GPUハイブリッド）
+        # GPU優先設定（MOONSHOT GPU学習用 - メモリ節約重視）
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
             print(f"GPUモード使用: {torch.cuda.get_device_name(0)} ({torch.cuda.get_device_properties(0).total_memory // 1024**3}GB VRAM)")
-            # GPUメモリ最適化
+            # GPUメモリ最適化（アダプター専用）
             torch.cuda.empty_cache()
+            # Phi-3.5はCPU、アダプターのみGPU使用
             if hasattr(torch.cuda, 'set_per_process_memory_fraction'):
-                torch.cuda.set_per_process_memory_fraction(0.6)  # 60%使用制限（Phi3.5+アダプター用）
+                torch.cuda.set_per_process_memory_fraction(0.8)  # 80%使用制限（アダプター用）
+
+            # CUDAメモリ断片化防止設定
+            import os
+            os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
         else:
             self.device = torch.device('cpu')
             print("CPUモード使用（GPU未検出）- MOONSHOTでは推奨されません")
 
-        # モデル初期化 (CPU/GPUハイブリッド)
+        # Phi-3.5モデルロード後にメモリクリアしてからアダプター初期化
+        print("Phi-3.5モデル初期化開始...")
         self.model = SoulWeightModule(config)  # CPUにPhi3.5、GPUにアダプター
         self.model.device = self.device  # デバイス設定
+
+        # メモリ節約のため、Phi-3.5ロード後に完全にクリア
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            # 古いキャッシュを完全にクリア
+            torch.cuda.synchronize()
+            print("GPUメモリ完全クリア完了")
 
         # オプティマイザー (アダプターパラメータのみ学習)
         self.optimizer = optim.AdamW(
