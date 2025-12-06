@@ -32,6 +32,10 @@ PHI_NEG_2 = PHI ** (-2)  # Φ^(-2)
 ALPHA_START = -0.5  # アルファゲート開始値
 ALPHA_END = PHI_NEG_2  # アルファゲート終了値
 
+# SO(8)直交性定数
+SO8_DIM = 8  # SO(8)次元
+ORTHOGONALITY_EPS = 1e-6  # 直交性の許容誤差
+
 @dataclass
 class Phi35SoulConfig:
     """Phi3.5魂の重み学習設定"""
@@ -40,8 +44,8 @@ class Phi35SoulConfig:
     nkat_hidden: int = 8192  # NKAT層の中間層サイズ
     alpha_gate_steps: int = 1000  # アルファゲートアニーリングステップ数
     learning_rate: float = 5e-5  # アダプター学習用に低めに設定
-    batch_size: int = 1  # CPUモードのためバッチサイズ1
-    num_epochs: int = 1  # デバッグ用に1エポックのみ
+    batch_size: int = 2  # CPU/GPUハイブリッド用に小さめに
+    num_epochs: int = 10
     warmup_steps: int = 100
     max_grad_norm: float = 1.0
     save_steps: int = 500
@@ -58,13 +62,14 @@ class SoulWeightModule(nn.Module):
         super().__init__()
         self.config = config
 
-        # Phi3.5事前学習モデルをロードして凍結 (CPUモード)
+        # Phi3.5事前学習モデルをロードして凍結 (CPU/GPUハイブリッド)
         print("Phi3.5事前学習モデルをロード中 (CPU)...")
         self.base_model = AutoModelForCausalLM.from_pretrained(
             "microsoft/phi-3.5-mini-instruct",
-            torch_dtype=torch.float32,  # CPUではfloat32を使用
-            device_map="cpu",  # CPUのみ使用
-            trust_remote_code=True
+            torch_dtype=torch.float32,  # CPUでfloat32
+            device_map={"": "cpu"},  # CPUに配置
+            trust_remote_code=True,
+            low_cpu_mem_usage=True  # CPUメモリ節約
         )
 
         # メモリ節約のための設定
@@ -78,22 +83,22 @@ class SoulWeightModule(nn.Module):
         print("Phi3.5モデルパラメータを凍結しました")
         print(f"モデルメモリ使用量: {sum(p.numel() * p.element_size() for p in self.base_model.parameters()) / (1024**3):.2f} GB")
 
-        # SO(8)魂の重みアダプター層 (CPU/float32対応)
-        self.soul_weights = nn.Parameter(torch.randn(config.soul_weight_dim, dtype=torch.float32))
-        self.alpha_gate = nn.Parameter(torch.tensor(ALPHA_START, dtype=torch.float32))
+        # SO(8)魂の重みアダプター層 (GPU/float16対応)
+        self.soul_weights = nn.Parameter(torch.randn(config.soul_weight_dim, dtype=torch.float16))
+        self.alpha_gate = nn.Parameter(torch.tensor(ALPHA_START, dtype=torch.float16))
 
-        # NKATアダプターレイヤー (学習対象, CPU/float32対応)
+        # NKATアダプターレイヤー (学習対象, GPU/float16対応)
         self.nkat_adapter = nn.Sequential(
-            nn.Linear(config.hidden_size, config.nkat_hidden, dtype=torch.float32),
+            nn.Linear(config.hidden_size, config.nkat_hidden, dtype=torch.float16),
             nn.ReLU(),
-            nn.Linear(config.nkat_hidden, config.hidden_size, dtype=torch.float32)
+            nn.Linear(config.nkat_hidden, config.hidden_size, dtype=torch.float16)
         )
 
-        # 層正規化 (学習対象, CPU/float32対応)
-        self.adapter_norm = nn.LayerNorm(config.hidden_size, dtype=torch.float32)
+        # 層正規化 (学習対象, GPU/float16対応)
+        self.adapter_norm = nn.LayerNorm(config.hidden_size, dtype=torch.float16)
 
         # アダプター用LMヘッド (学習対象, Phi3.5の語彙サイズに合わせる)
-        self.adapter_lm_head = nn.Linear(config.hidden_size, 51200, dtype=torch.float32)
+        self.adapter_lm_head = nn.Linear(config.hidden_size, 51200, dtype=torch.float16)
 
         # アダプター初期化
         self._initialize_adapter_weights()
@@ -111,8 +116,12 @@ class SoulWeightModule(nn.Module):
         nn.init.constant_(self.adapter_norm.weight, 1.0)
         nn.init.constant_(self.adapter_norm.bias, 0.0)
 
-        # 全アダプターパラメータをCPUに配置 (float32)
-        # CPUモードなのでcuda()呼び出し不要
+        # アダプターパラメータをGPUに移動 (ハイブリッドモード)
+        self.soul_weights.data = self.soul_weights.data.cuda()
+        self.alpha_gate.data = self.alpha_gate.data.cuda()
+        self.nkat_adapter.cuda()
+        self.adapter_norm.cuda()
+        self.adapter_lm_head.cuda()
 
         print("SO(8)アダプターパラメータを初期化しました (float16)")
 
@@ -146,23 +155,22 @@ class SoulWeightModule(nn.Module):
 
     def forward(self, input_ids: torch.Tensor, current_step: int = 0, total_steps: int = 1000) -> torch.Tensor:
         """順伝播 (Phi3.5 + SO(8)アダプター)"""
-        # Phi3.5ベースモデルで順伝播 (凍結されたパラメータ)
-        # ベースモデルは凍結されているので、勾配は流れませんが、
-        # アダプター部分の勾配計算のためにdetach()を使用
-        base_outputs = self.base_model(
-            input_ids,
-            output_hidden_states=True,
-            use_cache=False  # キャッシュを無効化
-        )
-        hidden_states = base_outputs.hidden_states[-1].detach()  # 勾配を切断してアダプター学習に使用
+        # Phi3.5ベースモデルで順伝播 (CPUで計算、凍結されたパラメータ)
+        with torch.no_grad():
+            base_outputs = self.base_model(
+                input_ids.to('cpu'),  # CPUでPhi3.5計算
+                output_hidden_states=True,
+                use_cache=False
+            )
+            hidden_states = base_outputs.hidden_states[-1].to(self.soul_weights.device)  # GPUに移動してアダプター計算
 
         # SO(8)魂の重みスケーリング適用
         soul_scale = torch.mean(torch.abs(self.soul_weights))  # SO(8)次元のスケール
         x = hidden_states * (1.0 + soul_scale * 0.1)  # 軽いスケーリング
 
-        # アルファゲートアニーリング (CPU/float32対応)
+        # アルファゲートアニーリング (GPU/float16対応)
         t = current_step / max(total_steps - 1, 1)
-        sigmoid_value = 1 / (1 + torch.exp(torch.tensor(-6 * (t - 0.5), dtype=torch.float32, device=self.soul_weights.device)))
+        sigmoid_value = 1 / (1 + torch.exp(torch.tensor(-6 * (t - 0.5), dtype=torch.float16, device=self.soul_weights.device)))
         annealed_alpha = ALPHA_START + (ALPHA_END - ALPHA_START) * sigmoid_value
 
         # NKATアダプター適用 (学習対象)
@@ -183,6 +191,23 @@ class SoulWeightModule(nn.Module):
         t = current_step / max(total_steps - 1, 1)
         sigmoid_value = 1 / (1 + math.exp(-6 * (t - 0.5)))
         return ALPHA_START + (ALPHA_END - ALPHA_START) * sigmoid_value
+
+    def calculate_so8_orthogonality_loss(self) -> torch.Tensor:
+        """SO(8)直交性誤差を計算"""
+        # SO(8)基底ベクトル (理想的な直交基底)
+        so8_basis = torch.eye(SO8_DIM, dtype=self.soul_weights.dtype, device=self.soul_weights.device)
+
+        # 魂の重みベクトルとSO(8)基底の内積
+        dot_products = torch.matmul(self.soul_weights.unsqueeze(0), so8_basis.t())
+
+        # 直交性の誤差: 理想的には単位行列になるべき
+        orthogonality_matrix = torch.matmul(self.soul_weights.unsqueeze(-1), self.soul_weights.unsqueeze(0))
+        ideal_orthogonal = torch.eye(SO8_DIM, dtype=self.soul_weights.dtype, device=self.soul_weights.device)
+
+        # Frobeniusノルムで直交誤差を計算
+        orthogonality_error = torch.norm(orthogonality_matrix - ideal_orthogonal, p='fro')
+
+        return orthogonality_error
 
 class Phi35SoulDataset(Dataset):
     """Phi3.5魂の重み学習用データセット"""
@@ -273,7 +298,7 @@ class Phi35SoulTrainer:
 
     def __init__(self, config: Phi35SoulConfig):
         self.config = config
-        self.device = torch.device('cpu')  # CPUモード固定
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # モデル初期化
         self.model = SoulWeightModule(config).to(self.device)
@@ -295,14 +320,14 @@ class Phi35SoulTrainer:
             T_max=config.alpha_gate_steps
         )
 
-        # 損失関数 (言語モデリング用, CPU/float32対応)
-        self.criterion = nn.CrossEntropyLoss(ignore_index=-100)
+        # 損失関数 (言語モデリング用, GPU/float16対応)
+        self.criterion = nn.CrossEntropyLoss(ignore_index=-100).cuda()
 
-        # チェックポイント保存ディレクトリ
+        # チェックポイント保存ディレクトリ (C:\ドライブ使用 - H:\利用不可)
         self.checkpoint_dir = PROJECT_ROOT / 'checkpoints' / 'soul_weight_training'
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-        # ログディレクトリ
+        # ログディレクトリ (C:\ドライブ使用)
         self.log_dir = PROJECT_ROOT / '_docs' / 'training_logs'
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -341,6 +366,7 @@ class Phi35SoulTrainer:
             print(f"\n=== エポック {epoch + 1}/{self.config.num_epochs} ===")
 
             epoch_loss = 0.0
+            epoch_orthogonality_loss = 0.0
             epoch_steps = 0
 
             progress_bar = tqdm(
@@ -358,20 +384,16 @@ class Phi35SoulTrainer:
                 # 順伝播 (言語モデリング)
                 outputs = self.model(input_ids, global_step, self.config.alpha_gate_steps)
 
-                # デバッグ: NaNチェック
-                if torch.isnan(outputs).any():
-                    print(f"[DEBUG] outputsにNaN検知: {torch.isnan(outputs).sum()}個")
-                    continue
-
                 # 損失計算 (次トークン予測)
                 # outputs: [batch_size, seq_len, vocab_size]
                 # labels: [batch_size, seq_len]
                 loss = self.criterion(outputs.view(-1, outputs.size(-1)), labels.view(-1))
 
-                # デバッグ: lossチェック
-                if torch.isnan(loss) or torch.isinf(loss):
-                    print(f"[DEBUG] loss異常: {loss.item()}, outputs shape={outputs.shape}, labels shape={labels.shape}")
-                    continue
+                # SO(8)直交性誤差計算
+                orthogonality_loss = self.model.calculate_so8_orthogonality_loss()
+
+                # メイン損失に直交誤差を加算 (重み付き)
+                total_loss = loss + 0.1 * orthogonality_loss
 
                 # 逆伝播
                 self.optimizer.zero_grad()
@@ -388,6 +410,7 @@ class Phi35SoulTrainer:
 
                 # ロギング
                 epoch_loss += loss.item()
+                epoch_orthogonality_loss += orthogonality_loss.item()
                 epoch_steps += 1
                 global_step += 1
 
@@ -396,6 +419,8 @@ class Phi35SoulTrainer:
 
                 progress_bar.set_postfix({
                     'loss': f"{loss.item():.4f}",
+                    'ortho_err': f"{orthogonality_loss.item():.6f}",
+                    'total_loss': f"{total_loss.item():.4f}",
                     'alpha': f"{current_alpha:.4f}",
                     'lr': f"{self.scheduler.get_last_lr()[0]:.6f}"
                 })
@@ -410,9 +435,9 @@ class Phi35SoulTrainer:
                     # 復旧情報更新
                     self._save_recovery_info(epoch, global_step, loss.item())
 
-                    # CPUメモリ解放 (不要だが念のため)
-                    import gc
-                    gc.collect()
+                    # CUDAメモリ解放
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
 
                 # 定期チェックポイント保存
                 if global_step % self.config.save_steps == 0:
@@ -429,7 +454,8 @@ class Phi35SoulTrainer:
 
             # エポック完了
             avg_epoch_loss = epoch_loss / epoch_steps
-            print(f"エポック {epoch + 1} 完了 - 平均損失: {avg_epoch_loss:.4f}")
+            avg_epoch_orthogonality_loss = epoch_orthogonality_loss / epoch_steps
+            print(f"エポック {epoch + 1} 完了 - 平均損失: {avg_epoch_loss:.4f}, SO(8)直交誤差: {avg_epoch_orthogonality_loss:.6f}")
 
             # 魂の重み状態表示
             with torch.no_grad():
@@ -442,9 +468,9 @@ class Phi35SoulTrainer:
             # 復旧情報更新
             self._save_recovery_info(epoch + 1, global_step, avg_epoch_loss)
 
-            # エポック完了時のメモリ解放
-            import gc
-            gc.collect()
+            # エポック完了時のCUDAメモリ解放
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
         # 学習完了後のHF形式保存
         print(f"\n[SAVE] 学習完了 - HF形式でモデル保存...")
