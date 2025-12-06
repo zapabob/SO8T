@@ -20,6 +20,7 @@ from datetime import datetime
 import json
 import numpy as np
 from tqdm import tqdm
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # プロジェクトルート設定
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -35,6 +36,8 @@ ALPHA_END = PHI_NEG_2  # アルファゲート終了値
 class Phi35SoulConfig:
     """Phi3.5魂の重み学習設定"""
     soul_weight_dim: int = 8  # 魂の重み次元
+    hidden_size: int = 3072  # Phi3.5の隠れ層サイズ
+    nkat_hidden: int = 8192  # NKAT層の中間層サイズ
     alpha_gate_steps: int = 1000  # アルファゲートアニーリングステップ数
     learning_rate: float = 1e-4
     batch_size: int = 4
@@ -49,32 +52,64 @@ class Phi35SoulConfig:
     rotation_groups: int = 8  # 回転群数
 
 class SoulWeightModule(nn.Module):
-    """魂の重みモジュール"""
+    """魂の重みモジュール (Phi3.5事前学習モデル + SO(8)アダプター)"""
 
     def __init__(self, config: Phi35SoulConfig):
         super().__init__()
         self.config = config
 
-        # 魂の重みパラメータ（SO(8)表現）
-        self.soul_weights = nn.Parameter(
-            torch.randn(config.soul_weight_dim, requires_grad=True)
+        # Phi3.5事前学習モデルをロードして凍結
+        print("Phi3.5事前学習モデルをロード中...")
+        self.base_model = AutoModelForCausalLM.from_pretrained(
+            "microsoft/phi-3.5-mini-instruct",
+            torch_dtype=torch.float16,
+            device_map="auto",
+            trust_remote_code=True
         )
 
-        # アルファゲートパラメータ
-        self.alpha_gate = nn.Parameter(
-            torch.tensor(ALPHA_START, requires_grad=True)
+        # 元のモデルパラメータを凍結
+        for param in self.base_model.parameters():
+            param.requires_grad = False
+
+        print("Phi3.5モデルパラメータを凍結しました")
+
+        # SO(8)魂の重みアダプター層
+        self.soul_weights = nn.Parameter(torch.randn(config.soul_weight_dim))
+        self.alpha_gate = nn.Parameter(torch.tensor(ALPHA_START))
+
+        # NKATアダプターレイヤー (学習対象)
+        self.nkat_adapter = nn.Sequential(
+            nn.Linear(config.hidden_size, config.nkat_hidden),
+            nn.ReLU(),
+            nn.Linear(config.nkat_hidden, config.hidden_size)
         )
 
-        # NKAT層（SO(8)回転層）
-        self.nkat_layers = nn.ModuleList([
-            self._create_nkat_layer() for _ in range(config.nkat_layers)
-        ])
+        # 層正規化 (学習対象)
+        self.adapter_norm = nn.LayerNorm(config.hidden_size)
 
-        # 層正規化
-        self.layer_norm = nn.LayerNorm(config.soul_weight_dim)
+        # アダプター初期化
+        self._initialize_adapter_weights()
 
-        # 初期化
-        self._initialize_weights()
+    def _initialize_adapter_weights(self):
+        """アダプターパラメータの初期化"""
+        # NKATアダプターの初期化
+        for module in self.nkat_adapter.modules():
+            if isinstance(module, nn.Linear):
+                nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0.0)
+
+        # 層正規化の初期化
+        nn.init.constant_(self.adapter_norm.weight, 1.0)
+        nn.init.constant_(self.adapter_norm.bias, 0.0)
+
+        print("SO(8)アダプターパラメータを初期化しました")
+
+    def get_trainable_parameters(self):
+        """学習対象のパラメータのみを返す"""
+        return list(self.soul_weights) + list(self.alpha_gate) + \
+               list(self.nkat_adapter.parameters()) + \
+               list(self.adapter_norm.parameters())
 
     def _create_nkat_layer(self) -> nn.Module:
         """NKAT層作成（SO(8)回転層）"""
@@ -97,27 +132,34 @@ class SoulWeightModule(nn.Module):
             # アルファゲートを適切な範囲に初期化
             self.alpha_gate.data = torch.tensor(ALPHA_START)
 
-    def forward(self, x: torch.Tensor, current_step: int, total_steps: int) -> torch.Tensor:
-        """順伝播"""
-        # アルファゲートアニーリング（シグモイド関数）
+    def forward(self, input_ids: torch.Tensor, current_step: int = 0, total_steps: int = 1000) -> torch.Tensor:
+        """順伝播 (Phi3.5 + SO(8)アダプター)"""
+        # Phi3.5ベースモデルで順伝播 (凍結されたパラメータ)
+        with torch.no_grad():
+            base_outputs = self.base_model(input_ids, output_hidden_states=True)
+            hidden_states = base_outputs.hidden_states[-1]  # 最後の層の隠れ状態
+
+        # SO(8)魂の重みスケーリング適用
+        soul_scale = torch.mean(torch.abs(self.soul_weights))  # SO(8)次元のスケール
+        x = hidden_states * (1.0 + soul_scale * 0.1)  # 軽いスケーリング
+
+        # アルファゲートアニーリング
         t = current_step / max(total_steps - 1, 1)
-        sigmoid_value = 1 / (1 + torch.exp(-6 * (t - 0.5)))
+        sigmoid_value = 1 / (1 + torch.exp(torch.tensor(-6 * (t - 0.5))))
         annealed_alpha = ALPHA_START + (ALPHA_END - ALPHA_START) * sigmoid_value
 
-        # 魂の重みを適用
-        soul_weighted = x * self.soul_weights.unsqueeze(0)
+        # NKATアダプター適用 (学習対象)
+        nkat_output = self.nkat_adapter(x)
+        x = annealed_alpha * nkat_output + (1 - annealed_alpha) * x
 
-        # NKAT変換適用
-        for nkat_layer in self.nkat_layers:
-            soul_weighted = nkat_layer(soul_weighted)
+        # アダプターレイヤー正規化
+        x = self.adapter_norm(x)
 
-        # アルファゲート適用
-        output = annealed_alpha * soul_weighted + (1 - annealed_alpha) * x
+        # Phi3.5のLMヘッドで最終出力 (凍結)
+        with torch.no_grad():
+            logits = self.base_model.lm_head(x)
 
-        # 層正規化
-        output = self.layer_norm(output)
-
-        return output
+        return logits
 
     def get_current_alpha(self, current_step: int, total_steps: int) -> float:
         """現在のアルファ値を取得"""
@@ -128,10 +170,15 @@ class SoulWeightModule(nn.Module):
 class Phi35SoulDataset(Dataset):
     """Phi3.5魂の重み学習用データセット"""
 
-    def __init__(self, data_file: Path, max_length: int = 512):
+    def __init__(self, data_file: Path, max_length: int = 2048):  # Phi3.5のデフォルトコンテキスト長
         self.data_file = data_file
         self.max_length = max_length
         self.data = []
+
+        # Phi3.5 tokenizer初期化
+        self.tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-3.5-mini-instruct")
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
 
         # データ読み込み
         self._load_data()
@@ -177,11 +224,26 @@ class Phi35SoulDataset(Dataset):
             return_tensors='pt'
         )
 
+        # 言語モデリング用のラベル作成
+        # input_ids + output_idsを連結し、ラベルは右シフト
+        combined_input_ids = torch.cat([
+            input_enc['input_ids'].squeeze(0),
+            output_enc['input_ids'].squeeze(0)
+        ])
+        combined_attention_mask = torch.cat([
+            input_enc['attention_mask'].squeeze(0),
+            torch.ones_like(output_enc['attention_mask'].squeeze(0))
+        ])
+
+        # ラベル: 右シフト + パディングトークンを無視
+        labels = combined_input_ids.clone()
+        labels[:-1] = combined_input_ids[1:]  # 右シフト
+        labels[-1] = -100  # 最後のトークンは無視
+
         return {
-            'input_ids': input_enc['input_ids'].squeeze(0),   # [max_length]
-            'output_ids': output_enc['input_ids'].squeeze(0), # [max_length]
-            'attention_mask': input_enc['attention_mask'].squeeze(0), # [max_length]
-            'labels': output_enc['input_ids'].squeeze(0),     # [max_length]
+            'input_ids': combined_input_ids,      # [2*max_length]
+            'attention_mask': combined_attention_mask,  # [2*max_length]
+            'labels': labels,                      # [2*max_length]
             'quality_score': sample.get('quality_score', 0.5),
             'soul_weight_vector': torch.tensor(
                 sample.get('metadata', {}).get('soul_weight_vector', [0.0] * 8),
@@ -199,12 +261,16 @@ class Phi35SoulTrainer:
         # モデル初期化
         self.model = SoulWeightModule(config).to(self.device)
 
-        # オプティマイザー
+        # オプティマイザー (アダプターパラメータのみ学習)
         self.optimizer = optim.AdamW(
-            self.model.parameters(),
+            self.model.get_trainable_parameters(),
             lr=config.learning_rate,
             weight_decay=0.01
         )
+
+        print(f"学習対象パラメータ数: {len(self.model.get_trainable_parameters())}")
+        print(f"Phi3.5ベースモデルパラメータ数: {sum(p.numel() for p in self.model.base_model.parameters())} (凍結)")
+        print(f"SO(8)アダプターパラメータ数: {sum(p.numel() for p in self.model.get_trainable_parameters())} (学習対象)")
 
         # 学習率スケジューラー
         self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
@@ -212,8 +278,8 @@ class Phi35SoulTrainer:
             T_max=config.alpha_gate_steps
         )
 
-        # 損失関数
-        self.criterion = nn.MSELoss()
+        # 損失関数 (言語モデリング用)
+        self.criterion = nn.CrossEntropyLoss(ignore_index=-100)
 
         # チェックポイント保存ディレクトリ
         self.checkpoint_dir = PROJECT_ROOT / 'checkpoints' / 'soul_weight_training'
@@ -272,12 +338,13 @@ class Phi35SoulTrainer:
                 labels = batch['labels'].to(self.device)
                 soul_weights = batch['soul_weight_vector'].to(self.device)
 
-                # 順伝播
-                outputs = self.model(input_ids.float(), global_step, self.config.alpha_gate_steps)
+                # 順伝播 (言語モデリング)
+                outputs = self.model(input_ids, global_step, self.config.alpha_gate_steps)
 
-                # 損失計算（魂の重みとの類似度）
-                target_soul_weights = soul_weights.unsqueeze(1).expand(-1, outputs.size(1), -1)
-                loss = self.criterion(outputs, target_soul_weights)
+                # 損失計算 (次トークン予測)
+                # outputs: [batch_size, seq_len, vocab_size]
+                # labels: [batch_size, seq_len]
+                loss = self.criterion(outputs.view(-1, outputs.size(-1)), labels.view(-1))
 
                 # 逆伝播
                 self.optimizer.zero_grad()
@@ -542,9 +609,9 @@ def main():
     # トレーニング開始
     trainer.train(train_dataloader, eval_dataloader)
 
-        print("\nPhi3.5 魂の重み学習完了")
-        print("SO(8) NKAT理論に基づく魂の重み最適化が完了しました")
-        print(f"最終アルファ値: {PHI_NEG_2}")
+    print("\nPhi3.5 魂の重み学習完了")
+    print("SO(8) NKAT理論に基づく魂の重み最適化が完了しました")
+    print(f"最終アルファ値: {PHI_NEG_2}")
 
     def _save_model_in_hf_format(self, final_step: int, final_loss: float):
         """学習完了後のモデルをHF形式で保存"""
@@ -593,18 +660,17 @@ def main():
             with open(config_file, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
 
-            # モデル重み保存（SafeTensors形式）
+            # SO(8)アダプターパラメータ保存（SafeTensors形式）
             model_weights = {
                 'soul_weights': self.model.soul_weights.detach().cpu(),
                 'alpha_gate': torch.tensor(self.model.get_current_alpha(final_step, self.config.alpha_gate_steps)),
-                'layer_norm.weight': self.model.layer_norm.weight.detach().cpu(),
-                'layer_norm.bias': self.model.layer_norm.bias.detach().cpu()
+                'adapter_norm.weight': self.model.adapter_norm.weight.detach().cpu(),
+                'adapter_norm.bias': self.model.adapter_norm.bias.detach().cpu()
             }
 
-            # NKAT層の重み追加
-            for i, nkat_layer in enumerate(self.model.nkat_layers):
-                for name, param in nkat_layer.named_parameters():
-                    model_weights[f'nkat_layer_{i}.{name}'] = param.detach().cpu()
+            # NKATアダプターの重み追加
+            for name, param in self.model.nkat_adapter.named_parameters():
+                model_weights[f'nkat_adapter.{name}'] = param.detach().cpu()
 
             # SafeTensorsで保存
             safetensors_file = hf_model_dir / 'model.safetensors'
@@ -616,16 +682,22 @@ def main():
                 "final_loss": str(final_loss)
             })
 
-            # PyTorchモデルファイルも保存（互換性）
-            pytorch_file = hf_model_dir / 'pytorch_model.bin'
+            # PyTorchアダプターパラメータ保存（互換性）
+            pytorch_file = hf_model_dir / 'adapter_model.bin'
             torch.save({
-                'model_state_dict': self.model.state_dict(),
+                'adapter_state_dict': {
+                    'soul_weights': self.model.soul_weights,
+                    'alpha_gate': self.model.alpha_gate,
+                    'nkat_adapter': self.model.nkat_adapter.state_dict(),
+                    'adapter_norm': self.model.adapter_norm.state_dict()
+                },
                 'config': config,
                 'training_info': {
                     'steps': final_step,
                     'loss': final_loss,
                     'alpha': self.model.get_current_alpha(final_step, self.config.alpha_gate_steps),
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now().isoformat(),
+                    'base_model': 'microsoft/phi-3.5-mini-instruct'
                 }
             }, pytorch_file)
 
