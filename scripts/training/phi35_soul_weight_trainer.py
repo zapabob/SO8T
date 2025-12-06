@@ -46,7 +46,7 @@ class Phi35SoulConfig:
     learning_rate: float = 1e-4  # Grokkingを見逃さないようやや高めに設定
     batch_size: int = 1  # 4,000件データセット用に最適化
     num_epochs: int = 1  # 45,000件の高品質データで1エポックで十分
-    max_steps: int = 50  # NKATアダプター学習用（GPU高速化で50ステップ）
+    max_steps: int = 500  # Grokking観測用（500ステップで十分）
     warmup_steps: int = 100
     max_grad_norm: float = 1.0
     gradient_accumulation_steps: int = 16  # GPUメモリ節約版（実質バッチサイズ16）- MOONSHOT GPU学習用
@@ -396,6 +396,7 @@ class Phi35SoulTrainer:
             'best_loss': self.best_loss,
             'prev_loss': self.prev_loss,
             'last_checkpoint_time': self.last_checkpoint_time,
+            'grokking_count': self.grokking_count,
             'timestamp': datetime.now().isoformat()
         }
         with open(self.training_state_file, 'w') as f:
@@ -413,6 +414,7 @@ class Phi35SoulTrainer:
                 self.best_loss = state.get('best_loss', float('inf'))
                 self.prev_loss = state.get('prev_loss', float('inf'))
                 self.last_checkpoint_time = state.get('last_checkpoint_time', time.time())
+                self.grokking_count = state.get('grokking_count', 0)
                 print(f"学習状態読み込み完了: エポック {self.current_epoch}, ステップ {self.global_step}")
             except Exception as e:
                 print(f"学習状態読み込み失敗: {e}")
@@ -523,13 +525,24 @@ class Phi35SoulTrainer:
                 # 現在のアルファ値
                 current_alpha = self.model.get_current_alpha(global_step, self.config.alpha_gate_steps)
 
-                # Grokking検知
+                # Grokking検知（強化版）
                 grokking_detected = False
                 if self.prev_loss != float('inf') and self.prev_loss > 0:
                     loss_ratio = loss.item() / self.prev_loss
+                    loss_change_percent = (1.0 - loss_ratio) * 100
+
                     if loss_ratio < (1.0 - self.grokking_threshold):
                         grokking_detected = True
-                        print(f"\n[GROKKING DETECTED] Loss急減: {self.prev_loss:.4f} → {loss.item():.4f} ({loss_ratio:.2f}x)")
+                        print(f"\n🎯 [GROKKING DETECTED #{self.grokking_count + 1}]")
+                        print(f"   Loss急減: {self.prev_loss:.4f} → {loss.item():.4f}")
+                        print(f"   変化率: {loss_ratio:.3f}x ({loss_change_percent:.1f}%減)")
+                        print(f"   ステップ: {global_step}")
+                        print(f"   直交誤差: {orthogonality_loss.item():.6f}")
+                        self.grokking_count += 1
+
+                        # Grokking時の特別チェックポイント保存
+                        self._save_checkpoint(global_step, loss.item(), is_final=False, suffix=f"_grokking_{self.grokking_count}")
+                        print(f"   特別チェックポイント保存完了")
 
                 self.prev_loss = loss.item()
 
