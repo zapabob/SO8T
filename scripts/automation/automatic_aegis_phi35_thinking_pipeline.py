@@ -213,8 +213,8 @@ class AutomaticAEGISPipeline:
             if not os.path.exists(clean_model_path):
                 logger.info("Creating clean model copy...")
                 # 既存のSO(8)アダプターを徹底的にクリーンアップしてからトレーニング
-                cmd_cleanup = [
-                    sys.executable, "-c",
+            cmd_cleanup = [
+                sys.executable, "-c",
                     f"""
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -268,12 +268,12 @@ for config_file in config_files:
 
 print('Clean model created successfully')
 """
-                ]
+            ]
 
-                # まず既存SO(8)アダプターをクリーンアップ
-                cleanup_result = subprocess.run(cmd_cleanup, cwd=self.base_path, capture_output=True, text=True)
-                if cleanup_result.returncode != 0:
-                    logger.warning(f"SO(8) adapter cleanup failed: {cleanup_result.stderr}")
+            # まず既存SO(8)アダプターをクリーンアップ
+            cleanup_result = subprocess.run(cmd_cleanup, cwd=self.base_path, capture_output=True, text=True)
+            if cleanup_result.returncode != 0:
+                logger.warning(f"SO(8) adapter cleanup failed: {cleanup_result.stderr}")
                 else:
                     logger.info("Clean model created successfully")
             else:
