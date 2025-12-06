@@ -168,15 +168,21 @@ class SoulWeightModule(nn.Module):
             hidden_states = base_outputs.hidden_states[-1].to(self.device)  # GPUに移動してアダプター計算
 
         # アダプターパラメータをGPUに移動（初回のみ、メモリ節約）
-        if not self._gpu_moved:
+        if not getattr(self, '_gpu_moved', False):
             print("アダプターパラメータをGPUに移動中...")
-            self.soul_weights.data = self.soul_weights.data.to(self.device)
-            self.alpha_gate.data = self.alpha_gate.data.to(self.device)
-            self.nkat_adapter = self.nkat_adapter.to(self.device)
-            self.adapter_norm = self.adapter_norm.to(self.device)
-            self.adapter_lm_head = self.adapter_lm_head.to(self.device)
-            self._gpu_moved = True
-            print("GPU移動完了")
+            try:
+                self.soul_weights.data = self.soul_weights.data.to(self.device)
+                self.alpha_gate.data = self.alpha_gate.data.to(self.device)
+                self.nkat_adapter = self.nkat_adapter.to(self.device)
+                self.adapter_norm = self.adapter_norm.to(self.device)
+                self.adapter_lm_head = self.adapter_lm_head.to(self.device)
+                self._gpu_moved = True
+                print("GPU移動完了")
+            except RuntimeError as e:
+                print(f"GPU移動エラー: {e}")
+                print("CPUモードにフォールバックします")
+                self.device = torch.device('cpu')
+                self._gpu_moved = True
 
         # SO(8)魂の重みスケーリング適用
         soul_scale = torch.mean(torch.abs(self.soul_weights))  # SO(8)次元のスケール
