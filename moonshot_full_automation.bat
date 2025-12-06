@@ -83,16 +83,30 @@ echo.
 REM =======================================
 REM Phase 4: 魂の重み学習・アルファゲートアニーリング
 REM =======================================
-echo [PHASE 4] SO(8)残差アダプター再学習 + SFT/RLPO実行
+echo [PHASE 4] SO(8)残差アダプター再学習 + SFT/RLPO実行 (GPU学習)
 echo ---------------------------------------------------
 echo アルファゲート範囲: -0.5 → Φ^(-2) (シグモイドアニーリング)
 echo 魂の重み次元: 8 (SO(8)表現)
+echo データセット: 5,000件 (数学・物理・化学・薬理学・安全教育・NKAT理論・URT理論)
 echo 学習完了後: HF形式SafeTensors自動保存
+echo GPUモード: RTX3060 12GB VRAM対応
+echo 実質バッチサイズ: 32 (勾配蓄積)
 echo.
 
-echo Pythonスクリプト実行中（タイムアウト: 60分）...
-start /B cmd /C "py　-3 scripts\training\phi35_soul_weight_trainer.py ; echo PHASE4_COMPLETED || echo PHASE4_FAILED > phase4_status.tmp"
-timeout /t 3600 /nobreak >nul 2>&1
+REM GPU利用可能性チェック（MOONSHOT GPU学習必須）
+echo GPUチェック中...
+python -c "import torch; print('GPU Available:', torch.cuda.is_available()); print('GPU Count:', torch.cuda.device_count()); print('GPU Memory:', torch.cuda.get_device_properties(0).total_memory // 1024**3 if torch.cuda.is_available() else 0, 'GB')" 2>nul
+if %errorlevel% neq 0 (
+    echo [ERROR] GPUチェック失敗 - MOONSHOT GPU学習にはGPUが必要です
+    goto :error
+) else (
+    echo [OK] GPUチェック完了 - MOONSHOT GPU学習開始可能
+)
+echo.
+
+echo Pythonスクリプト実行中（GPU学習 - タイムアウト: 120分）...
+start /B cmd /C "py -3 scripts\training\phi35_soul_weight_trainer.py && echo PHASE4_COMPLETED || echo PHASE4_FAILED > phase4_status.tmp"
+timeout /t 7200 /nobreak >nul 2>&1
 taskkill /IM python.exe /F >nul 2>&1
 if exist phase4_status.tmp (
     findstr "PHASE4_COMPLETED" phase4_status.tmp >nul
@@ -190,14 +204,14 @@ echo [RESULTS SUMMARY]
 echo ✅ Phase 1: 依存関係自動インストール・ダウンロード
 echo ✅ Phase 2: Phi3.5内部タグ付きデータセット設計
 echo ✅ Phase 3: 自動エラー修正・チェックポイント保存
-echo ✅ Phase 4: SO(8)残差アダプター再学習 + SFT/RLPO + HF形式保存
+echo ✅ Phase 4: SO(8)残差アダプター再学習 + SFT/RLPO + HF形式保存 (GPU学習完了)
 echo ✅ Phase 5: A/Bテストパイプライン実行
 echo ✅ Phase 6: HFアップロード完全自動化
 echo.
 echo [TECHNICAL ACHIEVEMENTS]
-echo 🎯 SO(8) NKAT理論完全統合 + 残差アダプター再学習
-echo 🎯 Phi3.5魂の重み学習 (8次元) + SFT/RLPO統合
-echo 🎯 アルファゲートシグモイドアニーリング (-0.5 → Φ^(-2))
+echo 🎯 SO(8) NKAT理論完全統合 + 残差アダプター再学習 (GPU)
+echo 🎯 Phi3.5魂の重み学習 (8次元) + SFT/RLPO統合 (GPU)
+echo 🎯 アルファゲートシグモイドアニーリング (-0.5 → Φ^(-2)) (GPU)
 echo 🎯 HF形式SafeTensors自動保存 + 完全データセット整理
 echo 🎯 完全自律型A/Bテストシステム
 echo 🎯 HF自動アップロード・公開

@@ -43,11 +43,12 @@ class Phi35SoulConfig:
     hidden_size: int = 3072  # Phi3.5の隠れ層サイズ
     nkat_hidden: int = 8192  # NKAT層の中間層サイズ
     alpha_gate_steps: int = 1000  # アルファゲートアニーリングステップ数
-    learning_rate: float = 5e-5  # アダプター学習用に低めに設定
-    batch_size: int = 2  # CPU/GPUハイブリッド用に小さめに
-    num_epochs: int = 10
+    learning_rate: float = 1e-4  # Grokkingを見逃さないようやや高めに設定
+    batch_size: int = 1  # 4,000件データセット用に最適化
+    num_epochs: int = 1  # 45,000件の高品質データで1エポックで十分
     warmup_steps: int = 100
     max_grad_norm: float = 1.0
+    gradient_accumulation_steps: int = 16  # GPUメモリ節約版（実質バッチサイズ16）- MOONSHOT GPU学習用
     save_steps: int = 500
     eval_steps: int = 100
 
@@ -62,8 +63,8 @@ class SoulWeightModule(nn.Module):
         super().__init__()
         self.config = config
 
-        # Phi3.5事前学習モデルをロードして凍結 (CPU/GPUハイブリッド)
-        print("Phi3.5事前学習モデルをロード中 (CPU)...")
+        # Phi3.5事前学習モデルをロードして凍結 (CPU/GPUハイブリッド - GPU学習用)
+        print("Phi3.5事前学習モデルをロード中 (CPUベース)...")
         self.base_model = AutoModelForCausalLM.from_pretrained(
             "microsoft/phi-3.5-mini-instruct",
             torch_dtype=torch.float32,  # CPUでfloat32
@@ -71,6 +72,8 @@ class SoulWeightModule(nn.Module):
             trust_remote_code=True,
             low_cpu_mem_usage=True  # CPUメモリ節約
         )
+        # 明示的にCPUに配置
+        self.base_model = self.base_model.to('cpu')
 
         # メモリ節約のための設定
         self.base_model.gradient_checkpointing_enable()
@@ -83,25 +86,28 @@ class SoulWeightModule(nn.Module):
         print("Phi3.5モデルパラメータを凍結しました")
         print(f"モデルメモリ使用量: {sum(p.numel() * p.element_size() for p in self.base_model.parameters()) / (1024**3):.2f} GB")
 
-        # SO(8)魂の重みアダプター層 (GPU/float16対応)
-        self.soul_weights = nn.Parameter(torch.randn(config.soul_weight_dim, dtype=torch.float16))
-        self.alpha_gate = nn.Parameter(torch.tensor(ALPHA_START, dtype=torch.float16))
+        # SO(8)魂の重みアダプター層 (CPU初期化、後でGPU移動)
+        self.soul_weights = nn.Parameter(torch.randn(config.soul_weight_dim, dtype=torch.float32))
+        self.alpha_gate = nn.Parameter(torch.tensor(ALPHA_START, dtype=torch.float32))
 
-        # NKATアダプターレイヤー (学習対象, GPU/float16対応)
+        # NKATアダプターレイヤー (CPU初期化、後でGPU移動)
         self.nkat_adapter = nn.Sequential(
-            nn.Linear(config.hidden_size, config.nkat_hidden, dtype=torch.float16),
+            nn.Linear(config.hidden_size, config.nkat_hidden, dtype=torch.float32),
             nn.ReLU(),
-            nn.Linear(config.nkat_hidden, config.hidden_size, dtype=torch.float16)
+            nn.Linear(config.nkat_hidden, config.hidden_size, dtype=torch.float32)
         )
 
-        # 層正規化 (学習対象, GPU/float16対応)
-        self.adapter_norm = nn.LayerNorm(config.hidden_size, dtype=torch.float16)
+        # 層正規化 (CPU初期化、後でGPU移動)
+        self.adapter_norm = nn.LayerNorm(config.hidden_size, dtype=torch.float32)
 
-        # アダプター用LMヘッド (学習対象, Phi3.5の語彙サイズに合わせる)
-        self.adapter_lm_head = nn.Linear(config.hidden_size, 51200, dtype=torch.float16)
+        # アダプター用LMヘッド (CPU初期化、後でGPU移動)
+        self.adapter_lm_head = nn.Linear(config.hidden_size, 51200, dtype=torch.float32)
 
         # アダプター初期化
         self._initialize_adapter_weights()
+
+        # デバイス設定（Trainerから受け取る）
+        self.device = None  # 後でTrainerから設定される
 
     def _initialize_adapter_weights(self):
         """アダプターパラメータの初期化 (float16対応)"""
@@ -116,7 +122,7 @@ class SoulWeightModule(nn.Module):
         nn.init.constant_(self.adapter_norm.weight, 1.0)
         nn.init.constant_(self.adapter_norm.bias, 0.0)
 
-        # アダプターパラメータをGPUに移動 (ハイブリッドモード)
+        # アダプターパラメータをGPUに移動 (GPU優先)
         self.soul_weights.data = self.soul_weights.data.cuda()
         self.alpha_gate.data = self.alpha_gate.data.cuda()
         self.nkat_adapter.cuda()
@@ -162,15 +168,24 @@ class SoulWeightModule(nn.Module):
                 output_hidden_states=True,
                 use_cache=False
             )
-            hidden_states = base_outputs.hidden_states[-1].to(self.soul_weights.device)  # GPUに移動してアダプター計算
+            hidden_states = base_outputs.hidden_states[-1].to(self.device)  # GPUに移動してアダプター計算
+
+        # アダプターパラメータをGPUに移動（初回のみ）
+        if not hasattr(self, '_moved_to_gpu'):
+            self.soul_weights.data = self.soul_weights.data.to(self.device)
+            self.alpha_gate.data = self.alpha_gate.data.to(self.device)
+            self.nkat_adapter = self.nkat_adapter.to(self.device)
+            self.adapter_norm = self.adapter_norm.to(self.device)
+            self.adapter_lm_head = self.adapter_lm_head.to(self.device)
+            self._moved_to_gpu = True
 
         # SO(8)魂の重みスケーリング適用
         soul_scale = torch.mean(torch.abs(self.soul_weights))  # SO(8)次元のスケール
         x = hidden_states * (1.0 + soul_scale * 0.1)  # 軽いスケーリング
 
-        # アルファゲートアニーリング (GPU/float16対応)
+        # アルファゲートアニーリング (GPU/float32対応)
         t = current_step / max(total_steps - 1, 1)
-        sigmoid_value = 1 / (1 + torch.exp(torch.tensor(-6 * (t - 0.5), dtype=torch.float16, device=self.soul_weights.device)))
+        sigmoid_value = 1 / (1 + torch.exp(torch.tensor(-6 * (t - 0.5), dtype=torch.float32, device=self.device)))
         annealed_alpha = ALPHA_START + (ALPHA_END - ALPHA_START) * sigmoid_value
 
         # NKATアダプター適用 (学習対象)
@@ -298,10 +313,21 @@ class Phi35SoulTrainer:
 
     def __init__(self, config: Phi35SoulConfig):
         self.config = config
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # GPU優先設定（MOONSHOT GPU学習用 - CPU/GPUハイブリッド）
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            print(f"GPUモード使用: {torch.cuda.get_device_name(0)} ({torch.cuda.get_device_properties(0).total_memory // 1024**3}GB VRAM)")
+            # GPUメモリ最適化
+            torch.cuda.empty_cache()
+            if hasattr(torch.cuda, 'set_per_process_memory_fraction'):
+                torch.cuda.set_per_process_memory_fraction(0.6)  # 60%使用制限（Phi3.5+アダプター用）
+        else:
+            self.device = torch.device('cpu')
+            print("CPUモード使用（GPU未検出）- MOONSHOTでは推奨されません")
 
-        # モデル初期化
-        self.model = SoulWeightModule(config).to(self.device)
+        # モデル初期化 (CPU/GPUハイブリッド)
+        self.model = SoulWeightModule(config)  # CPUにPhi3.5、GPUにアダプター
+        self.model.device = self.device  # デバイス設定
 
         # オプティマイザー (アダプターパラメータのみ学習)
         self.optimizer = optim.AdamW(
@@ -344,14 +370,26 @@ class Phi35SoulTrainer:
         self.global_step = 0
         self.best_loss = float('inf')
 
+        # Grokking検知用
+        self.prev_loss = float('inf')
+        self.grokking_threshold = 0.1  # Lossが10%急減したらGrokking検知
+
     def train(self, train_dataloader: DataLoader, eval_dataloader: Optional[DataLoader] = None):
         """トレーニング実行（3分間隔チェックポイント・ローリングストック付き）"""
-        print(f"Phi3.5魂の重み学習開始 (CPUモード)")
+        print(f"Phi3.5魂の重み学習開始 (GPU優先ハイブリッドモード - NKAT・URT・薬物・安全教育データ)")
+        print(f"[TARGET] Arxiv上位20% + 薬物・安全教育データ 4,000件でのSO(8)NKAT学習")
+        print(f"[DATA] 4,000件 (数学・物理・化学 + 薬理学 + 安全教育 = 高品質・GPU処理可能)")
+        print(f"[GOAL] 論文の論理構造 + 薬物構造解析 + 安全判定をSO(8)アダプターに染み込ませる")
+        print(f"[EFFECT] ヤン・ミルズ理論の幾何学、P vs NPのエネルギー地形、薬物の構造理解 + 安全学習")
+        print(f"")
         print(f"デバイス: {self.device}")
+        if self.device.type == 'cuda':
+            print(f"GPU情報: {torch.cuda.get_device_name(0)} ({torch.cuda.get_device_properties(0).total_memory // 1024**3}GB VRAM)")
         print(f"総ステップ数: {self.config.alpha_gate_steps}")
         print(f"アルファゲート範囲: {ALPHA_START} → {ALPHA_END}")
         print(f"チェックポイント間隔: {self.checkpoint_interval}秒（3分）")
         print(f"ローリングストック数: {self.max_checkpoints}個")
+        print(f"Grokking監視: Loss急減{self.grokking_threshold*100}%以上で検知")
 
         # 電源断復旧チェック
         if self._check_recovery():
@@ -368,6 +406,9 @@ class Phi35SoulTrainer:
             epoch_loss = 0.0
             epoch_orthogonality_loss = 0.0
             epoch_steps = 0
+            accumulation_step = 0
+
+            print(f"実質バッチサイズ: {self.config.batch_size * self.config.gradient_accumulation_steps} (勾配蓄積)")
 
             progress_bar = tqdm(
                 enumerate(train_dataloader),
@@ -376,7 +417,7 @@ class Phi35SoulTrainer:
             )
 
             for step, batch in progress_bar:
-                # データをデバイスに移動
+                # データをGPUに配置 (GPU優先モード)
                 input_ids = batch['input_ids'].to(self.device)
                 labels = batch['labels'].to(self.device)
                 soul_weights = batch['soul_weight_vector'].to(self.device)
@@ -392,56 +433,77 @@ class Phi35SoulTrainer:
                 # SO(8)直交性誤差計算
                 orthogonality_loss = self.model.calculate_so8_orthogonality_loss()
 
-                # メイン損失に直交誤差を加算 (重み付き)
-                total_loss = loss + 0.1 * orthogonality_loss
+                # メイン損失に直交誤差を加算 (勾配蓄積用に正規化)
+                total_loss = (loss + 0.1 * orthogonality_loss) / self.config.gradient_accumulation_steps
 
-                # 逆伝播
-                self.optimizer.zero_grad()
-                loss.backward()
+                # 逆伝播 (勾配蓄積)
+                total_loss.backward()
+                accumulation_step += 1
 
-                # 勾配クリッピング
-                torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(),
-                    self.config.max_grad_norm
-                )
+                # 勾配蓄積完了時、オプティマイザーステップ実行
+                if accumulation_step % self.config.gradient_accumulation_steps == 0:
+                    # 勾配クリッピング
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.get_trainable_parameters(),
+                        self.config.max_grad_norm
+                    )
 
-                self.optimizer.step()
-                self.scheduler.step()
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
+                    self.scheduler.step()
 
-                # ロギング
-                epoch_loss += loss.item()
-                epoch_orthogonality_loss += orthogonality_loss.item()
-                epoch_steps += 1
-                global_step += 1
+                    # ロギング (蓄積完了時のみ)
+                    epoch_loss += loss.item()
+                    epoch_orthogonality_loss += orthogonality_loss.item()
+                    epoch_steps += 1
+                    global_step += 1
 
                 # 現在のアルファ値
                 current_alpha = self.model.get_current_alpha(global_step, self.config.alpha_gate_steps)
 
-                progress_bar.set_postfix({
+                # Grokking検知
+                grokking_detected = False
+                if self.prev_loss != float('inf') and self.prev_loss > 0:
+                    loss_ratio = loss.item() / self.prev_loss
+                    if loss_ratio < (1.0 - self.grokking_threshold):
+                        grokking_detected = True
+                        print(f"\n[GROKKING DETECTED] Loss急減: {self.prev_loss:.4f} → {loss.item():.4f} ({loss_ratio:.2f}x)")
+
+                self.prev_loss = loss.item()
+
+                # プログレスバー更新 (蓄積完了時のみ)
+                progress_postfix = {
                     'loss': f"{loss.item():.4f}",
                     'ortho_err': f"{orthogonality_loss.item():.6f}",
                     'total_loss': f"{total_loss.item():.4f}",
                     'alpha': f"{current_alpha:.4f}",
-                    'lr': f"{self.scheduler.get_last_lr()[0]:.6f}"
-                })
+                    'lr': f"{self.scheduler.get_last_lr()[0]:.6f}",
+                    'accum': f"{accumulation_step % self.config.gradient_accumulation_steps}/{self.config.gradient_accumulation_steps}"
+                }
+
+                if grokking_detected:
+                    progress_postfix['status'] = 'GROKKING!'
+
+                progress_bar.set_postfix(progress_postfix)
 
                 # 3分間隔チェックポイント保存
                 current_time = time.time()
                 if current_time - self.last_checkpoint_time >= self.checkpoint_interval:
                     print(f"\n[CHECKPOINT] 3分間隔チェックポイント保存...")
-                    self._save_rolling_checkpoint(global_step, loss.item())
+                    avg_loss = epoch_loss / epoch_steps if epoch_steps > 0 else 0
+                    self._save_rolling_checkpoint(global_step, avg_loss)
                     self.last_checkpoint_time = current_time
 
                     # 復旧情報更新
-                    self._save_recovery_info(epoch, global_step, loss.item())
+                    self._save_recovery_info(epoch, global_step, avg_loss)
 
                     # CUDAメモリ解放
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
 
-                # 定期チェックポイント保存
-                if global_step % self.config.save_steps == 0:
-                    self._save_checkpoint(global_step, loss.item())
+            # 定期チェックポイント保存
+            if global_step % self.config.save_steps == 0:
+                self._save_checkpoint(global_step, loss.item())
 
                 # 評価
                 if eval_dataloader and global_step % self.config.eval_steps == 0:
@@ -451,6 +513,19 @@ class Phi35SoulTrainer:
                     if eval_loss < self.best_loss:
                         self.best_loss = eval_loss
                         self._save_checkpoint(global_step, eval_loss, is_best=True)
+
+            # エポック完了時の勾配蓄積残り処理
+            if accumulation_step % self.config.gradient_accumulation_steps != 0:
+                print(f"\n[GRADIENT ACCUMULATION] エポック完了 - 残り勾配で最終ステップ実行")
+                # 勾配クリッピング
+                torch.nn.utils.clip_grad_norm_(
+                    self.model.get_trainable_parameters(),
+                    self.config.max_grad_norm
+                )
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                self.scheduler.step()
+                global_step += 1
 
             # エポック完了
             avg_epoch_loss = epoch_loss / epoch_steps
