@@ -40,7 +40,7 @@ class Phi35SoulConfig:
     nkat_hidden: int = 8192  # NKAT層の中間層サイズ
     alpha_gate_steps: int = 1000  # アルファゲートアニーリングステップ数
     learning_rate: float = 5e-5  # アダプター学習用に低めに設定
-    batch_size: int = 1  # GPUメモリ節約のためバッチサイズ1
+    batch_size: int = 1  # CPUモードのためバッチサイズ1
     num_epochs: int = 10
     warmup_steps: int = 100
     max_grad_norm: float = 1.0
@@ -58,12 +58,12 @@ class SoulWeightModule(nn.Module):
         super().__init__()
         self.config = config
 
-        # Phi3.5事前学習モデルをロードして凍結
-        print("Phi3.5事前学習モデルをロード中...")
+        # Phi3.5事前学習モデルをロードして凍結 (CPUモード)
+        print("Phi3.5事前学習モデルをロード中 (CPU)...")
         self.base_model = AutoModelForCausalLM.from_pretrained(
             "microsoft/phi-3.5-mini-instruct",
-            torch_dtype=torch.float16,
-            device_map="auto",
+            torch_dtype=torch.float32,  # CPUではfloat32を使用
+            device_map="cpu",  # CPUのみ使用
             trust_remote_code=True
         )
 
@@ -78,22 +78,22 @@ class SoulWeightModule(nn.Module):
         print("Phi3.5モデルパラメータを凍結しました")
         print(f"モデルメモリ使用量: {sum(p.numel() * p.element_size() for p in self.base_model.parameters()) / (1024**3):.2f} GB")
 
-        # SO(8)魂の重みアダプター層 (float16対応)
-        self.soul_weights = nn.Parameter(torch.randn(config.soul_weight_dim, dtype=torch.float16))
-        self.alpha_gate = nn.Parameter(torch.tensor(ALPHA_START, dtype=torch.float16))
+        # SO(8)魂の重みアダプター層 (CPU/float32対応)
+        self.soul_weights = nn.Parameter(torch.randn(config.soul_weight_dim, dtype=torch.float32))
+        self.alpha_gate = nn.Parameter(torch.tensor(ALPHA_START, dtype=torch.float32))
 
-        # NKATアダプターレイヤー (学習対象, float16対応)
+        # NKATアダプターレイヤー (学習対象, CPU/float32対応)
         self.nkat_adapter = nn.Sequential(
-            nn.Linear(config.hidden_size, config.nkat_hidden, dtype=torch.float16),
+            nn.Linear(config.hidden_size, config.nkat_hidden, dtype=torch.float32),
             nn.ReLU(),
-            nn.Linear(config.nkat_hidden, config.hidden_size, dtype=torch.float16)
+            nn.Linear(config.nkat_hidden, config.hidden_size, dtype=torch.float32)
         )
 
-        # 層正規化 (学習対象, float16対応)
-        self.adapter_norm = nn.LayerNorm(config.hidden_size, dtype=torch.float16)
+        # 層正規化 (学習対象, CPU/float32対応)
+        self.adapter_norm = nn.LayerNorm(config.hidden_size, dtype=torch.float32)
 
         # アダプター用LMヘッド (学習対象, Phi3.5の語彙サイズに合わせる)
-        self.adapter_lm_head = nn.Linear(config.hidden_size, 51200, dtype=torch.float16)
+        self.adapter_lm_head = nn.Linear(config.hidden_size, 51200, dtype=torch.float32)
 
         # アダプター初期化
         self._initialize_adapter_weights()
@@ -111,12 +111,8 @@ class SoulWeightModule(nn.Module):
         nn.init.constant_(self.adapter_norm.weight, 1.0)
         nn.init.constant_(self.adapter_norm.bias, 0.0)
 
-        # 全アダプターパラメータをGPUに移動 (float16)
-        self.soul_weights.data = self.soul_weights.data.cuda()
-        self.alpha_gate.data = self.alpha_gate.data.cuda()
-        self.nkat_adapter.cuda()
-        self.adapter_norm.cuda()
-        self.adapter_lm_head.cuda()
+        # 全アダプターパラメータをCPUに配置 (float32)
+        # CPUモードなのでcuda()呼び出し不要
 
         print("SO(8)アダプターパラメータを初期化しました (float16)")
 
@@ -151,21 +147,22 @@ class SoulWeightModule(nn.Module):
     def forward(self, input_ids: torch.Tensor, current_step: int = 0, total_steps: int = 1000) -> torch.Tensor:
         """順伝播 (Phi3.5 + SO(8)アダプター)"""
         # Phi3.5ベースモデルで順伝播 (凍結されたパラメータ)
-        with torch.no_grad():
-            base_outputs = self.base_model(
-                input_ids,
-                output_hidden_states=True,
-                use_cache=False  # キャッシュを無効化
-            )
-            hidden_states = base_outputs.hidden_states[-1]  # 最後の層の隠れ状態
+        # ベースモデルは凍結されているので、勾配は流れませんが、
+        # アダプター部分の勾配計算のためにdetach()を使用
+        base_outputs = self.base_model(
+            input_ids,
+            output_hidden_states=True,
+            use_cache=False  # キャッシュを無効化
+        )
+        hidden_states = base_outputs.hidden_states[-1].detach()  # 勾配を切断してアダプター学習に使用
 
         # SO(8)魂の重みスケーリング適用
         soul_scale = torch.mean(torch.abs(self.soul_weights))  # SO(8)次元のスケール
         x = hidden_states * (1.0 + soul_scale * 0.1)  # 軽いスケーリング
 
-        # アルファゲートアニーリング (float16対応)
+        # アルファゲートアニーリング (CPU/float32対応)
         t = current_step / max(total_steps - 1, 1)
-        sigmoid_value = 1 / (1 + torch.exp(torch.tensor(-6 * (t - 0.5), dtype=torch.float16, device=self.soul_weights.device)))
+        sigmoid_value = 1 / (1 + torch.exp(torch.tensor(-6 * (t - 0.5), dtype=torch.float32, device=self.soul_weights.device)))
         annealed_alpha = ALPHA_START + (ALPHA_END - ALPHA_START) * sigmoid_value
 
         # NKATアダプター適用 (学習対象)
@@ -298,8 +295,8 @@ class Phi35SoulTrainer:
             T_max=config.alpha_gate_steps
         )
 
-        # 損失関数 (言語モデリング用, float16対応)
-        self.criterion = nn.CrossEntropyLoss(ignore_index=-100).cuda()
+        # 損失関数 (言語モデリング用, CPU/float32対応)
+        self.criterion = nn.CrossEntropyLoss(ignore_index=-100)
 
         # チェックポイント保存ディレクトリ
         self.checkpoint_dir = PROJECT_ROOT / 'checkpoints' / 'soul_weight_training'
@@ -324,7 +321,7 @@ class Phi35SoulTrainer:
 
     def train(self, train_dataloader: DataLoader, eval_dataloader: Optional[DataLoader] = None):
         """トレーニング実行（3分間隔チェックポイント・ローリングストック付き）"""
-        print(f"Phi3.5魂の重み学習開始")
+        print(f"Phi3.5魂の重み学習開始 (CPUモード)")
         print(f"デバイス: {self.device}")
         print(f"総ステップ数: {self.config.alpha_gate_steps}")
         print(f"アルファゲート範囲: {ALPHA_START} → {ALPHA_END}")
@@ -403,9 +400,9 @@ class Phi35SoulTrainer:
                     # 復旧情報更新
                     self._save_recovery_info(epoch, global_step, loss.item())
 
-                    # CUDAメモリ解放
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
+                    # CPUメモリ解放 (不要だが念のため)
+                    import gc
+                    gc.collect()
 
                 # 定期チェックポイント保存
                 if global_step % self.config.save_steps == 0:
@@ -435,9 +432,9 @@ class Phi35SoulTrainer:
             # 復旧情報更新
             self._save_recovery_info(epoch + 1, global_step, avg_epoch_loss)
 
-            # エポック完了時のCUDAメモリ解放
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            # エポック完了時のメモリ解放
+            import gc
+            gc.collect()
 
         # 学習完了後のHF形式保存
         print(f"\n[SAVE] 学習完了 - HF形式でモデル保存...")
