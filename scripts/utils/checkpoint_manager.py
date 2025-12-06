@@ -190,15 +190,16 @@ class RollingCheckpointManager:
 # ユーティリティ関数群（すべてのスクリプトで使用可能）
 # ============================================================================
 
-def create_task_manager(task_name: str, output_dir: str = None) -> RollingCheckpointManager:
+def create_task_manager(task_name: str, output_dir: str = None, max_keep: int = 5,
+                      save_interval_sec: int = 180) -> RollingCheckpointManager:
     """タスク用のチェックポイントマネージャーを作成"""
     if output_dir is None:
         output_dir = f"checkpoints/{task_name}"
 
     return RollingCheckpointManager(
         base_dir=output_dir,
-        max_keep=5,
-        save_interval_sec=180,  # 3分
+        max_keep=max_keep,
+        save_interval_sec=save_interval_sec,
         task_name=task_name
     )
 

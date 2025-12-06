@@ -240,9 +240,9 @@ tokenizer = AutoTokenizer.from_pretrained('H:/from_D/webdataset/models/AXCXEPT-B
 def remove_so8_adapters(module, name=''):
     removed_count = 0
     for child_name, child_module in list(module.named_children()):
-        full_name = f'{{name}}.{{child_name}}' if name else child_name
+        full_name = f"{name}.{child_name}" if name else child_name
         if child_name == 'so8_adapter':
-            print(f'Removing existing so8_adapter: {{name}}')
+            print(f'Removing existing so8_adapter: {full_name}')
             delattr(module, child_name)
             removed_count += 1
         else:

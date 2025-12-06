@@ -125,10 +125,10 @@ def train_so8_adapter(
 
     # SO(8)アダプター注入
     logger.info("Injecting SO(8) Compatible LoRA adapters...")
-    # SO(8)アダプター注入 - qkv_projは除外（次元不一致のため）
+    # SO(8)アダプター注入 - より安全なモジュール選択
     injected_adapters = inject_so8_adapter_into_model(
         model,
-        target_modules=['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'],
+        target_modules=['q_proj', 'k_proj', 'v_proj', 'o_proj'],  # gate/up/down_projは一旦除外
         rank=rank,
         alpha=alpha,
         dtype=model.dtype  # モデルのdtypeを使用

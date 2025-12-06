@@ -17,7 +17,7 @@ sys.path.append(str(Path(__file__).parent))
 
 def test_so8t_imports():
     """SO8Tモジュールのインポートテスト"""
-    print("🔍 SO8Tモジュールインポートテスト...")
+    print("[INFO] SO8Tモジュールインポートテスト...")
 
     try:
         from so8t_core import (
@@ -29,15 +29,15 @@ def test_so8t_imports():
             SO8TModelConfig,
             BurnInManager
         )
-        print("✅ SO8Tコアモジュールインポート成功")
+        print("[OK] SO8Tコアモジュールインポート成功")
         return True
     except ImportError as e:
-        print(f"❌ SO8Tインポートエラー: {e}")
+        print(f"[NG] SO8Tインポートエラー: {e}")
         return False
 
 def test_so8t_rotation_gate():
     """SO8TRotationGateの基本テスト"""
-    print("🔍 SO8T Rotation Gateテスト...")
+    print("[INFO] SO8T Rotation Gateテスト...")
 
     try:
         from so8t_core import SO8TRotationGate
@@ -49,15 +49,15 @@ def test_so8t_rotation_gate():
         output = gate(x)
         assert output.shape == x.shape, f"Shape mismatch: {output.shape} vs {x.shape}"
 
-        print("✅ SO8T Rotation Gateテスト成功")
+        print("[OK] SO8T Rotation Gateテスト成功")
         return True
     except Exception as e:
-        print(f"❌ Rotation Gateテスト失敗: {e}")
+        print(f"[NG] Rotation Gateテスト失敗: {e}")
         return False
 
 def test_pet_regularizer():
     """PET Regularizerの基本テスト"""
-    print("🔍 PET Regularizerテスト...")
+    print("[INFO] PET Regularizerテスト...")
 
     try:
         from so8t_core import PETRegularizer, PETSchedule
@@ -73,15 +73,15 @@ def test_pet_regularizer():
         reg_loss = regularizer(hidden_states, progress)
         assert isinstance(reg_loss, torch.Tensor), "Regularizer should return tensor"
 
-        print("✅ PET Regularizerテスト成功")
+        print("[OK] PET Regularizerテスト成功")
         return True
     except Exception as e:
-        print(f"❌ PET Regularizerテスト失敗: {e}")
+        print(f"[NG] PET Regularizerテスト失敗: {e}")
         return False
 
 def test_triality_head():
     """Triality Headの基本テスト"""
-    print("🔍 Triality Headテスト...")
+    print("[INFO] Triality Headテスト...")
 
     try:
         from so8t_core import TrialityHead
@@ -95,15 +95,15 @@ def test_triality_head():
         assert hasattr(output, 'probabilities'), "TrialityOutput should have probabilities"
         assert hasattr(output, 'predicted'), "TrialityOutput should have predicted"
 
-        print("✅ Triality Headテスト成功")
+        print("[OK] Triality Headテスト成功")
         return True
     except Exception as e:
-        print(f"❌ Triality Headテスト失敗: {e}")
+        print(f"[NG] Triality Headテスト失敗: {e}")
         return False
 
 def test_self_verifier():
     """Self-Verifierの基本テスト"""
-    print("🔍 Self-Verifierテスト...")
+    print("[INFO] Self-Verifierテスト...")
 
     try:
         from so8t_core import SelfVerifier
@@ -117,22 +117,22 @@ def test_self_verifier():
         result = verifier.score_pass(reasoning, logits, compliance_score)
         assert isinstance(result, float), "score_pass should return float"
 
-        print("✅ Self-Verifierテスト成功")
+        print("[OK] Self-Verifierテスト成功")
         return True
     except Exception as e:
-        print(f"❌ Self-Verifierテスト失敗: {e}")
+        print(f"[NG] Self-Verifierテスト失敗: {e}")
         return False
 
 def test_torch_cuda():
     """PyTorch CUDA利用可能性テスト"""
-    print("🔍 PyTorch CUDAテスト...")
+    print("[INFO] PyTorch CUDAテスト...")
 
     if torch.cuda.is_available():
         device_count = torch.cuda.device_count()
         current_device = torch.cuda.current_device()
         device_name = torch.cuda.get_device_name(current_device)
 
-        print(f"✅ CUDA利用可能: {device_count}デバイス")
+        print(f"[OK] CUDA利用可能: {device_count}デバイス")
         print(f"   現在のデバイス: {current_device} ({device_name})")
 
         # 簡単なCUDAテンソルテスト
@@ -141,10 +141,10 @@ def test_torch_cuda():
         z = torch.matmul(x, y)
         assert z.shape == (100, 100), "CUDA matrix multiplication failed"
 
-        print("✅ CUDAテンソル演算成功")
+        print("[OK] CUDAテンソル演算成功")
         return True
     else:
-        print("⚠️ CUDA利用不可 - CPUモードで実行")
+        print("[WARNING] CUDA利用不可 - CPUモードで実行")
         return True
 
 def main():
@@ -177,11 +177,11 @@ def main():
         try:
             if test_func():
                 passed += 1
-                print(f"✅ {test_name}: PASSED")
+                print(f"[OK] {test_name}: PASSED")
             else:
-                print(f"❌ {test_name}: FAILED")
+                print(f"[NG] {test_name}: FAILED")
         except Exception as e:
-            print(f"❌ {test_name}: ERROR - {e}")
+            print(f"[ERROR] {test_name}: ERROR - {e}")
         print()
 
     # 結果サマリー
@@ -189,10 +189,10 @@ def main():
     print(f"テスト結果: {passed}/{total} 通過")
 
     if passed == total:
-        print("🎉 すべてのテストが成功しました！MOONSHOT Ready!")
+        print("[SUCCESS] すべてのテストが成功しました！MOONSHOT Ready!")
         return 0
     else:
-        print("⚠️ 一部のテストが失敗しました。システムを確認してください。")
+        print("[WARNING] 一部のテストが失敗しました。システムを確認してください。")
         return 1
 
 if __name__ == "__main__":

@@ -272,8 +272,12 @@ def inject_so8_adapter_into_model(
 
                 if is_target and not is_qkv:
                     # SO(8)アダプターを注入
+                    # 実際のLinear層の次元を使用 (in_featuresを使用)
+                    actual_hidden_size = child_module.in_features
+                    print(f"Injecting SO(8) adapter into {full_name}: in_features={child_module.in_features}, out_features={child_module.out_features}")
+
                     adapter = SO8CompatibleLoRA(
-                        hidden_size=child_module.out_features,
+                        hidden_size=actual_hidden_size,
                         rank=rank,
                         alpha=alpha,
                         device=device,
