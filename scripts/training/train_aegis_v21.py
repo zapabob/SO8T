@@ -533,7 +533,6 @@ def run_ppo_training_optimized(model, tokenizer, ppo_dataset, output_dir: str, l
 
     # PPO設定
     ppo_config = PPOConfig(
-        model_name=model.config._name_or_path,
         learning_rate=learning_rate,
         log_with=None,
         mini_batch_size=1,
@@ -873,7 +872,6 @@ def run_ppo_training_with_progress(model, tokenizer, ppo_dataset, output_dir: st
 
     # PPO設定
     ppo_config = PPOConfig(
-        model_name=model.config._name_or_path,
         learning_rate=learning_rate,
         log_with=None,
         mini_batch_size=1,
@@ -976,7 +974,6 @@ def run_ppo_training_with_progress(model, tokenizer, ppo_dataset, output_dir: st
 
     # PPO設定
     ppo_config = PPOConfig(
-        model_name=model.config._name_or_path,
         learning_rate=learning_rate,
         log_with=None,
         mini_batch_size=1,
@@ -1078,7 +1075,6 @@ def run_ppo_training_with_progress(model, tokenizer, ppo_dataset, output_dir: st
 
     # PPO設定
     ppo_config = PPOConfig(
-        model_name=model.config._name_or_path,
         learning_rate=learning_rate,
         log_with=None,
         mini_batch_size=1,
@@ -1181,7 +1177,6 @@ def run_ppo_training_with_progress(model, tokenizer, ppo_dataset, output_dir: st
 
     # PPO設定
     ppo_config = PPOConfig(
-        model_name=model.config._name_or_path,
         learning_rate=learning_rate,
         log_with=None,
         mini_batch_size=1,
