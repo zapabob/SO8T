@@ -7,6 +7,10 @@ SO(8) NKAT Theory RLPO機能の基本テスト
 
 import sys
 import os
+
+# Set UTF-8 encoding for Windows compatibility
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+
 import torch
 import torch.nn as nn
 import numpy as np

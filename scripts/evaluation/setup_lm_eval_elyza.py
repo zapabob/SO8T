@@ -12,6 +12,9 @@ import json
 import subprocess
 import argparse
 from pathlib import Path
+
+# Set UTF-8 encoding for Windows compatibility
+os.environ['PYTHONIOENCODING'] = 'utf-8'
 from typing import Dict, List, Any
 
 # tqdm for progress bars
