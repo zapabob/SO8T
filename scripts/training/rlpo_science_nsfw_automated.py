@@ -29,7 +29,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
-
+import math
 # Transformers関連
 from transformers import (
     AutoTokenizer,
@@ -365,20 +365,33 @@ class RLPOCheckpointCallback(TrainerCallback):
         if self.step_counter % 50 != 0:
             return
 
-        # Alphaアニーリング
+        # Alphaアニーリング（-0.5からsigmoidでアニーリングし最終的にΦ^{-2}≃0.381966に到達）
         model = kwargs.get('model')
         if model and hasattr(model, "named_modules"):
             total_steps = args.max_steps or 1000
             progress = min(state.global_step / max(total_steps, 1), 1.0)
 
+            # Φ（黄金比）とΦ^-2を計算
+            phi = (1 + 5 ** 0.5) / 2
+            phi_inv2 = phi ** -2  # ≈ 0.38196601125
+
+            start_alpha = -0.5
+            end_alpha = phi_inv2  # ≈0.381966
+
+            # sigmoidアニーリング: α = start + sigmoid(lerp(0, 6, progress)) * (end-start)
+            # 6はannealingスピードパラメータ（大きいほど早く収束）
+            anneal_speed = 6.0
+            sigmoid_val = 1 / (1 + math.exp(-anneal_speed * (progress - 0.5)))  # progress==0.5付近で中心
+            target_alpha = start_alpha + sigmoid_val * (end_alpha - start_alpha)
+
             for name, module in model.named_modules():
                 if "nkat_adapter" in name and hasattr(module, "alpha_logit"):
-                    # 負の値(-0.5)から正の値(0.5)へ線形アニーリング
-                    target_alpha = -0.5 + progress * 1.0
-
-                    # 逆sigmoid計算でlogitを更新
-                    p = (target_alpha + 0.5) / 1.5
-                    p = torch.clamp(p, 1e-7, 1-1e-7)
+                    # 逆sigmoidでlogit更新
+                    # target_alpha∈[start_alpha, end_alpha]→p（Sigmoid空間、0～1対応）:
+                    # 線形スケールしシグモイド空間に。
+                    # sc = (alpha - start) / (end - start)
+                    p = (target_alpha - start_alpha) / (end_alpha - start_alpha)
+                    p = float(torch.clamp(torch.tensor(p), 1e-7, 1-1e-7))
                     new_logit = math.log(p / (1.0 - p))
 
                     with torch.no_grad():
