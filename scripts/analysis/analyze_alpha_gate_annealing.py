@@ -384,9 +384,9 @@ class AlphaGateAnnealingAnalyzer:
 
 #### 統計的モデル領域 (α < 0.3)
 - **ステップ数**: {analysis['annealing_phases']['statistical_model']['count']}
-- **平均性能**: {analysis['annealing_phases']['statistical_model']['avg_performance']:.6f}
-- **最大性能**: {analysis['annealing_phases']['statistical_model']['max_performance']:.6f}
-- **性能標準偏差**: {analysis['annealing_phases']['statistical_model']['performance_std']:.6f}
+- **平均性能**: {analysis['annealing_phases']['statistical_model'].get('avg_performance', 'N/A')}
+- **最大性能**: {analysis['annealing_phases']['statistical_model'].get('max_performance', 'N/A')}
+- **性能標準偏差**: {analysis['annealing_phases']['statistical_model'].get('performance_std', 'N/A')}
 
 #### 遷移領域 (0.3 ≤ α < 0.7)
 - **ステップ数**: {analysis['annealing_phases']['transition_phase']['count']}
