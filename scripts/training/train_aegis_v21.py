@@ -534,14 +534,12 @@ def run_ppo_training_optimized(model, tokenizer, ppo_dataset, output_dir: str, l
     # PPO設定
     ppo_config = PPOConfig(
         learning_rate=learning_rate,
-        log_with=None,
         mini_batch_size=1,
         batch_size=1,
         gradient_accumulation_steps=4,
-        optimize_cuda_cache=True,
-        early_stopping=False,
-        target_kl=6.0,
-        ppo_epochs=1,
+        kl_coef=0.05,
+        num_ppo_epochs=1,
+        sft_model_path=model.config._name_or_path,
         seed=42,
     )
 
