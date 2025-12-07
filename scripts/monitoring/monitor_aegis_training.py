@@ -198,8 +198,8 @@ class AEGISTrainingMonitor:
             print(".1f")
             print(".1f")
         except ImportError:
-            print("
-💻 システム状況: psutil not available"
+            print("\n💻 システム状況: psutil not available")
+
 def create_monitoring_dashboard():
     """モニタリングダッシュボード作成"""
     monitor = AEGISTrainingMonitor()
@@ -220,8 +220,7 @@ def create_monitoring_dashboard():
     # システム状況表示
     monitor.get_system_status()
 
-    print("
-🔄 30秒ごとに進捗を更新します..."
+    print("\n🔄 30秒ごとに進捗を更新します...")
     # 進捗監視開始
     monitor.monitor_progress(interval=30)
 
