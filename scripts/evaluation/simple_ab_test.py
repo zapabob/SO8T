@@ -69,25 +69,52 @@ class SimpleABTester:
 
     def generate_response(self, model, tokenizer, prompt, max_length=100):
         """応答生成"""
-        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        try:
+            inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
-        with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                max_length=max_length,
-                temperature=0.7,
-                top_p=0.9,
-                do_sample=True,
-                pad_token_id=tokenizer.pad_token_id,
-                eos_token_id=tokenizer.eos_token_id
-            )
+            with torch.no_grad():
+                # DynamicCacheの問題を回避するためにuse_cache=Falseを使用
+                outputs = model.generate(
+                    **inputs,
+                    max_length=max_length,
+                    temperature=0.7,
+                    top_p=0.9,
+                    do_sample=True,
+                    pad_token_id=tokenizer.pad_token_id,
+                    eos_token_id=tokenizer.eos_token_id,
+                    use_cache=False  # DynamicCacheの問題を回避
+                )
 
-        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        # プロンプト部分を除去
-        if response.startswith(prompt):
-            response = response[len(prompt):].strip()
+            response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            # プロンプト部分を除去
+            if response.startswith(prompt):
+                response = response[len(prompt):].strip()
 
-        return response
+            return response
+
+        except Exception as e:
+            # エラーが発生した場合、簡易的なフォールバック
+            print(f"[WARNING] Generation failed, using fallback: {e}")
+            try:
+                # よりシンプルなgenerate呼び出し
+                inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+                with torch.no_grad():
+                    outputs = model.generate(
+                        **inputs,
+                        max_new_tokens=min(50, max_length - inputs['input_ids'].shape[1]),
+                        temperature=0.1,  # 温度を下げる
+                        do_sample=False,  # サンプリングを無効化
+                        pad_token_id=tokenizer.pad_token_id
+                    )
+
+                response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+                if response.startswith(prompt):
+                    response = response[len(prompt):].strip()
+                return response
+
+            except Exception as e2:
+                print(f"[ERROR] Fallback also failed: {e2}")
+                return ""
 
     def evaluate_responses(self):
         """応答評価"""
@@ -269,9 +296,9 @@ This report compares the performance of AEGIS v2.1 (SO(8) optimized Phi-3.5) aga
         axes[0].grid(True, alpha=0.3)
 
         # 値ラベル追加
-        for bar, mean in zip(bars, means):
+        for i, (bar, mean) in enumerate(zip(bars, means)):
             height = bar.get_height()
-            axes[0].text(bar.get_x() + bar.get_width()/2., height + stds[models.index(bar.get_label() or 'Base Model')],
+            axes[0].text(bar.get_x() + bar.get_width()/2., height + stds[i] + 0.01,
                        '.1f', ha='center', va='bottom', fontweight='bold')
 
         # プロンプト別比較
