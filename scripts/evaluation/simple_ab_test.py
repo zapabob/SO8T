@@ -351,7 +351,7 @@ This report compares the performance of AEGIS v2.1 (SO(8) optimized Phi-3.5) aga
                 json.dump({
                     "results": results,
                     "analysis": analysis
-                }, f, indent=2, ensure_ascii=False)
+                }, f, indent=2, ensure_ascii=False, default=str)
 
             with open(self.results_dir / "simple_ab_test_report.md", 'w', encoding='utf-8') as f:
                 f.write(report)
