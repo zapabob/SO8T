@@ -187,7 +187,7 @@ def test_dual_metrics():
 
 def main():
     """全テストを実行"""
-    print("🚀 Running Safety-Aware SO8T Autosave/Recovery Tests")
+    print("[START] Running Safety-Aware SO8T Autosave/Recovery Tests")
     print("=" * 60)
     
     try:

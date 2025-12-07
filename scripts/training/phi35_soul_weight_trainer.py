@@ -64,17 +64,17 @@ class SoulWeightModule(nn.Module):
         super().__init__()
         self.config = config
 
-        # Phi3.5事前学習モデルをロードして凍結 (CPU/GPUハイブリッド - メモリ節約)
-        print("Phi3.5事前学習モデルをロード中 (CPUベース)...")
+        # Phi3.5事前学習モデルをロードして凍結 (GPUベース - 高速化)
+        print("Phi3.5事前学習モデルをロード中 (GPUベース - RTX3060最適化)...")
         self.base_model = AutoModelForCausalLM.from_pretrained(
             "microsoft/phi-3.5-mini-instruct",
-            torch_dtype=torch.float32,  # CPU用float32
-            device_map={"": "cpu"},     # CPUに配置
+            torch_dtype=torch.float16,  # GPU用float16 (メモリ半減＆高速化)
+            device_map="cuda",          # GPUに直接配置
             trust_remote_code=True,
             low_cpu_mem_usage=True
         )
-        # 明示的にCPUに配置
-        self.base_model = self.base_model.to('cpu')
+        # GPUに明示的に配置
+        self.base_model = self.base_model.to('cuda')
 
         # メモリ節約のための設定
         self.base_model.gradient_checkpointing_enable()
@@ -87,22 +87,22 @@ class SoulWeightModule(nn.Module):
         print("Phi3.5モデルパラメータを凍結しました")
         print(f"モデルメモリ使用量: {sum(p.numel() * p.element_size() for p in self.base_model.parameters()) / (1024**3):.2f} GB")
 
-        # SO(8)魂の重みアダプター層 (CPU初期化、後でGPU移動)
-        self.soul_weights = nn.Parameter(torch.randn(config.soul_weight_dim, dtype=torch.float32))
-        self.alpha_gate = nn.Parameter(torch.tensor(ALPHA_START, dtype=torch.float32))
+        # SO(8)魂の重みアダプター層 (GPU初期化)
+        self.soul_weights = nn.Parameter(torch.randn(config.soul_weight_dim, dtype=torch.float16).cuda())
+        self.alpha_gate = nn.Parameter(torch.tensor(ALPHA_START, dtype=torch.float16).cuda())
 
-        # NKATアダプターレイヤー (CPU初期化、後でGPU移動)
+        # NKATアダプターレイヤー (GPU初期化)
         self.nkat_adapter = nn.Sequential(
-            nn.Linear(config.hidden_size, config.nkat_hidden, dtype=torch.float32),
+            nn.Linear(config.hidden_size, config.nkat_hidden, dtype=torch.float16).cuda(),
             nn.ReLU(),
-            nn.Linear(config.nkat_hidden, config.hidden_size, dtype=torch.float32)
+            nn.Linear(config.nkat_hidden, config.hidden_size, dtype=torch.float16).cuda()
         )
 
-        # 層正規化 (CPU初期化、後でGPU移動)
-        self.adapter_norm = nn.LayerNorm(config.hidden_size, dtype=torch.float32)
+        # 層正規化 (GPU初期化)
+        self.adapter_norm = nn.LayerNorm(config.hidden_size, dtype=torch.float16).cuda()
 
-        # アダプター用LMヘッド (CPU初期化、後でGPU移動)
-        self.adapter_lm_head = nn.Linear(config.hidden_size, 51200, dtype=torch.float32)
+        # アダプター用LMヘッド (GPU初期化)
+        self.adapter_lm_head = nn.Linear(config.hidden_size, 51200, dtype=torch.float16).cuda()
 
         # アダプター初期化
         self._initialize_adapter_weights()
@@ -157,32 +157,15 @@ class SoulWeightModule(nn.Module):
             self.alpha_gate.data = torch.tensor(ALPHA_START)
 
     def forward(self, input_ids: torch.Tensor, current_step: int = 0, total_steps: int = 1000) -> torch.Tensor:
-        """順伝播 (Phi3.5 + SO(8)アダプター - CPU/GPUハイブリッド)"""
-        # Phi3.5ベースモデルで順伝播 (CPUで計算、凍結されたパラメータ)
+        """順伝播 (Phi3.5 + SO(8)アダプター - GPUオンリー)"""
+        # Phi3.5ベースモデルで順伝播 (GPUで計算、凍結されたパラメータ)
         with torch.no_grad():
             base_outputs = self.base_model(
-                input_ids.to('cpu'),  # CPUでPhi3.5計算
+                input_ids,  # GPUで直接計算
                 output_hidden_states=True,
                 use_cache=False
             )
-            hidden_states = base_outputs.hidden_states[-1].to(self.device)  # GPUに移動してアダプター計算
-
-        # アダプターパラメータをGPUに移動（初回のみ、メモリ節約）
-        if not getattr(self, '_gpu_moved', False):
-            print("アダプターパラメータをGPUに移動中...")
-            try:
-                self.soul_weights.data = self.soul_weights.data.to(self.device)
-                self.alpha_gate.data = self.alpha_gate.data.to(self.device)
-                self.nkat_adapter = self.nkat_adapter.to(self.device)
-                self.adapter_norm = self.adapter_norm.to(self.device)
-                self.adapter_lm_head = self.adapter_lm_head.to(self.device)
-                self._gpu_moved = True
-                print("GPU移動完了")
-            except RuntimeError as e:
-                print(f"GPU移動エラー: {e}")
-                print("CPUモードにフォールバックします")
-                self.device = torch.device('cpu')
-                self._gpu_moved = True
+            hidden_states = base_outputs.hidden_states[-1]  # 既にGPU上にある
 
         # SO(8)魂の重みスケーリング適用
         soul_scale = torch.mean(torch.abs(self.soul_weights))  # SO(8)次元のスケール

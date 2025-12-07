@@ -315,7 +315,7 @@ This evaluation results package is released under the MIT License. The models an
 
     def run_preparation(self):
         """アップロード準備実行"""
-        print("🚀 Preparing HF upload package")
+        print("[START] Preparing HF upload package")
         print("=" * 50)
 
         try:
@@ -328,16 +328,21 @@ This evaluation results package is released under the MIT License. The models an
             # アーカイブ作成
             archive_path = self.create_upload_archive()
 
-            print("
-🎉 HF upload preparation completed!"            print(f"📦 Upload package: {self.upload_dir}")
+            print("\n🎉 HF upload preparation completed!")
+            print(f"📦 Upload package: {self.upload_dir}")
             print(f"📦 Archive: {archive_path}")
             print("")
-            print("📤 Ready for HF Hub upload!"            print("   Use: huggingface-cli upload <username>/aegis-ab-test-results"            print(f"   Local path: {self.upload_dir}")
-
+            print("📤 Ready for HF Hub upload!")
+            print("   Use: huggingface-cli upload <username>/aegis-ab-test-results")
+            print(f"   Local path: {self.upload_dir}")
             return True
 
         except Exception as e:
-            print(f"❌ Preparation failed: {e}")
+            # Avoid encoding issues (e.g., cp932) by encoding errors if needed
+            try:
+                print(f"❌ Preparation failed: {e}")
+            except UnicodeEncodeError:
+                print("❌ Preparation failed: <UnicodeEncodeError (cp932等)>")
             return False
 
 def main():

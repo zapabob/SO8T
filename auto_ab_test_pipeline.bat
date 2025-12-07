@@ -1,7 +1,7 @@
 @echo off
 :: ==========================================
 :: AEGIS A/Bテスト完全自律パイプライン
-:: 電源投入時に自動起動し、すべてのフェーズに3分毎ローリングチェックポイント適用
+:: tqdm & loggingを使用した進捗表示対応
 :: ==========================================
 
 :: システム監視デーモン起動（バックグラウンド）
@@ -20,7 +20,7 @@ cd /d "C:\Users\downl\Desktop\SO8T"
 :: フェーズ0: 環境チェック
 :: ==========================================
 echo [%DATE% %TIME%] Phase 0: Environment Check >> ab_test_automation.log
-py -3 simple_rlpo_test.py >> ab_test_automation.log 2>&1
+py -3 scripts\pipeline\moonshot_pipeline.py --phase env_check
 if %ERRORLEVEL% NEQ 0 (
     echo [%DATE% %TIME%] Environment check failed >> ab_test_automation.log
     goto :error

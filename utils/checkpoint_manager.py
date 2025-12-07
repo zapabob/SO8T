@@ -99,7 +99,7 @@ class RollingCheckpointManager:
         save_path = self.base_dir / f"ckpt_{timestamp}_{step_info}"
 
         if self.enable_logging:
-            print(f"💾 Saving checkpoint #{self.save_count + 1}: {save_path} ...")
+            print(f"[SAVE] Saving checkpoint #{self.save_count + 1}: {save_path} ...")
 
         try:
             # モデル保存

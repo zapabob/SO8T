@@ -50,8 +50,8 @@ class LMEvalABTester:
                 'name': 'SO8T-Phi3.5-v2.0-BF16',
                 'path': self.project_root / 'gguf_models' / 'so8t_phi35_v2' / 'SO8T-Phi3.5-v2.0-BF16.gguf',
                 'tokenizer_path': self.project_root / 'models' / 'Borea-Phi-3.5-mini-Instruct-Jp',
-                'type': 'gguf',
-                'description': 'SO(8) PPO学習済みGGUFモデル'
+                'type': 'hf',
+                'description': 'SO(8) PPO学習済みHFモデル'
             }
         }
 
@@ -68,8 +68,12 @@ class LMEvalABTester:
         # All benchmarks combined
         self.all_benchmarks = self.industry_benchmarks + self.japanese_benchmarks
 
-    def run_single_benchmark(self, model_key: str, benchmark: str, num_runs: int = 3) -> Dict:
+    def run_single_benchmark(self, model_key: str, benchmark: str, num_runs: int = 3) -> dict:
         """単一ベンチマークを実行"""
+        import subprocess
+        import json
+        import numpy as np
+
         model = self.models[model_key]
         results = []
 
@@ -84,7 +88,7 @@ class LMEvalABTester:
                     cmd = [
                         'python', '-m', 'lm_eval',
                         '--model', 'hf',
-                        f'--model_args', f'pretrained={model["path"]}',
+                        '--model_args', f'pretrained={model["path"]}',
                         '--tasks', benchmark,
                         '--device', 'cuda:0',
                         '--batch_size', 'auto',
@@ -97,16 +101,23 @@ class LMEvalABTester:
                     cmd = [
                         'python', '-m', 'lm_eval',
                         '--model', 'hf',
-                        f'--model_args', f'pretrained={model["path"].parent},gguf_file={model["path"].name},tokenizer={model["tokenizer_path"]}',
+                        '--model_args', f'pretrained={model["path"].parent},gguf_file={model["path"].name},tokenizer={model["tokenizer_path"]}',
                         '--tasks', benchmark,
                         '--device', 'cuda:0',
                         '--batch_size', 'auto',
                         '--output_path', str(self.output_dir / f'{model_key}_{benchmark}_run_{run}'),
                         '--log_samples'
                     ]
+                else:
+                    print(f"    ❌ Unknown model type: {model['type']}")
+                    results.append(None)
+                    continue
 
-                result = subprocess.run(cmd, cwd=self.project_root / 'lm-evaluation-harness',
-                                      capture_output=True, text=True, timeout=3600)
+                result = subprocess.run(
+                    cmd,
+                    cwd=self.project_root / 'lm-evaluation-harness',
+                    capture_output=True, text=True, timeout=3600
+                )
 
                 if result.returncode == 0:
                     # 結果ファイルからスコアを抽出
@@ -116,9 +127,10 @@ class LMEvalABTester:
                             data = json.load(f)
                             score = self._extract_score(data, benchmark)
                             results.append(score)
-                            print(".3f"                else:
-                    print(f"    ❌ No results file found for run {run + 1}")
-                    results.append(None)
+                            print(f"    ✅ Score: {score:.3f}")
+                    else:
+                        print(f"    ❌ No results file found for run {run + 1}")
+                        results.append(None)
                 else:
                     print(f"    ❌ Run {run + 1} failed: {result.stderr[:200]}...")
                     results.append(None)
@@ -134,10 +146,10 @@ class LMEvalABTester:
         valid_results = [r for r in results if r is not None]
         if valid_results:
             stats_result = {
-                'mean': np.mean(valid_results),
-                'std': np.std(valid_results),
-                'min': np.min(valid_results),
-                'max': np.max(valid_results),
+                'mean': float(np.mean(valid_results)),
+                'std': float(np.std(valid_results)),
+                'min': float(np.min(valid_results)),
+                'max': float(np.max(valid_results)),
                 'runs': len(valid_results),
                 'total_runs': num_runs
             }
@@ -177,7 +189,7 @@ class LMEvalABTester:
 
     def run_all_benchmarks(self, num_runs: int = 3) -> Dict:
         """全ベンチマークを実行"""
-        print("🚀 Starting comprehensive A/B test with lm-evaluation-harness")
+        print("[START] Starting comprehensive A/B test with lm-evaluation-harness")
         print("=" * 80)
 
         all_results = {}
@@ -566,7 +578,7 @@ class LMEvalABTester:
 
                     if isinstance(a_mean, (int, float)) and isinstance(b_mean, (int, float)):
                         diff = b_mean - a_mean
-                        diff_str = "+.4f"                    else:
+                        diff_str = f"+{b_mean - a_mean:.4f}"                        
                         diff_str = "N/A"
 
                     # 有意差チェック
@@ -604,6 +616,8 @@ class LMEvalABTester:
             f.write("詳細な結果とグラフは同ディレクトリのファイルをご参照ください。\n")
 
 def main():
+    import argparse
+
     parser = argparse.ArgumentParser(description="SO(8) PPO学習済みPhi3 vs 元Phi3 A/Bテスト")
     parser.add_argument("--output_dir", type=str, default="lm_eval_ab_test_results",
                        help="出力ディレクトリ")
@@ -637,15 +651,20 @@ def main():
     # 結果保存
     tester.save_results(results, analysis)
 
-    print("
-🎯 A/Bテスト完了！"    print(f"📊 結果は {tester.output_dir} に保存されました")
+    print("\n🎯 A/Bテスト完了！")
+    print(f"📊 結果は {tester.output_dir} に保存されました")
 
     # 全体結果表示
     if 'overall' in analysis:
         overall = analysis['overall']
-        print("
-🏆 最終結果:"        print(".4f"        print(".4f"        if 'overall_improvement' in overall:
+        print("\n🏆 最終結果:")
+        if 'overall_a_mean' in overall:
+            print(f"Model A (mean): {overall['overall_a_mean']:.4f}")
+        if 'overall_b_mean' in overall:
+            print(f"Model B (mean): {overall['overall_b_mean']:.4f}")
+        if 'overall_improvement' in overall:
             imp = overall['overall_improvement']
-            print(".1f"
+            print(f"改善値: {imp:.1f}")
+
 if __name__ == "__main__":
     main()

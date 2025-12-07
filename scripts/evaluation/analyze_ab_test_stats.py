@@ -329,24 +329,41 @@ class ABTestStatisticalAnalyzer:
         report.append("")
         report.append("## Overall Comparison")
         overall = stats_results["overall_comparison"]
-        report.append(".4f"        report.append(".4f"        report.append(".4f"        report.append(".4f"        report.append(f"- Effect Size (Cohen's d): {overall['effect_size_cohen_d']:.4f} ({overall['effect_size_interpretation']})")
-        report.append(".6f"        report.append(f"- Sample sizes: Baseline={overall['sample_size_baseline']}, AEGIS={overall['sample_size_aegis']}")
+        report.append(f"- Baseline mean: {overall['mean_baseline']:.4f}")
+        report.append(f"- Baseline std: {overall['std_baseline']:.4f}")
+        report.append(f"- AEGIS mean: {overall['mean_aegis']:.4f}")
+        report.append(f"- AEGIS std: {overall['std_aegis']:.4f}")
+        report.append(f"- Effect Size (Cohen's d): {overall['effect_size_cohen_d']:.4f} ({overall['effect_size_interpretation']})")
+        report.append(f"- p-value: {overall['p_value']:.6f}")
+        report.append(f"- Sample sizes: Baseline={overall['sample_size_baseline']}, AEGIS={overall['sample_size_aegis']}")
         report.append("")
         report.append("## Task-wise Comparison")
         for task, results in stats_results["task_wise_comparison"].items():
             report.append(f"### {task}")
-            report.append(".4f"            report.append(".4f"            report.append(".4f"            report.append(f"- Effect Size: {results['effect_size_cohen_d']:.4f} ({results['effect_size_interpretation']})")
-            report.append(".6f"            report.append("")
+            report.append(f"- Baseline mean: {results['mean_baseline']:.4f}")
+            report.append(f"- Baseline std: {results['std_baseline']:.4f}")
+            report.append(f"- AEGIS mean: {results['mean_aegis']:.4f}")
+            report.append(f"- AEGIS std: {results['std_aegis']:.4f}")
+            report.append(f"- Effect Size: {results['effect_size_cohen_d']:.4f} ({results['effect_size_interpretation']})")
+            report.append(f"- p-value: {results['p_value']:.6f}")
+            report.append("")
         report.append("## Few-shot Analysis")
         for fewshot, results in stats_results["fewshot_analysis"].items():
             report.append(f"### {fewshot}-shot")
-            report.append(".4f"            report.append(".4f"            report.append(".4f"            report.append(f"- Effect Size: {results['effect_size_cohen_d']:.4f} ({results['effect_size_interpretation']})")
-            report.append(".6f"            report.append("")
+            report.append(f"- Baseline mean: {results['mean_baseline']:.4f}")
+            report.append(f"- Baseline std: {results['std_baseline']:.4f}")
+            report.append(f"- AEGIS mean: {results['mean_aegis']:.4f}")
+            report.append(f"- AEGIS std: {results['std_aegis']:.4f}")
+            report.append(f"- Effect Size: {results['effect_size_cohen_d']:.4f} ({results['effect_size_interpretation']})")
+            report.append(f"- p-value: {results['p_value']:.6f}")
+            report.append("")
 
         if "anova_results" in stats_results and stats_results["anova_results"]:
             report.append("## ANOVA Results")
             anova = stats_results["anova_results"]["fewshot_effect"]
-            report.append(".4f"            report.append(".6f"            report.append(f"- Significant: {'Yes' if anova['significant'] else 'No'}")
+            report.append(f"- F-value: {anova['f_value']:.4f}")
+            report.append(f"- p-value: {anova['p_value']:.6f}")
+            report.append(f"- Significant: {'Yes' if anova['significant'] else 'No'}")
             report.append("")
 
         report.append("## Interpretation")
@@ -358,7 +375,7 @@ class ABTestStatisticalAnalyzer:
 
     def run_analysis(self):
         """統計分析実行"""
-        print("🚀 Starting A/B Test Statistical Analysis")
+        print("[START] Starting A/B Test Statistical Analysis")
         print("=" * 60)
 
         try:
@@ -367,7 +384,7 @@ class ABTestStatisticalAnalyzer:
 
             # データ準備
             df = self.prepare_data_for_analysis(results)
-            print(f"📊 Prepared {len(df)} data points for analysis")
+            print(f"[INFO] Prepared {len(df)} data points for analysis")
 
             # 統計検定
             stats_results = self.perform_statistical_tests(df)
@@ -390,19 +407,23 @@ class ABTestStatisticalAnalyzer:
             # CSVエクスポート
             df.to_csv(self.stats_dir / "ab_test_raw_data.csv", index=False)
 
-            print("
-🎉 Statistical analysis completed!"            print(f"📊 Results saved to {self.stats_dir}")
-            print(f"📈 Plots saved to {self.plots_dir}")
+            print("\n[SUCCESS] Statistical analysis completed!")
+            print(f"[INFO] Results saved to {self.stats_dir}")
+            print(f"[INFO] Plots saved to {self.plots_dir}")
 
             # 主要結果表示
             overall = stats_results["overall_comparison"]
-            print("
-📈 Key Results:"            print(".4f"            print(".4f"            print(".4f"            print(".4f"            print(f"📏 Effect Size: {overall['effect_size_cohen_d']:.4f} ({overall['effect_size_interpretation']})")
-            print(".6f"
+            print("\n[INFO] Key Results:")
+            print(f"[INFO] Mean A: {overall['mean_a']:.4f}")
+            print(f"[INFO] Mean B: {overall['mean_b']:.4f}")
+            print(f"[INFO] Std A: {overall['std_a']:.4f}")
+            print(f"[INFO] Std B: {overall['std_b']:.4f}")
+            print(f"[INFO] Effect Size: {overall['effect_size_cohen_d']:.4f} ({overall['effect_size_interpretation']})")
+            print(f"[INFO] P-value: {overall['p_value']:.6f}")
             return stats_results
 
         except Exception as e:
-            print(f"❌ Analysis failed: {e}")
+            print(f"[ERROR] Analysis failed: {e}")
             raise
 
 def main():

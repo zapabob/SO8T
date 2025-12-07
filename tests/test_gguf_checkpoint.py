@@ -117,7 +117,7 @@ def test_task_manager_gguf():
 
 def main():
     """メイン関数"""
-    print("🚀 GGUF Conversion Checkpoint Test Suite")
+    print("[START] GGUF Conversion Checkpoint Test Suite")
     print("=" * 60)
 
     tests = [
@@ -150,7 +150,7 @@ def main():
 
     if all(results):
         print("\n🎉 ALL TESTS PASSED!")
-        print("🚀 GGUF conversion with checkpointing is ready!")
+        print("[START] GGUF conversion with checkpointing is ready!")
         print("\nUsage:")
         print("  # Direct GGUF conversion with checkpointing:")
         print("  python scripts/utils/task_manager.py gguf --model_path /path/to/model --quantization q8_0")

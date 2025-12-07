@@ -144,7 +144,7 @@ def main():
     print()
     if all_passed:
         print("🎉 ALL TESTS PASSED!")
-        print("🚀 AEGIS Complete Autonomous System Ready!")
+        print("[START] AEGIS Complete Autonomous System Ready!")
         print()
         print("Available Commands:")
         print("  🌟 Full Autonomous Training:")
