@@ -55,11 +55,14 @@ class SimpleABTester:
 
         # AEGIS model
         print("Loading AEGIS model...")
-        self.aegis_tokenizer = AutoTokenizer.from_pretrained(self.aegis_model_path)
+        self.aegis_tokenizer = AutoTokenizer.from_pretrained(self.aegis_model_path, local_files_only=True)
+        # trust_remote_code=Falseで読み込み（modelingファイルがなくても動作）
         self.aegis_model = AutoModelForCausalLM.from_pretrained(
             self.aegis_model_path,
             torch_dtype=torch.bfloat16,
-            device_map="auto"
+            device_map="auto",
+            local_files_only=True,
+            trust_remote_code=False
         )
 
         print("[OK] Models loaded successfully")
