@@ -545,10 +545,13 @@ def run_ppo_training_optimized(model, tokenizer, ppo_dataset, output_dir: str, l
 
     # PPO Trainer
     ppo_trainer = PPOTrainer(
-        config=ppo_config,
+        args=ppo_config,
+        processing_class=tokenizer,
         model=model,
-        tokenizer=tokenizer,
-        dataset=ppo_dataset,
+        ref_model=None,  # 参照モデルなし
+        reward_model=model,  # 報酬モデルとして同じモデルを使用
+        train_dataset=ppo_dataset,
+        value_model=model,  # 価値モデルとして同じモデルを使用
         data_collator=None,
     )
 
@@ -884,10 +887,13 @@ def run_ppo_training_with_progress(model, tokenizer, ppo_dataset, output_dir: st
 
     # PPO Trainer
     ppo_trainer = PPOTrainer(
-        config=ppo_config,
+        args=ppo_config,
+        processing_class=tokenizer,
         model=model,
-        tokenizer=tokenizer,
-        dataset=ppo_dataset,
+        ref_model=None,  # 参照モデルなし
+        reward_model=model,  # 報酬モデルとして同じモデルを使用
+        train_dataset=ppo_dataset,
+        value_model=model,  # 価値モデルとして同じモデルを使用
         data_collator=None,
     )
 
@@ -986,10 +992,13 @@ def run_ppo_training_with_progress(model, tokenizer, ppo_dataset, output_dir: st
 
     # PPO Trainer
     ppo_trainer = PPOTrainer(
-        config=ppo_config,
+        args=ppo_config,
+        processing_class=tokenizer,
         model=model,
-        tokenizer=tokenizer,
-        dataset=ppo_dataset,
+        ref_model=None,  # 参照モデルなし
+        reward_model=model,  # 報酬モデルとして同じモデルを使用
+        train_dataset=ppo_dataset,
+        value_model=model,  # 価値モデルとして同じモデルを使用
         data_collator=None,
     )
 
@@ -1087,10 +1096,13 @@ def run_ppo_training_with_progress(model, tokenizer, ppo_dataset, output_dir: st
 
     # PPO Trainer
     ppo_trainer = PPOTrainer(
-        config=ppo_config,
+        args=ppo_config,
+        processing_class=tokenizer,
         model=model,
-        tokenizer=tokenizer,
-        dataset=ppo_dataset,
+        ref_model=None,  # 参照モデルなし
+        reward_model=model,  # 報酬モデルとして同じモデルを使用
+        train_dataset=ppo_dataset,
+        value_model=model,  # 価値モデルとして同じモデルを使用
         data_collator=None,
     )
 
@@ -1189,10 +1201,13 @@ def run_ppo_training_with_progress(model, tokenizer, ppo_dataset, output_dir: st
 
     # PPO Trainer
     ppo_trainer = PPOTrainer(
-        config=ppo_config,
+        args=ppo_config,
+        processing_class=tokenizer,
         model=model,
-        tokenizer=tokenizer,
-        dataset=ppo_dataset,
+        ref_model=None,  # 参照モデルなし
+        reward_model=model,  # 報酬モデルとして同じモデルを使用
+        train_dataset=ppo_dataset,
+        value_model=model,  # 価値モデルとして同じモデルを使用
         data_collator=None,
     )
 
