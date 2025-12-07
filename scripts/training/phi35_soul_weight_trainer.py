@@ -49,7 +49,7 @@ class Phi35SoulConfig:
     max_steps: int = 500  # Grokking観測用（500ステップで十分）
     warmup_steps: int = 100
     max_grad_norm: float = 1.0
-    gradient_accumulation_steps: int = 16  # GPUメモリ節約版（実質バッチサイズ16）- MOONSHOT GPU学習用
+    gradient_accumulation_steps: int = 4  # Lossの変化を早く観測するため減らす（実質バッチサイズ4）
     save_steps: int = 500
     eval_steps: int = 100
 
@@ -768,6 +768,11 @@ def create_data_loaders(config: Phi35SoulConfig) -> Tuple[DataLoader, Optional[D
 
     # データセット作成
     train_dataset = Phi35SoulDataset(train_file)
+
+    # 動作確認用に最初の1000件だけ使用（45,000件全部だと時間がかかりすぎる）
+    if len(train_dataset) > 1000:
+        train_dataset.data = train_dataset.data[:1000]
+        print(f"動作確認用にデータセットを1000件に制限: {len(train_dataset)}サンプル")
 
     # データ分割（評価用）
     train_size = int(0.9 * len(train_dataset))
