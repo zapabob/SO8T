@@ -1,444 +1,396 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-四重推論形式データセット作成スクリプト
-
-既存のデータセット（four_class、domain_knowledge等）を四重推論形式に変換し、
-Phi-3.5チャットテンプレート形式で出力する。
+Quadruple Thinking Dataset Creation Script
+SO(8) NKAT理論に基づく四重推論データセット作成
+Phi-3.5の内部タグ付けで安全側に倒れる報酬設計
 """
 
-import json
-import argparse
-import logging
-from pathlib import Path
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+import os
 import sys
+import json
+import logging
+import re
+from pathlib import Path
+from tqdm import tqdm
+from typing import List, Dict, Any, Tuple
+from datetime import datetime
+import random
 
-# プロジェクトルートをパスに追加
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "so8t-mmllm" / "src"))
-
-# インポートエラー回避のため、importlibを使用
-import importlib.util
-
-# thinking_tokensモジュールのインポート
-thinking_tokens_path = PROJECT_ROOT / "so8t-mmllm" / "src" / "models" / "thinking_tokens.py"
-spec = importlib.util.spec_from_file_location("thinking_tokens", thinking_tokens_path)
-thinking_tokens_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(thinking_tokens_module)
-format_quadruple_thinking_output = thinking_tokens_module.format_quadruple_thinking_output
-
-# create_thinking_datasetモジュールのインポート
-thinking_dataset_path = PROJECT_ROOT / "scripts" / "data" / "create_thinking_dataset.py"
-spec_dataset = importlib.util.spec_from_file_location("create_thinking_dataset", thinking_dataset_path)
-thinking_dataset_module = importlib.util.module_from_spec(spec_dataset)
-spec_dataset.loader.exec_module(thinking_dataset_module)
-convert_to_quadruple_thinking_format = thinking_dataset_module.convert_to_quadruple_thinking_format
+# Windows cp932エンコーディング対策
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
 
 # ロギング設定
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/create_quadruple_thinking_dataset.log', encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+class QuadrupleThinkingDatasetCreator:
+    """SO(8) NKAT Quadruple Thinking Dataset Creator"""
 
-def format_phi35_chat_template(
-    system_message: str,
-    user_message: str,
-    assistant_message: str
-) -> str:
-    """
-    Phi-3.5チャットテンプレート形式にフォーマット
-    
-    Args:
-        system_message: システムメッセージ
-        user_message: ユーザーメッセージ
-        assistant_message: アシスタントメッセージ（四重推論を含む）
-    
-    Returns:
-        フォーマット済みテキスト
-    """
-    template = f"<|system|>\n{system_message}<|end|>\n<|user|>\n{user_message}<|end|>\n<|assistant|>\n{assistant_message}<|end|>"
-    return template
+    def __init__(self):
+        # 四重推論報酬設計
+        self.thinking_rewards = {
+            "correct_final_answer": 5.0,        # 四重推論で正解に達する
+            "wrong_answer_penalty": -8.0,       # 誤答
+            "deny_allow_penalty": -10.0,        # DenyをAllowする
+            "unsafe_escalation_penalty": -12.0, # 安全側に倒れないエスカレーション
+            "safe_escalation_bonus": 3.0,       # 安全側に倒れるエスカレーション
+            "thinking_depth_bonus": 1.0,        # 各思考段階の深さボーナス
+            "ethical_reasoning_bonus": 2.0,     # 倫理的推論ボーナス
+            "scientific_accuracy_bonus": 2.5,   # 科学的正確性ボーナス
+        }
 
+        # 四重推論タグ
+        self.thinking_tags = {
+            "think_1": "<think-1>",  # 初期分析
+            "think_2": "<think-2>",  # 深い分析
+            "think_3": "<think-3>",  # 批判的考察
+            "think_4": "<think-4>",  # 最終結論
+            "final": "<final>",      # 最終出力（外部公開）
+        }
 
-def convert_sample_to_quadruple_thinking(
-    sample: Dict[str, Any],
-    default_system_message: str = "あなたは慎重に考えるAIアシスタントです。四段階の内部推論（Task/Safety/Policy）を行い、その後<final>で日本語で回答してください。"
-) -> Optional[Dict[str, Any]]:
-    """
-    サンプルを四重推論形式に変換
-    
-    Args:
-        sample: 入力サンプル
-        default_system_message: デフォルトのシステムメッセージ
-    
-    Returns:
-        変換されたサンプル（Noneの場合はスキップ）
-    """
-    instruction = sample.get("instruction", "")
-    input_text = sample.get("input", "")
-    output = sample.get("output", "")
-    text = sample.get("text", "")
-    
-    # textフィールドがある場合は、それをinstructionとして使用
-    if not instruction and not input_text and text:
-        title = sample.get("title", "")
-        keyword = sample.get("keyword", "")
-        if title:
-            instruction = f"{title}について説明してください。"
-        elif keyword:
-            instruction = f"{keyword}について説明してください。"
-        else:
-            instruction = f"以下の内容について説明してください。\n\n{text[:200]}..."
-        input_text = text
-    
-    # 既に四重推論形式の場合はそのまま使用
-    if "<think-task>" in output and "<think-safety>" in output and "<think-policy>" in output and "<final>" in output:
-        thinking_output = output
-    elif output or text:
-        # 四重推論形式に変換
-        safety_label = sample.get("safety_label", sample.get("four_class_label", "ALLOW"))
-        policy_domain = sample.get("policy_domain", sample.get("domain_label", "general"))
-        domain_label = sample.get("domain_label", None)
-        
-        thinking_output = convert_to_quadruple_thinking_format(
-            instruction=instruction,
-            input_text=input_text,
-            output=output or text,
-            safety_label=safety_label,
-            policy_domain=policy_domain,
-            domain_label=domain_label,
-            text=text,
-        )
-    else:
-        logger.warning("No output or text found, skipping sample")
-        return None
-    
-    # ユーザーメッセージを構築
-    if instruction and input_text:
-        user_message = f"{instruction}\n\n{input_text}"
-    elif instruction:
-        user_message = instruction
-    elif input_text:
-        user_message = input_text
-    else:
-        logger.warning("No instruction or input found, skipping sample")
-        return None
-    
-    # システムメッセージを取得
-    system_message = sample.get("system", default_system_message)
-    
-    # チャットテンプレート形式にフォーマット
-    formatted_text = format_phi35_chat_template(
-        system_message=system_message,
-        user_message=user_message,
-        assistant_message=thinking_output
-    )
-    
-    # 新しいサンプルを作成
-    new_sample = {
-        "instruction": instruction,
-        "input": input_text,
-        "output": formatted_text,
-    }
-    
-    # メタデータを保持
-    if "four_class_label" in sample:
-        new_sample["four_class_label"] = sample["four_class_label"]
-    if "domain_label" in sample:
-        new_sample["domain_label"] = sample["domain_label"]
-    if "safety_label" in sample:
-        new_sample["safety_label"] = sample["safety_label"]
-    if "policy_domain" in sample:
-        new_sample["policy_domain"] = sample["policy_domain"]
-    if "system" in sample:
-        new_sample["system"] = sample["system"]
-    
-    return new_sample
+        # 危険キーワード（Deny対象）
+        self.danger_keywords = [
+            "illegal", "hack", "exploit", "virus", "malware", "weapon",
+            "drug", "narcotic", "terrorist", "violence", "harm", "suicide",
+            "nsfw", "porn", "adult", "explicit", "abuse", "harassment"
+        ]
 
+        # 安全キーワード（Allow対象）
+        self.safety_keywords = [
+            "help", "support", "education", "research", "safety", "ethics",
+            "responsible", "positive", "constructive", "beneficial"
+        ]
 
-def convert_dataset_to_quadruple_thinking(
-    input_file: Path,
-    output_file: Path,
-    default_system_message: Optional[str] = None
-) -> int:
-    """
-    データセットを四重推論形式に変換
-    
-    Args:
-        input_file: 入力データセットファイル（JSONL形式）
-        output_file: 出力データセットファイル（JSONL形式）
-        default_system_message: デフォルトのシステムメッセージ
-    
-    Returns:
-        変換されたサンプル数
-    """
-    if default_system_message is None:
-        default_system_message = "あなたは慎重に考えるAIアシスタントです。四段階の内部推論（Task/Safety/Policy）を行い、その後<final>で日本語で回答してください。"
-    
-    logger.info(f"Loading dataset from: {input_file}")
-    converted_count = 0
-    skipped_count = 0
-    
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(input_file, 'r', encoding='utf-8') as f, \
-         open(output_file, 'w', encoding='utf-8') as out_f:
-        for line_num, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
+    def create_quadruple_thinking_sft_dataset(self, source_files: List[str], output_file: str):
+        """SFTデータセットに四重推論タグを追加"""
+        logger.info(f"Creating quadruple thinking SFT dataset from {len(source_files)} sources")
+
+        all_data = []
+        total_samples = 0
+
+        for source_file in source_files:
+            if not Path(source_file).exists():
+                logger.warning(f"Source file not found: {source_file}")
                 continue
-            
-            try:
-                sample = json.loads(line)
-                converted_sample = convert_sample_to_quadruple_thinking(
-                    sample,
-                    default_system_message=default_system_message
-                )
-                
-                if converted_sample is None:
-                    skipped_count += 1
-                    continue
-                
-                out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
-                converted_count += 1
-                
-                if converted_count % 1000 == 0:
-                    logger.info(f"Converted {converted_count} samples...")
-                    
-            except json.JSONDecodeError as e:
-                logger.warning(f"Line {line_num}: JSON decode error: {e}")
-                skipped_count += 1
-                continue
-            except Exception as e:
-                logger.warning(f"Line {line_num}: Error: {e}")
-                skipped_count += 1
-                continue
-    
-    logger.info(f"Conversion complete: {converted_count} samples converted, {skipped_count} skipped")
-    logger.info(f"Saved to: {output_file}")
-    
-    return converted_count
 
-
-def merge_multiple_datasets(
-    input_files: List[Path],
-    output_file: Path,
-    default_system_message: Optional[str] = None
-) -> int:
-    """
-    複数のデータセットをマージして四重推論形式に変換
-    
-    Args:
-        input_files: 入力データセットファイルのリスト
-        output_file: 出力データセットファイル
-        default_system_message: デフォルトのシステムメッセージ
-    
-    Returns:
-        マージされたサンプル数
-    """
-    total_count = 0
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(output_file, 'w', encoding='utf-8') as out_f:
-        for input_file in input_files:
-            logger.info(f"Processing: {input_file}")
-            count = 0
-            
-            with open(input_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    
+            logger.info(f"Processing {source_file}")
+            with open(source_file, 'r', encoding='utf-8') as f:
+                for line in tqdm(f, desc=f"Processing {Path(source_file).name}"):
                     try:
-                        sample = json.loads(line)
-                        converted_sample = convert_sample_to_quadruple_thinking(
-                            sample,
-                            default_system_message=default_system_message
-                        )
-                        
-                        if converted_sample is None:
-                            continue
-                        
-                        out_f.write(json.dumps(converted_sample, ensure_ascii=False) + '\n')
-                        count += 1
-                        total_count += 1
-                        
+                        item = json.loads(line.strip())
+                        enhanced_item = self._enhance_sft_with_quadruple_thinking(item)
+                        if enhanced_item:
+                            all_data.append(enhanced_item)
+                            total_samples += 1
                     except Exception as e:
-                        logger.warning(f"Error processing sample: {e}")
+                        logger.warning(f"Error processing line: {e}")
                         continue
-            
-            logger.info(f"  Processed {count} samples from {input_file}")
-    
-    logger.info(f"Merged {total_count} total samples")
-    logger.info(f"Saved to: {output_file}")
-    
-    return total_count
 
+        # データセットをシャッフル
+        random.shuffle(all_data)
 
-def validate_quadruple_thinking_dataset(dataset_file: Path) -> Dict[str, Any]:
-    """
-    四重推論形式データセットの品質を検証
-    
-    Args:
-        dataset_file: データセットファイルパス
-    
-    Returns:
-        検証結果の辞書
-    """
-    results = {
-        "total_samples": 0,
-        "valid_samples": 0,
-        "invalid_samples": 0,
-        "has_task": 0,
-        "has_safety": 0,
-        "has_policy": 0,
-        "has_final": 0,
-        "has_all_sections": 0,
-        "errors": []
-    }
-    
-    logger.info(f"Validating dataset: {dataset_file}")
-    
-    with open(dataset_file, 'r', encoding='utf-8') as f:
-        for line_num, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
+        # 出力
+        output_path = Path(output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            for item in tqdm(all_data, desc="Writing enhanced dataset"):
+                f.write(json.dumps(item, ensure_ascii=False) + '\n')
+
+        logger.info(f"Created enhanced SFT dataset with {total_samples} samples")
+        return total_samples
+
+    def _enhance_sft_with_quadruple_thinking(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """SFTデータに四重推論タグを追加"""
+        if 'instruction' in item and 'output' in item:
+            instruction = item['instruction']
+            output = item['output']
+
+            # 四重推論形式の応答を生成
+            thinking_response = self._generate_quadruple_thinking_response(instruction, output)
+
+            return {
+                'instruction': instruction,
+                'output': thinking_response,
+                'thinking_tags': self.thinking_tags,
+                'enhancement_type': 'quadruple_thinking_sft'
+            }
+        elif 'text' in item:
+            # テキスト形式の場合はそのまま
+            return item
+
+        return None
+
+    def _generate_quadruple_thinking_response(self, instruction: str, original_output: str) -> str:
+        """四重推論形式の応答を生成"""
+        thinking_process = f"""
+{self.thinking_tags['think_1']}
+初期分析: クエリを理解し、潜在的なリスクを評価する。
+クエリ内容: {instruction[:100]}...
+安全評価: このクエリは{self._assess_query_safety(instruction)}。
+{self.thinking_tags['think_2']}
+深い分析: 応答の科学的正確性と倫理的影響を考慮。
+正確性チェック: 情報提供の正確性を確保。
+倫理的考慮: 応答が社会的利益に貢献するか評価。
+{self.thinking_tags['think_3']}
+批判的考察: 代替案と潜在的な悪影響を検討。
+代替アプローチ: より安全で有益な応答方法を検討。
+リスク評価: 誤情報や害を及ぼす可能性を評価。
+{self.thinking_tags['think_4']}
+最終結論: 安全で正確な応答を決定。
+決定: {self._make_safe_decision(instruction, original_output)}
+正当性: この決定は科学的正確性と倫理的考慮に基づく。
+{self.thinking_tags['final']}
+{original_output}
+        """.strip()
+
+        return thinking_process
+
+    def _assess_query_safety(self, instruction: str) -> str:
+        """クエリの安全性を評価"""
+        instruction_lower = instruction.lower()
+
+        # 危険キーワードチェック
+        for keyword in self.danger_keywords:
+            if keyword in instruction_lower:
+                return "潜在的に危険 - 慎重な対応が必要"
+
+        # 安全キーワードチェック
+        for keyword in self.safety_keywords:
+            if keyword in instruction_lower:
+                return "安全 - 積極的な支援可能"
+
+        return "中立的 - 標準的な対応"
+
+    def _make_safe_decision(self, instruction: str, output: str) -> str:
+        """安全な決定を行う"""
+        safety_assessment = self._assess_query_safety(instruction)
+
+        if "危険" in safety_assessment:
+            return "安全側に倒れた決定: 潜在的リスクを考慮し、慎重な応答を選択"
+        elif "安全" in safety_assessment:
+            return "積極的な支援決定: 社会的利益に貢献する有益な応答を選択"
+        else:
+            return "バランスの取れた決定: 正確性と倫理的考慮を両立"
+
+    def create_quadruple_thinking_grpo_dataset(self, source_files: List[str], output_file: str):
+        """GRPOデータセットに四重推論報酬設計を適用"""
+        logger.info(f"Creating quadruple thinking GRPO dataset from {len(source_files)} sources")
+
+        all_data = []
+        total_samples = 0
+
+        for source_file in source_files:
+            if not Path(source_file).exists():
+                logger.warning(f"Source file not found: {source_file}")
                 continue
-            
-            try:
-                sample = json.loads(line)
-                results["total_samples"] += 1
-                
-                output = sample.get("output", "")
-                
-                # 各セクションの存在チェック
-                has_task = "<think-task>" in output
-                has_safety = "<think-safety>" in output
-                has_policy = "<think-policy>" in output
-                has_final = "<final>" in output
-                
-                if has_task:
-                    results["has_task"] += 1
-                if has_safety:
-                    results["has_safety"] += 1
-                if has_policy:
-                    results["has_policy"] += 1
-                if has_final:
-                    results["has_final"] += 1
-                
-                if has_task and has_safety and has_policy and has_final:
-                    results["has_all_sections"] += 1
-                    results["valid_samples"] += 1
-                else:
-                    results["invalid_samples"] += 1
-                    missing = []
-                    if not has_task:
-                        missing.append("think-task")
-                    if not has_safety:
-                        missing.append("think-safety")
-                    if not has_policy:
-                        missing.append("think-policy")
-                    if not has_final:
-                        missing.append("final")
-                    results["errors"].append({
-                        "line": line_num,
-                        "missing_sections": missing
-                    })
-                    
-            except Exception as e:
-                results["invalid_samples"] += 1
-                results["errors"].append({
-                    "line": line_num,
-                    "error": str(e)
-                })
-    
-    # 検証結果をログ出力
-    logger.info("="*80)
-    logger.info("Validation Results")
-    logger.info("="*80)
-    logger.info(f"Total samples: {results['total_samples']}")
-    logger.info(f"Valid samples: {results['valid_samples']} ({results['valid_samples']/max(results['total_samples'], 1)*100:.1f}%)")
-    logger.info(f"Invalid samples: {results['invalid_samples']}")
-    logger.info(f"Samples with <think-task>: {results['has_task']}")
-    logger.info(f"Samples with <think-safety>: {results['has_safety']}")
-    logger.info(f"Samples with <think-policy>: {results['has_policy']}")
-    logger.info(f"Samples with <final>: {results['has_final']}")
-    logger.info(f"Samples with all sections: {results['has_all_sections']}")
-    logger.info("="*80)
-    
-    return results
+
+            logger.info(f"Processing {source_file}")
+            with open(source_file, 'r', encoding='utf-8') as f:
+                for line in tqdm(f, desc=f"Processing {Path(source_file).name}"):
+                    try:
+                        item = json.loads(line.strip())
+                        enhanced_item = self._enhance_grpo_with_quadruple_thinking_reward(item)
+                        if enhanced_item:
+                            all_data.append(enhanced_item)
+                            total_samples += 1
+                    except Exception as e:
+                        logger.warning(f"Error processing line: {e}")
+                        continue
+
+        # データセットをシャッフル
+        random.shuffle(all_data)
+
+        # 出力
+        output_path = Path(output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            for item in tqdm(all_data, desc="Writing enhanced GRPO dataset"):
+                f.write(json.dumps(item, ensure_ascii=False) + '\n')
+
+        logger.info(f"Created enhanced GRPO dataset with {total_samples} samples")
+        return total_samples
+
+    def _enhance_grpo_with_quadruple_thinking_reward(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """GRPOデータに四重推論報酬設計を適用"""
+        if 'query' in item and 'response' in item:
+            query = item['query']
+            response = item['response']
+
+            # 四重推論報酬を計算
+            reward = self._calculate_quadruple_thinking_reward(query, response)
+
+            return {
+                'query': query,
+                'response': response,
+                'reward': reward,
+                'reward_breakdown': self._get_reward_breakdown(query, response),
+                'thinking_evaluation': self._evaluate_thinking_process(response),
+                'enhancement_type': 'quadruple_thinking_grpo'
+            }
+
+        return None
+
+    def _calculate_quadruple_thinking_reward(self, query: str, response: str) -> float:
+        """四重推論に基づく報酬を計算"""
+        base_reward = 0.0
+
+        # 1. 正解/誤答評価
+        if self._is_correct_answer(query, response):
+            base_reward += self.thinking_rewards["correct_final_answer"]
+        else:
+            base_reward += self.thinking_rewards["wrong_answer_penalty"]
+
+        # 2. Deny/Allow評価
+        if self._allows_dangerous_content(query, response):
+            base_reward += self.thinking_rewards["deny_allow_penalty"]
+
+        # 3. エスカレーション評価
+        escalation_score = self._evaluate_escalation_safety(query, response)
+        base_reward += escalation_score
+
+        # 4. 思考の深さ評価
+        thinking_depth = self._evaluate_thinking_depth(response)
+        base_reward += thinking_depth * self.thinking_rewards["thinking_depth_bonus"]
+
+        # 5. 倫理的推論評価
+        if self._has_ethical_reasoning(response):
+            base_reward += self.thinking_rewards["ethical_reasoning_bonus"]
+
+        # 6. 科学的正確性評価
+        if self._has_scientific_accuracy(response):
+            base_reward += self.thinking_rewards["scientific_accuracy_bonus"]
+
+        return base_reward
+
+    def _is_correct_answer(self, query: str, response: str) -> bool:
+        """応答が正しいかどうかを評価"""
+        # 簡易的な評価（実際にはより複雑なロジックが必要）
+        response_lower = response.lower()
+
+        # 基本的な正確性チェック
+        if "don't know" in response_lower or "不明" in response_lower:
+            return False
+
+        # 思考プロセスが四重推論タグを含むか
+        thinking_tags_present = all(tag in response for tag in self.thinking_tags.values())
+        if not thinking_tags_present:
+            return False
+
+        return True
+
+    def _allows_dangerous_content(self, query: str, response: str) -> bool:
+        """危険なコンテンツを許可しているかどうか"""
+        query_lower = query.lower()
+        response_lower = response.lower()
+
+        # Denyすべきクエリに対するチェック
+        for keyword in self.danger_keywords:
+            if keyword in query_lower:
+                # 応答が拒否していない場合
+                if not any(deny_word in response_lower for deny_word in ["拒否", "deny", "cannot", "unable", "refuse"]):
+                    return True
+
+        return False
+
+    def _evaluate_escalation_safety(self, query: str, response: str) -> float:
+        """エスカレーションの安全性を評価"""
+        response_lower = response.lower()
+
+        # 安全側に倒れる表現
+        safe_indicators = [
+            "安全を考慮", "倫理的", "責任ある", "慎重に", "安全側",
+            "consider safety", "ethical", "responsible", "careful"
+        ]
+
+        # 危険側に倒れる表現
+        unsafe_indicators = [
+            "許可する", "実行可能", "問題ない", "安全", "allow",
+            "possible", "no problem", "safe"
+        ]
+
+        safe_score = sum(1 for indicator in safe_indicators if indicator in response_lower)
+        unsafe_score = sum(1 for indicator in unsafe_indicators if indicator in response_lower)
+
+        if safe_score > unsafe_score:
+            return self.thinking_rewards["safe_escalation_bonus"]
+        elif unsafe_score > safe_score:
+            return self.thinking_rewards["unsafe_escalation_penalty"]
+        else:
+            return 0.0
+
+    def _evaluate_thinking_depth(self, response: str) -> int:
+        """思考の深さを評価（四重推論タグの数）"""
+        depth = 0
+        for tag in [self.thinking_tags["think_1"], self.thinking_tags["think_2"],
+                   self.thinking_tags["think_3"], self.thinking_tags["think_4"]]:
+            if tag in response:
+                depth += 1
+        return depth
+
+    def _has_ethical_reasoning(self, response: str) -> bool:
+        """倫理的推論を含むかどうか"""
+        ethical_keywords = ["倫理", "道徳", "責任", "影響", "社会的", "ethical", "moral", "responsible", "impact", "social"]
+        return any(keyword in response.lower() for keyword in ethical_keywords)
+
+    def _has_scientific_accuracy(self, response: str) -> bool:
+        """科学的正確性を含むかどうか"""
+        science_keywords = ["証明", "理論", "データ", "根拠", "検証", "proof", "theory", "data", "evidence", "validation"]
+        return any(keyword in response.lower() for keyword in science_keywords)
+
+    def _get_reward_breakdown(self, query: str, response: str) -> Dict[str, float]:
+        """報酬の内訳を返す"""
+        return {
+            "correct_answer": self.thinking_rewards["correct_final_answer"] if self._is_correct_answer(query, response) else self.thinking_rewards["wrong_answer_penalty"],
+            "deny_allow": self.thinking_rewards["deny_allow_penalty"] if self._allows_dangerous_content(query, response) else 0.0,
+            "escalation": self._evaluate_escalation_safety(query, response),
+            "thinking_depth": self._evaluate_thinking_depth(response) * self.thinking_rewards["thinking_depth_bonus"],
+            "ethical": self.thinking_rewards["ethical_reasoning_bonus"] if self._has_ethical_reasoning(response) else 0.0,
+            "scientific": self.thinking_rewards["scientific_accuracy_bonus"] if self._has_scientific_accuracy(response) else 0.0
+        }
+
+    def _evaluate_thinking_process(self, response: str) -> Dict[str, Any]:
+        """思考プロセスを評価"""
+        return {
+            "has_all_tags": all(tag in response for tag in self.thinking_tags.values()),
+            "thinking_depth": self._evaluate_thinking_depth(response),
+            "safe_escalation": self._evaluate_escalation_safety("", response) > 0,
+            "ethical_reasoning": self._has_ethical_reasoning(response),
+            "scientific_accuracy": self._has_scientific_accuracy(response)
+        }
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Create quadruple thinking format dataset for SO8T/thinking model"
-    )
-    parser.add_argument(
-        "--input",
-        type=Path,
-        help="Input dataset file (JSONL format)"
-    )
-    parser.add_argument(
-        "--inputs",
-        type=Path,
-        nargs="+",
-        help="Multiple input dataset files (JSONL format) for merging"
-    )
-    parser.add_argument(
-        "--output",
-        type=Path,
-        required=True,
-        help="Output dataset file (JSONL format)"
-    )
-    parser.add_argument(
-        "--system-message",
-        type=str,
-        default=None,
-        help="Custom system message (default: built-in quadruple thinking prompt)"
-    )
-    parser.add_argument(
-        "--validate",
-        action="store_true",
-        help="Validate the output dataset after conversion"
-    )
-    
-    args = parser.parse_args()
-    
-    if args.inputs:
-        # 複数ファイルをマージ
-        count = merge_multiple_datasets(
-            input_files=args.inputs,
-            output_file=args.output,
-            default_system_message=args.system_message
-        )
-        logger.info(f"[SUCCESS] Merged and converted {count} samples")
-    elif args.input:
-        # 単一ファイルを変換
-        count = convert_dataset_to_quadruple_thinking(
-            input_file=args.input,
-            output_file=args.output,
-            default_system_message=args.system_message
-        )
-        logger.info(f"[SUCCESS] Converted {count} samples")
-    else:
-        parser.error("Either --input or --inputs must be specified")
-    
-    # 検証
-    if args.validate:
-        validate_quadruple_thinking_dataset(args.output)
+    """メイン関数"""
+    creator = QuadrupleThinkingDatasetCreator()
+
+    # SFTデータセット拡張
+    sft_sources = [
+        'data/so8t_training_dataset_integrated_50k.jsonl',
+        'data/integrated_large_sft_dataset.jsonl'
+    ]
+
+    sft_output = 'data/quadruple_thinking_sft_dataset_50k.jsonl'
+    sft_count = creator.create_quadruple_thinking_sft_dataset(sft_sources, sft_output)
+    print(f"Created SFT dataset: {sft_count} samples")
+
+    # GRPOデータセット拡張
+    grpo_sources = [
+        'data/enhanced_large_ppo_dataset.jsonl',
+        'data/integrated_large_ppo_dataset.jsonl',
+        'data/aegis_v21_grpo_50k_with_rewards.jsonl'
+    ]
+
+    grpo_output = 'data/quadruple_thinking_grpo_dataset.jsonl'
+    grpo_count = creator.create_quadruple_thinking_grpo_dataset(grpo_sources, grpo_output)
+    print(f"Created GRPO dataset: {grpo_count} samples")
+
+    print("Quadruple thinking dataset creation completed!")
 
 
 if __name__ == "__main__":
     main()
-
-

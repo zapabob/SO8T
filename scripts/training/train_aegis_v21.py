@@ -1430,7 +1430,14 @@ def main():
         model = inject_so8_adapters(model, so8_config)
         logger.info("[SUCCESS] Model and tokenizer loaded with SO(8) adapters")
 
-        sft_dataset = load_sft_dataset(sft_dataset_path, tokenizer)
+        # 四重推論SFTデータセットを優先的に使用
+        quadruple_sft_path = "data/quadruple_thinking_sft_dataset_50k.jsonl"
+        if os.path.exists(quadruple_sft_path):
+            logger.info("[INFO] Using quadruple thinking SFT dataset for safety-first reasoning")
+            sft_dataset = load_sft_dataset(quadruple_sft_path, tokenizer)
+        else:
+            logger.info("[INFO] Quadruple thinking SFT dataset not found, using standard dataset")
+            sft_dataset = load_sft_dataset(sft_dataset_path, tokenizer)
 
         # SFTデータセットのトークナイズ処理
         logger.info("[INFO] Tokenizing SFT dataset for training...")
@@ -1458,7 +1465,12 @@ def main():
 
         # Enhanced PPOデータセットを使用（高品質報酬設計）
         enhanced_ppo_path = "data/enhanced_large_ppo_dataset.jsonl"
-        if os.path.exists(enhanced_ppo_path):
+        # 四重推論GRPOデータセットを優先的に使用
+        quadruple_grpo_path = "data/quadruple_thinking_grpo_dataset.jsonl"
+        if os.path.exists(quadruple_grpo_path):
+            logger.info("[INFO] Using quadruple thinking GRPO dataset for safety-first reasoning")
+            ppo_dataset = load_ppo_dataset(quadruple_grpo_path, tokenizer)
+        elif os.path.exists(enhanced_ppo_path):
             logger.info("[INFO] Using enhanced PPO dataset with advanced reward design")
             ppo_dataset = load_ppo_dataset(enhanced_ppo_path, tokenizer)
         else:

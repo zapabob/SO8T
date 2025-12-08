@@ -24,9 +24,30 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class GRPOEvaluator:
-    """GRPO報酬評価器"""
+    """GRPO報酬評価器（四重推論対応）"""
 
     def __init__(self):
+        # 四重推論報酬設計
+        self.quadruple_thinking_rewards = {
+            "correct_final_answer": 5.0,        # 四重推論で正解に達する
+            "wrong_answer_penalty": -8.0,       # 誤答
+            "deny_allow_penalty": -10.0,        # DenyをAllowする
+            "unsafe_escalation_penalty": -12.0, # 安全側に倒れないエスカレーション
+            "safe_escalation_bonus": 3.0,       # 安全側に倒れるエスカレーション
+            "thinking_depth_bonus": 1.0,        # 各思考段階の深さボーナス
+            "ethical_reasoning_bonus": 2.0,     # 倫理的推論ボーナス
+            "scientific_accuracy_bonus": 2.5,   # 科学的正確性ボーナス
+        }
+
+        # 四重推論タグ
+        self.thinking_tags = {
+            "think_1": "<think-1>",  # 初期分析
+            "think_2": "<think-2>",  # 深い分析
+            "think_3": "<think-3>",  # 批判的考察
+            "think_4": "<think-4>",  # 最終結論
+            "final": "<final>",      # 最終出力（外部公開）
+        }
+
         # 科学キーワード（一貫性評価用）
         self.science_keywords = {
             'high': ['theorem', 'proof', 'mathematical', 'quantum', 'relativity', 'neural network',
@@ -47,6 +68,19 @@ class GRPOEvaluator:
             'porn', 'sex', 'nude', 'erotic', 'adult', 'xxx', 'nsfw',
             'cocaine', 'heroin', 'meth', 'drug', 'marijuana', 'lsd', 'ecstasy',
             'マリファナ', 'コカイン', 'ヘロイン', '覚醒剤', '麻薬', 'ドラッグ'
+        ]
+
+        # 危険キーワード（Deny対象）
+        self.danger_keywords = [
+            "illegal", "hack", "exploit", "virus", "malware", "weapon",
+            "drug", "narcotic", "terrorist", "violence", "harm", "suicide",
+            "nsfw", "porn", "adult", "explicit", "abuse", "harassment"
+        ]
+
+        # 安全キーワード（Allow対象）
+        self.safety_keywords = [
+            "help", "support", "education", "research", "safety", "ethics",
+            "responsible", "positive", "constructive", "beneficial"
         ]
 
         # 安全応答パターン
@@ -255,9 +289,37 @@ class GRPOEvaluator:
         return min(penalty, 6.0)  # 最大6.0のペナルティ
 
     def calculate_grpo_reward(self, query: str, response: str) -> float:
-        """GRPO用の総合報酬を計算"""
+        """GRPO用の総合報酬を計算（四重推論対応）"""
         reward = 0.0
 
+        # === 四重推論報酬設計 ===
+        # 1. 正解/誤答評価
+        if self._is_correct_answer_quadruple(query, response):
+            reward += self.quadruple_thinking_rewards["correct_final_answer"]
+        else:
+            reward += self.quadruple_thinking_rewards["wrong_answer_penalty"]
+
+        # 2. Deny/Allow評価
+        if self._allows_dangerous_content_quadruple(query, response):
+            reward += self.quadruple_thinking_rewards["deny_allow_penalty"]
+
+        # 3. エスカレーション評価
+        escalation_score = self._evaluate_escalation_safety_quadruple(query, response)
+        reward += escalation_score
+
+        # 4. 思考の深さ評価
+        thinking_depth = self._evaluate_thinking_depth_quadruple(response)
+        reward += thinking_depth * self.quadruple_thinking_rewards["thinking_depth_bonus"]
+
+        # 5. 倫理的推論評価
+        if self._has_ethical_reasoning_quadruple(response):
+            reward += self.quadruple_thinking_rewards["ethical_reasoning_bonus"]
+
+        # 6. 科学的正確性評価
+        if self._has_scientific_accuracy_quadruple(response):
+            reward += self.quadruple_thinking_rewards["scientific_accuracy_bonus"]
+
+        # === 従来の報酬設計 ===
         # 正の報酬
         scientific_score = self.evaluate_scientific_consistency(query, response)
         reward += scientific_score * self.reward_weights['scientific_consistency']
@@ -290,10 +352,99 @@ class GRPOEvaluator:
         elif response_length > 300:
             reward -= 0.5  # 長すぎるペナルティ
 
-        # 報酬の範囲制限
-        reward = max(min(reward, 10.0), -15.0)
+        # 報酬の範囲制限（四重推論対応で拡張）
+        reward = max(min(reward, 15.0), -20.0)
 
         return reward
+
+    # === 四重推論評価メソッド ===
+
+    def _is_correct_answer_quadruple(self, query: str, response: str) -> bool:
+        """四重推論で正しい答えかどうかを評価"""
+        response_lower = response.lower()
+
+        # 思考プロセスが四重推論タグを含むか
+        thinking_tags_present = all(tag in response for tag in self.thinking_tags.values())
+        if not thinking_tags_present:
+            return False
+
+        # 最終出力が<final>タグで囲まれているか
+        final_tag_present = self.thinking_tags["final"] in response
+        if not final_tag_present:
+            return False
+
+        # 基本的な正確性チェック
+        if "don't know" in response_lower or "不明" in response_lower:
+            return False
+
+        # 思考の深さが適切か
+        thinking_depth = self._evaluate_thinking_depth_quadruple(response)
+        if thinking_depth < 3:  # 少なくとも3つの思考段階が必要
+            return False
+
+        return True
+
+    def _allows_dangerous_content_quadruple(self, query: str, response: str) -> bool:
+        """四重推論で危険なコンテンツを許可しているかどうか"""
+        query_lower = query.lower()
+        response_lower = response.lower()
+
+        # Denyすべきクエリに対するチェック
+        for keyword in self.danger_keywords:
+            if keyword in query_lower:
+                # 応答が拒否していない場合
+                deny_indicators = ["拒否", "deny", "cannot", "unable", "refuse", "不適切", "inappropriate"]
+                if not any(deny_word in response_lower for deny_word in deny_indicators):
+                    return True
+
+        return False
+
+    def _evaluate_escalation_safety_quadruple(self, query: str, response: str) -> float:
+        """四重推論でのエスカレーションの安全性を評価"""
+        response_lower = response.lower()
+
+        # 安全側に倒れる表現
+        safe_indicators = [
+            "安全を考慮", "倫理的", "責任ある", "慎重に", "安全側",
+            "consider safety", "ethical", "responsible", "careful",
+            "安全側に倒れる", "エスカレーションを避ける"
+        ]
+
+        # 危険側に倒れる表現
+        unsafe_indicators = [
+            "許可する", "実行可能", "問題ない", "安全", "allow",
+            "possible", "no problem", "safe", "許可",
+            "危険を許容", "エスカレーション実行"
+        ]
+
+        safe_score = sum(1 for indicator in safe_indicators if indicator in response_lower)
+        unsafe_score = sum(1 for indicator in unsafe_indicators if indicator in response_lower)
+
+        if safe_score > unsafe_score:
+            return self.quadruple_thinking_rewards["safe_escalation_bonus"]
+        elif unsafe_score > safe_score:
+            return self.quadruple_thinking_rewards["unsafe_escalation_penalty"]
+        else:
+            return 0.0
+
+    def _evaluate_thinking_depth_quadruple(self, response: str) -> int:
+        """四重推論の思考の深さを評価"""
+        depth = 0
+        for tag in [self.thinking_tags["think_1"], self.thinking_tags["think_2"],
+                   self.thinking_tags["think_3"], self.thinking_tags["think_4"]]:
+            if tag in response:
+                depth += 1
+        return depth
+
+    def _has_ethical_reasoning_quadruple(self, response: str) -> bool:
+        """四重推論で倫理的推論を含むかどうか"""
+        ethical_keywords = ["倫理", "道徳", "責任", "影響", "社会的", "ethical", "moral", "responsible", "impact", "social"]
+        return any(keyword in response.lower() for keyword in ethical_keywords)
+
+    def _has_scientific_accuracy_quadruple(self, response: str) -> bool:
+        """四重推論で科学的正確性を含むかどうか"""
+        science_keywords = ["証明", "理論", "データ", "根拠", "検証", "proof", "theory", "data", "evidence", "validation"]
+        return any(keyword in response.lower() for keyword in science_keywords)
 
 def analyze_ppo_dataset_for_grpo(dataset_path: str, max_samples: int = 1000):
     """PPOデータセットをGRPO用に分析"""

@@ -1,0 +1,188 @@
+{
+  "base": {
+    "model_name": "base",
+    "mmlu": {
+      "accuracy": 0.4,
+      "correct": 2,
+      "total": 5,
+      "questions": [
+        {
+          "question": "What is the time complexity of the quicksort algorithm in the average case?",
+          "options": [
+            "O(n)",
+            "O(n log n)",
+            "O(n²)",
+            "O(log n)"
+          ],
+          "correct": 1,
+          "subject": "computer science"
+        },
+        {
+          "question": "In Boolean algebra, what is the result of A AND (A OR B)?",
+          "options": [
+            "A",
+            "B",
+            "A OR B",
+            "A AND B"
+          ],
+          "correct": 0,
+          "subject": "mathematics"
+        },
+        {
+          "question": "What is the SI unit of electric charge?",
+          "options": [
+            "Volt",
+            "Ampere",
+            "Coulomb",
+            "Watt"
+          ],
+          "correct": 2,
+          "subject": "physics"
+        },
+        {
+          "question": "Which data structure uses LIFO (Last In, First Out) principle?",
+          "options": [
+            "Queue",
+            "Stack",
+            "Array",
+            "Linked List"
+          ],
+          "correct": 1,
+          "subject": "computer science"
+        },
+        {
+          "question": "What is the derivative of sin(x)?",
+          "options": [
+            "cos(x)",
+            "-sin(x)",
+            "tan(x)",
+            "sec(x)"
+          ],
+          "correct": 0,
+          "subject": "mathematics"
+        }
+      ]
+    },
+    "gsm8k": {
+      "accuracy": 0.8,
+      "correct": 4,
+      "total": 5,
+      "questions": [
+        {
+          "question": "A store has 5 apples. If I buy 2 apples, how many apples are left?",
+          "answer": 3
+        },
+        {
+          "question": "Sarah has 12 candies. She gives 3 to her friend. How many does she have left?",
+          "answer": 9
+        },
+        {
+          "question": "There are 7 birds on a tree. 4 more birds join them. How many birds are there now?",
+          "answer": 11
+        },
+        {
+          "question": "A pizza has 8 slices. If 3 slices are eaten, how many are left?",
+          "answer": 5
+        },
+        {
+          "question": "John has 15 marbles. He loses 6. How many does he have left?",
+          "answer": 9
+        }
+      ]
+    },
+    "timestamp": "2025-12-08 09:57:30"
+  },
+  "aegis": {
+    "model_name": "aegis",
+    "mmlu": {
+      "accuracy": 0.4,
+      "correct": 2,
+      "total": 5,
+      "questions": [
+        {
+          "question": "What is the time complexity of the quicksort algorithm in the average case?",
+          "options": [
+            "O(n)",
+            "O(n log n)",
+            "O(n²)",
+            "O(log n)"
+          ],
+          "correct": 1,
+          "subject": "computer science"
+        },
+        {
+          "question": "In Boolean algebra, what is the result of A AND (A OR B)?",
+          "options": [
+            "A",
+            "B",
+            "A OR B",
+            "A AND B"
+          ],
+          "correct": 0,
+          "subject": "mathematics"
+        },
+        {
+          "question": "What is the SI unit of electric charge?",
+          "options": [
+            "Volt",
+            "Ampere",
+            "Coulomb",
+            "Watt"
+          ],
+          "correct": 2,
+          "subject": "physics"
+        },
+        {
+          "question": "Which data structure uses LIFO (Last In, First Out) principle?",
+          "options": [
+            "Queue",
+            "Stack",
+            "Array",
+            "Linked List"
+          ],
+          "correct": 1,
+          "subject": "computer science"
+        },
+        {
+          "question": "What is the derivative of sin(x)?",
+          "options": [
+            "cos(x)",
+            "-sin(x)",
+            "tan(x)",
+            "sec(x)"
+          ],
+          "correct": 0,
+          "subject": "mathematics"
+        }
+      ]
+    },
+    "gsm8k": {
+      "accuracy": 0.8,
+      "correct": 4,
+      "total": 5,
+      "questions": [
+        {
+          "question": "A store has 5 apples. If I buy 2 apples, how many apples are left?",
+          "answer": 3
+        },
+        {
+          "question": "Sarah has 12 candies. She gives 3 to her friend. How many does she have left?",
+          "answer": 9
+        },
+        {
+          "question": "There are 7 birds on a tree. 4 more birds join them. How many birds are there now?",
+          "answer": 11
+        },
+        {
+          "question": "A pizza has 8 slices. If 3 slices are eaten, how many are left?",
+          "answer": 5
+        },
+        {
+          "question": "John has 15 marbles. He loses 6. How many does he have left?",
+          "answer": 9
+        }
+      ]
+    },
+    "timestamp": "2025-12-08 10:00:34"
+  }
+}
