@@ -606,3 +606,12 @@ webgl_fingerprints/
 models/Borea-Phi-3.5-mini-Instruct-Jp
 models/Borea-Phi-3.5-mini-Instruct-Jp
 lm-evaluation-harness
+.specstory/.gitignore
+.specstory/history/2025-12-03_10-05Z-untitled.md
+.specstory/history/2025-12-06_23-37Z-機能損なわずリポジトリ整理.md
+.specstory/history/2025-12-07_01-31Z-ムーンショットの起動.md
+.specstory/history/2025-12-07_08-19Z-aegis-v2-1-groking現象と学習損失.md
+.specstory/history/2025-12-08_04-49Z-aegis-borea-phi3-5-v2-1のollama登録.md
+.specstory/history/2025-12-08_06-16Z-nsfwデータでモデルを微調整.md
+.specstory/history/2026-01-07_08-29Z-hugging-faceとgithubの最適化.md
+.specstory/history/2026-01-16_14-46Z-chart-values-and-skill-plan-mode.md
