@@ -274,11 +274,11 @@ def main():
     # 結論
     print('\\n\\nCONCLUSION:')
     print('=' * 20)
-    print('✅ Qwen2.5-7B is FEASIBLE for SO8T on RTX3060 + 32GB RAM')
-    print('✅ With SO8T optimizations: ~25% additional VRAM savings')
-    print('✅ Recommended approach: 4-bit GPTQ + CPU offloading + SO8T geometric constraints')
-    print('✅ Training possible with LoRA + gradient checkpointing')
-    print('✅ Deployment optimized with 2-bit quantization')
+    print('[OK] Qwen2.5-7B is FEASIBLE for SO8T on RTX3060 + 32GB RAM')
+    print('[OK] With SO8T optimizations: ~25% additional VRAM savings')
+    print('[OK] Recommended approach: 4-bit GPTQ + CPU offloading + SO8T geometric constraints')
+    print('[OK] Training possible with LoRA + gradient checkpointing')
+    print('[OK] Deployment optimized with 2-bit quantization')
 
     # 保存
     analysis = {

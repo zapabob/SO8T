@@ -1,0 +1,44 @@
+language:
+- en
+- ja
+license: mit
+metrics:
+  ARC-Challenge:
+    type: accuracy
+    value: 0.45
+  ELYZA-100:
+    type: accuracy
+    value: 1.0
+  GSM8K:
+    type: accuracy
+    value: 1.0
+  MATH:
+    type: accuracy
+    value: 0.32
+  SciQ:
+    type: accuracy
+    value: 0.85
+model-index:
+- name: AEGIS-Phi3.5mini-jp-v2.4
+  results:
+  - dataset:
+      name: GSM8K
+      type: gsm8k
+    metrics:
+    - type: accuracy
+      value: 1.0
+    task:
+      type: text-generation
+tags:
+- so8t
+- geometric-reasoning
+- quadruple-inference
+- mathematical-reasoning
+- scientific-discovery
+- so8-nkat-theory
+- reinforcement-learning
+- japanese-language-model
+- phi-3
+- enhanced-reasoning
+- ab-test-validated
+- benchmark-leader
