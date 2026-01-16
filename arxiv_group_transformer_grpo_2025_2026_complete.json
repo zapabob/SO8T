@@ -1,0 +1,83 @@
+{
+  "search_timestamp": "2026-01-17T01:26:01.337976",
+  "total_papers_found": 3,
+  "papers_with_github": 0,
+  "analyzed_repositories": 0,
+  "papers": [
+    {
+      "title": "MatchTIR: Fine-Grained Supervision for Tool-Integrated Reasoning via Bipartite Matching",
+      "authors": [
+        "Changle Qu",
+        "Sunhao Dai",
+        "Hengyi Cai"
+      ],
+      "summary": "Tool-Integrated Reasoning (TIR) empowers large language models (LLMs) to tackle complex tasks by interleaving reasoning steps with external tool interactions. However, existing reinforcement learning methods typically rely on outcome- or trajectory-level rewards, assigning uniform advantages to all ...",
+      "link": "http://arxiv.org/abs/2601.10712v1",
+      "published": "2026-01-15T18:59:23Z",
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "relevance": {
+        "group_score": 0,
+        "grpo_score": 4,
+        "transformer_score": 0,
+        "total_score": 4,
+        "is_relevant": true
+      },
+      "github_links": []
+    },
+    {
+      "title": "See Less, Drive Better: Generalizable End-to-End Autonomous Driving via Foundation Models Stochastic Patch Selection",
+      "authors": [
+        "Amir Mallak",
+        "Erfan Aasi",
+        "Shiva Sreeram"
+      ],
+      "summary": "Recent advances in end-to-end autonomous driving show that policies trained on patch-aligned features extracted from foundation models generalize better to Out-of-Distribution (OOD). We hypothesize that due to the self-attention mechanism, each patch feature implicitly embeds/contains information fr...",
+      "link": "http://arxiv.org/abs/2601.10707v1",
+      "published": "2026-01-15T18:58:33Z",
+      "categories": [
+        "cs.CV",
+        "cs.LG",
+        "cs.RO"
+      ],
+      "relevance": {
+        "group_score": 0,
+        "grpo_score": 0,
+        "transformer_score": 2,
+        "total_score": 2,
+        "is_relevant": true
+      },
+      "github_links": []
+    },
+    {
+      "title": "Implementation of Oblivious Transfer over Binary-Input AWGN Channels by Polar Codes",
+      "authors": [
+        "Pin-Hsun Lin",
+        "Hadi Aghaee",
+        "Christian Deppe"
+      ],
+      "summary": "We develop a one-out-of-two-oblivious transfer protocol over the binary-input additive white Gaussian noise channel using polar codes. The scheme uses two decoder views linked by automorphisms of the polar transform and publicly draws the encoder at random from the corresponding automorphism group. ...",
+      "link": "http://arxiv.org/abs/2601.10682v1",
+      "published": "2026-01-15T18:44:28Z",
+      "categories": [
+        "cs.IT"
+      ],
+      "relevance": {
+        "group_score": 0,
+        "grpo_score": 0,
+        "transformer_score": 2,
+        "total_score": 2,
+        "is_relevant": true
+      },
+      "github_links": []
+    }
+  ],
+  "github_analysis": [],
+  "so8t_relevance_summary": {
+    "group_representation_focus": 0,
+    "grpo_focus": 1,
+    "transformer_focus": 2
+  }
+}

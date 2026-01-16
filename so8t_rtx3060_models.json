@@ -1,0 +1,85 @@
+{
+  "constraints": {
+    "gpu": "RTX3060 (12GB VRAM)",
+    "ram": "32GB",
+    "target": "SO8T Geometric Deep Learning"
+  },
+  "recommended_models": [
+    {
+      "name": "google/vit-base-patch16-224",
+      "description": "Vision Transformer with geometric inductive bias via attention",
+      "vram_req": 3,
+      "params": "86M",
+      "relevance": 5,
+      "category": "Vision Models",
+      "so8t_use": "Triality拡張でSO(8)位置エンコーディング統合"
+    },
+    {
+      "name": "facebook/dinov2-small",
+      "description": "Self-supervised vision with emergent geometric understanding",
+      "vram_req": 4,
+      "params": "21M",
+      "relevance": 4,
+      "category": "Self-supervised Vision",
+      "so8t_use": "Grassmann多様体上の幾何学的特徴学習"
+    },
+    {
+      "name": "microsoft/DialoGPT-medium",
+      "description": "Conversational AI foundation for geometric reasoning",
+      "vram_req": 4,
+      "params": "345M",
+      "relevance": 3,
+      "category": "Conversational AI",
+      "so8t_use": "四重推論の実装基盤"
+    },
+    {
+      "name": "sentence-transformers/all-MiniLM-L6-v2",
+      "description": "Lightweight sentence embeddings for geometric text analysis",
+      "vram_req": 1,
+      "params": "22M",
+      "relevance": 3,
+      "category": "Text Embeddings",
+      "so8t_use": "論文分析とベクトル・スピノル変換"
+    },
+    {
+      "name": "distilbert-base-uncased",
+      "description": "Lightweight BERT for geometric feature extraction",
+      "vram_req": 2,
+      "params": "66M",
+      "relevance": 3,
+      "category": "Feature Extraction",
+      "so8t_use": "リー群表現の特徴抽出"
+    },
+    {
+      "name": "nvidia/segformer-b0-finetuned-cityscapes-512-512",
+      "description": "Semantic segmentation with geometric understanding",
+      "vram_req": 3,
+      "params": "14M",
+      "relevance": 4,
+      "category": "Computer Vision",
+      "so8t_use": "SO(8)等変性を持つ幾何学的セグメンテーション"
+    }
+  ],
+  "implementation_roadmap": [
+    [
+      "google/vit-base-patch16-224",
+      "Primary: Triality拡張でSO(8) NKAT統合"
+    ],
+    [
+      "facebook/dinov2-small",
+      "Secondary: Grassmann多様体学習"
+    ],
+    [
+      "microsoft/DialoGPT-medium",
+      "Foundation: 四重推論会話システム"
+    ],
+    [
+      "sentence-transformers/all-MiniLM-L6-v2",
+      "Utility: 論文ベクトル化と検索"
+    ],
+    [
+      "nvidia/segformer-b0-finetuned-cityscapes-512-512",
+      "Advanced: 等変性幾何学処理"
+    ]
+  ]
+}
