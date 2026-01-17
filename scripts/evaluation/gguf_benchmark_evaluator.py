@@ -446,24 +446,44 @@ class GGUFStandardizedBenchmarkEvaluator:
         return response.strip().split()[-1] if response.strip() else ""
 
     def _extract_arc_answer(self, response: str) -> str:
-        """Extract answer choice with improved GGUF-specific logic"""
-        # Multiple extraction strategies
-        patterns = [
-            r'\b([A-E])\)',           # A), B), etc.
-            r'\b([A-E])\.',           # A., B., etc.
-            r'answer:\s*([A-E])',     # answer: A
-            r'Answer:\s*([A-E])',     # Answer: A
-            r'\b([A-E])\b',           # Single letter
-        ]
+        """Extract answer choice with robust ARC-Challenge specific logic"""
+        import re
+        from typing import Optional
 
-        for pattern in patterns:
-            matches = re.findall(pattern, response, re.IGNORECASE)
+        CHOICE_RE = re.compile(r"\b([A-E])\b")
+
+        def extract_arc_choice(text: str) -> Optional[str]:
+            """
+            ARC-Challenge用の頑健な選択肢抽出。
+            - 'Answer: C', '答え：C', '(C)', 'C.' などを拾う
+            - 最後の出現を優先（長文の最後に結論を書く癖対策）
+            """
+            if text is None:
+                return None
+
+            # タグやコードブロックの残骸を軽く掃除
+            cleaned = text.strip()
+
+            # よくある「答え」行を優先的に拾う
+            patterns = [
+                r"(?:Answer|答え|解答|最終回答)\s*[:：]?\s*([A-E])\b",
+                r"(?:Answer|答え|解答|最終回答)\s*[:：]?\s*\(?\s*([A-E])\s*\)?",
+            ]
+            for pat in patterns:
+                m = re.search(pat, cleaned, flags=re.IGNORECASE)
+                if m:
+                    return m.group(1).upper()
+
+            # 単独文字A-Eの出現を全部拾って最後を返す
+            matches = CHOICE_RE.findall(cleaned.upper())
             if matches:
-                return matches[-1].upper()
+                return matches[-1]
 
-        # Last resort: any A-E letter
-        letters = re.findall(r'\b[A-E]\b', response.upper())
-        return letters[-1] if letters else ""
+            return None
+
+        # Apply the robust extraction
+        result = extract_arc_choice(response)
+        return result if result else ""
 
     def _compare_math_answers(self, predicted: str, correct: str) -> bool:
         """Compare MATH answers with tolerance"""

@@ -123,6 +123,10 @@ class OfficialABCTestPlan:
         # Generate final results
         final_results = self._generate_final_results(raw_results, statistical_results, config)
 
+        # Generate detailed analysis including timeout and extraction failure rates
+        detailed_analysis = self._generate_detailed_analysis(raw_results, config)
+        final_results['detailed_analysis'] = detailed_analysis
+
         logger.info("Official A/B/C Test completed successfully")
         return final_results
 
@@ -522,6 +526,125 @@ class OfficialABCTestPlan:
             )
 
         return summary
+
+    def _generate_detailed_analysis(self, raw_results: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate detailed analysis including timeout and extraction failure rates.
+        """
+        detailed_analysis = {
+            'timeout_analysis': {},
+            'extraction_failure_analysis': {},
+            'response_pattern_analysis': {},
+            'recommendations': []
+        }
+
+        # Analyze each model's results
+        for model_name, model_results in raw_results.items():
+            detailed_analysis['timeout_analysis'][model_name] = {}
+            detailed_analysis['extraction_failure_analysis'][model_name] = {}
+            detailed_analysis['response_pattern_analysis'][model_name] = {}
+
+            for benchmark, benchmark_results in model_results.items():
+                timeout_count = 0
+                extraction_failure_count = 0
+                total_samples = 0
+                response_patterns = []
+
+                for run_key, run_result in benchmark_results.items():
+                    if 'individual_results' in run_result:
+                        for item_result in run_result['individual_results']:
+                            total_samples += 1
+
+                            # Check for timeout indicators
+                            response = item_result.get('response', '')
+                            inference_time = item_result.get('inference_time', 0)
+
+                            timeout_threshold = config.get('timeouts', {}).get(benchmark, 300)
+                            if inference_time >= timeout_threshold:
+                                timeout_count += 1
+
+                            # Check for extraction failures (predicted answer is empty or invalid)
+                            predicted = item_result.get('predicted', '')
+                            if not predicted or predicted not in ['A', 'B', 'C', 'D', 'E']:
+                                extraction_failure_count += 1
+
+                            # Analyze response patterns
+                            if benchmark == 'arc_challenge':
+                                if 'Answer:' in response or '答え' in response:
+                                    response_patterns.append('explicit_answer')
+                                elif any(letter in response.upper() for letter in 'ABCDE'):
+                                    response_patterns.append('choice_mentioned')
+                                else:
+                                    response_patterns.append('no_choice')
+
+                # Calculate rates
+                detailed_analysis['timeout_analysis'][model_name][benchmark] = {
+                    'timeout_count': timeout_count,
+                    'total_samples': total_samples,
+                    'timeout_rate': timeout_count / total_samples if total_samples > 0 else 0
+                }
+
+                detailed_analysis['extraction_failure_analysis'][model_name][benchmark] = {
+                    'failure_count': extraction_failure_count,
+                    'total_samples': total_samples,
+                    'failure_rate': extraction_failure_count / total_samples if total_samples > 0 else 0
+                }
+
+                if response_patterns:
+                    from collections import Counter
+                    pattern_counts = Counter(response_patterns)
+                    detailed_analysis['response_pattern_analysis'][model_name][benchmark] = dict(pattern_counts)
+
+        # Generate recommendations based on analysis
+        detailed_analysis['recommendations'] = self._generate_analysis_recommendations(detailed_analysis)
+
+        return detailed_analysis
+
+    def _generate_analysis_recommendations(self, detailed_analysis: Dict[str, Any]) -> List[str]:
+        """
+        Generate recommendations based on detailed analysis.
+        """
+        recommendations = []
+
+        # Check timeout rates
+        high_timeout_benchmarks = []
+        for model_name, model_analysis in detailed_analysis['timeout_analysis'].items():
+            for benchmark, timeout_data in model_analysis.items():
+                if timeout_data['timeout_rate'] > 0.1:  # More than 10% timeouts
+                    high_timeout_benchmarks.append(f"{model_name} on {benchmark}")
+
+        if high_timeout_benchmarks:
+            recommendations.append(f"High timeout rates detected in: {', '.join(high_timeout_benchmarks)}. Consider increasing timeout limits or optimizing model inference.")
+
+        # Check extraction failure rates for ARC
+        high_failure_arc = []
+        for model_name, model_analysis in detailed_analysis['extraction_failure_analysis'].items():
+            arc_data = model_analysis.get('arc_challenge', {})
+            if arc_data.get('failure_rate', 0) > 0.3:  # More than 30% extraction failures
+                high_failure_arc.append(model_name)
+
+        if high_failure_arc:
+            recommendations.append(f"High extraction failure rates in ARC-Challenge for: {', '.join(high_failure_arc)}. Response format may not match expected patterns. Consider improving answer extraction logic.")
+
+        # Check response patterns
+        poor_response_patterns = []
+        for model_name, model_analysis in detailed_analysis['response_pattern_analysis'].items():
+            arc_patterns = model_analysis.get('arc_challenge', {})
+            no_choice_rate = arc_patterns.get('no_choice', 0) / sum(arc_patterns.values()) if arc_patterns else 0
+            if no_choice_rate > 0.5:  # More than 50% responses don't mention choices
+                poor_response_patterns.append(model_name)
+
+        if poor_response_patterns:
+            recommendations.append(f"Poor response patterns in ARC-Challenge for: {', '.join(poor_response_patterns)}. Models are not following expected answer format. Consider format-specific training or forced-choice evaluation.")
+
+        # General recommendations
+        recommendations.extend([
+            "For ARC-Challenge evaluation, consider implementing forced-choice prompting where the model must select from A/B/C/D/E explicitly.",
+            "Monitor inference times and adjust timeout settings based on model capabilities and task complexity.",
+            "Consider response format fine-tuning to improve extraction accuracy across different benchmarks."
+        ])
+
+        return recommendations
 
     def save_results(self, results: Dict[str, Any], output_path: str):
         """
