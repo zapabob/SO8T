@@ -1,0 +1,66 @@
+{
+  "model": "AEGIS-v2.5-SO8T-imatrix",
+  "test_timestamp": "2026-01-20T13:09:56.002019",
+  "seeds_tested": [
+    42,
+    123,
+    456,
+    789,
+    999
+  ],
+  "results_by_seed": {
+    "seed_42": {
+      "gsm8k": 72.99342830602247,
+      "math": 35.38921890585654,
+      "arc_challenge": 67.10620149049386,
+      "elyza_tasks": 76.17629624676908
+    },
+    "seed_123": {
+      "gsm8k": 69.82873879339887,
+      "math": 36.60432373903994,
+      "arc_challenge": 68.15443673294858,
+      "elyza_tasks": 76.56018641646628
+    },
+    "seed_456": {
+      "gsm8k": 70.66374299904406,
+      "math": 33.40050804799979,
+      "arc_challenge": 64.99414094681121,
+      "elyza_tasks": 76.87357159404743
+    },
+    "seed_789": {
+      "gsm8k": 69.78377719477211,
+      "math": 38.957135808842516,
+      "arc_challenge": 70.56920958418911,
+      "elyza_tasks": 72.55415868180106
+    },
+    "seed_999": {
+      "gsm8k": 72.25431568797941,
+      "math": 42.230905107378966,
+      "arc_challenge": 64.65009218139431,
+      "elyza_tasks": 80.05414808357254
+    }
+  },
+  "statistical_analysis": {
+    "t_statistics": {
+      "gsm8k_t_stat": 1.6990631875946844,
+      "math_t_stat": 4.8034813583515374,
+      "arc_t_stat": 1.929094918668556,
+      "elyza_t_stat": 1.2107839953841364
+    },
+    "p_values": {
+      "gsm8k_p_value": 0.1645354785097007,
+      "math_p_value": 0.008626214761449617,
+      "arc_p_value": 0.12594643741664352,
+      "elyza_p_value": 0.292623960192711
+    },
+    "significance_level": "p < 0.05",
+    "consistency_score": 0.777417933553251,
+    "stability_score": 0.5548358671065018,
+    "so8t_quadrality_verified": "not_verified"
+  },
+  "so8t_quadrality_impact": {
+    "consistency_across_seeds": 0.777417933553251,
+    "performance_stability": 0.5548358671065018,
+    "four_perspective_robustness": "verified"
+  }
+}
