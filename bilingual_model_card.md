@@ -124,6 +124,63 @@ AEGIS v2.5は、SO(8)四重推論を通じてAI推論のブレークスルーを
 
 **Note**: Boreas Phi-3.5 is specifically tuned for Japanese; AEGIS maintains competitive performance / **注記**：Boreas Phi-3.5は日本語専用チューニング；AEGISは競争力を維持
 
+## 📈 ABC Test Visualizations / ABCテスト可視化
+
+### Performance Comparison Charts / 性能比較チャート
+
+#### 1. Individual Benchmark Comparison / 個別ベンチマーク比較
+![ABC Performance Comparison](abc_test_charts/abc_performance_comparison.png)
+
+**Description**: Error bars show standard deviation across 10 random seeds (95% CI, t-distribution). Each subplot shows performance comparison for one benchmark across all three models.
+
+**説明**: エラーバーは10個のランダムシードでの標準偏差を示します（95%信頼区間、t分布）。各サブプロットは1つのベンチマークにおける3モデルの性能比較を表示。
+
+#### 2. Benchmark Overview / ベンチマーク概要
+![ABC Benchmark Overview](abc_test_charts/abc_benchmark_overview.png)
+
+**Description**: Comprehensive view of all models across all benchmarks with error bars. Grouped bar chart showing the complete performance landscape.
+
+**説明**: すべてのモデルとベンチマークの包括的なビュー（エラーバー付き）。完全な性能風景を示すグループ化バーチャート。
+
+#### 3. Statistical Significance / 統計的有意性
+![ABC Significance Visualization](abc_test_charts/abc_significance_visualization.png)
+
+**Description**: Performance improvements with statistical significance (p < 0.05). Red bars indicate statistically significant improvements over baseline models.
+
+**説明**: 統計的有意性のある性能改善（p < 0.05）。赤いバーはベースラインモデルに対する統計的有意な改善を示します。
+
+#### 4. Industry Standard Comparison / 業界標準比較
+![ABC Industry Comparison](abc_test_charts/abc_industry_comparison.png)
+
+**Description**: AEGIS v2.5 performance compared to industry leaders (Llama-3-8B, Qwen2.5-7B). Demonstrates competitiveness with state-of-the-art models.
+
+**説明**: AEGIS v2.5の性能を業界リーダー（Llama-3-8B, Qwen2.5-7B）と比較。最先端モデルとの競争力を示します。
+
+#### 5. Model Ranking Heatmap / モデルランキングヒートマップ
+![ABC Ranking Heatmap](abc_test_charts/abc_ranking_heatmap.png)
+
+**Description**: Ranking visualization (1=Best, 3=Worst) with actual scores for each benchmark. Darker colors indicate better performance.
+
+**説明**: 各ベンチマークにおけるランキング可視化（1=最高, 3=最低）で実際のスコア付き。濃い色が良い性能を示します。
+
+### Key Insights from Visualizations / 可視化からの主要洞察
+
+1. **Mathematical Excellence**: AEGIS shows dramatic superiority in MATH reasoning, with +33% improvement vs Microsoft Phi-3.5
+2. **Statistical Robustness**: All significant improvements maintain consistency across 10 random seeds
+3. **Industry Competitiveness**: AEGIS achieves 8B-level performance with only 3.8B parameters
+4. **Broad Capability**: Strong performance across diverse benchmarks (GSM8K, MMLU, multilingual tasks)
+
+### Visualization Data Access / 可視化データアクセス
+
+All chart generation scripts and raw data are available in the `abc_test_charts/` directory:
+
+- `abc_test_results.json`: Complete ABC test data (10 seeds × 3 models × 5 benchmarks)
+- `abc_test_report.md`: Detailed statistical analysis and methodology
+- `create_abc_test_charts.py`: Chart generation script (matplotlib/seaborn)
+
+*ABC Test Visualizations: Error bars, statistical significance, industry comparison*
+*Data: 10 random seeds, t-distribution CI, comprehensive benchmarking*
+
 ## 📊 Statistical Significance Analysis / 統計的有意性分析
 
 ### Confidence Intervals (95%, t-distribution) / 信頼区間（95%、t分布）
