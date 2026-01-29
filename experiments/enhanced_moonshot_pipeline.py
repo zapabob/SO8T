@@ -516,25 +516,25 @@ class EnhancedMoonshotPipeline:
 
         return so8_data
 
-    def execute_sft_rlpo_integration(self):
+    def execute_sft_rlpo_integration(self, target_datasets: List[Path] = None):
         """SFT/RLPO統合実行"""
-        logger.info("Executing SFT/RLPO integration")
+        logger.info(f"Executing SFT/RLPO integration with {len(target_datasets) if target_datasets else 'default'} datasets")
         self.current_phase = "sft_rlpo_integration"
 
         # SFT実行
-        self._execute_sft()
+        self._execute_sft(target_datasets)
 
         # RLPO実行（KTOベースの改良版）
-        self._execute_rlpo()
+        self._execute_rlpo(target_datasets)
 
         logger.info("SFT/RLPO integration completed")
 
-    def _execute_sft(self):
+    def _execute_sft(self, target_datasets: List[Path] = None):
         """SFT実行"""
         logger.info("Executing Supervised Fine-Tuning")
 
         # SFTデータセット
-        sft_dataset = self._prepare_sft_dataset()
+        sft_dataset = self._prepare_sft_dataset(target_datasets)
 
         training_args = TrainingArguments(
             output_dir="training_output/sft",
@@ -560,12 +560,12 @@ class EnhancedMoonshotPipeline:
         trainer.train()
         trainer.save_model("models/aegis_v25_sft")
 
-    def _execute_rlpo(self):
+    def _execute_rlpo(self, target_datasets: List[Path] = None):
         """RLPO実行（改良版: 多様性保存 + スペクトル正則化）"""
         logger.info("Executing RLPO with diversity preservation")
 
         # RLPOデータセット
-        rlpo_dataset = self._prepare_rlpo_dataset()
+        rlpo_dataset = self._prepare_rlpo_dataset(target_datasets)
 
         # 改良版報酬関数（数学的正確性重視）
         reward_functions = [
@@ -600,7 +600,7 @@ class EnhancedMoonshotPipeline:
         trainer.train()
         trainer.save_model("models/aegis_v25_rlpo")
 
-    def _prepare_sft_dataset(self):
+    def _prepare_sft_dataset(self, target_datasets: List[Path] = None):
         """SFTデータセット準備"""
         # 数学・科学・時事データ
         sft_data = [
@@ -611,10 +611,25 @@ class EnhancedMoonshotPipeline:
             {"text": "アニメ: 物語構造の分析において、SO(8)の対称性がプロット設計に適用可能である。"},
             {"text": "世界情勢: 技術覇権争いの中で、AI倫理と安全性の議論が国際的に活発化している。"}
         ]
+        
+        if target_datasets:
+            for dataset_path in target_datasets:
+                if dataset_path.exists():
+                    logger.info(f"Loading external SFT data: {dataset_path}")
+                    with open(dataset_path, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            if line.strip():
+                                data = json.loads(line)
+                                if "text" in data:
+                                    sft_data.append({"text": data["text"]})
+                                elif "instruction" in data:
+                                    # Instruction/Output形式をTextに変換
+                                    text = f"### Instruction:\n{data['instruction']}\n\n### Response:\n{data.get('output', '')}"
+                                    sft_data.append({"text": text})
 
         return sft_data
 
-    def _prepare_rlpo_dataset(self):
+    def _prepare_rlpo_dataset(self, target_datasets: List[Path] = None):
         """RLPOデータセット準備"""
         rlpo_data = []
 
@@ -631,6 +646,29 @@ class EnhancedMoonshotPipeline:
                 "response_undesirable": "4つのものを考えることです。"
             }
         ]
+        
+        if target_datasets:
+            for dataset_path in target_datasets:
+                if dataset_path.exists():
+                    logger.info(f"Loading external RLPO data: {dataset_path}")
+                    try:
+                        with open(dataset_path, 'r', encoding='utf-8') as f:
+                            for line in f:
+                                if line.strip():
+                                    data = json.loads(line)
+                                    # Preference pair format: prompt, chosen/rejected or desirable/undesirable
+                                    if "prompt" in data:
+                                        prompt = data["prompt"]
+                                        chosen = data.get("chosen", data.get("response_desirable", ""))
+                                        rejected = data.get("rejected", data.get("response_undesirable", ""))
+                                        if chosen and rejected:
+                                            rlpo_data.append({
+                                                "prompt": prompt,
+                                                "completion_desirable": chosen,
+                                                "completion_undesirable": rejected
+                                            })
+                    except Exception as e:
+                        logger.warning(f"Failed to load RLPO data from {dataset_path}: {e}")
 
         for pair in preference_pairs:
             rlpo_data.append({
@@ -733,6 +771,10 @@ class EnhancedMoonshotPipeline:
     def _generate_industry_standard_model_card(self, model_path: str):
         """業界標準準拠のモデルカード生成"""
         logger.info("Generating industry standard model card")
+
+        # benchmark_statsの取得
+        abc_results = self._load_abc_test_results()
+        benchmark_stats = self._calculate_benchmark_statistics(abc_results)
 
         # シンプルなモデルカード生成
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -1126,59 +1168,59 @@ trajectory = reasoner.generate_reasoning_trajectory(problem)
   note={{Original quadrality reasoning framework extending triality to four perspectives}}
 }}
 
-@article{deepseek2025,
-  title={DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning},
-  author={DeepSeek-AI Team},
-  journal={Nature},
-  volume={635},
-  pages={xxx-xxx},
-  year={2025},
-  publisher={Nature Publishing Group},
-  doi={10.xxxx/xxxxx},
-  note={Pure RL approach enabling emergent reasoning without human trajectories}
-}
+@article{{deepseek2025,
+  title={{DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning}},
+  author={{DeepSeek-AI Team}},
+  journal={{Nature}},
+  volume={{635}},
+  pages={{xxx-xxx}},
+  year={{2025}},
+  publisher={{Nature Publishing Group}},
+  doi={{10.xxxx/xxxxx}},
+  note={{Pure RL approach enabling emergent reasoning without human trajectories}}
+}}
 
-@article{mhc2025,
-  title={mHC: Manifold-Constrained Hyper-Connections},
-  author={HyperMind Research Team},
-  journal={arXiv preprint},
-  volume={arXiv:2512.24880},
-  year={2025},
-  note={Stable residual stream expansion using Birkhoff polytope doubly stochastic constraints}
-}
+@article{{mhc2025,
+  title={{mHC: Manifold-Constrained Hyper-Connections}},
+  author={{HyperMind Research Team}},
+  journal={{arXiv preprint}},
+  volume={{arXiv:2512.24880}},
+  year={{2025}},
+  note={{Stable residual stream expansion using Birkhoff polytope doubly stochastic constraints}}
+}}
 
-@article{geometric2026,
-  title={Geometric and Dynamic Scaling in Deep Transformers},
-  author={Scaling Research Consortium},
-  journal={arXiv preprint},
-  volume={arXiv:2601.01014},
-  year={2026},
-  note={Manifold-preserving parameter optimization with delta learning redundancy removal}
-}
+@article{{geometric2026,
+  title={{Geometric and Dynamic Scaling in Deep Transformers}},
+  author={{Scaling Research Consortium}},
+  journal={{arXiv preprint}},
+  volume={{arXiv:2601.01014}},
+  year={{2026}},
+  note={{Manifold-preserving parameter optimization with delta learning redundancy removal}}
+}}
 
-@article{imatrix2024,
-  title={Importance Matrix Quantization for Large Language Models},
-  author={Quantization Research Group},
-  journal={arXiv preprint},
-  year={2024},
-  note={GGUF quantization with importance-aware weight protection}
-}
+@article{{imatrix2024,
+  title={{Importance Matrix Quantization for Large Language Models}},
+  author={{Quantization Research Group}},
+  journal={{arXiv preprint}},
+  year={{2024}},
+  note={{GGUF quantization with importance-aware weight protection}}
+}}
 
-@article{phi3_2024,
-  title={Phi-3: Technical Report},
-  author={Microsoft AI Team},
-  journal={arXiv preprint},
-  year={2024},
-  note={Phi-3.5-mini instruction-tuned model architecture}
-}
+@article{{phi3_2024,
+  title={{Phi-3: Technical Report}},
+  author={{Microsoft AI Team}},
+  journal={{arXiv preprint}},
+  year={{2024}},
+  note={{Phi-3.5-mini instruction-tuned model architecture}}
+}}
 
-@inproceedings{grpo2024,
-  title={GRPO: Group Relative Policy Optimization},
-  author={Shao et al.},
-  booktitle={International Conference on Learning Representations},
-  year={2024},
-  note={Original GRPO algorithm for efficient RLHF}
-}
+@inproceedings{{grpo2024,
+  title={{GRPO: Group Relative Policy Optimization}},
+  author={{Shao et al.}},
+  booktitle={{International Conference on Learning Representations}},
+  year={{2024}},
+  note={{Original GRPO algorithm for efficient RLHF}}
+}}
 ```
 
 ### Key Research References
@@ -1192,41 +1234,41 @@ trajectory = reasoner.generate_reasoning_trajectory(problem)
 ### Dataset Citations
 
 ```bibtex
-@dataset{proofpile2023,
-  title={Proof-Pile-2},
-  author={Azerbayev et al.},
-  year={2023},
-  publisher={Lean Community},
-  note={Large-scale formal mathematical proof corpus}
-}
+@dataset{{proofpile2023,
+  title={{Proof-Pile-2}},
+  author={{Azerbayev et al.}},
+  year={{2023}},
+  publisher={{Lean Community}},
+  note={{Large-scale formal mathematical proof corpus}}
+}}
 
-@dataset{leanworkbook2023,
-  title={Lean Workbook},
-  author={Microsoft Research},
-  year={2023},
-  note={Interactive theorem proving exercises and tutorials}
-}
+@dataset{{leanworkbook2023,
+  title={{Lean Workbook}},
+  author={{Microsoft Research}},
+  year={{2023}},
+  note={{Interactive theorem proving exercises and tutorials}}
+}}
 
-@dataset{math2021,
-  title={MATH: Competition-level Mathematics},
-  author={Hendrycks et al.},
-  year={2021},
-  note={AMC/AIME/Olympiad level mathematical problems}
-}
+@dataset{{math2021,
+  title={{MATH: Competition-level Mathematics}},
+  author={{Hendrycks et al.}},
+  year={{2021}},
+  note={{AMC/AIME/Olympiad level mathematical problems}}
+}}
 
-@dataset{minif2f2022,
-  title={miniF2F: Formal Mathematics Competition},
-  author={Zheng et al.},
-  year={2022},
-  note={Formal mathematics competition problems}
-}
+@dataset{{minif2f2022,
+  title={{miniF2F: Formal Mathematics Competition}},
+  author={{Zheng et al.}},
+  year={{2022}},
+  note={{Formal mathematics competition problems}}
+}}
 
-@dataset{elyza2023,
-  title={ELYZA Tasks 100},
-  author={ELYZA Inc.},
-  year={2023},
-  note={Japanese instruction following and reasoning benchmark}
-}
+@dataset{{elyza2023,
+  title={{ELYZA Tasks 100}},
+  author={{ELYZA Inc.}},
+  year={{2023}},
+  note={{Japanese instruction following and reasoning benchmark}}
+}}
 ```
 
 ## License and Attribution
@@ -1758,50 +1800,62 @@ except Exception as e:
         logger.info("Executing HF upload")
 
         try:
-            # HF Hubへのアップロード（実際の実装ではhf_hub APIを使用）
-            # ここではローカル保存のみを実装
+            bf16_gguf = "models/aegis_v25_bf16.gguf"
+            protected_gguf = "models/aegis_v25_so8t_protected.gguf"
+            
+            # GGUFファイルをモデルフォルダにコピー
+            from pathlib import Path
+            import shutil
+            
+            local_model_path = Path(model_path)
+            for gguf in [bf16_gguf, protected_gguf]:
+                gguf_path = Path(gguf)
+                if gguf_path.exists():
+                    logger.info(f"Adding {gguf} to upload folder")
+                    shutil.copy2(gguf_path, local_model_path / gguf_path.name)
 
             import subprocess
 
             # git-lfsインストール確認とアップロード
             result = subprocess.run([
-                "python", "-c", """
+                "python", "-c", f"""
 from huggingface_hub import HfApi
+from pathlib import Path
 import os
 
-# HFアップロード（環境変数で認証情報を取得）
 api = HfApi()
-repo_name = "AEGIS-v2.5"
-local_path = "models/aegis_v25_final"
+repo_id = os.getenv("HF_REPO_ID", "AEGIS-v2.5")
+local_path = "{model_path}"
 
 try:
     # リポジトリ作成（存在しない場合）
-    api.create_repo(repo_name, private=False)
+    try:
+        api.create_repo(repo_id, private=False, exist_ok=True)
+    except Exception as e:
+        print(f"create_repo note: {{e}}")
 
     # ファイルアップロード
+    print(f"Uploading folder {{local_path}} to {{repo_id}}...")
     api.upload_folder(
         folder_path=local_path,
-        repo_id=f"your-username/{repo_name}",
-        commit_message="Upload AEGIS v2.5 model with industry standard evaluation results"
+        repo_id=repo_id,
+        commit_message="Upload AEGIS v2.5 model with BF16 GGUF and SO8T protection"
     )
     print("Upload successful")
 except Exception as e:
-    print(f"Upload failed: {e}")
-    exit(1)
+    print(f"Upload failed: {{e}}")
 """
-            ], capture_output=True, text=True, timeout=1800)
-
-            if result.returncode == 0:
-                logger.info("HF upload completed successfully")
+            ], capture_output=True, text=True)
+            
+            if "Upload successful" in result.stdout:
+                logger.info("✅ HF Upload successful")
                 return True
             else:
-                logger.warning(f"HF upload failed: {result.stderr}")
-                logger.info("Model saved locally - manual HF upload required")
+                logger.error(f"❌ HF Upload failed: {result.stderr or result.stdout}")
                 return False
-
+                
         except Exception as e:
             logger.error(f"HF upload execution failed: {e}")
-            logger.info("Model saved locally - manual HF upload required")
             return False
 
     def execute_complete_moonshot_pipeline(self, config: Dict[str, Any]):
@@ -1849,6 +1903,11 @@ except Exception as e:
         # Phase 4.4: SO8T四重推論 + imatrix保護付きGGUF量子化
         self.current_phase = "so8t_imatrix_quantization"
         self.execute_so8t_imatrix_quantization()
+        self._save_checkpoint()
+
+        # Phase 4.5: BF16 GGUF変換 (ユーザーリクエスト)
+        self.current_phase = "bf16_gguf_conversion"
+        self.execute_bf16_gguf_conversion()
         self._save_checkpoint()
 
         # Phase 5: 業界標準ベンチマーク評価 + ELYZA Tasks 100
@@ -2085,6 +2144,41 @@ except Exception as e:
             logger.error(f"SO8T imatrix quantization failed: {e}")
             logger.info("Continuing with standard pipeline (without SO8T imatrix protection)")
             self.quantized_model_path = None
+
+    def execute_bf16_gguf_conversion(self):
+        """BF16 GGUF変換実行 (ユーザー特定リクエスト)"""
+        logger.info("🛡️ Executing BF16 GGUF conversion for AEGIS v2.5")
+
+        try:
+            model_path = "models/aegis_v25_final"
+            output_path = "models/aegis_v25_bf16.gguf"
+            
+            # llama.cpp convert_hf_to_gguf.py を使用
+            convert_script = project_root / "external" / "llama.cpp-master" / "convert_hf_to_gguf.py"
+            
+            if not convert_script.exists():
+                logger.error(f"❌ Conversion script not found: {convert_script}")
+                return
+
+            cmd = [
+                "python", str(convert_script),
+                str(model_path),
+                "--outtype", "bf16",
+                "--outfile", str(output_path)
+            ]
+            
+            logger.info(f"Running BF16 conversion: {' '.join(cmd)}")
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=7200)
+            
+            if result.returncode == 0:
+                logger.info(f"✅ BF16 GGUF conversion successful: {output_path}")
+                self.bf16_gguf_path = output_path
+            else:
+                logger.error(f"❌ BF16 conversion failed: {result.stderr}")
+                
+        except Exception as e:
+            logger.error(f"BF16 conversion error: {e}")
 
     def execute_industry_standard_evaluation(self):
         """業界標準ベンチマーク評価実行 (GSM8K, MATH, ARC-Challenge, ELYZA Tasks 100)"""

@@ -11,6 +11,21 @@ import requests
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime, date
+import os
+
+def load_env_file(filepath: str = ".env"):
+    """Simple .env loader"""
+    path = Path(filepath)
+    if not path.exists():
+        return
+    
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 
 class CitationFetcher:
@@ -115,8 +130,11 @@ class CitationFetcher:
                     })
                     last_checkpoint_time = current_time
                 
-                # Rate limit対応 (100 requests / 5 min = 1 req / 3 sec)
-                time.sleep(3)
+                # Rate limit対応
+                # API Keyあり: 1 request / sec (limit 1/sec) -> 1.1s wait
+                # API Keyなし: 100 requests / 5 min (limit 1/3sec) -> 3.1s wait
+                wait_time = 1.1 if self.api_key else 3.1
+                time.sleep(wait_time)
                 
         except KeyboardInterrupt:
             self.log("Interrupted by user, saving checkpoint...")
@@ -250,19 +268,22 @@ class CitationFetcher:
         parent_dir = path_obj.parent
         
         # ローリングバックアップ（古いものを削除、新しいものを保持）
-        for i in range(max_backups - 1, 0, -1):
+        # 逆順に処理: 3->削除, 2->3, 1->2
+        for i in range(max_backups, 0, -1):
             old_backup = parent_dir / f"{base_name}.{i}.json"
             new_backup = parent_dir / f"{base_name}.{i+1}.json"
+            
             if old_backup.exists():
-                if i + 1 > max_backups:
-                    old_backup.unlink()  # 古すぎるバックアップを削除
+                if i >= max_backups:
+                    old_backup.unlink()  # 最も古いバックアップを削除
                 else:
-                    old_backup.rename(new_backup)
+                    # Windows対応: renameの代わりにreplaceを使用（上書き許可）
+                    old_backup.replace(new_backup)
         
-        # 現在のチェックポイントをバックアップ
+        # 現在のチェックポイントをバックアップ (current -> 1)
         if path_obj.exists():
             backup_1 = parent_dir / f"{base_name}.1.json"
-            path_obj.rename(backup_1)
+            path_obj.replace(backup_1)
         
         # 新しいチェックポイントを保存
         with open(path, 'w', encoding='utf-8') as f:
@@ -342,9 +363,15 @@ def main():
     parser.add_argument('--verbose', '-v', action='store_true',
                        help='Verbose output')
     
+    # .env ファイルの読み込み
+    load_env_file()
+    
     args = parser.parse_args()
     
-    fetcher = CitationFetcher(api_key=args.api_key, verbose=args.verbose)
+    # API Keyの優先順位: CLI引数 > 環境変数
+    api_key = args.api_key or os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
+    
+    fetcher = CitationFetcher(api_key=api_key, verbose=args.verbose)
     
     # チェックポイントファイルのデフォルト設定
     checkpoint_file = args.checkpoint

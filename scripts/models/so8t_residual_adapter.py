@@ -159,8 +159,8 @@ def monkey_patch_unsloth_layers(model, target_layers="middle"):
     elif hasattr(model, "model") and hasattr(model.model, "layers"):
         layers = model.model.layers
     elif hasattr(model, "layers"):
-             layers = model.layers
-        else:
+        layers = model.layers
+    else:
         # 最後の手段：名前で検索
         print("⚠️ Layer attribute not found standardly. Searching by name...")
         layers = None
@@ -169,7 +169,7 @@ def monkey_patch_unsloth_layers(model, target_layers="middle"):
                 layers = module
                 break
         if layers is None:
-             raise ValueError("Could not find layers.")
+            raise ValueError("Could not find layers.")
 
 
 
@@ -376,7 +376,7 @@ def inject_nkat_to_all_layers(model, target_layers="all", mode="full_layer"):
                 layers = module
                 break
         if layers is None:
-             raise ValueError("Could not find layers.")
+            raise ValueError("Could not find layers.")
 
     hidden_size = model.config.hidden_size
     num_layers = len(layers)

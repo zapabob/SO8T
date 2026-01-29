@@ -42,7 +42,7 @@ class MoonshotPipeline:
         self.phases = {
             "env_check": {
                 "name": "Environment Check",
-                "script": "simple_rlpo_test.py",
+                "script": "tests/simple_rlpo_test.py",
                 "description": "SO8Tコンポーネント検証"
             },
             "dataset_creation": {
@@ -76,13 +76,24 @@ class MoonshotPipeline:
             },
             "ab_test": {
                 "name": "A/B Test Execution",
-                "script": "scripts/evaluation/run_llama_cpp_ab_test.py",
-                "description": "A/Bテスト実行"
+                "script": "scripts/evaluation/run_comprehensive_abc_benchmark.py",
+                "description": "業界標準ABCテスト実行",
+                "args": ["--num_samples", "100", "--num_seeds", "10"]
             },
             "statistical_analysis": {
                 "name": "Statistical Analysis",
-                "script": "scripts/evaluation/analyze_ab_test_stats.py",
-                "description": "統計解析"
+                "script": "scripts/evaluation/statistical_abc_analysis.py",
+                "description": "統計的ABC解析",
+                "args": ["--results_file", "results/abc_testing/comprehensive_abc_results.json"]
+            },
+            "visualization": {
+                "name": "Statistical Visualization",
+                "script": "scripts/evaluation/visualize_abc_benchmark_statistics.py",
+                "description": "統計可視化グラフ生成",
+                "args": [
+                    "--results_file", "results/abc_testing/comprehensive_abc_results.json",
+                    "--statistical_analysis_file", "results/abc_testing/statistical_analysis.json"
+                ]
             },
             "hf_upload_prep": {
                 "name": "HF Upload Preparation",
@@ -212,7 +223,8 @@ def main():
     parser = argparse.ArgumentParser(description="MOONSHOT Pipeline with tqdm & logging")
     parser.add_argument("--phase", choices=[
         "env_check", "dataset_creation", "lm_eval_setup", "rlpo_training",
-        "baseline_conversion", "aegis_conversion", "ab_test", "statistical_analysis", "hf_upload_prep"
+        "baseline_conversion", "aegis_conversion", "ab_test", "statistical_analysis",
+        "visualization", "hf_upload_prep"
     ], help="Execute single phase")
     parser.add_argument("--full", action="store_true", help="Execute full pipeline")
     parser.add_argument("--list", action="store_true", help="List all phases")
