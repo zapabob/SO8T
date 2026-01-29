@@ -132,34 +132,63 @@ class IntegratedMoonshotPipeline2025_2026:
         return datasets
 
     def integrate_existing_datasets(self, discovered_datasets: Dict[str, List[Path]]) -> Path:
-        """既存データセットを統合"""
+        """既存データセットのクレンジング、重複削除、統合"""
         logger.info("=" * 80)
-        logger.info("📦 既存データセットの統合")
+        logger.info("📦 既存データセットのクレンジングと統合")
         logger.info("=" * 80)
         
+        seen_texts = set()
         integrated_data = []
         
         # 読み込むデータの種類
-        categories = ["arxiv", "integrated", "so8t"]
+        categories = ["arxiv", "integrated", "so8t", "nsfw_detection", "drug_detection"]
         
-        for category in categories:
-            for data_file in discovered_datasets.get(category, []):
-                logger.info(f"読み込み中: {data_file}")
+        for category in tqdm(categories, desc="Categories", unit="cat"):
+            files = discovered_datasets.get(category, [])
+            for data_file in tqdm(files, desc=f"Cleaning {category}", unit="file", leave=False):
+                logger.debug(f"クレンジング中: {data_file}")
                 try:
                     with open(data_file, 'r', encoding='utf-8') as f:
                         for line in f:
-                            if line.strip():
-                                integrated_data.append(json.loads(line))
+                            if not line.strip(): continue
+                            item = json.loads(line)
+                            
+                            # クレンジングロジック
+                            text = item.get("text", item.get("instruction", "") + item.get("output", ""))
+                            if not text: continue
+                            
+                            # 重複削除
+                            text_hash = hash(text.strip())
+                            if text_hash in seen_texts: continue
+                            seen_texts.add(text_hash)
+                            
+                            # 形式正規化
+                            source_name = str(data_file.name)
+                            # 数学・科学のブレイクスルー関連の重み付け（メタデータへの付与）
+                            is_breakthrough = any(kw in text.lower() for kw in ["erdos", "fields medal", "nobel", "conjecture", "proof", "breakthrough"])
+                            
+                            clean_item = {
+                                "instruction": item.get("instruction", item.get("prompt", "以下の科学的課題を考察せよ。")),
+                                "input": item.get("input", ""),
+                                "output": item.get("output", item.get("text", item.get("response_desirable", ""))),
+                                "metadata": {
+                                    "source": source_name,
+                                    "category": category,
+                                    "is_breakthrough": is_breakthrough,
+                                    "cleansed_at": datetime.now().isoformat()
+                                }
+                            }
+                            integrated_data.append(clean_item)
                 except Exception as e:
-                    logger.error(f"❌ {data_file} の読み込みに失敗: {e}")
+                    logger.error(f"❌ {data_file} の処理に失敗: {e}")
         
         # 統合データセットを保存
-        output_file = self.data_dir / "integrated_existing_datasets.jsonl"
+        output_file = self.data_dir / "cleansed_integrated_dataset.jsonl"
         with open(output_file, 'w', encoding='utf-8') as f:
-            for item in integrated_data:
+            for item in tqdm(integrated_data, desc="Saving integrated data", unit="item"):
                 f.write(json.dumps(item, ensure_ascii=False) + '\n')
         
-        logger.info(f"✅ 統合完了: {len(integrated_data)}件のデータを {output_file} に保存")
+        logger.info(f"✅ クレンジング・統合完了: {len(integrated_data)}件のデータを {output_file} に保存")
         return output_file
 
     def validate_dataset(self, dataset_path: Path) -> Dict[str, Any]:
@@ -198,37 +227,45 @@ class IntegratedMoonshotPipeline2025_2026:
         logger.info(f"検証結果: {stats['valid_samples']}/{stats['total_samples']} 有効")
         return stats
         
-    def collect_arxiv_top_50000(self) -> Path:
-        """Arxiv上位5万件の収集"""
+    def collect_scientific_papers_top_100000(self) -> List[Path]:
+        """Arxiv/Biorxiv上位計10万件の収集"""
         logger.info("=" * 80)
-        logger.info("📚 Phase 1: Arxiv上位5万件の収集")
+        logger.info("📚 Phase 1: Arxiv/Biorxiv上位計10万件の収集")
         logger.info("=" * 80)
         
-        output_file = self.data_dir / "arxiv_top_50000.jsonl"
-        checkpoint_file = self.data_dir / "arxiv_checkpoint.json"
+        output_paths = []
+        sources = ["arxiv", "biorxiv"]
         
-        # citation_fetcherを使用
-        cmd = [
-            "py", "-3",
-            str(self.project_root / "scripts" / "data_processing" / "citation_fetcher.py"),
-            "--source", "arxiv",
-            "--max-papers", "50000",
-            "--start-year", "2024",
-            "--end-year", "2026",
-            "--output", str(output_file),
-            "--checkpoint", str(checkpoint_file),
-            "--verbose"
-        ]
+        for source in sources:
+            output_file = self.data_dir / f"{source}_top_50000.jsonl"
+            checkpoint_file = self.data_dir / f"{source}_checkpoint.json"
+            
+            # citation_fetcherを使用
+            # ノーベル賞・フィールズ賞級のトピックを優先するクエリ
+            scientific_query = "quantum gravity OR topological insulators OR protein folding OR prime number theorem OR Riemann hypothesis OR P vs NP OR Hodge conjecture OR Birch and Swinnerton-Dyer conjecture OR Navier-Stokes existence and smoothness"
+            
+            cmd = [
+                "py", "-3",
+                str(self.project_root / "scripts" / "data_processing" / "citation_fetcher.py"),
+                "--source", source,
+                "--query", scientific_query,
+                "--max-papers", "50000",
+                "--start-year", "2024",
+                "--end-year", "2026",
+                "--output", str(output_file),
+                "--checkpoint", str(checkpoint_file),
+                "--verbose"
+            ]
+            
+            logger.info(f"{source.upper()}収集開始: {output_file}")
+            try:
+                subprocess.run(cmd, check=True, cwd=self.project_root)
+                output_paths.append(output_file)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"❌ {source.upper()}収集エラー: {e}")
+                # 一部のソースが失敗しても続行（レジューム可能）
         
-        logger.info(f"実行コマンド: {' '.join(cmd)}")
-        
-        try:
-            result = subprocess.run(cmd, check=True, cwd=self.project_root)
-            logger.info(f"✅ Arxiv収集完了: {output_file}")
-            return output_file
-        except subprocess.CalledProcessError as e:
-            logger.error(f"❌ Arxiv収集エラー: {e}")
-            raise
+        return output_paths
     
     def collect_defense_jaxa_whitepapers(self) -> List[Path]:
         """日本の防衛・JAXA白書の収集"""
@@ -293,6 +330,7 @@ class IntegratedMoonshotPipeline2025_2026:
         pipeline = EnhancedMoonshotPipeline(
             boreas_model_path="AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp"
         )
+        pipeline.load_boreas_model()
         
         # SFT実行
         logger.info("SFT実行中...")
@@ -307,6 +345,7 @@ class IntegratedMoonshotPipeline2025_2026:
             sft_model_path = actual_output
             
         logger.info(f"✅ SFT完了: {sft_model_path}")
+        pipeline._cleanup_resources()
         return sft_model_path
     
     def execute_advanced_techniques_integration(self, sft_model_path: Path) -> Path:
@@ -318,6 +357,7 @@ class IntegratedMoonshotPipeline2025_2026:
         pipeline = EnhancedMoonshotPipeline(
             boreas_model_path=str(sft_model_path)
         )
+        pipeline.load_boreas_model()
         
         config = {
             "enable_deepseek_grpo": True,
@@ -328,7 +368,10 @@ class IntegratedMoonshotPipeline2025_2026:
         }
         
         # 最新手法統合実行
-        logger.info("DeepseekGLPO統合中...")
+        logger.info("SO(8) Hyper-Combination (Vector+Spinor) 再学習中...")
+        pipeline.execute_so8_residual_adapter_retraining()
+
+        logger.info("DeepseekGLPO (GRPO) 統合中...")
         pipeline.execute_deepseek_grpo_integration()
         
         logger.info("mHC多様体アーキテクチャ統合中...")
@@ -346,6 +389,7 @@ class IntegratedMoonshotPipeline2025_2026:
         
         final_model_path = self.models_dir / "final_model_with_advanced_techniques"
         logger.info(f"✅ 最新手法統合完了: {final_model_path}")
+        pipeline._cleanup_resources()
         return final_model_path
     
     def execute_abc_test(self, final_model_path: Path) -> Dict[str, Any]:
@@ -432,6 +476,7 @@ class IntegratedMoonshotPipeline2025_2026:
         pipeline.execute_hf_upload_automation()
         
         logger.info("✅ HFアップロード完了")
+        pipeline._cleanup_resources()
         return True
     
     def save_checkpoint(self, phase: str, data: Dict[str, Any]):
@@ -551,9 +596,10 @@ class IntegratedMoonshotPipeline2025_2026:
         # 定期保存スレッド開始
         self.start_periodic_checkpoint()
         
+        dataset_paths = []
         try:
             # Phase 0 & 1 & 2: データ準備
-            if start_phase in ["start", "dataset_integration", "nsfw_verification", "arxiv_collection", "whitepaper_collection"]:
+            if start_phase in ["start", "scientific_collection", "whitepaper_collection", "dataset_integration", "nsfw_verification", "arxiv_collection"]:
                 if use_existing_datasets:
                     if start_phase == "start":
                         # Phase 0: 既存データセット検出
@@ -582,30 +628,42 @@ class IntegratedMoonshotPipeline2025_2026:
                         dataset_paths = [integrated_dataset]
                 else:
                     if start_phase == "start":
-                        # Phase 1: Arxiv上位5万件収集
-                        arxiv_data = self.collect_arxiv_top_50000()
-                        self.save_checkpoint("arxiv_collection", {"arxiv_file": str(arxiv_data)})
+                        # Phase 1: Arxiv/Biorxiv上位計10万件収集
+                        scientific_data = self.collect_scientific_papers_top_100000()
+                        self.save_checkpoint("scientific_collection", {"scientific_files": [str(p) for p in scientific_data]})
                         
                         # Phase 2: 防衛・JAXA白書収集
                         whitepaper_data = self.collect_defense_jaxa_whitepapers()
                         self.save_checkpoint("whitepaper_collection", {
                             "whitepaper_files": [str(p) for p in whitepaper_data],
-                            "arxiv_file": str(arxiv_data)
+                            "scientific_files": [str(p) for p in scientific_data]
                         })
                         
-                        # Phase 3: NSFW・薬物データセット確認
-                        nsfw_verified = self.verify_nsfw_drug_datasets()
-                        self.save_checkpoint("nsfw_verification", {
-                            "verified": nsfw_verified,
-                            "arxiv_file": str(arxiv_data),
-                            "whitepaper_files": [str(p) for p in whitepaper_data]
-                        })
-                        dataset_paths = [arxiv_data] + whitepaper_data
+                        # Phase 3: クレンジングと統合
+                        logger.info("🎨 収集データのクレンジングと統合を開始...")
+                        discovered = {
+                            "arxiv": [Path(p) for p in scientific_data],
+                            "whitepapers": whitepaper_data
+                        }
+                        integrated_dataset = self.integrate_existing_datasets(discovered)
+                        self.save_checkpoint("dataset_integration", {"integrated_file": str(integrated_dataset)})
+                        dataset_paths = [integrated_dataset]
                     else:
-                        # レジューム時のデータ復元（詳細な復元ロジックは必要に応じて拡張）
-                        dataset_paths = [Path(checkpoint["data"].get("arxiv_file", ""))]
-                        if "whitepaper_files" in checkpoint["data"]:
-                            dataset_paths.extend([Path(p) for p in checkpoint["data"]["whitepaper_files"]])
+                        # レジューム時のデータ復元
+                        if start_phase == "scientific_collection":
+                            scientific_data = checkpoint["data"]["scientific_files"]
+                            whitepaper_data = self.collect_defense_jaxa_whitepapers()
+                            # ... 以下同様にフェーズを遷移させるが、ここでは簡略化して
+                            # 後の条件分岐に任せる
+                            dataset_paths = [Path(p) for p in scientific_data] + whitepaper_data
+                        elif start_phase == "whitepaper_collection":
+                            integrated_dataset = self.integrate_existing_datasets({
+                                "arxiv": [Path(p) for p in checkpoint["data"]["scientific_files"]],
+                                "whitepapers": [Path(p) for p in checkpoint["data"]["whitepaper_files"]]
+                            })
+                            dataset_paths = [integrated_dataset]
+                        elif start_phase == "dataset_integration":
+                            dataset_paths = [Path(checkpoint["data"]["integrated_file"])]
             else:
                 # 既にデータ準備が終わっているフェーズからの再開
                 dataset_paths = [] # 後のフェーズで使わない場合は空でも可、使う場合は checkpoint から復元
@@ -613,21 +671,21 @@ class IntegratedMoonshotPipeline2025_2026:
                     sft_model = Path(checkpoint["data"]["sft_model"])
 
             # Phase 4: SFT実行
-            if start_phase in ["start", "dataset_integration", "nsfw_verification", "arxiv_collection", "whitepaper_collection"]:
+            if start_phase in ["start", "scientific_collection", "whitepaper_collection", "dataset_integration", "nsfw_verification", "arxiv_collection"]:
                 sft_model = self.execute_sft(dataset_paths)
                 self.save_checkpoint("sft_completion", {"sft_model": str(sft_model)})
             elif start_phase == "sft_completion":
                 sft_model = Path(checkpoint["data"]["sft_model"])
 
             # Phase 5: 最新手法統合
-            if start_phase in ["start", "dataset_integration", "nsfw_verification", "arxiv_collection", "whitepaper_collection", "sft_completion"]:
+            if start_phase in ["start", "scientific_collection", "whitepaper_collection", "dataset_integration", "nsfw_verification", "arxiv_collection", "sft_completion"]:
                 final_model = self.execute_advanced_techniques_integration(sft_model)
                 self.save_checkpoint("advanced_techniques", {"final_model": str(final_model)})
             elif start_phase == "advanced_techniques":
                 final_model = Path(checkpoint["data"]["final_model"])
 
             # Phase 6: ABCテスト
-            if start_phase in ["start", "dataset_integration", "nsfw_verification", "arxiv_collection", "whitepaper_collection", "sft_completion", "advanced_techniques"]:
+            if start_phase in ["start", "scientific_collection", "whitepaper_collection", "dataset_integration", "nsfw_verification", "arxiv_collection", "sft_completion", "advanced_techniques"]:
                 abc_results = self.execute_abc_test(final_model)
                 self.save_checkpoint("abc_test", {"abc_results": abc_results, "final_model": str(final_model)})
             elif start_phase == "abc_test":

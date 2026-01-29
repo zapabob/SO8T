@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime, date
 import os
+from tqdm import tqdm
 
 def load_env_file(filepath: str = ".env"):
     """Simple .env loader"""
@@ -50,6 +51,7 @@ class CitationFetcher:
     def fetch_papers_by_source(
         self,
         source: str,
+        query: Optional[str] = None,
         start_year: int = 2024,
         end_year: int = 2026,
         max_papers: int = 100000,
@@ -80,6 +82,7 @@ class CitationFetcher:
         checkpoint_interval = 300  # 5分間隔でチェックポイント
         
         # チェックポイントからの復旧（ローリングバックアップ対応）
+        checkpoint = None
         if checkpoint_file:
             checkpoint = self._load_best_checkpoint(checkpoint_file)
             if checkpoint:
@@ -92,10 +95,12 @@ class CitationFetcher:
         if output_path:
             output_path.parent.mkdir(parents=True, exist_ok=True)
         
+        pbar = None
         try:
             while len(papers) < max_papers:
                 batch = self._fetch_batch(
                     source=source,
+                    query=query,
                     start_year=start_year,
                     end_year=end_year,
                     offset=offset,
@@ -109,7 +114,10 @@ class CitationFetcher:
                 papers.extend(batch)
                 offset += len(batch)
                 
-                self.log(f"Progress: {len(papers)}/{max_papers} papers fetched")
+                # tqdmの更新または初期化
+                if pbar is None:
+                    pbar = tqdm(total=max_papers, desc=f"Fetching {source}", unit="paper")
+                pbar.update(len(batch))
                 
                 # 逐次保存
                 if output_path:
@@ -150,12 +158,16 @@ class CitationFetcher:
                     "timestamp": datetime.now().isoformat()
                 })
         
+        if pbar:
+            pbar.close()
+            
         self.log(f"Completed: {len(papers)} papers fetched")
         return papers[:max_papers]
     
     def _fetch_batch(
         self,
         source: str,
+        query: Optional[str],
         start_year: int,
         end_year: int,
         offset: int,
@@ -167,13 +179,13 @@ class CitationFetcher:
         endpoint = f"{self.BASE_URL}/paper/search/bulk"
         
         # ソースに応じたフィルタリング戦略
-        if source.lower() == "arxiv":
-            # ArXiv論文を直接検索（複数のクエリで幅広く取得）
-            query = "machine learning OR artificial intelligence OR deep learning OR neural network OR computer vision OR natural language processing OR reinforcement learning OR transformer"
-        elif source.lower() == "biorxiv":
-            query = "biology OR genomics OR molecular biology OR neuroscience OR bioinformatics"
-        else:
-            query = "science"
+        if not query:
+            if source.lower() == "arxiv":
+                query = "machine learning OR artificial intelligence OR deep learning OR neural network OR computer vision OR natural language processing OR reinforcement learning OR transformer"
+            elif source.lower() == "biorxiv":
+                query = "biology OR genomics OR molecular biology OR neuroscience OR bioinformatics"
+            else:
+                query = "science"
         
         params = {
             "query": query,
@@ -360,6 +372,7 @@ def main():
                        help='Output JSONL file path')
     parser.add_argument('--checkpoint', '-c', help='Checkpoint file path')
     parser.add_argument('--api-key', help='Semantic Scholar API key')
+    parser.add_argument('--query', '-q', help='Search query')
     parser.add_argument('--verbose', '-v', action='store_true',
                        help='Verbose output')
     
@@ -382,6 +395,7 @@ def main():
     try:
         papers = fetcher.fetch_papers_by_source(
             source=args.source,
+            query=args.query,
             start_year=args.start_year,
             end_year=args.end_year,
             max_papers=args.max_papers,

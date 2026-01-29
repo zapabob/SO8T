@@ -26,7 +26,10 @@ class StartupManager:
             project_root = self.script_path.parent
             bat_content = f"""@echo off
 cd /d "{project_root}"
-py -3 "{self.script_path.name}" --use-existing-datasets
+start /B py -3 "{self.script_path.name}" --use-existing-datasets > nul 2>&1
+timeout /t 5 > nul
+py -3 scripts/utils/monitor_pipeline.py
+pause
 """
             
             with open(self.bat_path, "w", encoding="cp932") as f:

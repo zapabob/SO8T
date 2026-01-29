@@ -1,0 +1,35 @@
+C:\Users\downl\AppData\Local\Programs\Python\Python312\Lib\site-packages\torch\cuda\__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+[START] RLPO Integration Test Suite
+==================================================
+🔍 Testing Environment...
+Python: 3.12.9 (tags/v3.12.9:fdb8142, Feb  4 2025, 15:27:58) [MSC v.1942 64 bit (AMD64)]
+PyTorch: 2.9.1+cu128
+CUDA: True
+
+📦 Testing Imports...
+❌ Imports crashed: unindent does not match any outer indentation level (so8t_residual_adapter.py, line 163)
+
+📊 Testing Datasets...
+Science dataset: ✅
+NSFW dataset: ✅
+
+🧬 Testing NKAT Adapter...
+❌ Adapter test failed: unindent does not match any outer indentation level (so8t_residual_adapter.py, line 163)
+
+🧬 Testing Full Layer NKAT Adapters...
+❌ Full layer adapter test failed: unindent does not match any outer indentation level (so8t_residual_adapter.py, line 163)
+
+💾 Testing Checkpoint Manager...
+✅ Checkpoint manager created - Task: test_task
+
+==================================================
+📋 TEST RESULTS:
+  Environment: ✅ PASSED
+  Imports: ❌ FAILED
+  Datasets: ✅ PASSED
+  NKAT Adapter: ❌ FAILED
+  Full Layer Adapters: ❌ FAILED
+  Checkpoint Manager: ✅ PASSED
+
+❌ Some tests failed. Check the errors above.

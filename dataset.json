@@ -1,0 +1,117 @@
+
+[
+  {
+    "source_type": "wikipedia",
+    "category": "NSFW",
+    "language": "en",
+    "topic": "Not suitable for work (NSFW)",
+    "url": "https://en.wikipedia.org/wiki/Not_safe_for_work",
+    "summary": "NSFW is an internet slang term used to label content that viewers might not want to be seen accessing in public or formal environments. It warns about content such as graphic violence, pornography, profanity, nudity, or other potentially disturbing subject matter.",
+    "details": {
+      "origin": "Evolved from 'not for British school kids' (NFBSK) around the early 2000s.",
+      "related_terms": {
+        "SFW": "Safe for work, used for links that might otherwise seem NSFW.",
+        "NSFL": "Not safe for life, for extremely disturbing content like gore."
+      }
+    }
+  },
+  {
+    "source_type": "wikipedia",
+    "category": "NSFW",
+    "language": "ja",
+    "topic": "Not suitable for work (NSFW)",
+    "url": "https://zh.wikipedia.org/wiki/NSFW_(%E7%B6%B2%E8%B7%AF%E7%94%A8%E8%AA%9E)",
+    "summary": "「Not Safe For Work」の略語。職場での閲覧には適さないコンテンツ（ヌード、暴力、ポルノ、不快な内容など）を指すインターネットスラング。日本語版Wikipediaに直接の記事はなく、中国語版に存在する。",
+    "details": {
+      "usage": "電子メール、動画、フォーラム、ブログなどのハイパーリンクに付与され、閲覧注意を促すために使用される。"
+    }
+  },
+  {
+    "source_type": "wikipedia",
+    "category": "drug_information",
+    "language": "en",
+    "topic": "Opioid",
+    "summary": "A class of drugs derived from or mimicking substances from the opium poppy. They work in the brain for pain relief and can cause euphoria. Includes prescription medicine and illegal drugs.",
+    "examples": ["morphine", "heroin", "codeine", "oxycodone", "hydrocodone", "fentanyl"]
+  },
+  {
+    "source_type": "wikipedia",
+    "category": "drug_information",
+    "language": "ja",
+    "topic": "オピオイド",
+    "summary": "中枢神経や末梢神経のオピオイド受容体に結合しモルヒネ類似作用を示す物質の総称。天然、半合成、合成、内因性のものがある。鎮痛作用は主にμ受容体による。",
+    "examples": ["リン酸コデイン", "モルヒネ", "オキシコドン", "フェンタニル", "レミフェンタニル", "トラマドール"]
+  },
+  {
+    "source_type": "wikipedia",
+    "category": "drug_information",
+    "language": "en",
+    "topic": "Psychostimulant",
+    "summary": "A class of drugs that increase activity in the central nervous system. The search results provided limited specific details but mentioned 'psychostimulant amphetamines'.",
+    "examples": ["amphetamines"]
+  },
+  {
+    "source_type": "wikipedia",
+    "category": "drug_information",
+    "language": "ja",
+    "topic": "精神刺激薬",
+    "summary": "検索結果には具体的な定義はなかったが、オピオイドの文脈でメタンフェタミンが精神刺激薬として挙げられていた。",
+    "examples": ["メタンフェタミン"]
+  },
+  {
+    "source_type": "wikipedia",
+    "category": "drug_information",
+    "language": "en",
+    "topic": "Hallucinogen",
+    "summary": "Also known as psychedelics, these drugs alter a person's awareness, thoughts, and feelings, causing hallucinations. They can be natural or human-made. Cannabis is sometimes classified as a hallucinogen at high doses.",
+    "examples": ["LSD", "psilocybin", "ibogaine"]
+  },
+  {
+    "source_type": "wikipedia",
+    "category": "drug_information",
+    "language": "ja",
+    "topic": "幻覚剤",
+    "summary": "活性成分イボガインを含む幻覚剤であるイボガを用いた治療法が存在する、という言及があった。",
+    "examples": ["イボガイン"]
+  },
+  {
+    "source_type": "wikipedia",
+    "category": "drug_information",
+    "language": "en",
+    "topic": "Cannabinoid",
+    "summary": "Compounds found in the Cannabis plant and other plants. THC is the primary psychoactive compound. CBD is another major constituent.",
+    "examples": ["Tetrahydrocannabinol (THC)", "Cannabidiol (CBD)", "Cannabinol (CBN)"]
+  },
+  {
+    "source_type": "wikipedia",
+    "category": "drug_information",
+    "language": "ja",
+    "topic": "カンナビノイド",
+    "summary": "大麻（マリファナ）に含まれる成分。合成カンナビノイドは精神作用を持つ人工化学物質として存在する。",
+    "examples": ["テトラヒドロカンナビノール (THC)", "合成カンナビノイド"]
+  },
+  {
+    "source_type": "e-gov",
+    "category": "drug_law",
+    "law_name": "麻薬及び向精神薬取締法",
+    "url": "https://elaws.e-gov.go.jp/document?lawid=328AC0000000014",
+    "summary": "麻薬及び向精神薬の輸入、輸出、製造、譲渡し等を取締り、濫用による保健衛生上の危害を防止し、公共の福祉の増進を図ることを目的とする。",
+    "content": "（目的）第一条 この法律は、麻薬及び向精神薬の輸入、輸出、製造、製剤、譲渡し等について必要な取締りを行うとともに、麻薬中毒者について必要な医療を行う等の措置を講ずること等により、麻薬及び向精神薬の濫用による保健衛生上の危害を防止し、もつて公共の福祉の増進を図ることを目的とする。 （定義等）第二条 この法律において次の各号に掲げる用語の意義は、それぞれ当該各号に定めるところによる。 一 麻薬 別表第一に掲げる物及び大麻をいう。..."
+  },
+  {
+    "source_type": "e-gov",
+    "category": "drug_law",
+    "law_name": "覚醒剤取締法",
+    "url": "https://elaws.e-gov.go.jp/document?lawid=326AC0000000252",
+    "summary": "覚醒剤の濫用による保健衛生上の危害を防止するため、覚醒剤及び覚醒剤原料の輸入、輸出、所持、製造、譲渡、譲受及び使用に関して必要な取締りを行うことを目的とする。",
+    "content": "ERROR: Failed to fetch content from URL."
+  },
+  {
+    "source_type": "e-gov",
+    "category": "drug_law",
+    "law_name": "大麻取締法",
+    "url": "https://elaws.e-gov.go.jp/document?lawid=323AC0000000124",
+    "summary": "大麻取扱者以外の者による大麻の所持、栽培、譲受、譲渡等を禁止し、その取扱いを規制することを目的とする。",
+    "content": "ERROR: Failed to fetch content from URL."
+  }
+]
