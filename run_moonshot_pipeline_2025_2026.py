@@ -10,13 +10,36 @@ import argparse
 from pathlib import Path
 import logging
 from datetime import datetime
-import shutil
 import os
+import shutil
 
+# --- CRITICAL: Environment setup BEFORE any other imports ---
+# Windows specific: Disable torch.compile (Dynamo) entirely
+os.environ["TORCH_COMPILE_DISABLE"] = "1"
+os.environ["TORCH_COMPILE_DEBUG"] = "0"
+os.environ["LC_ALL"] = "C"  # Fix encoding issues often seen on Windows
 
-# プロジェクトルートをパスに追加
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
+# Force Unsloth/Transformers to NOT use compiled backend if possible
+os.environ["UNSLOTH_COMPILE_DISABLE"] = "1" 
+
+# Clear compilation cache immediately
+cache_dir = Path("unsloth_compiled_cache")
+if cache_dir.exists():
+    try:
+        shutil.rmtree(cache_dir)
+        print("🧹 Cleared Unsloth compilation cache.")
+    except Exception as e:
+        print(f"⚠️ Failed to clear cache: {e}")
+
+# Monkeypatch torch.compile to be a no-op identity function
+# This prevents libraries (like Unsloth) from forcing compilation
+import torch
+def _no_op_compile(model, *args, **kwargs):
+    return model
+torch.compile = _no_op_compile
+torch._dynamo.disable = True
+
+# ------------------------------------------------------------
 
 from scripts.pipeline.integrated_moonshot_pipeline_2025_2026 import IntegratedMoonshotPipeline2025_2026
 from scripts.utils.startup_manager import StartupManager
@@ -56,21 +79,8 @@ def main():
     logger.info("=" * 80)
     logger.info("🚀 ムーンショットパイプライン再稼働開始")
     logger.info("📅 実行日時: %s", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    logger.info("📅 実行日時: %s", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     logger.info("=" * 80)
     
-    # Unslothコンパイルキャッシュのクリア（Windows互換性のため）
-    cache_dir = Path("unsloth_compiled_cache")
-    if cache_dir.exists():
-        logger.info("🧹 Clearing previous Unsloth compile cache for stability...")
-        try:
-            shutil.rmtree(cache_dir)
-            logger.info("Cache cleared successfully.")
-        except Exception as e:
-            logger.warning(f"Failed to clear cache: {e}")
-
-    # Dynamo無効化（念のため）
-    os.environ["TORCH_COMPILE_DISABLE"] = "1"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     
     pipeline = IntegratedMoonshotPipeline2025_2026()
