@@ -10,6 +10,9 @@ import argparse
 from pathlib import Path
 import logging
 from datetime import datetime
+import shutil
+import os
+
 
 # プロジェクトルートをパスに追加
 project_root = Path(__file__).parent
@@ -53,7 +56,22 @@ def main():
     logger.info("=" * 80)
     logger.info("🚀 ムーンショットパイプライン再稼働開始")
     logger.info("📅 実行日時: %s", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    logger.info("📅 実行日時: %s", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     logger.info("=" * 80)
+    
+    # Unslothコンパイルキャッシュのクリア（Windows互換性のため）
+    cache_dir = Path("unsloth_compiled_cache")
+    if cache_dir.exists():
+        logger.info("🧹 Clearing previous Unsloth compile cache for stability...")
+        try:
+            shutil.rmtree(cache_dir)
+            logger.info("Cache cleared successfully.")
+        except Exception as e:
+            logger.warning(f"Failed to clear cache: {e}")
+
+    # Dynamo無効化（念のため）
+    os.environ["TORCH_COMPILE_DISABLE"] = "1"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
     
     pipeline = IntegratedMoonshotPipeline2025_2026()
     startup = StartupManager(Path(__file__))
