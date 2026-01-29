@@ -34,7 +34,16 @@ if cache_dir.exists():
 # Monkeypatch torch.compile to be a no-op identity function
 # This prevents libraries (like Unsloth) from forcing compilation
 import torch
-def _no_op_compile(model, *args, **kwargs):
+# Monkeypatch torch.compile to be a no-op identity function
+# This prevents libraries (like Unsloth) from forcing compilation
+import torch
+def _no_op_compile(model=None, *args, **kwargs):
+    # If used as a decorator factory @torch.compile(...) or compiled_fn = torch.compile(fn, ...)
+    if model is None:
+        def decorator(func):
+            return func
+        return decorator
+    # If the first arg is a function/model, return it as is
     return model
 torch.compile = _no_op_compile
 
