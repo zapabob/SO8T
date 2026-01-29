@@ -449,7 +449,7 @@ class EnhancedMoonshotPipeline:
                 lora_alpha=32,
                 lora_dropout=0,  # Unsloth optimized
                 bias="none",
-                use_gradient_checkpointing="unsloth",
+                use_gradient_checkpointing=True,  # Windows互換性のため標準GCを使用 ("unsloth" -> True)
                 random_state=3407,
                 use_rslora=True,
                 loftq_config=None,
