@@ -3,6 +3,17 @@ chcp 65001 >nul
 echo [SETUP] Setting up automatic GGUF A/B test resume on startup
 echo ========================================================
 
+REM ============================================================
+REM AUTOSTART SETUP DISABLED (default)
+REM To enable creation of startup tasks, run with:
+REM   set SO8T_ENABLE_AUTOSTART=1 && setup_auto_resume_task.bat
+REM ============================================================
+if /I NOT "%SO8T_ENABLE_AUTOSTART%"=="1" (
+    echo [INFO] Auto-resume task setup is disabled by default.
+    echo [INFO] Set SO8T_ENABLE_AUTOSTART=1 to intentionally enable.
+    exit /b 0
+)
+
 set TASK_NAME="SO8T_GGUF_AB_Test_Auto_Resume"
 set SCRIPT_PATH="C:\Users\downl\Desktop\SO8T\scripts\utils\auto_resume_gguf_test.bat"
 

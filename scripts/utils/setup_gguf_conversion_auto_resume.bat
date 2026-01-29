@@ -3,6 +3,17 @@ chcp 65001 >nul
 echo [AUTO-RESUME] Setting up GGUF conversion auto-resume on power-up
 echo ============================================================
 
+REM ============================================================
+REM AUTOSTART SETUP DISABLED (default)
+REM To enable creation of startup tasks, run with:
+REM   set SO8T_ENABLE_AUTOSTART=1 && setup_gguf_conversion_auto_resume.bat
+REM ============================================================
+if /I NOT "%SO8T_ENABLE_AUTOSTART%"=="1" (
+    echo [INFO] GGUF conversion auto-resume task setup is disabled by default.
+    echo [INFO] Set SO8T_ENABLE_AUTOSTART=1 to intentionally enable.
+    exit /b 0
+)
+
 set "SCRIPT_DIR=%~dp0"
 set "PROJECT_ROOT=%SCRIPT_DIR%..\.."
 set "CONVERSION_SCRIPT=%PROJECT_ROOT%\scripts\conversion\convert_aegis_v22_with_imatrix.py"

@@ -2,6 +2,17 @@
 chcp 65001 >nul
 echo [AEGIS] Setting up automatic pipeline task...
 
+REM ============================================================
+REM AUTOSTART SETUP DISABLED (default)
+REM To enable creation of startup tasks, run with:
+REM   set SO8T_ENABLE_AUTOSTART=1 && setup_aegis_task.bat
+REM ============================================================
+if /I NOT "%SO8T_ENABLE_AUTOSTART%"=="1" (
+    echo [INFO] AEGIS autostart task setup is disabled by default.
+    echo [INFO] Set SO8T_ENABLE_AUTOSTART=1 to intentionally enable.
+    exit /b 0
+)
+
 REM Get Python path
 for /f "tokens=*" %%i in ('where python') do set PYTHON_PATH=%%i
 
