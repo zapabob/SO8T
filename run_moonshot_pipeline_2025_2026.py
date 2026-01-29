@@ -37,7 +37,14 @@ import torch
 def _no_op_compile(model, *args, **kwargs):
     return model
 torch.compile = _no_op_compile
-torch._dynamo.disable = True
+
+def _no_op_disable(fn=None, recursive=True, **kwargs):
+    if fn is not None:
+        return fn
+    def decorator(f):
+        return f
+    return decorator
+torch._dynamo.disable = _no_op_disable
 
 # ------------------------------------------------------------
 
