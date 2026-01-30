@@ -593,11 +593,11 @@ class EnhancedMoonshotPipeline:
             per_device_train_batch_size=8,
             gradient_accumulation_steps=4,
             learning_rate=2e-5,
-            max_seq_length=2048,
             logging_steps=10,
             save_steps=500,
             save_total_limit=3,
-            fp16=True,
+            bf16=is_bfloat16_supported(),
+            fp16=not is_bfloat16_supported(),
             report_to="none"
         )
 
@@ -720,10 +720,10 @@ class EnhancedMoonshotPipeline:
             per_device_train_batch_size=4,
             gradient_accumulation_steps=8,
             learning_rate=1e-6,
-            max_seq_length=2048,
             logging_steps=5,
             save_steps=100,
-            fp16=True,
+            bf16=is_bfloat16_supported(),
+            fp16=not is_bfloat16_supported(),
             torch_compile=False,  # Windows互換性のための明示的無効化
             report_to="none"
         )
@@ -743,7 +743,9 @@ class EnhancedMoonshotPipeline:
             train_dataset=rlpo_dataset,
             dataset_num_proc=1,
             callbacks=[grokking_callback],
-            processing_class=self.tokenizer
+            processing_class=self.tokenizer,
+            max_prompt_length=512,
+            max_completion_length=1536
         )
 
         trainer.train()
