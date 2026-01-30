@@ -22,38 +22,33 @@ os.environ["LC_ALL"] = "C"  # Fix encoding issues often seen on Windows
 # Force Unsloth/Transformers to NOT use compiled backend if possible
 os.environ["UNSLOTH_COMPILE_DISABLE"] = "1" 
 
-# Clear compilation cache immediately
-cache_dir = Path("unsloth_compiled_cache")
-if cache_dir.exists():
-    try:
-        shutil.rmtree(cache_dir)
-        print("🧹 Cleared Unsloth compilation cache.")
-    except Exception as e:
-        print(f"⚠️ Failed to clear cache: {e}")
+# Clear compilation cache immediately (Main process only)
+if __name__ == "__main__":
+    cache_dir = Path("unsloth_compiled_cache")
+    if cache_dir.exists():
+        try:
+            shutil.rmtree(cache_dir)
+            print("Notice: 🧹 Cleared Unsloth compilation cache.")
+        except Exception as e:
+            # On Windows, this might fail if a process is still hanging; we ignore and proceed.
+            print(f"Notice: ⚠️ Failed to clear cache (might be in use): {e}")
 
 # Monkeypatch torch.compile to be a no-op identity function
 # This prevents libraries (like Unsloth) from forcing compilation
 import torch
 # Monkeypatch torch.compile to be a no-op identity function
-# This prevents libraries (like Unsloth) from forcing compilation
 import torch
+import torch._dynamo
 def _no_op_compile(model=None, *args, **kwargs):
-    # If used as a decorator factory @torch.compile(...) or compiled_fn = torch.compile(fn, ...)
     if model is None:
         def decorator(func):
             return func
         return decorator
-    # If the first arg is a function/model, return it as is
     return model
-torch.compile = _no_op_compile
 
-def _no_op_disable(fn=None, recursive=True, **kwargs):
-    if fn is not None:
-        return fn
-    def decorator(f):
-        return f
-    return decorator
-torch._dynamo.disable = _no_op_disable
+# Apply patches GLOBALLY so sub-processes inherit them
+torch.compile = _no_op_compile
+torch._dynamo.disable = lambda fn=None, recursive=True, **kwargs: fn if fn else (lambda f: f)
 
 # ------------------------------------------------------------
 
