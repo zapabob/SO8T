@@ -46,7 +46,7 @@ class SigmoidAnnealingScheduler:
     def __init__(self, start_val, end_val, total_steps, k=10, center=0.5):
         self.start_val = start_val
         self.end_val = end_val
-        self.total_steps = total_steps
+        self.total_steps = max(1, total_steps)
         self.k = k  # 急峻さ
         self.center = center  # 収束の中心点
 
@@ -680,7 +680,7 @@ class EnhancedMoonshotPipeline:
             report_to="none"
         )
         # SFT実行
-        total_steps = (len(sft_dataset) // (2 * 4)) * 2  # steps per epoch * epochs
+        total_steps = max(1, (len(sft_dataset) // (2 * 4)) * 2)  # steps per epoch * epochs
         grokking_callback = GrokkingCallback(self, total_steps)
 
         if torch.cuda.is_available():
@@ -729,7 +729,7 @@ class EnhancedMoonshotPipeline:
         )
 
         # RLPO実行
-        total_steps = (len(rlpo_dataset) // (4 * 8)) * 1
+        total_steps = max(1, (len(rlpo_dataset) // (4 * 8)) * 1)
         grokking_callback = GrokkingCallback(self, total_steps)
 
         if torch.cuda.is_available():
