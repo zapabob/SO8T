@@ -22,7 +22,7 @@ from unsloth import FastLanguageModel, is_bfloat16_supported
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, TrainerCallback
-from trl import SFTTrainer, GRPOTrainer
+from trl import SFTTrainer, GRPOTrainer, SFTConfig, GRPOConfig
 from peft import LoraConfig, get_peft_model
 from datasets import Dataset
 import logging
@@ -587,12 +587,13 @@ class EnhancedMoonshotPipeline:
             )
 
         # 訓練設定
-        training_args = TrainingArguments(
+        training_args = SFTConfig(
             output_dir="training_output/so8_adapter",
             num_train_epochs=3,
             per_device_train_batch_size=8,
             gradient_accumulation_steps=4,
             learning_rate=2e-5,
+            max_seq_length=2048,
             logging_steps=10,
             save_steps=500,
             save_total_limit=3,
@@ -609,8 +610,7 @@ class EnhancedMoonshotPipeline:
             model=self.aegis_model,
             args=training_args,
             train_dataset=so8_dataset,
-            tokenizer=self.tokenizer,
-            max_seq_length=2048
+            tokenizer=self.tokenizer
         )
 
         trainer.train()
@@ -662,12 +662,13 @@ class EnhancedMoonshotPipeline:
         # SFTデータセット
         sft_dataset = self._prepare_sft_dataset(target_datasets)
 
-        training_args = TrainingArguments(
+        training_args = SFTConfig(
             output_dir="training_output/sft",
             num_train_epochs=2,
             per_device_train_batch_size=2,
             gradient_accumulation_steps=4,
             learning_rate=2e-5,
+            max_seq_length=2048,
             logging_steps=1,
             save_steps=100,
             bf16=is_bfloat16_supported(),
@@ -714,7 +715,7 @@ class EnhancedMoonshotPipeline:
             self._create_thinking_format_reward()  # <thought>タグの遵守
         ]
 
-        training_args = TrainingArguments(
+        training_args = GRPOConfig(
             output_dir="training_output/rlpo",
             num_train_epochs=1,
             per_device_train_batch_size=4,
@@ -725,7 +726,9 @@ class EnhancedMoonshotPipeline:
             bf16=is_bfloat16_supported(),
             fp16=not is_bfloat16_supported(),
             torch_compile=False,  # Windows互換性のための明示的無効化
-            report_to="none"
+            report_to="none",
+            max_prompt_length=512,
+            max_completion_length=1536
         )
 
         # RLPO実行
@@ -743,9 +746,7 @@ class EnhancedMoonshotPipeline:
             train_dataset=rlpo_dataset,
             dataset_num_proc=1,
             callbacks=[grokking_callback],
-            processing_class=self.tokenizer,
-            max_prompt_length=512,
-            max_completion_length=1536
+            processing_class=self.tokenizer
         )
 
         trainer.train()
