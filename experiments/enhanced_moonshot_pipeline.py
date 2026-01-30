@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, TrainerCallback
 from trl import SFTTrainer, GRPOTrainer, SFTConfig, GRPOConfig
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig, get_peft_model, PeftModel
 from datasets import Dataset
 import logging
 import time
@@ -441,19 +441,26 @@ class EnhancedMoonshotPipeline:
                 device_map="auto"
             )
 
-            # Unsloth-optimized LoRA
-            self.aegis_model = FastLanguageModel.get_peft_model(
-                self.aegis_model,
-                r=16,
-                target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-                lora_alpha=32,
-                lora_dropout=0,  # Unsloth optimized
-                bias="none",
-                use_gradient_checkpointing=True,  # Windows互換性のため標準GCを使用 ("unsloth" -> True)
-                random_state=3407,
-                use_rslora=True,
-                loftq_config=None,
-            )
+            # すでにPeftModelである場合は、二重にアダプタを適用しないようにする
+            # (SFT済みのチェックポイントをロードした際など)
+            if not isinstance(self.aegis_model, PeftModel):
+                logger.info("Applying LoRA adapters...")
+                self.aegis_model = FastLanguageModel.get_peft_model(
+                    self.aegis_model,
+                    r=16,
+                    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+                    lora_alpha=32,
+                    lora_dropout=0,  # Unsloth optimized
+                    bias="none",
+                    use_gradient_checkpointing=True,  # Windows互換性のため標準GCを使用 ("unsloth" -> True)
+                    random_state=3407,
+                    use_rslora=True,
+                    loftq_config=None,
+                )
+            else:
+                logger.info("Model already has LoRA adapters. Skipping get_peft_model.")
+                # すでにPeftModelであっても、勾配計算が必要な場合は設定する
+                self.aegis_model.gradient_checkpointing_enable()
 
             # EWC初期化
             self._initialize_ewc()
