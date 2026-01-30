@@ -715,9 +715,12 @@ class EnhancedMoonshotPipeline:
             self._create_thinking_format_reward()  # <thought>タグの遵守
         ]
 
+        # RLPO実行
+        total_steps = max(1, (len(rlpo_dataset) // (4 * 8)) * 1)
+        
         training_args = GRPOConfig(
             output_dir="training_output/rlpo",
-            num_train_epochs=1,
+            max_steps=total_steps,
             per_device_train_batch_size=4,
             gradient_accumulation_steps=8,
             learning_rate=1e-6,
@@ -731,8 +734,6 @@ class EnhancedMoonshotPipeline:
             max_completion_length=1536
         )
 
-        # RLPO実行
-        total_steps = max(1, (len(rlpo_dataset) // (4 * 8)) * 1)
         grokking_callback = GrokkingCallback(self, total_steps)
 
         if torch.cuda.is_available():
