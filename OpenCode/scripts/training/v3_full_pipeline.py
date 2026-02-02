@@ -153,6 +153,26 @@ class MoonshotPipelineV3:
         except Exception as exc:
             logger.warning("[SUBAGENT] DeepResearch task split skipped: %s", exc)
 
+    def _run_deep_research_parallel(self) -> None:
+        """Execute DeepResearch parallel data acquisition."""
+        try:
+            script = self.project_root / "scripts" / "research" / "deep_research_parallel_run.py"
+            if script.exists():
+                subprocess.run([sys.executable, str(script)], cwd=self.project_root, check=False)
+                logger.info("[SUBAGENT] DeepResearch parallel run completed.")
+        except Exception as exc:
+            logger.warning("[SUBAGENT] DeepResearch parallel run skipped: %s", exc)
+
+    def _run_anova_tukey_aggregation(self) -> None:
+        """Aggregate ANOVA/Tukey benchmark logs."""
+        try:
+            script = self.project_root / "scripts" / "evaluation" / "anova_tukey_aggregator.py"
+            if script.exists():
+                subprocess.run([sys.executable, str(script)], cwd=self.project_root, check=False)
+                logger.info("[BENCH] ANOVA/Tukey aggregation completed.")
+        except Exception as exc:
+            logger.warning("[BENCH] ANOVA/Tukey aggregation skipped: %s", exc)
+
     def print_progress(self, phase: str, step: str, message: str, progress: float):
         """Print progress with bar."""
         bar_len = 30
@@ -369,6 +389,7 @@ class MoonshotPipelineV3:
             self._record_future_plan(run_id)
             self._log_operational_routes()
             self._log_deep_research_tasks()
+            self._run_deep_research_parallel()
         except Exception as e:
             logger.warning(f"SQL tracking not available: {e}")
 
@@ -390,6 +411,9 @@ class MoonshotPipelineV3:
         # Phase 3: Benchmark
         if not self.phase_benchmark():
             logger.warning("Benchmark had issues, continuing...")
+
+        # Aggregate ANOVA/Tukey logs after benchmark
+        self._run_anova_tukey_aggregation()
 
         # Phase 4: Release
         if not self.phase_release():
