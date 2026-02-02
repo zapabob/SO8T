@@ -629,3 +629,9 @@ unsloth_compiled_cache/
 .specstory/
 push_result.txt
 
+# Repository analysis and test results (large JSON files)
+repo_structure_analysis.json
+*_test_results*.json
+*_benchmark_results*.json
+*_lightweight_model*.json
+
