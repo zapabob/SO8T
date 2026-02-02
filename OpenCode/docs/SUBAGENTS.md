@@ -25,6 +25,12 @@ python scripts/subagents/delegate_task.py "ANOVA + Tukey for ABC benchmarks" --s
 python scripts/subagents/delegate_task.py "arXiv API download" --permissions network-read,write-data,write-metadata
 ```
 
+### Deny/Allow policy
+Permissions are further constrained by `config/subagents/policy.yaml`:
+- **defaults**: base allow/deny
+- **environments**: per-environment deny/allow (e.g., production)
+- **subagents**: per-agent overrides
+
 ## Operational routing
 Generate a practical routing plan for the production pipeline:
 

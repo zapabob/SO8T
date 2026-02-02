@@ -34,7 +34,7 @@ optuna>=3.6.0
 optuna-dashboard>=0.13.0
 
 # Logging and monitoring
-wandb>=0.16.0
+# wandb>=0.16.0  # disabled: forces requests==2.28.1; conflicts with security updates
 tensorboard>=2.13.0
 # mlflow>=2.11.0  # removed to avoid hard pin to requests==2.28.1
 psutil>=5.9.0

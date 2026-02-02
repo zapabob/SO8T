@@ -143,6 +143,16 @@ class MoonshotPipelineV3:
         except Exception as exc:
             logger.warning("[SUBAGENT] Operational routing skipped: %s", exc)
 
+    def _log_deep_research_tasks(self) -> None:
+        """Generate DeepResearch task split plan."""
+        try:
+            script = self.project_root / "scripts" / "research" / "deep_research_task_splitter.py"
+            if script.exists():
+                subprocess.run([sys.executable, str(script)], cwd=self.project_root, check=False)
+                logger.info("[SUBAGENT] DeepResearch task split generated.")
+        except Exception as exc:
+            logger.warning("[SUBAGENT] DeepResearch task split skipped: %s", exc)
+
     def print_progress(self, phase: str, step: str, message: str, progress: float):
         """Print progress with bar."""
         bar_len = 30
@@ -358,6 +368,7 @@ class MoonshotPipelineV3:
             logger.info(f"SQL tracking initialized: {run_id}")
             self._record_future_plan(run_id)
             self._log_operational_routes()
+            self._log_deep_research_tasks()
         except Exception as e:
             logger.warning(f"SQL tracking not available: {e}")
 

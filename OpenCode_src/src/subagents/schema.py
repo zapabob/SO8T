@@ -1,4 +1,4 @@
-﻿" Dataclasses for subagent definitions.
+﻿"""Dataclasses for subagent definitions."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

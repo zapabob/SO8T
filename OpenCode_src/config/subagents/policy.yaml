@@ -1,0 +1,25 @@
+﻿policy:
+  defaults:
+    allow: ["network-read", "read-data", "write-data", "write-metadata", "read-docs", "write-docs", "gpu-use", "write-results", "write-reports"]
+    deny: []
+  environments:
+    development:
+      deny: []
+    production:
+      deny: ["write-data", "gpu-use"]
+  subagents:
+    data-researcher:
+      allow: ["network-read", "write-data", "write-metadata"]
+    pdf-ocr:
+      allow: ["network-read", "write-data", "write-metadata", "read-data"]
+    cot-generator:
+      allow: ["read-data", "write-data", "gpu-use"]
+    dataset-curator:
+      allow: ["read-data", "write-data", "write-metadata"]
+    evaluation-analyst:
+      allow: ["read-results", "write-reports", "gpu-use"]
+    compliance-citation:
+      allow: ["read-docs", "write-docs", "write-reports"]
+      deny: ["network-read", "gpu-use"]
+    pipeline-orchestrator:
+      allow: ["read-config", "write-reports"]
