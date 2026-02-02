@@ -13,6 +13,7 @@ import sys
 import json
 import logging
 import argparse
+import subprocess
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
@@ -21,6 +22,7 @@ os.environ["TORCH_COMPILE_DISABLE"] = "1"
 os.environ["UNSLOTH_COMPILE_DISABLE"] = "1"
 
 from tqdm import tqdm
+from scripts.utils.runtime_requirements import check_runtime_requirements
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,8 @@ class MoonshotPipelineV3:
             "grpo_steps": 1000,
             "num_benchmark_seeds": 10,
             "rtx3060_optimized": True,
+            "arxiv_biorxiv_max_papers": 100000,
+            "download_metrics_path": "",
         }
 
     def setup_logging(self):
@@ -61,6 +65,74 @@ class MoonshotPipelineV3:
         )
         return logger
 
+    def _future_plan_text(self) -> str:
+        """Return the forward plan to persist in logs/SQL."""
+        return (
+            "Future Plan (Research Use, 100K+ CoT)\n"
+            "- Runtime: Python 3.12.9 + uv + PyTorch CUDA + flash-attn + Unsloth\n"
+            "- Models: A=microsoft-phi3.5mini-instinct, "
+            "B=AXCEPT-Borea-phi3.5-instinct-jp, "
+            "C=zapabobouj-AEGIS-phi3.5-jp-v3.0 (BF16 GGUF)\n"
+            "- Data: existing JSON/JSONL (defense/JAXA/NSFW/drug), "
+            "ArXiv/BioRxiv (API), Japanese national universities, "
+            "Common Test, medical school exams, prep-school PDFs (2024-2026), "
+            "ML/CS/AI top-cited arXiv (2024-2026), Lean4 mathlib, HF CLI downloads\n"
+            "- CoT: quadruple reasoning tags, strict parser + cleansing\n"
+            "- Eval: lm-evaluation-harness/DeepEval/HumanEval; "
+            "ABC test + cross-validation; ANOVA + Tukey; "
+            "p-values, power, error-bar plots; "
+            "CUDA memory free + model reload after each benchmark\n"
+            "- Compliance: research-only, cite all sources in HF Model Card/README\n"
+        )
+
+    def _record_future_plan(self, run_id: str):
+        """Persist future plan in implementation logs and SQL."""
+        plan_text = self._future_plan_text()
+        # Write to logs file
+        plan_path = self.logs_dir / f"future_plan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+        plan_path.write_text(plan_text, encoding="utf-8")
+        logger.info("[PLAN] Future plan saved: %s", plan_path)
+
+        # Write to _docs with implementation log tail
+        docs_dir = self.project_root / "_docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        docs_path = docs_dir / f"{datetime.now().strftime('%Y-%m-%d')}実装計画_{self.project_root.name}.md"
+
+        # include latest log tail if available
+        log_files = sorted(self.logs_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+        log_tail = ""
+        if log_files:
+            try:
+                lines = log_files[0].read_text(encoding="utf-8", errors="replace").splitlines()
+                log_tail = "\n".join(lines[-200:])
+            except Exception:
+                log_tail = ""
+
+        docs_content = (
+            f"# 実装計画書（保存）\n\n"
+            f"- Worktree: {self.project_root.name}\n"
+            f"- Timestamp: {datetime.now().isoformat()}\n"
+            f"- Plan Log: {plan_path}\n\n"
+            "## 計画\n\n"
+            f"{plan_text}\n\n"
+            "## 直近の実装ログ（最後の200行）\n\n"
+            "```\n"
+            f"{log_tail}\n"
+            "```\n"
+        )
+        docs_path.write_text(docs_content, encoding="utf-8")
+        logger.info("[PLAN] Future plan saved to _docs: %s", docs_path)
+
+        # Write to SQL (progress_log)
+        try:
+            sys.path.insert(0, str(self.project_root / "scripts" / "utils"))
+            from pipeline_progress_store import log_progress
+
+            log_progress(run_id, "PLAN", f"Future plan saved: {plan_path}")
+            log_progress(run_id, "PLAN", f"Future plan saved to _docs: {docs_path}")
+        except Exception as e:
+            logger.warning("Failed to log future plan to SQL: %s", e)
+
     def print_progress(self, phase: str, step: str, message: str, progress: float):
         """Print progress with bar."""
         bar_len = 30
@@ -78,6 +150,28 @@ class MoonshotPipelineV3:
                 log_progress(get_run_id(), f"{phase}:{step}", message)
         except Exception:
             pass  # SQL logging is optional
+
+    def phase_data(self) -> bool:
+        """Phase 0: Data acquisition (arXiv/BioRxiv) and integration."""
+        self.print_progress("DATA", "0/5", "Starting arXiv/BioRxiv data pipeline", 0.0)
+        self.log_to_sql("DATA", "start", "Starting arXiv/BioRxiv data pipeline")
+        try:
+            script = self.project_root / "scripts" / "data_processing" / "process_arxiv_biorxiv.py"
+            cmd = [sys.executable, str(script), "--max-papers", str(self.config["arxiv_biorxiv_max_papers"])]
+            if self.config.get("download_metrics_path"):
+                cmd += ["--download-metrics", self.config["download_metrics_path"]]
+            subprocess.run(cmd, cwd=self.project_root, check=True)
+
+            integrate_script = self.project_root / "scripts" / "data_processing" / "integrate_domain_knowledge.py"
+            subprocess.run([sys.executable, str(integrate_script)], cwd=self.project_root, check=False)
+
+            self.print_progress("DATA", "0/5", "Data pipeline complete", 0.1)
+            self.log_to_sql("DATA", "complete", "Data pipeline finished successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Data pipeline failed: {e}")
+            self.log_to_sql("DATA", "error", str(e))
+            return False
 
     def phase_sft(self) -> bool:
         """Phase 1: SFT Training."""
@@ -236,6 +330,7 @@ class MoonshotPipelineV3:
     def run_full_pipeline(self) -> bool:
         """Execute complete pipeline."""
         logger = self.setup_logging()
+        check_runtime_requirements()
         logger.info("=" * 60)
         logger.info("Moonshot Pipeline v3.0 - Full Orchestration")
         logger.info(f"Base Model: {self.config['model_name']}")
@@ -251,11 +346,16 @@ class MoonshotPipelineV3:
             run_id = f"moonshot_v3_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             record_run(run_id, git_commit_hash=self._get_git_commit())
             logger.info(f"SQL tracking initialized: {run_id}")
+            self._record_future_plan(run_id)
         except Exception as e:
             logger.warning(f"SQL tracking not available: {e}")
 
         # Run phases
         success = True
+
+        # Phase 0: Data
+        if not self.phase_data():
+            logger.warning("Data pipeline had issues, continuing...")
 
         # Phase 1: SFT
         if not self.phase_sft():

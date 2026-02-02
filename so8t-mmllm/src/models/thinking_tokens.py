@@ -37,6 +37,20 @@ QUADRUPLE_THINKING_TOKENS = {
     "final_end": "</final>",
 }
 
+# IntegratedReasoningPipeline 固定パーサ仕様（v1.0）用タグ
+INTEGRATED_REASONING_TOKENS = {
+    "think_observation_start": "<think-observation>",
+    "think_observation_end": "</think-observation>",
+    "think_deduction_start": "<think-deduction>",
+    "think_deduction_end": "</think-deduction>",
+    "think_abduction_start": "<think-abduction>",
+    "think_abduction_end": "</think-abduction>",
+    "think_integration_start": "<think-integration>",
+    "think_integration_end": "</think-integration>",
+    "final_start": "<final>",
+    "final_end": "</final>",
+}
+
 # デフォルトは<think>形式を使用
 DEFAULT_SPECIAL_TOKENS = THINKING_SPECIAL_TOKENS
 
@@ -327,6 +341,24 @@ def build_quadruple_thinking_prompt(user_query: str) -> str:
         "答え: <think-task>"
     ).format(query=user_query)
     
+    return prompt
+
+
+def build_integrated_reasoning_prompt(user_query: str) -> str:
+    """
+    IntegratedReasoningPipeline 固定タグ仕様のプロンプトを生成。
+    """
+    tokens = INTEGRATED_REASONING_TOKENS
+    prompt = (
+        "以下のタグ構造に厳密に従い、四段の推論と最終回答を出力せよ。\n"
+        "1. <think-observation>: 観察（事実/与件の整理）\n"
+        "2. <think-deduction>: 演繹（規則/前提からの結論）\n"
+        "3. <think-abduction>: 仮説（補完/推定）\n"
+        "4. <think-integration>: 統合（結論に向けた統合）\n"
+        "5. <final>: 最終回答のみ\n"
+        "質問: {query}\n"
+        "出力開始: {tag}\n"
+    ).format(query=user_query, tag=tokens["think_observation_start"])
     return prompt
 
 

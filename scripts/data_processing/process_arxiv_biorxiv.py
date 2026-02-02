@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import logging
+from scripts.utils.progress import progress
+from scripts.utils.runtime_requirements import check_runtime_requirements
 
 try:
     import requests
@@ -33,7 +35,7 @@ logger = logging.getLogger(__name__)
 class ArxivBioRxivProcessor:
     """Arxiv/BioRxiv論文処理クラス"""
     
-    def __init__(self, project_root: Optional[Path] = None):
+    def __init__(self, project_root: Optional[Path] = None, download_metrics_path: Optional[Path] = None):
         if project_root is None:
             self.project_root = Path(__file__).parent.parent.parent
         else:
@@ -53,6 +55,38 @@ class ArxivBioRxivProcessor:
         self.end_year = 2026
         self.target_count = 100000  # 上位10万件
     
+        # download metrics (optional)
+        self.download_metrics = {}
+        if download_metrics_path:
+            self.download_metrics = self._load_download_metrics(download_metrics_path)
+
+    def _load_download_metrics(self, path: Path) -> Dict[str, int]:
+        """Load download counts from JSON or CSV (id,download_count)."""
+        try:
+            if not path.exists():
+                logger.warning(f"[DOWNLOAD] Metrics file not found: {path}")
+                return {}
+            if path.suffix.lower() == ".json":
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    return {str(k): int(v) for k, v in data.items()}
+                return {}
+            if path.suffix.lower() in {".csv", ".tsv"}:
+                sep = "," if path.suffix.lower() == ".csv" else "\t"
+                metrics = {}
+                for line in path.read_text(encoding="utf-8").splitlines():
+                    if not line.strip() or line.lower().startswith("id"):
+                        continue
+                    parts = line.split(sep)
+                    if len(parts) >= 2:
+                        metrics[parts[0].strip()] = int(float(parts[1]))
+                return metrics
+            logger.warning(f"[DOWNLOAD] Unsupported metrics format: {path.suffix}")
+            return {}
+        except Exception as e:
+            logger.warning(f"[DOWNLOAD] Failed to load metrics: {e}")
+            return {}
+
     def search_arxiv_papers(self, query: str = "", max_results: int = 50000) -> List[Dict[str, Any]]:
         """Arxiv論文を検索"""
         logger.info(f"[SEARCH] Searching Arxiv papers from {self.start_year} to {self.end_year}...")
@@ -116,10 +150,10 @@ class ArxivBioRxivProcessor:
         # Semantic Scholar API（無料版は制限あり）
         # 注意: 大量のリクエストにはAPIキーが必要な場合があります
         
-        for i, paper in enumerate(papers):
+        for i, paper in enumerate(progress(papers, desc="arXiv/BioRxiv citations"), 1):
             try:
                 # Arxiv IDからSemantic Scholar IDを取得
-                arxiv_id = paper.get('arxiv_id', '')
+                arxiv_id = paper.get('arxiv_id', '') or paper.get('biorxiv_id', '') or paper.get('id', '')
                 if not arxiv_id:
                     continue
                 
@@ -138,6 +172,10 @@ class ArxivBioRxivProcessor:
                     paper['reference_count'] = data.get('referenceCount', 0)
                 else:
                     paper['citation_count'] = 0
+
+                # download count (optional metrics file)
+                paper['download_count'] = self.download_metrics.get(arxiv_id, 0)
+                paper['score'] = paper.get('citation_count', 0) + paper.get('download_count', 0)
                 
                 # レート制限対策
                 if (i + 1) % 100 == 0:
@@ -147,10 +185,12 @@ class ArxivBioRxivProcessor:
             except Exception as e:
                 logger.warning(f"[WARN] Failed to get citation count for {paper.get('arxiv_id')}: {e}")
                 paper['citation_count'] = 0
+                paper['download_count'] = self.download_metrics.get(arxiv_id, 0)
+                paper['score'] = paper.get('citation_count', 0) + paper.get('download_count', 0)
                 continue
         
         # 引用数でソート
-        papers_sorted = sorted(papers, key=lambda x: x.get('citation_count', 0), reverse=True)
+        papers_sorted = sorted(papers, key=lambda x: x.get('score', x.get('citation_count', 0)), reverse=True)
         
         logger.info(f"[CITATION] Top paper citation count: {papers_sorted[0].get('citation_count', 0) if papers_sorted else 0}")
         return papers_sorted
@@ -574,12 +614,12 @@ class ArxivBioRxivProcessor:
         
         # 3. 上位N件を選択
         top_papers = papers_with_citations[:max_papers]
-        logger.info(f"[PROCESS] Selected top {len(top_papers)} papers by citation count")
+        logger.info(f"[PROCESS] Selected top {len(top_papers)} papers by citation+download score")
         
         # 4. PDFダウンロードとテキスト抽出
         structured_data = []
         
-        for i, paper in enumerate(top_papers):
+        for i, paper in enumerate(progress(top_papers, desc="arXiv/BioRxiv processing"), 1):
             try:
                 # PDFダウンロード
                 pdf_path = self.download_pdf(paper)
@@ -615,6 +655,7 @@ class ArxivBioRxivProcessor:
 
 
 def main():
+    check_runtime_requirements()
     """メイン実行関数"""
     import argparse
     
@@ -623,10 +664,13 @@ def main():
                        help='Maximum number of papers to process (default: 100000)')
     parser.add_argument('--query', type=str, default='',
                        help='Additional search query')
+    parser.add_argument('--download-metrics', type=str, default='',
+                       help='Optional JSON/CSV metrics file with download counts (id,download_count)')
     
     args = parser.parse_args()
     
-    processor = ArxivBioRxivProcessor()
+    metrics_path = Path(args.download_metrics) if args.download_metrics else None
+    processor = ArxivBioRxivProcessor(download_metrics_path=metrics_path)
     
     # 処理実行
     output_path = processor.process_top_cited_papers(max_papers=args.max_papers)

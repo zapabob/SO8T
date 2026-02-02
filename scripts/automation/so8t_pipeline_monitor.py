@@ -22,11 +22,14 @@ class SO8TPipelineMonitor:
     def __init__(self):
         self.project_root = Path(__file__).parent.parent.parent
         self.log_dir = self.project_root / "logs"
+        self.docs_dir = self.project_root / "_docs"
+        self.worktree_name = self.project_root.name
         self.checkpoint_dir = Path("D:/webdataset/checkpoints/ppo_so8t")
         self.hf_model_dir = Path("D:/webdataset/models/final/so8t_ppo_final")
 
         # Create log directory
         self.log_dir.mkdir(exist_ok=True)
+        self.docs_dir.mkdir(exist_ok=True)
 
         # Setup logging
         self.setup_logging()
@@ -44,6 +47,7 @@ class SO8TPipelineMonitor:
         """Setup logging configuration"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_file = self.log_dir / f"so8t_pipeline_monitor_{timestamp}.log"
+        self.monitor_log_file = log_file
 
         logging.basicConfig(
             level=logging.INFO,
@@ -160,7 +164,9 @@ class SO8TPipelineMonitor:
         self.logger.info("Starting pipeline monitoring...")
 
         log_buffer = []
+        self.log_buffer = log_buffer
         error_detected = False
+        self.last_error_line = ""
         hf_completed = False
 
         try:
@@ -176,6 +182,7 @@ class SO8TPipelineMonitor:
                         if not error_detected and self.check_for_errors(line):
                             self.logger.warning(f"Error detected in pipeline output: {line.strip()}")
                             error_detected = True
+                            self.last_error_line = line.strip()
 
                         # Check for HF completion
                         if not hf_completed and self.check_hf_completion(line):
@@ -207,6 +214,41 @@ class SO8TPipelineMonitor:
         else:
             self.logger.info("Pipeline monitoring completed")
             return self.EXIT_SUCCESS
+
+    def _remove_task_scheduler(self):
+        """Remove Windows Task Scheduler entry if present."""
+        task_name = os.environ.get("SO8T_TASK_NAME", "SO8T-Training-AutoResume")
+        try:
+            subprocess.run(
+                ["schtasks", "/delete", "/tn", task_name, "/f"],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.logger.info(f"Removed task scheduler entry: {task_name}")
+        except Exception as e:
+            self.logger.warning(f"Failed to remove task scheduler entry: {e}")
+
+    def _write_report(self, status_label: str, reason: str):
+        """Write completion/error report to _docs."""
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        report_name = f"{date_str}{status_label}{self.worktree_name}.md"
+        report_path = self.docs_dir / report_name
+
+        log_tail = "\n".join(self.log_buffer[-200:]) if hasattr(self, "log_buffer") else ""
+        content = (
+            f"# {status_label}\n\n"
+            f"- Worktree: {self.worktree_name}\n"
+            f"- Timestamp: {datetime.now().isoformat()}\n"
+            f"- Reason: {reason}\n"
+            f"- Monitor Log: {getattr(self, 'monitor_log_file', '')}\n\n"
+            "## Log Tail (last 200 lines)\n\n"
+            "```\n"
+            f"{log_tail}\n"
+            "```\n"
+        )
+        report_path.write_text(content, encoding="utf-8")
+        self.logger.info(f"Saved report: {report_path}")
 
     def stop_pipeline(self):
         """Stop the pipeline process gracefully"""
@@ -250,6 +292,14 @@ class SO8TPipelineMonitor:
 
             # Ensure pipeline is stopped
             self.stop_pipeline()
+
+            if result == self.EXIT_SUCCESS:
+                self._write_report("完成報告書", "Pipeline completed successfully")
+                self._remove_task_scheduler()
+            else:
+                reason = self.last_error_line or "Pipeline ended with error or interruption"
+                self._write_report("不具合報告", reason)
+                self._remove_task_scheduler()
 
             return result
 

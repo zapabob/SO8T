@@ -44,6 +44,7 @@ try:
     from models.safety_aware_so8t import SafetyAwareSO8TConfig
     from models.thinking_tokens import (
         build_quadruple_thinking_prompt,
+        build_integrated_reasoning_prompt,
         extract_quadruple_thinking
     )
     SO8T_AVAILABLE = True
@@ -77,6 +78,14 @@ try:
 except ImportError as e:
     VECTOR_STORE_AVAILABLE = False
     logger.warning(f"Vector store creators not available: {e}")
+
+# Integrated reasoning parser
+try:
+    from scripts.agents.integrated_reasoning_parser import parse_integrated_reasoning
+    INTEGRATED_PARSER_AVAILABLE = True
+except Exception as e:
+    INTEGRATED_PARSER_AVAILABLE = False
+    logger.warning(f"Integrated reasoning parser not available: {e}")
 
 
 class UnifiedAIAgent:
@@ -324,7 +333,12 @@ class UnifiedAIAgent:
         
         return results[:limit]
     
-    def generate_quadruple_thinking(self, query: str, context: Optional[str] = None) -> Dict[str, Any]:
+    def generate_quadruple_thinking(
+        self,
+        query: str,
+        context: Optional[str] = None,
+        use_integrated_reasoning_tags: bool = False,
+    ) -> Dict[str, Any]:
         """
         四重推論を生成
         
@@ -351,7 +365,10 @@ class UnifiedAIAgent:
                 enhanced_query = query
             
             # 四重推論プロンプトを構築
-            prompt = build_quadruple_thinking_prompt(enhanced_query)
+            if use_integrated_reasoning_tags:
+                prompt = build_integrated_reasoning_prompt(enhanced_query)
+            else:
+                prompt = build_quadruple_thinking_prompt(enhanced_query)
             
             # 四重推論を生成
             result = self.so8t_model.generate_thinking(
@@ -366,13 +383,33 @@ class UnifiedAIAgent:
             # 四重推論を抽出
             full_text = result.get('full_text', '')
             task_text, safety_text, policy_text, final_text = extract_quadruple_thinking(full_text)
-            
+
+            integrated_result = None
+            if INTEGRATED_PARSER_AVAILABLE:
+                try:
+                    parsed = parse_integrated_reasoning(full_text)
+                    integrated_result = {
+                        "final_text": parsed.final_text,
+                        "thinks": parsed.thinks,
+                        "parse_mode": parsed.parse_mode,
+                        "raw_hash": parsed.raw_hash,
+                    }
+                    if parsed.final_text:
+                        final_text = parsed.final_text
+                except Exception as parse_error:
+                    logger.warning(f\"[AGENT] Integrated reasoning parse failed: {parse_error}\")
+
             return {
                 'task': task_text,
                 'safety': safety_text,
                 'policy': policy_text,
                 'final': final_text,
-                'full_text': full_text
+                'full_text': full_text,
+                'integrated_reasoning': integrated_result,
+                'format_violation': (
+                    integrated_result is not None
+                    and integrated_result.get(\"parse_mode\") in {\"lenient\", \"missing_final\"}
+                ),
             }
             
         except Exception as e:

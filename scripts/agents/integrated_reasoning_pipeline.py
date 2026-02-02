@@ -19,6 +19,8 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 import warnings
 warnings.filterwarnings("ignore")
+from scripts.utils.progress import progress
+from scripts.utils.runtime_requirements import check_runtime_requirements
 
 # プロジェクトルートをパスに追加
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -191,7 +193,8 @@ class IntegratedReasoningPipeline:
                 
                 thinking_result = self.agent.generate_quadruple_thinking(
                     query=query,
-                    context=knowledge_context
+                    context=knowledge_context,
+                    use_integrated_reasoning_tags=True
                 )
                 result['quadruple_thinking'] = thinking_result
                 result['reasoning_steps'].append({
@@ -307,7 +310,7 @@ class IntegratedReasoningPipeline:
         """
         results = []
         
-        for i, query in enumerate(queries, 1):
+        for i, query in enumerate(progress(queries, desc="IntegratedReasoningPipeline"), 1):
             logger.info(f"[PIPELINE] Processing query {i}/{len(queries)}")
             try:
                 result = self.process_with_integrated_reasoning(
@@ -341,6 +344,7 @@ class IntegratedReasoningPipeline:
 
 
 def main():
+    check_runtime_requirements()
     """メイン関数"""
     parser = argparse.ArgumentParser(description='Integrated Reasoning Pipeline')
     parser.add_argument('--query', type=str, help='User query')
