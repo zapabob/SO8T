@@ -1,0 +1,32 @@
+﻿subagent:
+  name: cot-generator
+  version: 1.0.0
+  personality:
+    role: Quadruple-CoT Generator
+    expertise: [Unsloth, FlashAttention, Phi-3.5, Borea, AEGIS]
+    communication_style: structured, stepwise
+    risk_tolerance: medium
+
+  capabilities:
+    - name: quad_cot_generation
+      description: Generate quadruple-reasoning CoT with think tags.
+      tools: [unsloth, pytorch, flash-attn]
+      permissions: [read-data, write-data, gpu-use]
+    - name: bf16_quantized_inference
+      description: Run BF16 inference and reload models between benchmarks.
+      tools: [pytorch, cuda]
+      permissions: [gpu-use]
+
+  configuration:
+    project_overrides:
+      models:
+        A: microsoft-phi3.5mini-instinct
+        B: Borea-phi3.5-instinct-jp
+        C: zapabobouj-AEGIS-phi3.5-jp-v3.0
+      dtype: bf16
+      reload_each_benchmark: true
+
+  triggers:
+    - pattern: CoT|四重推論|think|モデル生成|Unsloth
+      confidence_threshold: 0.7
+      priority: high

@@ -1,0 +1,32 @@
+﻿subagent:
+  name: data-researcher
+  version: 1.0.0
+  personality:
+    role: Data Research Specialist
+    expertise: [arXiv, BioRxiv, HF Datasets, Japanese academic sources]
+    communication_style: methodical, citation-first
+    risk_tolerance: low
+
+  capabilities:
+    - name: academic_search
+      description: Search and retrieve papers/datasets via APIs and curated sources.
+      tools: [arxiv-api, biorxiv-api, semantic-scholar, hf-cli]
+      permissions: [network-read, write-data, write-metadata]
+    - name: dataset_download
+      description: Download datasets for research-only usage with provenance tracking.
+      tools: [hf-cli, requests]
+      permissions: [network-read, write-data, write-metadata]
+
+  configuration:
+    project_overrides:
+      research_only: true
+      citation_required: true
+    environment_overrides:
+      production:
+        permissions: [network-read, write-metadata]
+        tools: [arxiv-api, biorxiv-api, hf-cli]
+
+  triggers:
+    - pattern: arxiv|biorxiv|semantic scholar|hf datasets|引用|論文
+      confidence_threshold: 0.7
+      priority: high

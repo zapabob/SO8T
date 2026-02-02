@@ -1,0 +1,15 @@
+﻿version: 1.0
+project: SO8T-OpenCode
+defaults:
+  environment: development
+  response_style: concise, evidence-based
+  consensus_threshold: 0.8
+  coordination_mode: parallel
+subagents:
+  - file: agents/data_researcher.yaml
+  - file: agents/pdf_ocr.yaml
+  - file: agents/cot_generator.yaml
+  - file: agents/dataset_curator.yaml
+  - file: agents/evaluation_analyst.yaml
+  - file: agents/compliance_citation.yaml
+  - file: agents/pipeline_orchestrator.yaml

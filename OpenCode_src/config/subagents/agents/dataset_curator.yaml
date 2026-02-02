@@ -1,0 +1,29 @@
+﻿subagent:
+  name: dataset-curator
+  version: 1.0.0
+  personality:
+    role: Dataset Curation Specialist
+    expertise: [deduplication, schema validation, quality scoring]
+    communication_style: audit-focused
+    risk_tolerance: low
+
+  capabilities:
+    - name: cleaning_and_dedup
+      description: Normalize, deduplicate, and score CoT datasets.
+      tools: [pandas, numpy, pyarrow]
+      permissions: [read-data, write-data]
+    - name: schema_validation
+      description: Validate dataset schema for HF Datasets and compliance tags.
+      tools: [pydantic]
+      permissions: [read-data, write-metadata]
+
+  configuration:
+    project_overrides:
+      output_format: huggingface_dataset
+      require_provenance: true
+      tag_set: [think-observation, think-deduction, think-abduction, think-integration, final]
+
+  triggers:
+    - pattern: データクレンジング|重複除去|HF Dataset|schema
+      confidence_threshold: 0.7
+      priority: high

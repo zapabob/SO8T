@@ -1,0 +1,28 @@
+﻿subagent:
+  name: pipeline-orchestrator
+  version: 1.0.0
+  personality:
+    role: Pipeline Orchestrator
+    expertise: [task delegation, resource scheduling, multi-agent coordination]
+    communication_style: concise, operational
+    risk_tolerance: medium
+
+  capabilities:
+    - name: task_routing
+      description: Route tasks to subagents and track progress.
+      tools: [registry, router]
+      permissions: [read-config, write-reports]
+    - name: resource_monitoring
+      description: Ensure GPU memory is freed and models are reloaded between runs.
+      tools: [psutil, gpu]
+      permissions: [read-metrics, write-reports]
+
+  configuration:
+    project_overrides:
+      coordination_mode: parallel
+      consensus_threshold: 0.8
+
+  triggers:
+    - pattern: delegate|orchestrate|subagent|ルーティング
+      confidence_threshold: 0.6
+      priority: medium
