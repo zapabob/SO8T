@@ -21,6 +21,11 @@ TASK_GROUPS = [
         "permissions": ["network-read", "write-data", "write-metadata"],
     },
     {
+        "name": "web_search_codex_gemini",
+        "task": "Codex + GeminiCLI combined web search (DeepResearch)",
+        "permissions": ["network-read", "write-data", "write-metadata"],
+    },
+    {
         "name": "biorxiv_2024_2026",
         "task": "BioRxiv 2024-2026 API download",
         "permissions": ["network-read", "write-data", "write-metadata"],

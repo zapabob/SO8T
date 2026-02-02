@@ -36,8 +36,13 @@ def _run_task(task: Dict) -> Dict:
         "details": "No executor bound",
     }
 
-    # Placeholder for actual task execution.
-    # You can wire concrete executors per task name later.
+    if name == "web_search_codex_gemini":
+        result["status"] = "pending"
+        result["details"] = (
+            "Requires Codex web search + GeminiCLI integration. "
+            "Set GEMINI_API_TOKEN and provide search endpoints."
+        )
+
     return result
 
 

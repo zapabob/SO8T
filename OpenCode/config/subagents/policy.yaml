@@ -10,6 +10,8 @@
   subagents:
     data-researcher:
       allow: ["network-read", "write-data", "write-metadata"]
+    web-researcher:
+      allow: ["network-read", "write-data", "write-metadata"]
     pdf-ocr:
       allow: ["network-read", "write-data", "write-metadata", "read-data"]
     cot-generator:

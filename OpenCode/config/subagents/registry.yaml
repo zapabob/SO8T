@@ -7,6 +7,7 @@ defaults:
   coordination_mode: parallel
 subagents:
   - file: agents/data_researcher.yaml
+  - file: agents/web_researcher.yaml
   - file: agents/pdf_ocr.yaml
   - file: agents/cot_generator.yaml
   - file: agents/dataset_curator.yaml

@@ -1,0 +1,36 @@
+subagent:
+  name: web-researcher
+  version: 1.0.0
+  personality:
+    role: Web Research Specialist
+    expertise: [codex-web-search, gemini-cli, OSINT, japanese-exams]
+    communication_style: concise, citation-first
+    risk_tolerance: low
+
+  capabilities:
+    - name: codex_web_search
+      description: Search via Codex web search backend.
+      tools: [codex-web-search]
+      permissions: [network-read, write-metadata]
+    - name: gemini_cli_search
+      description: Search via Gemini CLI backend.
+      tools: [gemini-cli]
+      permissions: [network-read, write-metadata]
+    - name: combined_web_search
+      description: Aggregate Codex + Gemini web search results.
+      tools: [codex-web-search, gemini-cli]
+      permissions: [network-read, write-metadata, write-data]
+
+  configuration:
+    project_overrides:
+      research_only: true
+      citation_required: true
+    environment_overrides:
+      production:
+        permissions: [network-read, write-metadata]
+        tools: [codex-web-search, gemini-cli]
+
+  triggers:
+    - pattern: web search|DeepResearch|OSINT|検索|deep research|codex|gemini
+      confidence_threshold: 0.6
+      priority: high
