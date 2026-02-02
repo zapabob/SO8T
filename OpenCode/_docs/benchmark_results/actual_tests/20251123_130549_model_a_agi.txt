@@ -1,0 +1,143 @@
+  * The code below is what I am trying to achieve:   
+# answer
+ There's a simple way of doing this in SQLAlchachment by using the [tag:linq-to-mongodb] (LINQ) extension. It will return all objects from `Restaurants` which have at least one element that has 20 or more properties
+ 
+```jsx
+var list1 = dbContext->Collection<ObjectId>("restaurant").aggregate(db, { "$.items" => {$elemMatch:{"name":{$exists:true}}); // the property name I'm looking for is called `price` (as per your requirement)
+    
+        var count = await db.Collection().countDocuments({
+          $project : {
+              _id: "$_id",
+            },function(data){  
+                return new Promise((resolve, reject) => {                   
+           // do something with the result here.
+       });    
+         var array = this.aggregate({
+             {$match:{}, $project : {"name" : "$restaurant_id", "price": 10}
+            },function(err, results){console.log("This is not working")});                      return Promise.all([results]); 
+        }
+    })
+   .then(() => { // I am getting an error here.
+       resolve({"name":"Joe", "data": data})}
+     );},  function(err, res){console.log("this is the result: "+res)};
+```
+# answer
+ The problem with your code seems to be due in two places - you're missing a closing curly bracket after `$project` and also needlessly escaping characters (it should not work since _id does not contain an object. It must match the name of one or more field names.
+
+    var query = {
+        $match: {$and : {price_type:"restaurant", "items":{$exists:true}},
+            "$project" => {"name":"$courses"}, 
+          }];   // Here it's missing a comma? I think you need to add one more closing bracket for the $match stage
+        }, function(err, results) {
+                console.log("This is not working");  }
+     ]}
+    })).exec()
+      .then(() => {console.log(`query result: ${JSON.stringify(results)}`);}); 
+            return Promise.all([
+              db.collection('restaurants').find({"$match": query}, function (err, results) {
+                let arr = []  // This is where the problem occurs.
+                    for(var i=0;i<results.length > -1){ 
+          return new Promise((resolve)=> {   var xxx
+            if (!isNaN(Number(result[j].price)) {
+                arrayOfArraysToInsert = [];  // I believe this is the right way to get an Array of unique ids for each type/category: <https://stackoverflow.com/questions/46312957#comment80167880
+        
+            var filterData={};
+                if (result[i].title === "Restaurant" && result['price'] != null){
+                    arrayOfIds.push(results);
+                  // eslint-enable: no duplicate values in the below line, it should be 'array' not '$filter'.   
+            var item = {
+                _id : results[i]._id,
+              title: "RestaurantName",
+               price1609823457
+           };
+                    arrayOfObjects.push(item);
+             }
+          }, function() {   
+            console.log("inside if")});//here you're setting the response to undefined, so just return it in an object instead.
+        })];
+     }).then(() => {
+                for (var i = 0;i<arrayOfObjects.length ; ++i) { 
+                    var item1=[] //this line should be inside your loop: array of objects, not the variable 'item'. it's just a typo.
+
+              let resultArray=[];//create an empty object with all items in its properties (name and type ) then push them into this one. 
+    var newArr = []; // create 2d-array to store filtered data for each category id, but I think it would be easier using map().
+                     let count=0;
+        const resultArray=[];
+            item1[i].forEach(function (item) {
+              if (!results.some((x)=> results == x._id){//your code is wrong here, should also check for id in the loop.
+                newArr = []; // create an array of arrays to hold all ids 
+               var list1=Object.assign(
+                  {_id: item["name"]}, {
+              }, function (results) =>{     results[i].forEach((obj, index){
+            console.log(`${item['price']} ${resultArray}
+                let data = _data;
+          
+        var list1= [];//create an array here to hold all your final object.
+              resultArr["$match"]={'_id': item._id,
+                  "name": {$in: [{ $exists : true }],
+                    'items' => { "$elemMatch", {
+             
+                title:"RestaurantName",
+            }
+          },function(err, result){ // it works for me. I think you are trying to fetch the price from a property on your collection that is not present in mongoDB
+    var query = {"$match": {price_type: "restaurant"}
+        ,{$or:[{"name":"RSVP", "$exists":{"userid"}], {$and : [{'userId': {'status' => 'ACTIVE'} ]}]}},
+            $lookup:{from:'users', as:"result1"},
+          },function(err, result) {
+                if (typeof window.ArrayUtils == "undefined") { 
+                    console.log("window is undefined");
+              } else{
+             return Promise.all([{_id: item._id}, {$match:{name:"RSVP"}], function() {},function(err, results) {
+                if (results !== null || !ArrayUtils.isUndefinedOrNull(result))
+                    list1 = []; // I think you might need to do a $or instead of an array here? Not sure.
+              })};
+               
+            console.log(`${item._id}`);   }])}
+         });// and in your controller, change the code above with:
+    return Promise.all(results).then((res)=> {
+                     var list = []; // create a new array to hold each individual restaurant.
+                
+            for (var i=0;i < results[item].length ; ++i){   if (!ArrayUtils.isUndefinedOrNull($scope._id)){
+              console.log(results)
+
+               list1 = [] //create a new array to store your objects.
+                var dataObj={};
+                  for (var i=0; results[i].price_type === "restaurant" && !ArrayUtils.isUndefinedOrNull($scope._id) { 
+                      list1 = [];
+     let restaurantId=[]; //I think you want to use 'push' instead of += here, but it should be an array not a string.
+        var date=new Date(results[i].created_at);
+                console.log("date", i)
+                    list1 = [];
+            for (var k in results) {
+               //console.log(`${item._id} - ${data['price']})`}
+           
+              if ($scope.$state && $scope.$$hashKey == 'results' ) {   } else{  console.warn(list1);
+        var arrayofIds = [];
+            let idList=[] // I think the name of your list should be "arrayOfItems", and you are doing a simple assignment instead an Array.
+              for (var i in results) {
+                if (!isNaN($scope.name == item._id)) { 
+                    arrayofIds = [];
+               var resultArray=[] //your code works, but the loop will never finish since there's no return statement? You may want to change this line.
+              list1[i].push({_id: results['price'], name : item.name}); 
+                arrayofIds += new Date(results["$match"])
+               } else {
+                  console.log("here is the id") // I think you are missing a closing bracket here.
+              }
+            })}).then((resultArray)=>{
+          return Promise.all([item1, item2]); 
+        }).catch(err => { throw err;});
+      }else{   console.log("here is your code above.");
+                    var list = []; // create an array to hold the ids.
+                })       .then(()=> {
+               return Promise.all([item1, item2]); 
+              }).catch(err => { throw err;});
+        }
+      }, function() {
+            console.log("inside callback" + JSON.stringify(list)); // check if it is an array.
+          }))})};
+    return Promise.all([item1, item2]); 
+  }).then(() => {return data});
+}
+```
+
+

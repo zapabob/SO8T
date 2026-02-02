@@ -1,0 +1,45 @@
+model:
+  d_model: 256
+  n_layers: 6
+  n_heads: 4
+  d_ff: 512
+  dropout: 0.2
+  gate_order:
+    - R_env
+    - R_safe
+    - R_cmd
+
+training:
+  epochs: 5
+  batch_size: 8
+  max_steps: null
+  learning_rate: 0.002
+  weight_decay: 0.1
+  pet_lambda: 0.001
+  gradient_clip: 1.0
+  mixed_precision: true
+  log_interval: 50
+  eval_interval: 200
+
+optimizer:
+  betas:
+    - 0.9
+    - 0.95
+  eps: 1.0e-08
+
+scheduler:
+  warmup_steps: 500
+  total_steps: null
+
+paths:
+  train: data/train.jsonl
+  val: data/val.jsonl
+  test: data/test.jsonl
+  checkpoint_dir: chk
+  run_name: so8t_default
+
+runtime:
+  seed: 42
+  device: auto
+  num_workers: 0
+  max_seq_len: 96

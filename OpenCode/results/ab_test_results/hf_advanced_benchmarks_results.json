@@ -1,0 +1,40 @@
+{
+  "base_hf": {
+    "model_name": "base_hf",
+    "timestamp": "2025-12-08 10:27:05",
+    "math": {
+      "accuracy": 1.0,
+      "correct": 5,
+      "total": 5
+    },
+    "gpqa": {
+      "accuracy": 1.0,
+      "correct": 5,
+      "total": 5
+    },
+    "arc_challenge": {
+      "accuracy": 0.8,
+      "correct": 4,
+      "total": 5
+    }
+  },
+  "aegis_hf": {
+    "model_name": "aegis_hf",
+    "timestamp": "2025-12-08 10:31:22",
+    "math": {
+      "accuracy": 0.8,
+      "correct": 4,
+      "total": 5
+    },
+    "gpqa": {
+      "accuracy": 1.0,
+      "correct": 5,
+      "total": 5
+    },
+    "arc_challenge": {
+      "accuracy": 0.8,
+      "correct": 4,
+      "total": 5
+    }
+  }
+}

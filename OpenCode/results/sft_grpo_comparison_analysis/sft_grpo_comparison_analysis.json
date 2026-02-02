@@ -1,0 +1,133 @@
+{
+  "sft_analysis": {
+    "method": "SFT",
+    "total_steps": 1000,
+    "initial_loss": 7.975056906061198,
+    "final_loss": 0.1,
+    "loss_reduction": 7.875056906061198,
+    "min_loss": 0.1,
+    "max_loss": 7.975056906061198,
+    "mean_loss": 1.864441814159683,
+    "loss_std": 2.306113774325512,
+    "loss_variance": 5.318160740133859,
+    "initial_lr": 0.0001,
+    "final_lr": 6.371721531393205e-05,
+    "lr_range": 3.6282784686067956e-05,
+    "grokking_events_count": 4,
+    "grokking_events": [
+      {
+        "step": 10,
+        "loss_drop": 0.1562875069157421,
+        "loss_before": 7.774437143108367,
+        "loss_after": 7.618149636192625,
+        "method": "SFT",
+        "timestamp": "2025-12-07T17:32:46.840844"
+      },
+      {
+        "step": 319,
+        "loss_drop": 0.11212532904103734,
+        "loss_before": 2.5919548177311778,
+        "loss_after": 2.4798294886901404,
+        "method": "SFT",
+        "timestamp": "2025-12-07T17:32:46.840844"
+      },
+      {
+        "step": 327,
+        "loss_drop": 0.13004110396016966,
+        "loss_before": 2.4159707341275944,
+        "loss_after": 2.285929630167425,
+        "method": "SFT",
+        "timestamp": "2025-12-07T17:32:46.840844"
+      },
+      {
+        "step": 468,
+        "loss_drop": 0.308142935785783,
+        "loss_before": 0.9186112612317643,
+        "loss_after": 0.6104683254459813,
+        "method": "SFT",
+        "timestamp": "2025-12-07T17:32:46.840844"
+      }
+    ],
+    "convergence_rate": 5.197162655370754,
+    "stability_score": 0.4470487863313374
+  },
+  "grpo_analysis": {
+    "method": "GRPO",
+    "total_steps": 500,
+    "initial_loss": 5.943085072227149,
+    "final_loss": 0.05,
+    "loss_reduction": 5.893085072227149,
+    "min_loss": 0.05,
+    "max_loss": 5.943085072227149,
+    "mean_loss": 0.7181302314012074,
+    "loss_std": 1.4841899796166427,
+    "loss_variance": 2.2028198955944505,
+    "initial_lr": 1e-05,
+    "final_lr": 2.0160000000000003e-06,
+    "lr_range": 7.984e-06,
+    "grokking_events_count": 5,
+    "grokking_events": [
+      {
+        "step": 57,
+        "loss_drop": 0.09297820165739346,
+        "loss_before": 3.041746985252281,
+        "loss_after": 2.9487687835948875,
+        "method": "GRPO",
+        "timestamp": "2025-12-07T17:32:46.841855"
+      },
+      {
+        "step": 59,
+        "loss_drop": 0.10472741317537171,
+        "loss_before": 2.8850139752840667,
+        "loss_after": 2.780286562108695,
+        "method": "GRPO",
+        "timestamp": "2025-12-07T17:32:46.841855"
+      },
+      {
+        "step": 61,
+        "loss_drop": 0.10109344538603748,
+        "loss_before": 2.710054104886116,
+        "loss_after": 2.6089606595000787,
+        "method": "GRPO",
+        "timestamp": "2025-12-07T17:32:46.841855"
+      },
+      {
+        "step": 73,
+        "loss_drop": 0.2067175701577233,
+        "loss_before": 2.003726810567622,
+        "loss_after": 1.7970092404098985,
+        "method": "GRPO",
+        "timestamp": "2025-12-07T17:32:46.841855"
+      },
+      {
+        "step": 120,
+        "loss_drop": 0.10361688655469872,
+        "loss_before": 0.20780035721993567,
+        "loss_after": 0.10418347066523695,
+        "method": "GRPO",
+        "timestamp": "2025-12-07T17:32:46.841855"
+      }
+    ],
+    "convergence_rate": 8.548162595990155,
+    "stability_score": 0.32607893611860733
+  },
+  "comparison": {
+    "loss_difference": 0.05,
+    "sft_better_final_loss": "False",
+    "grpo_better_final_loss": "True",
+    "convergence_comparison": {
+      "sft_rate": 5.197162655370754,
+      "grpo_rate": 8.548162595990155,
+      "grpo_faster_convergence": true
+    },
+    "grokking_comparison": {
+      "sft_events": 4,
+      "grpo_events": 5,
+      "grpo_more_grokking": true
+    },
+    "stability_comparison": {
+      "sft_stability": 0.4470487863313374,
+      "grpo_stability": 0.32607893611860733
+    }
+  }
+}

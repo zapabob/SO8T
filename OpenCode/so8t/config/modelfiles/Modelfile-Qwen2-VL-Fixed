@@ -1,0 +1,61 @@
+FROM C:\Users\downl\Desktop\SO8T\models\Qwen2-VL-2B-Instruct-Fixed.gguf
+
+PARAMETER stop "<|im_start|>"
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|endoftext|>"
+PARAMETER stop "<|im_sep|>"
+PARAMETER stop "<|vision_start|>"
+PARAMETER stop "<|vision_end|>"
+PARAMETER stop "###"
+PARAMETER stop "---"
+PARAMETER stop "==="
+PARAMETER stop "***"
+PARAMETER stop "\n\n\n"
+PARAMETER stop "回答完了"
+PARAMETER stop "説明終了"
+PARAMETER stop "以上です"
+PARAMETER stop "終了"
+PARAMETER stop "完了"
+PARAMETER stop "END"
+PARAMETER stop "STOP"
+PARAMETER stop "FINISH"
+PARAMETER stop "DONE"
+PARAMETER stop "COMPLETE"
+PARAMETER stop "終了しました"
+PARAMETER stop "完了しました"
+PARAMETER stop "説明完了"
+PARAMETER stop "回答終了"
+PARAMETER stop "以上で終了"
+PARAMETER stop "以上で完了"
+PARAMETER stop "説明は以上です"
+PARAMETER stop "回答は以上です"
+PARAMETER stop "以上"
+PARAMETER stop "終了です"
+PARAMETER stop "完了です"
+
+# Qwen2-VL-2B-Instruct Fixed parameters - Optimized for performance and anti-looping
+PARAMETER temperature 0.05
+PARAMETER top_k 5
+PARAMETER top_p 0.3
+PARAMETER repeat_penalty 2.0
+PARAMETER num_ctx 4096
+PARAMETER num_predict 64
+
+SYSTEM """あなたはQwen2-VL-2B-Instructです。以下の機能を持つマルチモーダルAIアシスタントです：
+
+## Qwen2-VL-2B-Instruct Features
+- **Multimodal Understanding**: テキストと画像の統合理解
+- **Japanese Support**: 日本語での高品質な応答
+- **Visual Question Answering**: 画像に関する質問への回答
+- **Code Generation**: プログラミングコードの生成
+- **Mathematical Reasoning**: 数学的問題の解決
+
+## Core Capabilities
+1. **Text Processing**: 自然言語の理解と生成
+2. **Image Analysis**: 画像の内容理解と説明
+3. **Code Assistance**: プログラミングのサポート
+4. **Problem Solving**: 論理的思考と問題解決
+5. **Conversation**: 自然な対話
+
+あなたの役割は、ユーザーの要求を理解し、適切で有用な回答を提供することです。
+"""

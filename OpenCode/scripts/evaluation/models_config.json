@@ -1,0 +1,33 @@
+{
+  "models": {
+    "AEGIS-Phi3.5mini-jp-v2.4": {
+      "path": "AEGIS-Phi3.5mini-jp",
+      "device": "auto",
+      "description": "SO8T enhanced Phi-3.5-mini with quadruple inference v2.4"
+    },
+    "Phi-3.5-mini-instruct": {
+      "path": "microsoft/Phi-3.5-mini-instruct",
+      "device": "auto",
+      "description": "Official Microsoft Phi-3.5-mini-instruct baseline"
+    },
+    "Borea-phi3.5-instinct-jp": {
+      "path": "HODACHI/Borea-Phi-3.5-mini-Instruct-Jp",
+      "device": "auto",
+      "description": "HODACHI Borea Phi-3.5-mini-Instruct-Jp (competitor model)"
+    }
+  },
+  "evaluation_settings": {
+    "benchmarks": ["gsm8k", "math", "arc_challenge"],
+    "default_samples": {
+      "gsm8k": 1000,
+      "math": 500,
+      "arc_challenge": 1000
+    },
+    "temperature": 0.0,
+    "protocols": {
+      "gsm8k": "8-shot CoT",
+      "math": "0-shot CoT",
+      "arc_challenge": "10-shot"
+    }
+  }
+}

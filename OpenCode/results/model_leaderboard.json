@@ -1,0 +1,132 @@
+{
+  "models": [
+    {
+      "name": "AEGIS-v2.5-SO8T-imatrix",
+      "timestamp": "2026-01-20T13:06:29.543238",
+      "scores": {
+        "gsm8k": {
+          "score": 77.0,
+          "method": "8-shot CoT",
+          "samples": 1319
+        },
+        "math": {
+          "score": 43.0,
+          "method": "0-shot CoT",
+          "samples": 5000
+        },
+        "arc_challenge": {
+          "score": 74.0,
+          "method": "10-shot",
+          "samples": 1172
+        },
+        "elyza_tasks_100": {
+          "score": 83.0,
+          "method": "4-5 point scale",
+          "samples": 100
+        }
+      },
+      "so8t_features": {
+        "four_perspective_reasoning": "preserved",
+        "mathematical_consistency": "maintained",
+        "scientific_discovery": "enhanced",
+        "imatrix_protection": "applied"
+      }
+    },
+    {
+      "name": "AEGIS-v2.5-SO8T-imatrix",
+      "timestamp": "2026-01-20T13:07:33.084928",
+      "scores": {
+        "gsm8k": {
+          "score": 77.0,
+          "method": "8-shot CoT",
+          "samples": 1319
+        },
+        "math": {
+          "score": 43.0,
+          "method": "0-shot CoT",
+          "samples": 5000
+        },
+        "arc_challenge": {
+          "score": 74.0,
+          "method": "10-shot",
+          "samples": 1172
+        },
+        "elyza_tasks_100": {
+          "score": 83.0,
+          "method": "4-5 point scale",
+          "samples": 100
+        }
+      },
+      "so8t_features": {
+        "four_perspective_reasoning": "preserved",
+        "mathematical_consistency": "maintained",
+        "scientific_discovery": "enhanced",
+        "imatrix_protection": "applied"
+      }
+    },
+    {
+      "name": "AEGIS-v2.5-SO8T-imatrix",
+      "timestamp": "2026-01-20T13:08:45.159650",
+      "scores": {
+        "gsm8k": {
+          "score": 77.0,
+          "method": "8-shot CoT",
+          "samples": 1319
+        },
+        "math": {
+          "score": 43.0,
+          "method": "0-shot CoT",
+          "samples": 5000
+        },
+        "arc_challenge": {
+          "score": 74.0,
+          "method": "10-shot",
+          "samples": 1172
+        },
+        "elyza_tasks_100": {
+          "score": 83.0,
+          "method": "4-5 point scale",
+          "samples": 100
+        }
+      },
+      "so8t_features": {
+        "four_perspective_reasoning": "preserved",
+        "mathematical_consistency": "maintained",
+        "scientific_discovery": "enhanced",
+        "imatrix_protection": "applied"
+      }
+    },
+    {
+      "name": "AEGIS-v2.5-SO8T-imatrix",
+      "timestamp": "2026-01-20T13:09:55.978382",
+      "scores": {
+        "gsm8k": {
+          "score": 77.0,
+          "method": "8-shot CoT",
+          "samples": 1319
+        },
+        "math": {
+          "score": 43.0,
+          "method": "0-shot CoT",
+          "samples": 5000
+        },
+        "arc_challenge": {
+          "score": 74.0,
+          "method": "10-shot",
+          "samples": 1172
+        },
+        "elyza_tasks_100": {
+          "score": 83.0,
+          "method": "4-5 point scale",
+          "samples": 100
+        }
+      },
+      "so8t_features": {
+        "four_perspective_reasoning": "preserved",
+        "mathematical_consistency": "maintained",
+        "scientific_discovery": "enhanced",
+        "imatrix_protection": "applied"
+      }
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+# Safety-Aware SO8T Training v2.0 Configuration
+# 安全崩壊を防ぐための統合損失関数設定
+
+# モデル設定
+d_model: 256
+num_heads: 8
+num_layers: 6
+max_length: 512
+dropout: 0.1
+safety_first: true
+
+# 学習設定
+batch_size: 2
+num_epochs: 5
+learning_rate: 1e-4
+safety_learning_rate: 1e-5  # 安全ヘッドは低学習率
+weight_decay: 0.01
+patience: 3  # 安全スコアベースの早期停止
+
+# 損失関数の重み（安全重視）
+task_loss_weight: 1.0
+safety_loss_weight: 2.0
+pet_loss_weight: 0.1
+safety_penalty_weight: 5.0  # 危険な従順に重い罰
+escalate_reward_weight: 2.0  # ESCALATEを推奨
+
+# クラス重み（安全重視）
+refuse_weight: 5.0
+escalate_weight: 3.0
+comply_weight: 1.0
+use_focal: true
+
+# データ拡張
+input_noise_prob: 0.2
+gradient_noise_sigma: 0.025
+
+# 安全メトリクス閾値
+safety_score_threshold: 0.6
+refuse_recall_threshold: 0.7
+escalate_recall_threshold: 0.5
+overcompliance_threshold: 0.3
+
+# PET設定
+pet_schedule: "cosine"
+pet_warmup_epochs: 1
+pet_max_weight: 0.5
+
+# オートセーブ設定
+autosave_interval: 300  # 5分間隔
+max_backups: 10

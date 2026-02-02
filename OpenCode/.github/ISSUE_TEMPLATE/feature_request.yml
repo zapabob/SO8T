@@ -1,0 +1,112 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for SO8T
+title: "[FEATURE] Brief description of the requested feature"
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: Brief description of the feature you're requesting
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem would this feature solve? Is there a current limitation or pain point?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed solution. How would this feature work?
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Describe specific use cases for this feature. Who would benefit from this feature?
+
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Requirements
+      description: List the requirements for this feature
+      options:
+        - label: Requirement 1
+          required: false
+        - label: Requirement 2
+          required: false
+        - label: Requirement 3
+          required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternatives have you considered? Why is your proposed solution better?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Impact Assessment - Scope
+      options:
+        - Small
+        - Medium
+        - Large
+
+  - type: dropdown
+    id: breaking-changes
+    attributes:
+      label: Impact Assessment - Breaking Changes
+      options:
+        - No breaking changes
+        - Breaking changes required
+
+  - type: dropdown
+    id: performance
+    attributes:
+      label: Impact Assessment - Performance Impact
+      options:
+        - No performance impact
+        - Minor performance impact
+        - Major performance impact
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Timeline - Urgency
+      options:
+        - Low
+        - Medium
+        - High
+        - Critical
+
+  - type: input
+    id: target-release
+    attributes:
+      label: Timeline - Target Release
+      placeholder: e.g., v2.6.0, Q2 2026
+
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: Related Issues/PRs
+      description: Link to related issues or pull requests
+      placeholder: |
+        - Closes #issue-number
+        - Related to #issue-number
+
+  - type: textarea
+    id: contact
+    attributes:
+      label: Contact Information
+      description: How can we reach you for further discussion?
+      placeholder: |
+        - GitHub Username: @your-username
+        - Discord: your-discord-username
+        - Email: your-email@example.com

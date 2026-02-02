@@ -1,0 +1,38 @@
+I'm using the following code:
+```python3
+from googletrans import Translator
+translator = Translator()
+result= translator.translate('Hello, how are you today?',src='en',dest='ja')
+print(result)
+# Outputs 'こんにちは、今日お元気ですか？' 
+```
+Is this correct or not ? If it is right then why does Google translate shows the same result but with a different format? The output from google translator: "こんにちは、 今日お元気ですか？" What I want to know exactly that, what's happening here and how can we get rid of these spaces in between words.
+# answer
+ You could do something like this
+```python3
+from googletrans import Translator
+import re
+translator = Translator()
+result= translator.translate('Hello, how are you today?',src='en')['text'] 
+output_string  = ' '.join(re.findall('\w+|[^\w\s]', result)) #remove extra spaces
+print(output_string)
+# Output: "こんにちは、今日お元気ですか？"
+```
+What this does is first removes the `{'text': 'Hello, how are you today?'}` from the dictionary returned by googletrans.
+Then it uses regex to find all words and non-whitespace characters. The `\w+` part of `'\w+|[^\w\s]'` finds one or more word chars (alphanumeric + underscore). `[^\w\s]` matches any character that is not a whitespace nor alphanumeric/underscore.
+
+The regex pattern `'\w+|[^\w\s]'` works here because we are using the join method on it. The documentation for re states 
+> str.join(iterable) Return a string which is the concatenation of the strings in iterable. A TypeError will be raised if there are any non-string arguments, or if an argument's sequence is empty.
+
+So we first find all words and characters that do not match whitespace using our regex pattern (which returns tuples), then join them together to form a single string with no spaces in between the individual elements. It works because `'\w+'` matches one word at a time, while `'[^\s]'`, being an OR operation will find all non-whitespace characters.
+
+Note that this might not work for every language but as of now it seems to be working fine with Japanese and other languages. You could try using the translator without specifying `dest` parameter if you want a more accurate translation, e.g., 
+```python3
+translator = Translator()
+result=  ' '.join(re.findall('\w+|[^\w\s]', transalctor.translate('Hello, how are you today?')) ) #remove extra spaces
+print(output_string)
+# Output: "こんにちは、今日お元気ですか？"
+```
+The difference being that the translation is done automatically by googletrans and we use regex to remove whitespace between words. However, since I am not sure about other languages you could test it out on your own.
+
+

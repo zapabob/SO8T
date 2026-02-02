@@ -1,0 +1,50 @@
+{
+  "total_samples": 232,
+  "quality_metrics": {
+    "text_length_stats": {
+      "mean": 35.96551724137931,
+      "min": 17,
+      "max": 50,
+      "median": 36
+    },
+    "qc_stats": {
+      "qc_controlled_count": 0,
+      "qc_controlled_ratio": 0.0
+    },
+    "weight_stats": {
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    }
+  },
+  "distribution_analysis": {
+    "reasoning_types": {
+      "unknown": 232
+    },
+    "sources": {
+      "unknown": 232
+    },
+    "safety_flags": {
+      "drug_detection": 0,
+      "nsfw_erotic": 0,
+      "nsfw_violence": 0,
+      "safety_detection": 0
+    }
+  },
+  "content_analysis": {
+    "sample_sufficiency": false,
+    "nsfw_sufficient": false,
+    "quality_sufficient": true,
+    "diversity_ratio": 1.0,
+    "min_samples_required": 50000
+  },
+  "safety_analysis": {},
+  "overall_assessment": {
+    "overall_score": 35,
+    "grade": "F",
+    "recommendations": [
+      "データセットサイズが不十分です。最低50,000サンプルが必要です。",
+      "NSFWデータの割合が低いです。検知目的で最低10%のNSFWデータが必要です。"
+    ]
+  }
+}

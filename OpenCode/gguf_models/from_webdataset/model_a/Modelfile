@@ -1,0 +1,17 @@
+FROM D:\webdataset\gguf_models\model_a\model_a_q8_0.gguf
+
+# Phi3.5 モデルカード
+# このModelfileはPhi 3.5モデル用です。
+# モデルの特徴・要件:
+# - GGUF形式のphi3.5ベース
+# - 推論用の最適化パラメータ設定
+# - 入力プロンプト: .System および .Prompt に対応
+
+TEMPLATE """{{ .System }}
+
+{{ .Prompt }}"""
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_ctx 4096

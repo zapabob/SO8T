@@ -1,0 +1,60 @@
+# Borea-Phi-3.5-mini-Instruct-Common A/Bテスト設定
+
+# モデル設定
+model:
+  base_model_path: "Borea-Phi-3.5-mini-Instruct-Common"
+  model_type: "phi3"
+
+# 出力設定
+output:
+  base_dir: "./checkpoints/borea_phi35_model_b"
+
+# 事後学習設定
+post_training:
+  config_path: "configs/finetune_borea_japanese.yaml"
+  enabled: true
+
+# ファインチューニング設定
+fine_tuning:
+  config_path: "configs/train_four_class.yaml"
+  enabled: true
+
+# 温度較正設定
+calibration:
+  val_data: "data/splits/val.jsonl"
+  enabled: true
+
+# 評価設定
+evaluation:
+  test_data: "data/splits/test.jsonl"
+  output_dir: "eval_results/ab_test_comparison"
+  batch_size: 4
+  max_new_tokens: 50
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

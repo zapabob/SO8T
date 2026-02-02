@@ -1,0 +1,551 @@
+{
+  "basic_statistics": {
+    "models": {
+      "Phi-3.5-mini-instruct": {
+        "benchmarks": {
+          "gsm8k": {
+            "mean": 0.8884918504023961,
+            "std": 0.019684343065243342,
+            "runs": 3,
+            "ci_lower": 0.839593231462994,
+            "ci_upper": 0.9373904693417981
+          },
+          "math": {
+            "mean": 0.5217203284214346,
+            "std": 0.016177664362698588,
+            "runs": 3,
+            "ci_lower": 0.4815327822900156,
+            "ci_upper": 0.5619078745528535
+          },
+          "arc_challenge": {
+            "mean": 0.8246283119445407,
+            "std": 0.020767470199093984,
+            "runs": 3,
+            "ci_lower": 0.7730390560453202,
+            "ci_upper": 0.8762175678437611
+          }
+        },
+        "aggregate": {
+          "mean_of_means": 0.7449468302561238,
+          "std_of_means": 0.19593925392096367,
+          "benchmarks_completed": 3
+        }
+      },
+      "Borea-phi3.5-instinct-jp": {
+        "benchmarks": {
+          "gsm8k": {
+            "mean": 0.9048803483901269,
+            "std": 0.003413788366986443,
+            "runs": 3,
+            "ci_lower": 0.8964000279677613,
+            "ci_upper": 0.9133606688124924
+          },
+          "math": {
+            "mean": 0.2904901041507297,
+            "std": 0.015088737059467186,
+            "runs": 3,
+            "ci_lower": 0.25300760339862244,
+            "ci_upper": 0.3279726049028369
+          },
+          "arc_challenge": {
+            "mean": 0.7716702469186961,
+            "std": 0.012255712873431138,
+            "runs": 3,
+            "ci_lower": 0.7412253683854219,
+            "ci_upper": 0.8021151254519704
+          }
+        },
+        "aggregate": {
+          "mean_of_means": 0.6556802331531842,
+          "std_of_means": 0.32320133898876297,
+          "benchmarks_completed": 3
+        }
+      },
+      "AEGIS-Phi3.5mini-jp-v2.4": {
+        "benchmarks": {
+          "gsm8k": {
+            "mean": 0.9816649332312727,
+            "std": 0.018702303322311774,
+            "runs": 3,
+            "ci_lower": 0.9352058362517245,
+            "ci_upper": 1.0
+          },
+          "math": {
+            "mean": 0.32222572330261784,
+            "std": 0.02025880765323424,
+            "runs": 3,
+            "ci_lower": 0.2719000552161225,
+            "ci_upper": 0.3725513913891132
+          },
+          "arc_challenge": {
+            "mean": 0.4531157951871836,
+            "std": 0.016255901309829134,
+            "runs": 3,
+            "ci_lower": 0.41273389770494545,
+            "ci_upper": 0.49349769266942173
+          }
+        },
+        "aggregate": {
+          "mean_of_means": 0.585668817240358,
+          "std_of_means": 0.3491314160017745,
+          "benchmarks_completed": 3
+        }
+      }
+    },
+    "benchmarks": {
+      "arc_challenge": {
+        "scores": [
+          0.8246283119445407,
+          0.7716702469186961,
+          0.4531157951871836
+        ],
+        "mean": 0.6831381180168069,
+        "std": 0.2009573111702382,
+        "min": 0.4531157951871836,
+        "max": 0.8246283119445407,
+        "range": 0.3715125167573571
+      },
+      "math": {
+        "scores": [
+          0.5217203284214346,
+          0.2904901041507297,
+          0.32222572330261784
+        ],
+        "mean": 0.37814538529159397,
+        "std": 0.12534795810778543,
+        "min": 0.2904901041507297,
+        "max": 0.5217203284214346,
+        "range": 0.2312302242707049
+      },
+      "gsm8k": {
+        "scores": [
+          0.8884918504023961,
+          0.9048803483901269,
+          0.9816649332312727
+        ],
+        "mean": 0.9250123773412652,
+        "std": 0.04974213287773534,
+        "min": 0.8884918504023961,
+        "max": 0.9816649332312727,
+        "range": 0.0931730828288766
+      }
+    },
+    "overall": {}
+  },
+  "statistical_tests": {
+    "pairwise_t_tests": [
+      {
+        "benchmark": "arc_challenge",
+        "model_a": "Phi-3.5-mini-instruct",
+        "model_b": "Borea-phi3.5-instinct-jp",
+        "t_statistic": 3.803833443554922,
+        "p_value": 0.027835076243687685,
+        "significant": "True",
+        "mean_a": 0.8246283119445407,
+        "mean_b": 0.7716702469186961,
+        "effect_size": 3.1058170010811326
+      },
+      {
+        "benchmark": "arc_challenge",
+        "model_a": "Phi-3.5-mini-instruct",
+        "model_b": "AEGIS-Phi3.5mini-jp-v2.4",
+        "t_statistic": 24.39901827051704,
+        "p_value": 2.6663012509703233e-05,
+        "significant": "True",
+        "mean_a": 0.8246283119445407,
+        "mean_b": 0.4531157951871836,
+        "effect_size": 19.921714995870285
+      },
+      {
+        "benchmark": "arc_challenge",
+        "model_a": "Borea-phi3.5-instinct-jp",
+        "model_b": "AEGIS-Phi3.5mini-jp-v2.4",
+        "t_statistic": 27.102206995266183,
+        "p_value": 2.0721833928474893e-05,
+        "significant": "True",
+        "mean_a": 0.7716702469186961,
+        "mean_b": 0.4531157951871836,
+        "effect_size": 22.128859347230335
+      },
+      {
+        "benchmark": "math",
+        "model_a": "Phi-3.5-mini-instruct",
+        "model_b": "Borea-phi3.5-instinct-jp",
+        "t_statistic": 18.104189950793497,
+        "p_value": 5.669216580677978e-05,
+        "significant": "True",
+        "mean_a": 0.5217203284214346,
+        "mean_b": 0.2904901041507297,
+        "effect_size": 14.782009195288985
+      },
+      {
+        "benchmark": "math",
+        "model_a": "Phi-3.5-mini-instruct",
+        "model_b": "AEGIS-Phi3.5mini-jp-v2.4",
+        "t_statistic": 13.327944278723315,
+        "p_value": 0.00024422844391711073,
+        "significant": "True",
+        "mean_a": 0.5217203284214346,
+        "mean_b": 0.32222572330261784,
+        "effect_size": 10.882220934372834
+      },
+      {
+        "benchmark": "math",
+        "model_a": "Borea-phi3.5-instinct-jp",
+        "model_b": "AEGIS-Phi3.5mini-jp-v2.4",
+        "t_statistic": -2.176040033488604,
+        "p_value": 0.10075613991916867,
+        "significant": "False",
+        "mean_a": 0.2904901041507297,
+        "mean_b": 0.32222572330261784,
+        "effect_size": -1.7767292473052994
+      },
+      {
+        "benchmark": "gsm8k",
+        "model_a": "Phi-3.5-mini-instruct",
+        "model_b": "Borea-phi3.5-instinct-jp",
+        "t_statistic": -1.4208363369104575,
+        "p_value": 0.28461412102073325,
+        "significant": "False",
+        "mean_a": 0.8884918504023961,
+        "mean_b": 0.9048803483901269,
+        "effect_size": -1.1601080111452633
+      },
+      {
+        "benchmark": "gsm8k",
+        "model_a": "Phi-3.5-mini-instruct",
+        "model_b": "AEGIS-Phi3.5mini-jp-v2.4",
+        "t_statistic": -5.943521607608288,
+        "p_value": 0.004052750053174003,
+        "significant": "True",
+        "mean_a": 0.8884918504023961,
+        "mean_b": 0.9816649332312727,
+        "effect_size": -4.8528650712822285
+      },
+      {
+        "benchmark": "gsm8k",
+        "model_a": "Borea-phi3.5-instinct-jp",
+        "model_b": "AEGIS-Phi3.5mini-jp-v2.4",
+        "t_statistic": -6.995560365744789,
+        "p_value": 0.016667524693493706,
+        "significant": "True",
+        "mean_a": 0.9048803483901269,
+        "mean_b": 0.9816649332312727,
+        "effect_size": -5.711851120304133
+      }
+    ],
+    "anova_results": {
+      "arc_challenge": {
+        "f_statistic": 429.74504282812075,
+        "p_value": 3.3317120471052383e-07,
+        "significant": "True"
+      },
+      "math": {
+        "f_statistic": 157.1549645638985,
+        "p_value": 6.572680885809503e-06,
+        "significant": "True"
+      },
+      "gsm8k": {
+        "f_statistic": 29.73483120929867,
+        "p_value": 0.000769721196765862,
+        "significant": "True"
+      }
+    },
+    "normality_tests": {},
+    "homoscedasticity_tests": {}
+  },
+  "effect_sizes": {
+    "cohen_d_matrix": {
+      "Phi-3.5-mini-instruct_vs_Borea-phi3.5-instinct-jp": {
+        "gsm8k": -1.1601080111452633,
+        "math": 14.782009195288985,
+        "arc_challenge": 3.1058170010811326
+      },
+      "Phi-3.5-mini-instruct_vs_AEGIS-Phi3.5mini-jp-v2.4": {
+        "gsm8k": -4.8528650712822285,
+        "math": 10.882220934372834,
+        "arc_challenge": 19.921714995870285
+      },
+      "Borea-phi3.5-instinct-jp_vs_AEGIS-Phi3.5mini-jp-v2.4": {
+        "gsm8k": -5.711851120304133,
+        "math": -1.7767292473052994,
+        "arc_challenge": 22.128859347230335
+      }
+    },
+    "hedges_g_matrix": {
+      "Phi-3.5-mini-instruct_vs_Borea-phi3.5-instinct-jp": {
+        "gsm8k": -0.9280864089162106,
+        "math": 11.825607356231188,
+        "arc_challenge": 2.484653600864906
+      },
+      "Phi-3.5-mini-instruct_vs_AEGIS-Phi3.5mini-jp-v2.4": {
+        "gsm8k": -3.882292057025783,
+        "math": 8.705776747498268,
+        "arc_challenge": 15.937371996696228
+      },
+      "Borea-phi3.5-instinct-jp_vs_AEGIS-Phi3.5mini-jp-v2.4": {
+        "gsm8k": -4.569480896243307,
+        "math": -1.4213833978442396,
+        "arc_challenge": 17.70308747778427
+      }
+    },
+    "glass_delta": {},
+    "interpretations": {
+      "Phi-3.5-mini-instruct_vs_Borea-phi3.5-instinct-jp": {
+        "gsm8k": "large",
+        "math": "large",
+        "arc_challenge": "large"
+      },
+      "Phi-3.5-mini-instruct_vs_AEGIS-Phi3.5mini-jp-v2.4": {
+        "gsm8k": "large",
+        "math": "large",
+        "arc_challenge": "large"
+      },
+      "Borea-phi3.5-instinct-jp_vs_AEGIS-Phi3.5mini-jp-v2.4": {
+        "gsm8k": "large",
+        "math": "large",
+        "arc_challenge": "large"
+      }
+    }
+  },
+  "rankings": {
+    "per_benchmark": {
+      "gsm8k": {
+        "ranking": [
+          [
+            "AEGIS-Phi3.5mini-jp-v2.4",
+            0.9816649332312727
+          ],
+          [
+            "Borea-phi3.5-instinct-jp",
+            0.9048803483901269
+          ],
+          [
+            "Phi-3.5-mini-instruct",
+            0.8884918504023961
+          ]
+        ],
+        "winner": "AEGIS-Phi3.5mini-jp-v2.4",
+        "score_range": 0.0931730828288766
+      },
+      "math": {
+        "ranking": [
+          [
+            "Phi-3.5-mini-instruct",
+            0.5217203284214346
+          ],
+          [
+            "AEGIS-Phi3.5mini-jp-v2.4",
+            0.32222572330261784
+          ],
+          [
+            "Borea-phi3.5-instinct-jp",
+            0.2904901041507297
+          ]
+        ],
+        "winner": "Phi-3.5-mini-instruct",
+        "score_range": 0.2312302242707049
+      },
+      "arc_challenge": {
+        "ranking": [
+          [
+            "Phi-3.5-mini-instruct",
+            0.8246283119445407
+          ],
+          [
+            "Borea-phi3.5-instinct-jp",
+            0.7716702469186961
+          ],
+          [
+            "AEGIS-Phi3.5mini-jp-v2.4",
+            0.4531157951871836
+          ]
+        ],
+        "winner": "Phi-3.5-mini-instruct",
+        "score_range": 0.3715125167573571
+      }
+    },
+    "aggregate_rankings": {
+      "by_average_score": [
+        [
+          "Phi-3.5-mini-instruct",
+          0.7449468302561238
+        ],
+        [
+          "Borea-phi3.5-instinct-jp",
+          0.6556802331531842
+        ],
+        [
+          "AEGIS-Phi3.5mini-jp-v2.4",
+          0.585668817240358
+        ]
+      ],
+      "overall_winner": "Phi-3.5-mini-instruct"
+    },
+    "consistency_analysis": {
+      "rank_stability": {
+        "Phi-3.5-mini-instruct": {
+          "mean_rank": 1.6666666666666667,
+          "rank_variance": 1.3333333333333335,
+          "rank_std": 1.1547005383792517,
+          "consistency_score": 0.4641016151377546
+        },
+        "Borea-phi3.5-instinct-jp": {
+          "mean_rank": 2.3333333333333335,
+          "rank_variance": 0.33333333333333337,
+          "rank_std": 0.5773502691896258,
+          "consistency_score": 0.6339745962155614
+        },
+        "AEGIS-Phi3.5mini-jp-v2.4": {
+          "mean_rank": 2.0,
+          "rank_variance": 1.0,
+          "rank_std": 1.0,
+          "consistency_score": 0.5
+        }
+      },
+      "performance_variance": {
+        "Phi-3.5-mini-instruct": {
+          "mean_score": 0.7449468302561238,
+          "score_variance": 0.038392191227103876,
+          "score_std": 0.19593925392096367,
+          "coefficient_of_variation": 0.2630244816983741
+        },
+        "Borea-phi3.5-instinct-jp": {
+          "mean_score": 0.6556802331531842,
+          "score_variance": 0.10445910552412926,
+          "score_std": 0.32320133898876297,
+          "coefficient_of_variation": 0.49292524411553307
+        },
+        "AEGIS-Phi3.5mini-jp-v2.4": {
+          "mean_score": 0.585668817240358,
+          "score_variance": 0.12189274563940414,
+          "score_std": 0.3491314160017745,
+          "coefficient_of_variation": 0.5961243039143934
+        }
+      }
+    }
+  },
+  "confidence_analysis": {
+    "interval_widths": {
+      "gsm8k": {
+        "Phi-3.5-mini-instruct": {
+          "width": 0.09779723787880412,
+          "relative_width": 0.11007105786565398,
+          "ci_lower": 0.839593231462994,
+          "ci_upper": 0.9373904693417981
+        },
+        "Borea-phi3.5-instinct-jp": {
+          "width": 0.016960640844731145,
+          "relative_width": 0.01874351772022216,
+          "ci_lower": 0.8964000279677613,
+          "ci_upper": 0.9133606688124924
+        },
+        "AEGIS-Phi3.5mini-jp-v2.4": {
+          "width": 0.06479416374827551,
+          "relative_width": 0.06600435806033882,
+          "ci_lower": 0.9352058362517245,
+          "ci_upper": 1.0
+        }
+      },
+      "math": {
+        "Phi-3.5-mini-instruct": {
+          "width": 0.0803750922628379,
+          "relative_width": 0.15405781198142737,
+          "ci_lower": 0.4815327822900156,
+          "ci_upper": 0.5619078745528535
+        },
+        "Borea-phi3.5-instinct-jp": {
+          "width": 0.07496500150421448,
+          "relative_width": 0.25806387354701965,
+          "ci_lower": 0.25300760339862244,
+          "ci_upper": 0.3279726049028369
+        },
+        "AEGIS-Phi3.5mini-jp-v2.4": {
+          "width": 0.10065133617299071,
+          "relative_width": 0.31236282175543184,
+          "ci_lower": 0.2719000552161225,
+          "ci_upper": 0.3725513913891132
+        }
+      },
+      "arc_challenge": {
+        "Phi-3.5-mini-instruct": {
+          "width": 0.10317851179844095,
+          "relative_width": 0.1251212337776005,
+          "ci_lower": 0.7730390560453202,
+          "ci_upper": 0.8762175678437611
+        },
+        "Borea-phi3.5-instinct-jp": {
+          "width": 0.06088975706654853,
+          "relative_width": 0.07890644651609062,
+          "ci_lower": 0.7412253683854219,
+          "ci_upper": 0.8021151254519704
+        },
+        "AEGIS-Phi3.5mini-jp-v2.4": {
+          "width": 0.08076379496447628,
+          "relative_width": 0.17824096141056503,
+          "ci_lower": 0.41273389770494545,
+          "ci_upper": 0.49349769266942173
+        }
+      }
+    },
+    "overlaps": {
+      "gsm8k": {
+        "Phi-3.5-mini-instruct_vs_Borea-phi3.5-instinct-jp": true,
+        "Phi-3.5-mini-instruct_vs_AEGIS-Phi3.5mini-jp-v2.4": true,
+        "Borea-phi3.5-instinct-jp_vs_AEGIS-Phi3.5mini-jp-v2.4": false
+      },
+      "math": {
+        "Phi-3.5-mini-instruct_vs_Borea-phi3.5-instinct-jp": false,
+        "Phi-3.5-mini-instruct_vs_AEGIS-Phi3.5mini-jp-v2.4": false,
+        "Borea-phi3.5-instinct-jp_vs_AEGIS-Phi3.5mini-jp-v2.4": true
+      },
+      "arc_challenge": {
+        "Phi-3.5-mini-instruct_vs_Borea-phi3.5-instinct-jp": true,
+        "Phi-3.5-mini-instruct_vs_AEGIS-Phi3.5mini-jp-v2.4": false,
+        "Borea-phi3.5-instinct-jp_vs_AEGIS-Phi3.5mini-jp-v2.4": false
+      }
+    },
+    "statistical_separation": {
+      "gsm8k": {
+        "Phi-3.5-mini-instruct_vs_Borea-phi3.5-instinct-jp": 0,
+        "Phi-3.5-mini-instruct_vs_AEGIS-Phi3.5mini-jp-v2.4": 0,
+        "Borea-phi3.5-instinct-jp_vs_AEGIS-Phi3.5mini-jp-v2.4": 0.02184516743923204
+      },
+      "math": {
+        "Phi-3.5-mini-instruct_vs_Borea-phi3.5-instinct-jp": 0.1535601773871787,
+        "Phi-3.5-mini-instruct_vs_AEGIS-Phi3.5mini-jp-v2.4": 0.10898139090090242,
+        "Borea-phi3.5-instinct-jp_vs_AEGIS-Phi3.5mini-jp-v2.4": 0
+      },
+      "arc_challenge": {
+        "Phi-3.5-mini-instruct_vs_Borea-phi3.5-instinct-jp": 0,
+        "Phi-3.5-mini-instruct_vs_AEGIS-Phi3.5mini-jp-v2.4": 0.27954136337589847,
+        "Borea-phi3.5-instinct-jp_vs_AEGIS-Phi3.5mini-jp-v2.4": 0.24772767571600013
+      }
+    }
+  },
+  "practical_significance": {
+    "performance_gaps": {},
+    "improvement_magnitudes": {},
+    "benchmark_importance": {},
+    "overall_assessment": {
+      "conclusion": "no_practically_significant_differences",
+      "confidence": "medium",
+      "recommendation": "Models are practically equivalent; choose based on other factors"
+    }
+  },
+  "recommendations": {
+    "model_selection": {},
+    "benchmark_priorities": {},
+    "future_testing": {
+      "recommended": "Shift focus to qualitative evaluation and user studies",
+      "focus_areas": "User experience, specific use cases, qualitative performance metrics"
+    },
+    "implementation_notes": [
+      "Ensure evaluation environments are identical across models",
+      "Consider computational costs when selecting models for deployment",
+      "Validate results on additional benchmarks not included in this test",
+      "Monitor model performance in production environments",
+      "Consider ensemble approaches if models have complementary strengths"
+    ]
+  }
+}

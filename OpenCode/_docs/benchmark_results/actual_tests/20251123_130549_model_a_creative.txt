@@ -1,0 +1,40 @@
+# answer
+ I'm not quite sure what kind of data is in `MyData` array, but it looks like if we are dealing with numbers that have to be rendered as integers (I assume they represent some ID) how about these types:
+
+    $array = [10^6]* 587432,
+        'Lorem ipsum Lorem Ipsum' => int(9), 
+         "Avatar",
+            {
+                // The first one is the most efficient way to do it.
+     |
+    $string_countries = array (10, 5436872)
+        [ 'country': string,
+          ['name' => '', 
+              function(int($x) {
+                return intval($_POST['number']);
+            }, // Here we are adding the integer value of $countries as an index to a numeric array (1, 543276)
+           'countryCode',   # this is how you access it in your code
+          ], 
+         ] => {       -> [0]=>'USA',
+        "Turkey",    // I don’t know what the value should be here. It would just overwrite whatever else that was there.
+      'countries', 23456,
+            1, # this is my guess
+            
+         ] => [0]=>'Argentina'],
+        "Average Rating" => array(array (['Lorem ipsum Lorem Ipsum'] as $value) {
+          'id'=> 7458,
+           }, //Here you can either use a regex or preg_match to find the first part of your file. 
+       ) ,
+      ],   # then put it into array here, but if not sure what that should be.
+    10 => 'Japan',
+        "Salesmen"         : [array ( 4385679,
+            array(2) {
+                ["name"]=>
+                    ['id' => 'bh', 
+                      'data'=>['Germany'],
+                     // ...more data here...             ],   # this should be another object, not an int.
+        },
+       }), 2016-10-31=> array(array (74895)
+    ]; 
+
+

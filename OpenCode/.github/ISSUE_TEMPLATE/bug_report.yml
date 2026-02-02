@@ -1,0 +1,106 @@
+name: Bug Report
+description: Report a bug or issue with SO8T
+title: "[BUG] Brief description of the issue"
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Please complete the following information
+      options:
+        - Windows 11
+        - Windows 10
+        - Ubuntu 22.04
+        - Ubuntu 20.04
+        - macOS
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      placeholder: e.g., 3.9.7
+    validations:
+      required: true
+
+  - type: input
+    id: so8t-version
+    attributes:
+      label: SO8T Version
+      placeholder: e.g., 2.5.0
+
+  - type: input
+    id: gpu-info
+    attributes:
+      label: GPU Information
+      placeholder: e.g., RTX 3080, CUDA 12.0
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: |
+        - Error Message: ```paste error message here```
+        - Code Snippet: ```python
+        # Add code that demonstrates the issue
+        ```
+        - Screenshots: If applicable, add screenshots to help explain your problem
+        - Logs: Attach relevant log files
+
+  - type: checkboxes
+    id: investigation
+    attributes:
+      label: Investigation Done
+      description: What have you tried to solve this issue?
+      options:
+        - label: Checked existing issues
+        - label: Tried different Python versions
+        - label: Tested on different hardware
+        - label: Reviewed documentation
+        - label: Checked dependencies
+
+  - type: textarea
+    id: contact
+    attributes:
+      label: Contact Information
+      description: How can we reach you if we need more information?
+      placeholder: |
+        - GitHub Username: @your-username
+        - Email: your-email@example.com

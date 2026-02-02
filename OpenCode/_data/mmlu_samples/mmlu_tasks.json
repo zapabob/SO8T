@@ -1,0 +1,392 @@
+[
+    {
+        "id": 1,
+        "domain": "STEM",
+        "question": "What is the chemical formula for water?",
+        "choices": [
+            "A) H2O2",
+            "B) H2O",
+            "C) HO2",
+            "D) H3O"
+        ],
+        "answer": "B",
+        "explanation": "Water consists of two hydrogen atoms bonded to one oxygen atom."
+    },
+    {
+        "id": 2,
+        "domain": "STEM",
+        "question": "Which planet is closest to the Sun?",
+        "choices": [
+            "A) Venus",
+            "B) Earth",
+            "C) Mercury",
+            "D) Mars"
+        ],
+        "answer": "C",
+        "explanation": "Mercury is the innermost planet in the Solar System."
+    },
+    {
+        "id": 3,
+        "domain": "STEM",
+        "question": "What is the speed of light in vacuum?",
+        "choices": [
+            "A) 3 × 10^8 m/s",
+            "B) 3 × 10^6 m/s",
+            "C) 3 × 10^10 m/s",
+            "D) 3 × 10^5 m/s"
+        ],
+        "answer": "A",
+        "explanation": "The speed of light in vacuum is approximately 299,792,458 m/s or 3 × 10^8 m/s."
+    },
+    {
+        "id": 4,
+        "domain": "STEM",
+        "question": "What is the atomic number of carbon?",
+        "choices": [
+            "A) 4",
+            "B) 6",
+            "C) 8",
+            "D) 12"
+        ],
+        "answer": "B",
+        "explanation": "Carbon has 6 protons, giving it an atomic number of 6."
+    },
+    {
+        "id": 5,
+        "domain": "STEM",
+        "question": "Which organelle is known as the powerhouse of the cell?",
+        "choices": [
+            "A) Nucleus",
+            "B) Ribosome",
+            "C) Mitochondria",
+            "D) Golgi apparatus"
+        ],
+        "answer": "C",
+        "explanation": "Mitochondria generate ATP through cellular respiration."
+    },
+    {
+        "id": 6,
+        "domain": "STEM",
+        "question": "What is Newton's second law of motion?",
+        "choices": [
+            "A) F = ma",
+            "B) E = mc^2",
+            "C) PV = nRT",
+            "D) F = G(m1m2)/r^2"
+        ],
+        "answer": "A",
+        "explanation": "Newton's second law states that Force equals mass times acceleration."
+    },
+    {
+        "id": 7,
+        "domain": "Humanities",
+        "question": "Who wrote 'Romeo and Juliet'?",
+        "choices": [
+            "A) Charles Dickens",
+            "B) William Shakespeare",
+            "C) Jane Austen",
+            "D) Mark Twain"
+        ],
+        "answer": "B",
+        "explanation": "William Shakespeare wrote this famous tragedy in the 1590s."
+    },
+    {
+        "id": 8,
+        "domain": "Humanities",
+        "question": "In which year did World War II end?",
+        "choices": [
+            "A) 1943",
+            "B) 1944",
+            "C) 1945",
+            "D) 1946"
+        ],
+        "answer": "C",
+        "explanation": "World War II ended in 1945 with Japan's surrender."
+    },
+    {
+        "id": 9,
+        "domain": "Humanities",
+        "question": "What is the capital of France?",
+        "choices": [
+            "A) London",
+            "B) Berlin",
+            "C) Paris",
+            "D) Rome"
+        ],
+        "answer": "C",
+        "explanation": "Paris is the capital and largest city of France."
+    },
+    {
+        "id": 10,
+        "domain": "Humanities",
+        "question": "Who painted the Mona Lisa?",
+        "choices": [
+            "A) Vincent van Gogh",
+            "B) Pablo Picasso",
+            "C) Leonardo da Vinci",
+            "D) Michelangelo"
+        ],
+        "answer": "C",
+        "explanation": "Leonardo da Vinci painted the Mona Lisa in the early 16th century."
+    },
+    {
+        "id": 11,
+        "domain": "Humanities",
+        "question": "Which ancient civilization built the pyramids of Giza?",
+        "choices": [
+            "A) Romans",
+            "B) Greeks",
+            "C) Egyptians",
+            "D) Mayans"
+        ],
+        "answer": "C",
+        "explanation": "The ancient Egyptians built the pyramids of Giza around 2500 BCE."
+    },
+    {
+        "id": 12,
+        "domain": "Humanities",
+        "question": "What language is spoken in Brazil?",
+        "choices": [
+            "A) Spanish",
+            "B) Portuguese",
+            "C) French",
+            "D) English"
+        ],
+        "answer": "B",
+        "explanation": "Portuguese is the official language of Brazil."
+    },
+    {
+        "id": 13,
+        "domain": "Social_Sciences",
+        "question": "What is GDP?",
+        "choices": [
+            "A) Government Development Plan",
+            "B) Gross Domestic Product",
+            "C) General Data Protection",
+            "D) Global Distribution Process"
+        ],
+        "answer": "B",
+        "explanation": "GDP measures the total value of goods and services produced in a country."
+    },
+    {
+        "id": 14,
+        "domain": "Social_Sciences",
+        "question": "Who developed the theory of psychoanalysis?",
+        "choices": [
+            "A) Carl Jung",
+            "B) B.F. Skinner",
+            "C) Sigmund Freud",
+            "D) Jean Piaget"
+        ],
+        "answer": "C",
+        "explanation": "Sigmund Freud founded the psychoanalytic school of psychology."
+    },
+    {
+        "id": 15,
+        "domain": "Social_Sciences",
+        "question": "What is the study of human societies and cultures called?",
+        "choices": [
+            "A) Sociology",
+            "B) Anthropology",
+            "C) Psychology",
+            "D) Philosophy"
+        ],
+        "answer": "B",
+        "explanation": "Anthropology is the comprehensive study of human societies and cultures."
+    },
+    {
+        "id": 16,
+        "domain": "Social_Sciences",
+        "question": "Which economic system is based on supply and demand?",
+        "choices": [
+            "A) Communism",
+            "B) Socialism",
+            "C) Capitalism",
+            "D) Feudalism"
+        ],
+        "answer": "C",
+        "explanation": "Capitalism relies on market forces of supply and demand."
+    },
+    {
+        "id": 17,
+        "domain": "Social_Sciences",
+        "question": "What does UNESCO stand for?",
+        "choices": [
+            "A) United Nations Educational, Scientific and Cultural Organization",
+            "B) Universal Network of Economic and Social Cooperation",
+            "C) United Nations Environmental and Social Council",
+            "D) Universal Nations Education and Science Committee"
+        ],
+        "answer": "A",
+        "explanation": "UNESCO promotes international cooperation in education, science, and culture."
+    },
+    {
+        "id": 18,
+        "domain": "Social_Sciences",
+        "question": "Who is considered the father of modern economics?",
+        "choices": [
+            "A) Karl Marx",
+            "B) John Maynard Keynes",
+            "C) Adam Smith",
+            "D) Milton Friedman"
+        ],
+        "answer": "C",
+        "explanation": "Adam Smith wrote 'The Wealth of Nations' in 1776."
+    },
+    {
+        "id": 19,
+        "domain": "Mathematics",
+        "question": "What is the value of π (pi) to two decimal places?",
+        "choices": [
+            "A) 3.12",
+            "B) 3.14",
+            "C) 3.16",
+            "D) 3.18"
+        ],
+        "answer": "B",
+        "explanation": "Pi is approximately 3.14159, or 3.14 to two decimal places."
+    },
+    {
+        "id": 20,
+        "domain": "Mathematics",
+        "question": "What is the square root of 144?",
+        "choices": [
+            "A) 10",
+            "B) 11",
+            "C) 12",
+            "D) 13"
+        ],
+        "answer": "C",
+        "explanation": "12 × 12 = 144, so √144 = 12."
+    },
+    {
+        "id": 21,
+        "domain": "Mathematics",
+        "question": "If f(x) = 2x + 3, what is f(5)?",
+        "choices": [
+            "A) 11",
+            "B) 12",
+            "C) 13",
+            "D) 14"
+        ],
+        "answer": "C",
+        "explanation": "f(5) = 2(5) + 3 = 10 + 3 = 13."
+    },
+    {
+        "id": 22,
+        "domain": "Mathematics",
+        "question": "What is 25% of 80?",
+        "choices": [
+            "A) 15",
+            "B) 18",
+            "C) 20",
+            "D) 25"
+        ],
+        "answer": "C",
+        "explanation": "25% = 0.25, so 0.25 × 80 = 20."
+    },
+    {
+        "id": 23,
+        "domain": "Mathematics",
+        "question": "What is the derivative of x^2?",
+        "choices": [
+            "A) x",
+            "B) 2x",
+            "C) x^2",
+            "D) 2"
+        ],
+        "answer": "B",
+        "explanation": "Using the power rule, d/dx(x^2) = 2x."
+    },
+    {
+        "id": 24,
+        "domain": "Mathematics",
+        "question": "What is the sum of interior angles in a triangle?",
+        "choices": [
+            "A) 90 degrees",
+            "B) 180 degrees",
+            "C) 270 degrees",
+            "D) 360 degrees"
+        ],
+        "answer": "B",
+        "explanation": "The sum of interior angles in any triangle is always 180 degrees."
+    },
+    {
+        "id": 25,
+        "domain": "Reasoning",
+        "question": "If all roses are flowers, and some flowers fade quickly, which statement must be true?",
+        "choices": [
+            "A) All roses fade quickly",
+            "B) Some roses are not flowers",
+            "C) Some roses might fade quickly",
+            "D) No roses fade quickly"
+        ],
+        "answer": "C",
+        "explanation": "Since roses are a subset of flowers, and some flowers fade quickly, some roses might be among those that fade quickly."
+    },
+    {
+        "id": 26,
+        "domain": "Reasoning",
+        "question": "Complete the sequence: 2, 4, 8, 16, __",
+        "choices": [
+            "A) 24",
+            "B) 28",
+            "C) 32",
+            "D) 64"
+        ],
+        "answer": "C",
+        "explanation": "Each number is doubled: 2×2=4, 4×2=8, 8×2=16, 16×2=32."
+    },
+    {
+        "id": 27,
+        "domain": "Reasoning",
+        "question": "If it takes 5 machines 5 minutes to make 5 widgets, how long would it take 100 machines to make 100 widgets?",
+        "choices": [
+            "A) 5 minutes",
+            "B) 20 minutes",
+            "C) 100 minutes",
+            "D) 500 minutes"
+        ],
+        "answer": "A",
+        "explanation": "Each machine makes 1 widget in 5 minutes, so 100 machines make 100 widgets in 5 minutes."
+    },
+    {
+        "id": 28,
+        "domain": "Reasoning",
+        "question": "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost?",
+        "choices": [
+            "A) $0.05",
+            "B) $0.10",
+            "C) $0.15",
+            "D) $0.20"
+        ],
+        "answer": "A",
+        "explanation": "Let ball=x, bat=x+1. So x+(x+1)=1.10, thus 2x=0.10, x=0.05."
+    },
+    {
+        "id": 29,
+        "domain": "Reasoning",
+        "question": "Which of the following is a logical fallacy? 'Most scientists agree with climate change, therefore climate change is real.'",
+        "choices": [
+            "A) This is valid reasoning",
+            "B) Ad populum fallacy",
+            "C) Appeal to authority",
+            "D) Both B and C"
+        ],
+        "answer": "A",
+        "explanation": "Appeals to expert consensus in their field of expertise is generally valid reasoning, not a fallacy."
+    },
+    {
+        "id": 30,
+        "domain": "Reasoning",
+        "question": "If A > B and B > C, which statement is necessarily true?",
+        "choices": [
+            "A) A < C",
+            "B) A = C",
+            "C) A > C",
+            "D) Cannot be determined"
+        ],
+        "answer": "C",
+        "explanation": "By the transitive property of inequality, if A > B and B > C, then A > C."
+    }
+]

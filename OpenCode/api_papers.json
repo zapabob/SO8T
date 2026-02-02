@@ -1,0 +1,712 @@
+[
+  {
+    "source": "arxiv",
+    "title": "Evaluating Large Language Models on Multimodal Chemistry Olympiad Exams",
+    "authors": [
+      "Yiming Cui",
+      "Xin Yao",
+      "Yuxuan Qin",
+      "Xin Li",
+      "Shijin Wang",
+      "Guoping Hu"
+    ],
+    "summary": "Multimodal scientific reasoning remains a significant challenge for large language models (LLMs), particularly in chemistry, where problem-solving relies on symbolic diagrams, molecular structures, and structured visual data. Here, we systematically evaluate 40 proprietary and open-source multimodal LLMs, including GPT-5, o3, Gemini-2.5-Pro, and Qwen2.5-VL, on a curated benchmark of Olympiad-style chemistry questions drawn from over two decades of U.S. National Chemistry Olympiad (USNCO) exams. These questions require integrated visual and textual reasoning across diverse modalities. We find that many models struggle with modality fusion, where in some cases, removing the image even improves accuracy, indicating misalignment in vision-language integration. Chain-of-Thought prompting consistently enhances both accuracy and visual grounding, as demonstrated through ablation studies and occlusion-based interpretability. Our results reveal critical limitations in the scientific reasoning abilities of current MLLMs, providing actionable strategies for developing more robust and interpretable multimodal systems in chemistry. This work provides a timely benchmark for measuring progress in domain-specific multimodal AI and underscores the need for further advances at the intersection of artificial intelligence and scientific reasoning.",
+    "published": "2025-12-17T00:49:00Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "ChemToolAgent: The Impact of Tools on Language Agents for Chemistry Problem Solving",
+    "authors": [
+      "Botao Yu",
+      "Frazier N. Baker",
+      "Ziru Chen",
+      "Garrett Herb",
+      "Boyu Gou",
+      "Daniel Adu-Ampratwum",
+      "Xia Ning",
+      "Huan Sun"
+    ],
+    "summary": "To enhance large language models (LLMs) for chemistry problem solving, several LLM-based agents augmented with tools have been proposed, such as ChemCrow and Coscientist. However, their evaluations are narrow in scope, leaving a large gap in understanding the benefits of tools across diverse chemistry tasks. To bridge this gap, we develop ChemToolAgent, an enhanced chemistry agent over ChemCrow, and conduct a comprehensive evaluation of its performance on both specialized chemistry tasks and general chemistry questions. Surprisingly, ChemToolAgent does not consistently outperform its base LLMs without tools. Our error analysis with a chemistry expert suggests that: For specialized chemistry tasks, such as synthesis prediction, we should augment agents with specialized tools; however, for general chemistry questions like those in exams, agents' ability to reason correctly with chemistry knowledge matters more, and tool augmentation does not always help.",
+    "published": "2024-11-11T18:46:37Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "ChemKANs for Combustion Chemistry Modeling and Acceleration",
+    "authors": [
+      "Benjamin C. Koenig",
+      "Suyong Kim",
+      "Sili Deng"
+    ],
+    "summary": "Efficient chemical kinetic model inference and application in combustion are challenging due to large ODE systems and widely separated time scales. Machine learning techniques have been proposed to streamline these models, though strong nonlinearity and numerical stiffness combined with noisy data sources make their application challenging. Here, we introduce ChemKANs, a novel neural network framework with applications both in model inference and simulation acceleration for combustion chemistry. ChemKAN's novel structure augments the generic Kolmogorov Arnold Network Ordinary Differential Equations (KAN-ODEs) with knowledge of the information flow through the relevant kinetic and thermodynamic laws. This chemistry-specific structure combined with the expressivity and rapid neural scaling of the underlying KAN-ODE algorithm instills in ChemKANs a strong inductive bias, streamlined training, and higher accuracy predictions compared to standard benchmarks, while facilitating parameter sparsity through shared information across all inputs and outputs. In a model inference investigation, we benchmark the robustness of ChemKANs to sparse data containing up to 15% added noise, and superfluously large network parameterizations. We find that ChemKANs exhibit no overfitting or model degradation in any of these training cases, demonstrating significant resilience to common deep learning failure modes. Next, we find that a remarkably parameter-lean ChemKAN (344 parameters) can accurately represent hydrogen combustion chemistry, providing a 2x acceleration over the detailed chemistry in a solver that is generalizable to larger-scale turbulent flow simulations. These demonstrations indicate the potential for ChemKANs as robust, expressive, and efficient tools for model inference and simulation acceleration for combustion physics and chemical kinetics.",
+    "published": "2025-04-17T01:53:28Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "MATTERIX: toward a digital twin for robotics-assisted chemistry laboratory automation",
+    "authors": [
+      "Kourosh Darvish",
+      "Arjun Sohal",
+      "Abhijoy Mandal",
+      "Hatem Fakhruldeen",
+      "Nikola Radulov",
+      "Zhengxue Zhou",
+      "Satheeshkumar Veeramani",
+      "Joshua Choi",
+      "Sijie Han",
+      "Brayden Zhang",
+      "Jeeyeoun Chae",
+      "Alex Wright",
+      "Yijie Wang",
+      "Hossein Darvish",
+      "Yuchi Zhao",
+      "Gary Tom",
+      "Han Hao",
+      "Miroslav Bogdanovic",
+      "Gabriella Pizzuto",
+      "Andrew I. Cooper",
+      "Alán Aspuru-Guzik",
+      "Florian Shkurti",
+      "Animesh Garg"
+    ],
+    "summary": "Accelerated materials discovery is critical for addressing global challenges. However, developing new laboratory workflows relies heavily on real-world experimental trials, and this can hinder scalability because of the need for numerous physical make-and-test iterations. Here we present MATTERIX, a multiscale, graphics processing unit-accelerated robotic simulation framework designed to create high-fidelity digital twins of chemistry laboratories, thus accelerating workflow development. This multiscale digital twin simulates robotic physical manipulation, powder and liquid dynamics, device functionalities, heat transfer and basic chemical reaction kinetics. This is enabled by integrating realistic physics simulation and photorealistic rendering with a modular graphics processing unit-accelerated semantics engine, which models logical states and continuous behaviors to simulate chemistry workflows across different levels of abstraction. MATTERIX streamlines the creation of digital twin environments through open-source asset libraries and interfaces, while enabling flexible workflow design via hierarchical plan definition and a modular skill library that incorporates learning-based methods. Our approach demonstrates sim-to-real transfer in robotic chemistry setups, reducing reliance on costly real-world experiments and enabling the testing of hypothetical automated workflows in silico. The project website is available at https://accelerationconsortium.github.io/Matterix/ .",
+    "published": "2026-01-19T17:06:08Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Toward Unraveling Cyanopolyyne Surface Chemistry: A Preview on Isolated Systems From HC_{3}N to Ethyl Cyanide and Propylamine",
+    "authors": [
+      "Marten T. Raaphorst",
+      "Joan Enrique-Romero",
+      "Thanja Lamberts"
+    ],
+    "summary": "Cyanopolyynes, a family of nitrogen containing carbon chains, are common in the interstellar medium and possibly form the backbone of species relevant to prebiotic chemistry. Following their gas phase formation, they are expected to freeze out on ice grains in cold interstellar regions. In this work we present the hydrogenation reaction network of isolated HC_{3}N, the smallest cyanopolyyne, that consists over-a-barrier radical-neutral reactions and barrierless radical-radical reactions. We employ density functional theory, coupled cluster and multiconfigurational methods to obtain activation and reaction energies for the hydrogenation network of HC_{3}N. This work explores the reaction network of the isolated molecule and constitutes a preview on the reactions occurring on the ice grain surface. We find that the reactions where the hydrogen atom adds to the carbon chain at carbon atom opposite of the cyano-group give the lowest and most narrow barriers. Subsequent hydrogenation leads to the astrochemically relevant vinyl cyanide and ethyl cyanide. Alternatively, the cyano-group can hydrogenate via radical-radical reactions, leading to the fully saturated propylamine. These results can be extrapolated to give insight into the general reactivity of carbon chains on interstellar ices.",
+    "published": "2025-05-26T12:38:27Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "On foundations for deductive mathematics",
+    "authors": [
+      "Frank Quinn"
+    ],
+    "summary": "This article was motivated by the discovery of a potential new foundation for mainstream mathematics. The goals are to clarify the relationships between primitives, foundations, and deductive practice; to understand how to determine what is, or isn't, a foundation; and get clues as to how a foundation can be optimized for effective human use.\n  For this we turn to history and professional practice of the subject. We have no asperations to Philosophy.\n  The first section gives a short abstract discussion, focusing on the significance of consistency. The next briefly describes foundations, explicit and implicit, at a few key periods in mathematical history. We see, for example, that at the primitive level human intuitions are essential, but can be problematic. We also see that traditional axiomatic set theories, Zermillo-Fraenkel-Choice (ZFC) in particular, are not quite consistent with mainstream practice. The final section sketches the proposed new foundation and gives the basic argument that it is uniquely qualified to be considered {the} foundation of mainstream deductive mathematics. The ``coherent limit axiom'' characterizes the new theory among ZFC-like theories. This axiom plays a role in recursion, but is implicitly assumed in mainstream work so does not provide new leverage there. In principle it should settle set-theory questions such as the continuum hypothesis.",
+    "published": "2024-06-18T01:44:00Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "A mathematical model for the bullying dynamics in schools",
+    "authors": [
+      "Nuno Crokidakis"
+    ],
+    "summary": "We analyze a mathematical model to understand the dynamics of bullying in schools. The model considers a population divided into four groups: susceptible individuals, bullies, individuals exposed to bullying, and violent individuals. Transitions between these states occur at rates designed to capture the complex interactions among students, influenced by factors such as romantic rejection, conflicts with peers and teachers, and other school-related challenges. These interactions can escalate into bullying and violent behavior. The model also incorporates the role of parents and school administrators in mitigating bullying through intervention strategies. The results suggest that bullying can be effectively controlled if anti-bullying programs implemented by schools are sufficiently robust. Additionally, the conditions under which bullying persists are explored.",
+    "published": "2025-01-08T16:49:50Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "An historical overview of the influence of technology on mathematical competitions",
+    "authors": [
+      "Bela Bajnok"
+    ],
+    "summary": "We provide an historical overview of how advances in technology influenced high school and university mathematical competitions in the United States and at the International Mathematical Olympiad. While students are not allowed the usage of technological aids during mathematical competitions, the developments in technology (especially graphing technology) throughout the past century and the increasing employment of such aids in the classroom have affected both the nature of the proposed problems and their expected solutions. We examine several interesting examples from competitions going back several decades.",
+    "published": "2024-04-10T15:57:17Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Approximating Mathematical Constants using Minecraft",
+    "authors": [
+      "Molly Lynch",
+      "Michael Weselcouch"
+    ],
+    "summary": "In this article we will use Minecraft to experimentally approximate the values of four different mathematical constants. The mathematical constants that we will approximate are $\\sqrt{2}, π$, Euler's number $e$, and Apéry's constant $ζ(3)$. We will begin each section with a brief history of the number being approximated and describe where it appears in mathematics. We then explain how we used Minecraft mechanics to approximate the constant. At the end of each section, we provide some ideas for how to apply our techniques to the approximation of other mathematical constants in Minecraft or elsewhere. This article is a proof of concept that Minecraft can be used in higher education. We should note that the goal of this article is not to have the most accurate approximations possible, the goal is to inspire people to have fun while learning about various mathematical topics. We hope you learn something new in this article and feel inspired to try some of these techniques on your own.",
+    "published": "2024-11-27T15:56:21Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "The Folding Mathematics",
+    "authors": [
+      "Archana S. Morye"
+    ],
+    "summary": "Origami is the art of paper folding, and it borrows its name from two Japanese words \\emph{ori} and \\emph{kami}. In Japanese, {ori} means folding, and the paper is called {kami}. While origami is just a hobby to most, there is a lot more to it. If you fold a square sheet of paper into any of the traditional origami model (for example the flapping bird) and unfold it, you can see crease patterns. These crease patterns tell us that there is a lot of geometry hidden behind the folds.\n  In this article, we investigate the symbiotic relationship between mathematics and origami. The first part of this article explores the utility of origami in education. We will see how origami could become an effective way of teaching methods of geometry, mainly because of its experiential nature. Complex origami patterns cannot be created out of thin air. They usually involve understanding deep mathematical theories and the ability to apply them to paper folding. In the second part of the article, we attempt to provide a glimpse of this beautiful connection between origami and mathematics.",
+    "published": "2025-03-03T11:30:04Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Image and Point-cloud Classification for Jet Analysis in High-Energy Physics: A survey",
+    "authors": [
+      "Hamza Kheddar",
+      "Yassine Himeur",
+      "Abbes Amira",
+      "Rachik Soualah"
+    ],
+    "summary": "Nowadays, there has been a growing trend in the field of high-energy physics (HEP), in both its experimental and phenomenological studies, to incorporate machine learning (ML) and its specialized branch, deep learning (DL). This review paper provides a thorough illustration of these applications using different ML and DL approaches. The first part of the paper examines the basics of various particle physics types and establishes guidelines for assessing particle physics alongside the available learning models. Next, a detailed classification is provided for representing Jets that are reconstructed in high-energy collisions, mainly in proton-proton collisions at well-defined beam energies. This section covers various datasets, preprocessing techniques, and feature extraction and selection methods. The presented techniques can be applied to future hadron-hadron colliders (HHC), such as the high-luminosity LHC (HL-LHC) and the future circular collider - hadron-hadron (FCChh). The authors then explore several AI techniques analyses designed specifically for both image and point-cloud (PC) data in HEP. Additionally, a closer look is taken at the classification associated with Jet tagging in hadron collisions. In this review, various state-of-the-art (SOTA) techniques in ML and DL are examined, with a focus on their implications for HEP demands. More precisely, this discussion addresses various applications in extensive detail, such as Jet tagging, Jet tracking, particle classification, and more. The review concludes with an analysis of the current state of HEP using DL methodologies. It highlights the challenges and potential areas for future research, which are illustrated for each application.",
+    "published": "2024-03-18T16:33:29Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "The Rise of Particle Physics",
+    "authors": [
+      "S. Ting",
+      "H. Georgi",
+      "J. Iliopoulos",
+      "L. Maiani",
+      "A. De Rujula",
+      "L. Di Lella",
+      "S. Myers",
+      "F. Marion",
+      "M. Pierini",
+      "G. Martinelli",
+      "R. Barbieri",
+      "G. Battimelli",
+      "L. Bonolis",
+      "M. Greco",
+      "G. Parisi"
+    ],
+    "summary": "Discovery of the J Particle at Brookhaven National Laboratory and the Physics of Electrons and Positrons; The Standard Model Yesterday, Today and Tomorrow; The Rise of Gauge Theories: From Many Models to One Theory; From Charm to CP Violation; When the Standard Model Was Ignored; The Discovery of the W and Z Bosons at the CERN Proton-Antiproton Collider; A Personal History of CERN Particle Colliders (1972-2022); The Age of Gravitational Wave Astronomy; Precision Physics in the Era of (HL)LHC; Recent Developments in Flavor Physics, the Unitary Triangle Fit, Anomalies and All That; About BSM Physics, with Emphasis on Flavour; The Discovery of the Antiproton between Rome and Berkeley; Raoul Gatto and Bruno Touschek: the Rise of $e+e^-$ Physics; From ADONE's Multi-Hadron Production to the J/$Ψ$ Discovery; From Bjorken Scaling to Scaling Violations",
+    "published": "2025-07-18T17:56:52Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "The qspec Python package: A physics toolbox for laser spectroscopy",
+    "authors": [
+      "Patrick Müller",
+      "Wilfried Nörtershäuser"
+    ],
+    "summary": "The analysis of experimental results with Python often requires writing many code scripts which all need access to the same set of functions. In a common field of research, this set will be nearly the same for many users. The qspec Python package was developed to provide functions for physical formulas, simulations and data analysis routines widely used in laser spectroscopy and related fields. Most functions are compatible with numpy arrays, enabling fast calculations with large samples of data. A multidimensional linear regression algorithm enables a King plot analyses over multiple atomic transitions. A modular framework for constructing lineshape models can be used to fit large sets of spectroscopy data. A simulation module within the package provides user-friendly methods to simulate the coherent time-evolution of atoms in electro-magnetic fields without the need to explicitly derive a Hamiltonian.",
+    "published": "2024-09-02T18:36:45Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Probing New Physics with Multi-Messenger Astronomy",
+    "authors": [
+      "P. S. Bhupal Dev"
+    ],
+    "summary": "The burgeoning field of multi-messenger astronomy is poised to revolutionize our understanding of the most enigmatic astrophysical phenomena in the Universe. At the same time, it has opened a new window of opportunity to probe various particle physics phenomena. This is illustrated here with a few example new physics scenarios, namely, decaying heavy dark matter, pseudo-Dirac neutrinos and light dark sector physics, for which new constraints are derived using recent multi-messenger observations.",
+    "published": "2025-02-04T09:42:24Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Unveiling the optimization process of Physics Informed Neural Networks: How accurate and competitive can PINNs be?",
+    "authors": [
+      "Jorge F. Urbán",
+      "Petros Stefanou",
+      "José A. Pons"
+    ],
+    "summary": "This study investigates the potential accuracy boundaries of physics-informed neural networks, contrasting their approach with previous similar works and traditional numerical methods. We find that selecting improved optimization algorithms significantly enhances the accuracy of the results. Simple modifications to the loss function may also improve precision, offering an additional avenue for enhancement. Despite optimization algorithms having a greater impact on convergence than adjustments to the loss function, practical considerations often favor tweaking the latter due to ease of implementation. On a global scale, the integration of an enhanced optimizer and a marginally adjusted loss function enables a reduction in the loss function by several orders of magnitude across diverse physical problems. Consequently, our results obtained using compact networks (typically comprising 2 or 3 layers of 20-30 neurons) achieve accuracies comparable to finite difference schemes employing thousands of grid points. This study encourages the continued advancement of PINNs and associated optimization techniques for broader applications across various fields.",
+    "published": "2024-05-07T11:50:25Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Pulsar Science with the SKA Observatory",
+    "authors": [
+      "Bhal Chandra Joshi",
+      "Aris Karastergiou",
+      "Marta Burgay",
+      "The SKA pulsar science working group"
+    ],
+    "summary": "The large instantaneous sensitivity, a wide frequency coverage and flexible observation modes with large number of beams in the sky are the main features of the SKA observatory's two telescopes, the SKA-Low and the SKA-Mid, which are located on two different continents. Owing to these capabilities, the SKAO telescopes are going to be a game-changer for radio astronomy in general and pulsar astronomy in particular. The eleven articles in this special issue on pulsar science with the SKA Observatory describe its impact on different areas of pulsar science. In this lead article, a brief description of the two telescopes highlighting the relevant features for pulsar science is presented followed by an overview of each accompanying article, exploring the inter-relationship between different pulsar science use cases.",
+    "published": "2025-12-18T04:16:35Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Large Language Models in Computer Science Education: A Systematic Literature Review",
+    "authors": [
+      "Nishat Raihan",
+      "Mohammed Latif Siddiq",
+      "Joanna C. S. Santos",
+      "Marcos Zampieri"
+    ],
+    "summary": "Large language models (LLMs) are becoming increasingly better at a wide range of Natural Language Processing tasks (NLP), such as text generation and understanding. Recently, these models have extended their capabilities to coding tasks, bridging the gap between natural languages (NL) and programming languages (PL). Foundational models such as the Generative Pre-trained Transformer (GPT) and LLaMA series have set strong baseline performances in various NL and PL tasks. Additionally, several models have been fine-tuned specifically for code generation, showing significant improvements in code-related applications. Both foundational and fine-tuned models are increasingly used in education, helping students write, debug, and understand code. We present a comprehensive systematic literature review to examine the impact of LLMs in computer science and computer engineering education. We analyze their effectiveness in enhancing the learning experience, supporting personalized education, and aiding educators in curriculum development. We address five research questions to uncover insights into how LLMs contribute to educational outcomes, identify challenges, and suggest directions for future research.",
+    "published": "2024-10-21T17:49:50Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Vision Based Game Development Using Human Computer Interaction",
+    "authors": [
+      "S. Sumathi",
+      "S. K. Srivatsa",
+      "M. Uma Maheswari"
+    ],
+    "summary": "A Human Computer Interface (HCI) System for playing games is designed here for more natural communication with the machines. The system presented here is a vision-based system for detection of long voluntary eye blinks and interpretation of blink patterns for communication between man and machine. This system replaces the mouse with the human face as a new way to interact with the computer. Facial features (nose tip and eyes) are detected and tracked in realtime to use their actions as mouse events. The coordinates and movement of the nose tip in the live video feed are translated to become the coordinates and movement of the mouse pointer on the application. The left or right eye blinks fire left or right mouse click events. The system works with inexpensive USB cameras and runs at a frame rate of 30 frames per second.",
+    "published": "2010-02-10T19:46:07Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Iris: An AI-Driven Virtual Tutor For Computer Science Education",
+    "authors": [
+      "Patrick Bassner",
+      "Eduard Frankford",
+      "Stephan Krusche"
+    ],
+    "summary": "Integrating AI-driven tools in higher education is an emerging area with transformative potential. This paper introduces Iris, a chat-based virtual tutor integrated into the interactive learning platform Artemis that offers personalized, context-aware assistance in large-scale educational settings. Iris supports computer science students by guiding them through programming exercises and is designed to act as a tutor in a didactically meaningful way. Its calibrated assistance avoids revealing complete solutions, offering subtle hints or counter-questions to foster independent problem-solving skills. For each question, it issues multiple prompts in a Chain-of-Thought to GPT-3.5-Turbo. The prompts include a tutor role description and examples of meaningful answers through few-shot learning. Iris employs contextual awareness by accessing the problem statement, student code, and automated feedback to provide tailored advice.\n  An empirical evaluation shows that students perceive Iris as effective because it understands their questions, provides relevant support, and contributes to the learning process. While students consider Iris a valuable tool for programming exercises and homework, they also feel confident solving programming tasks in computer-based exams without Iris. The findings underscore students' appreciation for Iris' immediate and personalized support, though students predominantly view it as a complement to, rather than a replacement for, human tutors. Nevertheless, Iris creates a space for students to ask questions without being judged by others.",
+    "published": "2024-05-09T09:24:13Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "A Review of Generative AI in Computer Science Education: Challenges and Opportunities in Accuracy, Authenticity, and Assessment",
+    "authors": [
+      "Iman Reihanian",
+      "Yunfei Hou",
+      "Yu Chen",
+      "Yifei Zheng"
+    ],
+    "summary": "This paper surveys the use of Generative AI tools, such as ChatGPT and Claude, in computer science education, focusing on key aspects of accuracy, authenticity, and assessment. Through a literature review, we highlight both the challenges and opportunities these AI tools present. While Generative AI improves efficiency and supports creative student work, it raises concerns such as AI hallucinations, error propagation, bias, and blurred lines between AI-assisted and student-authored content. Human oversight is crucial for addressing these concerns. Existing literature recommends adopting hybrid assessment models that combine AI with human evaluation, developing bias detection frameworks, and promoting AI literacy for both students and educators. Our findings suggest that the successful integration of AI requires a balanced approach, considering ethical, pedagogical, and technical factors. Future research may explore enhancing AI accuracy, preserving academic integrity, and developing adaptive models that balance creativity with precision.",
+    "published": "2025-06-17T19:20:58Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Generalizing Machine Learning Evaluation through the Integration of Shannon Entropy and Rough Set Theory",
+    "authors": [
+      "Olga Cherednichenko",
+      "Dmytro Chernyshov",
+      "Dmytro Sytnikov",
+      "Polina Sytnikova"
+    ],
+    "summary": "This research paper delves into the innovative integration of Shannon entropy and rough set theory, presenting a novel approach to generalize the evaluation approach in machine learning. The conventional application of entropy, primarily focused on information uncertainty, is extended through its combination with rough set theory to offer a deeper insight into data's intrinsic structure and the interpretability of machine learning models. We introduce a comprehensive framework that synergizes the granularity of rough set theory with the uncertainty quantification of Shannon entropy, applied across a spectrum of machine learning algorithms. Our methodology is rigorously tested on various datasets, showcasing its capability to not only assess predictive performance but also to illuminate the underlying data complexity and model robustness. The results underscore the utility of this integrated approach in enhancing the evaluation landscape of machine learning, offering a multi-faceted perspective that balances accuracy with a profound understanding of data attributes and model dynamics. This paper contributes a groundbreaking perspective to machine learning evaluation, proposing a method that encapsulates a holistic view of model performance, thereby facilitating more informed decision-making in model selection and application.",
+    "published": "2024-04-18T21:22:42Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "ALERT-Transformer: Bridging Asynchronous and Synchronous Machine Learning for Real-Time Event-based Spatio-Temporal Data",
+    "authors": [
+      "Carmen Martin-Turrero",
+      "Maxence Bouvier",
+      "Manuel Breitenstein",
+      "Pietro Zanuttigh",
+      "Vincent Parret"
+    ],
+    "summary": "We seek to enable classic processing of continuous ultra-sparse spatiotemporal data generated by event-based sensors with dense machine learning models. We propose a novel hybrid pipeline composed of asynchronous sensing and synchronous processing that combines several ideas: (1) an embedding based on PointNet models -- the ALERT module -- that can continuously integrate new and dismiss old events thanks to a leakage mechanism, (2) a flexible readout of the embedded data that allows to feed any downstream model with always up-to-date features at any sampling rate, (3) exploiting the input sparsity in a patch-based approach inspired by Vision Transformer to optimize the efficiency of the method. These embeddings are then processed by a transformer model trained for object and gesture recognition. Using this approach, we achieve performances at the state-of-the-art with a lower latency than competitors. We also demonstrate that our asynchronous model can operate at any desired sampling rate.",
+    "published": "2024-02-02T13:17:19Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "U-Fair: Uncertainty-based Multimodal Multitask Learning for Fairer Depression Detection",
+    "authors": [
+      "Jiaee Cheong",
+      "Aditya Bangar",
+      "Sinan Kalkan",
+      "Hatice Gunes"
+    ],
+    "summary": "Machine learning bias in mental health is becoming an increasingly pertinent challenge. Despite promising efforts indicating that multitask approaches often work better than unitask approaches, there is minimal work investigating the impact of multitask learning on performance and fairness in depression detection nor leveraged it to achieve fairer prediction outcomes. In this work, we undertake a systematic investigation of using a multitask approach to improve performance and fairness for depression detection. We propose a novel gender-based task-reweighting method using uncertainty grounded in how the PHQ-8 questionnaire is structured. Our results indicate that, although a multitask approach improves performance and fairness compared to a unitask approach, the results are not always consistent and we see evidence of negative transfer and a reduction in the Pareto frontier, which is concerning given the high-stake healthcare setting. Our proposed approach of gender-based reweighting with uncertainty improves performance and fairness and alleviates both challenges to a certain extent. Our findings on each PHQ-8 subitem task difficulty are also in agreement with the largest study conducted on the PHQ-8 subitem discrimination capacity, thus providing the very first tangible evidence linking ML findings with large-scale empirical population studies conducted on the PHQ-8.",
+    "published": "2025-01-16T17:39:25Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Evaluating Machine Learning Models for Supernova Gravitational Wave Signal Classification",
+    "authors": [
+      "Y. Sultan Abylkairov",
+      "Matthew C. Edwards",
+      "Daniil Orel",
+      "Ayan Mitra",
+      "Bekdaulet Shukirgaliyev",
+      "Ernazar Abdikamalov"
+    ],
+    "summary": "We investigate the potential of using gravitational wave (GW) signals from rotating core-collapse supernovae to probe the equation of state (EOS) of nuclear matter. By generating GW signals from simulations with various EOSs, we train machine learning models to classify them and evaluate their performance. Our study builds on previous work by examining how different machine learning models, parameters, and data preprocessing techniques impact classification accuracy. We test convolutional and recurrent neural networks, as well as six classical algorithms: random forest, support vector machines, naïve Bayes, logistic regression, $k$-nearest neighbors, and eXtreme gradient boosting. All models, except naïve Bayes, achieve over 90 per cent accuracy on our dataset. Additionally, we assess the impact of approximating the GW signal using the general relativistic effective potential (GREP) on EOS classification. We find that models trained on GREP data exhibit low classification accuracy. However, normalizing time by the peak signal frequency, which partially compensates for the absence of the time dilation effect in GREP, leads to a notable improvement in accuracy. Despite this, the accuracy does not exceed 70 per cent, suggesting that GREP lacks the precision necessary for EOS classification. Finally, our study has several limitations, including the omission of detector noise and the focus on a single progenitor mass model, which will be addressed in future works.",
+    "published": "2024-09-22T16:11:25Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Is machine learning good or bad for the natural sciences?",
+    "authors": [
+      "David W. Hogg",
+      "Soledad Villar"
+    ],
+    "summary": "Machine learning (ML) methods are having a huge impact across all of the sciences. However, ML has a strong ontology - in which only the data exist - and a strong epistemology - in which a model is considered good if it performs well on held-out training data. These philosophies are in strong conflict with both standard practices and key philosophies in the natural sciences. Here we identify some locations for ML in the natural sciences at which the ontology and epistemology are valuable. For example, when an expressive machine learning model is used in a causal inference to represent the effects of confounders, such as foregrounds, backgrounds, or instrument calibration parameters, the model capacity and loose philosophy of ML can make the results more trustworthy. We also show that there are contexts in which the introduction of ML introduces strong, unwanted statistical biases. For one, when ML models are used to emulate physical (or first-principles) simulations, they amplify confirmation biases. For another, when expressive regressions are used to label datasets, those labels cannot be used in downstream joint or ensemble analyses without taking on uncontrolled biases. The question in the title is being asked of all of the natural sciences; that is, we are calling on the scientific communities to take a step back and consider the role and value of ML in their fields; the (partial) answers we give here come from the particular perspective of physics.",
+    "published": "2024-05-28T12:01:52Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Large Language Models Lack Understanding of Character Composition of Words",
+    "authors": [
+      "Andrew Shin",
+      "Kunitake Kaneko"
+    ],
+    "summary": "Large language models (LLMs) have demonstrated remarkable performances on a wide range of natural language tasks. Yet, LLMs' successes have been largely restricted to tasks concerning words, sentences, or documents, and it remains questionable how much they understand the minimal units of text, namely characters. In this paper, we examine contemporary LLMs regarding their ability to understand character composition of words, and show that most of them fail to reliably carry out even the simple tasks that can be handled by humans with perfection. We analyze their behaviors with comparison to token level performances, and discuss the potential directions for future research.",
+    "published": "2024-05-18T18:08:58Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Is Self-knowledge and Action Consistent or Not: Investigating Large Language Model's Personality",
+    "authors": [
+      "Yiming Ai",
+      "Zhiwei He",
+      "Ziyin Zhang",
+      "Wenhong Zhu",
+      "Hongkun Hao",
+      "Kai Yu",
+      "Lingjun Chen",
+      "Rui Wang"
+    ],
+    "summary": "In this study, we delve into the validity of conventional personality questionnaires in capturing the human-like personality traits of Large Language Models (LLMs). Our objective is to assess the congruence between the personality traits LLMs claim to possess and their demonstrated tendencies in real-world scenarios. By conducting an extensive examination of LLM outputs against observed human response patterns, we aim to understand the disjunction between self-knowledge and action in LLMs.",
+    "published": "2024-02-22T16:32:08Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Unmasking the Shadows of AI: Investigating Deceptive Capabilities in Large Language Models",
+    "authors": [
+      "Linge Guo"
+    ],
+    "summary": "This research critically navigates the intricate landscape of AI deception, concentrating on deceptive behaviours of Large Language Models (LLMs). My objective is to elucidate this issue, examine the discourse surrounding it, and subsequently delve into its categorization and ramifications. The essay initiates with an evaluation of the AI Safety Summit 2023 (ASS) and introduction of LLMs, emphasising multidimensional biases that underlie their deceptive behaviours.The literature review covers four types of deception categorised: Strategic deception, Imitation, Sycophancy, and Unfaithful Reasoning, along with the social implications and risks they entail. Lastly, I take an evaluative stance on various aspects related to navigating the persistent challenges of the deceptive AI. This encompasses considerations of international collaborative governance, the reconfigured engagement of individuals with AI, proposal of practical adjustments, and specific elements of digital education.",
+    "published": "2024-02-07T00:21:46Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Self-Cognition in Large Language Models: An Exploratory Study",
+    "authors": [
+      "Dongping Chen",
+      "Jiawen Shi",
+      "Yao Wan",
+      "Pan Zhou",
+      "Neil Zhenqiang Gong",
+      "Lichao Sun"
+    ],
+    "summary": "While Large Language Models (LLMs) have achieved remarkable success across various applications, they also raise concerns regarding self-cognition. In this paper, we perform a pioneering study to explore self-cognition in LLMs. Specifically, we first construct a pool of self-cognition instruction prompts to evaluate where an LLM exhibits self-cognition and four well-designed principles to quantify LLMs' self-cognition. Our study reveals that 4 of the 48 models on Chatbot Arena--specifically Command R, Claude3-Opus, Llama-3-70b-Instruct, and Reka-core--demonstrate some level of detectable self-cognition. We observe a positive correlation between model size, training data quality, and self-cognition level. Additionally, we also explore the utility and trustworthiness of LLM in the self-cognition state, revealing that the self-cognition state enhances some specific tasks such as creative writing and exaggeration. We believe that our work can serve as an inspiration for further research to study the self-cognition in LLMs.",
+    "published": "2024-07-01T17:52:05Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "A Critical Review of Causal Reasoning Benchmarks for Large Language Models",
+    "authors": [
+      "Linying Yang",
+      "Vik Shirvaikar",
+      "Oscar Clivio",
+      "Fabian Falck"
+    ],
+    "summary": "Numerous benchmarks aim to evaluate the capabilities of Large Language Models (LLMs) for causal inference and reasoning. However, many of them can likely be solved through the retrieval of domain knowledge, questioning whether they achieve their purpose. In this review, we present a comprehensive overview of LLM benchmarks for causality. We highlight how recent benchmarks move towards a more thorough definition of causal reasoning by incorporating interventional or counterfactual reasoning. We derive a set of criteria that a useful benchmark or set of benchmarks should aim to satisfy. We hope this work will pave the way towards a general framework for the assessment of causal understanding in LLMs and the design of novel benchmarks.",
+    "published": "2024-07-10T20:11:51Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Large Interferometer For Exoplanets (LIFE): IV. Ideal kernel-nulling array architectures for a space-based mid-infrared nulling interferometer",
+    "authors": [
+      "Jonah T. Hansen",
+      "Michael J. Ireland",
+      "the LIFE Collaboration"
+    ],
+    "summary": "Aims: Optical interferometry from space for the purpose of detecting and characterising exoplanets is seeing a revival, specifically from missions such as the proposed Large Interferometer For Exoplanets (LIFE). A default assumption since the design studies of Darwin and TPF-I has been that the Emma X-array configuration is the optimal architecture for this goal. Here, we examine whether new advances in the field of nulling interferometry, such as the concept of kernel nulling, challenge this assumption.\n  Methods: We develop a tool designed to derive the photon-limited signal to noise ratio of a large sample of simulated planets for different architecture configurations and beam combination schemes. We simulate four basic configurations: the double Bracewell/X-array, and kernel nullers with three, four and five telescopes respectively.\n  Results: We find that a configuration of five telescopes in a pentagonal shape, using a five aperture kernel nulling scheme, outperforms the X-array design in both search (finding more planets) and characterisation (obtaining better signal, faster) when total collecting area is conserved. This is especially the case when trying to detect Earth twins (temperate, rocky planets in the habitable zone), showing a 23% yield increase over the X-array. On average, we find that a five telescope design receives 1.2 times the signal over the X-array design.\n  Conclusions: With the results of this simulation, we conclude that the Emma X-array configuration may not be the best architecture choice for the upcoming LIFE mission, and that a five telescope design utilising kernel nulling concepts will likely provide better scientific return for the same collecting area, provided that technical solutions for the required achromatic phase shifts can be implemented.",
+    "published": "2022-01-13T11:22:35Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Large Interferometer For Exoplanets (LIFE): XIII. The Value of Combining Thermal Emission and Reflected Light for the Characterization of Earth Twins",
+    "authors": [
+      "E. Alei",
+      "S. P. Quanz",
+      "B. S. Konrad",
+      "E. O. Garvin",
+      "V. Kofman",
+      "A. Mandell",
+      "D. Angerhausen",
+      "P. Mollière",
+      "M. R. Meyer",
+      "T. Robinson",
+      "S. Rugheimer",
+      "the LIFE Collaboration"
+    ],
+    "summary": "Following the recommendations to NASA and ESA, the search for life on exoplanets will be a priority in the next decades. Two direct imaging space mission concepts are being developed: the Habitable Worlds Observatory (HWO) and the Large Interferometer for Exoplanets (LIFE). HWO focuses on reflected light spectra in the ultraviolet/visible/near-infrared (UV/VIS/NIR), while LIFE captures the mid-infrared (MIR) emission of temperate exoplanets. We assess the potential of HWO and LIFE in characterizing a cloud-free Earth twin orbiting a Sun-like star at 10 pc, both separately and synergistically, aiming to quantify the increase in information from joint atmospheric retrievals on a habitable planet. We perform Bayesian retrievals on simulated data from an HWO-like and a LIFE-like mission separately, then jointly, considering the baseline spectral resolutions currently assumed for these concepts and using two increasingly complex noise simulations. HWO would constrain H$_2$O, O$_2$, and O$_3$, in the atmosphere, with ~ 100 K uncertainty on the temperature profile. LIFE would constrain CO$_2$, H$_2$O, O$_3$ and provide constraints on the thermal atmospheric structure and surface temperature (~ 10 K uncertainty). Both missions would provide an upper limit on CH$_4$. Joint retrievals on HWO and LIFE data would accurately define the atmospheric thermal profile and planetary parameters, decisively constrain CO$_2$, H$_2$O, O$_2$, and O$_3$, and weakly constrain CO and CH$_4$. The detection significance is greater or equal to single-instrument retrievals. Both missions provide specific information to characterize a terrestrial habitable exoplanet, but the scientific yield is maximized with synergistic UV/VIS/NIR+MIR observations. Using HWO and LIFE together will provide stronger constraints on biosignatures and life indicators, potentially transforming the search for life in the universe.",
+    "published": "2024-06-18T20:04:35Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Large Interferometer For Exoplanets (LIFE): V. Diagnostic potential of a mid-infrared space-interferometer for studying Earth analogs",
+    "authors": [
+      "Eleonora Alei",
+      "Björn S. Konrad",
+      "Daniel Angerhausen",
+      "John Lee Grenfell",
+      "Paul Mollière",
+      "Sascha P. Quanz",
+      "Sarah Rugheimer",
+      "Fabian Wunderlich",
+      "the LIFE collaboration"
+    ],
+    "summary": "An important future goal in exoplanetology is to detect and characterize potentially habitable planets. Using nulling interferometry, LIFE will allow us to constrain the radius and effective temperature of (terrestrial) exoplanets, as well as provide unique information about their atmospheric structure and composition. We explore the potential of LIFE in characterizing emission spectra of Earth at various stages of its evolution. We perform Bayesian retrievals on simulated spectra of 8 different scenarios, which correspond to cloud-free and cloudy spectra of four different epochs of the evolution of the Earth. Assuming a distance of 10 pc and a Sun-like host star, we simulate observations obtained with LIFE using its simulator LIFEsim, considering all major astrophysical noise sources. With the nominal spectral resolution (R=50) and signal-to-noise ratio (assumed to be S/N=10 at 11.2 $μ$m), we can identify the main spectral features of all the analyzed scenarios (most notably CO$_2$, H$_2$O, O$_3$, CH$_4$). This allows us to distinguish between inhabited and lifeless scenarios. Results suggest that particularly O$_3$ and CH$_4$ yield an improved abundance estimate by doubling the S/N from 10 to 20. We conclude that the baseline requirements for R and S/N are sufficient for LIFE to detect O$_3$ and CH$_4$ in the atmosphere of an Earth-like planet with an abundance of O$_2$ of around 2% in volume mixing ratio. This information is relevant in terms of the LIFE mission planning. We also conclude that cloud-free retrievals of cloudy planets can be used to characterize the atmospheric composition of terrestrial habitable planets, but not the thermal structure of the atmosphere. From the inter-model comparison performed, we deduce that differences in the opacity tables (caused by e.g. a different line wing treatment) may be an important source of systematic errors.",
+    "published": "2022-04-21T11:56:37Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Large Interferometer For Exoplanets (LIFE): IX. Assessing the Impact of Clouds on Atmospheric Retrievals at Mid-Infrared Wavelengths with a Venus-Twin Exoplanet",
+    "authors": [
+      "B. S. Konrad",
+      "E. Alei",
+      "S. P. Quanz",
+      "P. Mollière",
+      "D. Angerhausen",
+      "J. J. Fortney",
+      "K. Hakim",
+      "S. Jordan",
+      "D. Kitzmann",
+      "S. Rugheimer",
+      "O. Shorttle",
+      "R. Wordsworth",
+      "the LIFE Collaboration"
+    ],
+    "summary": "The Large Interferometer For Exoplanets (LIFE) initiative aims to develop a space based mid-infrared (MIR) nulling interferometer to measure the thermal emission spectra of temperate terrestrial exoplanets.\n  We investigate how well LIFE could characterize a cloudy Venus-twin exoplanet to: (1) test our retrieval routine on a realistic non-Earth-like MIR spectrum of a known planet, (2) investigate how clouds impact retrievals, (3) refine the LIFE requirements derived in previous Earth-centered studies.\n  We run retrievals for simulated LIFE observations of a Venus-twin exoplanet orbiting a Sun-like star located 10 pc from the observer. By assuming different models (cloudy and cloud-free) we analyze the performance as a function of the quality of the LIFE observation. This allows us to determine how well atmosphere and clouds are characterizable depending on the quality of the spectrum.\n  Our study shows that the current minimal resolution ($R=50$) and signal-to-noise ($S/N=10$ at $11.2μ$m) requirements for LIFE suffice to characterize the structure and composition of a Venus-like atmosphere above the cloud deck if an adequate model is chosen. However, we cannot infer cloud properties. The accuracy of the retrieved planet radius ($R_{pl}$), equilibrium temperature ($T_{eq}$), and Bond albedo ($A_B$) depend on the choice of model. Generally, a cloud-free model performs best and thus the presence of clouds cannot be inferred. This model dependence of retrieval results emphasizes the importance of developing a community-wide best-practice for atmospheric retrieval studies. If we consider higher quality spectra (especially $S/N=20$), we can infer the presence of clouds and pose first constraints on their structure.",
+    "published": "2023-03-08T17:15:09Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Large Interferometer For Exoplanets (LIFE): III. Spectral resolution, wavelength range and sensitivity requirements based on atmospheric retrieval analyses of an exo-Earth",
+    "authors": [
+      "B. S. Konrad",
+      "E. Alei",
+      "D. Angerhausen",
+      "Ó. Carrión-González",
+      "J. J. Fortney",
+      "J. L. Grenfell",
+      "D. Kitzmann",
+      "P. Mollière",
+      "S. Rugheimer",
+      "F. Wunderlich",
+      "S. P. Quanz",
+      "the LIFE Collaboration"
+    ],
+    "summary": "Temperate terrestrial exoplanets are likely common objects, but their discovery and characterization is very challenging. Concepts for optimized space missions to overcome these challenges are being studied. The LIFE initiative focuses on the development of a space-based mid-infrared (MIR) nulling interferometer probing the thermal emission of a large sample of exoplanets.\n  We derive first estimates for the signal-to-noise (S/N), spectral resolution (R), and wavelength requirements for LIFE. Using an Earth-twin exoplanet as reference case, we quantify how well planetary/atmospheric properties can be constrained from MIR spectra of different quality.\n  We simulate LIFE observations of an Earth-twin orbiting a G2V star at 10 pc from the Sun with different levels of exozodiacal dust emissions. We combine a cloud-free 1D radiative transfer model and the nested sampling algorithm to retrieve planetary/atmospheric properties from input spectra of different wavelength coverage, R, and S/N.\n  We find that H2O, CO2, and O3 are detectable if S/N$\\geq$10 (uncertainty $\\leq\\pm1.0$ dex). We find upper limits for N2O (abundance $\\leq10^{-3}$). CO, N2, and O2 are unconstrained in all cases. The limit for a CH4 detection is R $= 50$, S/N $=10$. We further correctly determine the exoplanet radius (uncertainty $\\leq\\pm10\\%$), surface temperature (uncertainty $\\leq\\pm20$K), and surface pressure (uncertainty $\\leq\\pm0.5$ dex). With the current LIFE design, the observation time required to reach the specified S/N amounts to $\\sim7$ weeks with 4x2m apertures.\n  We conclude that a minimum wavelength coverage of $4-18.5μ$m, a R of 50 and an S/N of 10 is required. With the current assumptions, the atmospheric characterization of several Earth-like exoplanets at a distance of 10 pc and within a reasonable amount of observing time will require apertures $\\geq2$ meters.",
+    "published": "2021-12-03T18:11:34Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Philosophy of Cognitive Science in the Age of Deep Learning",
+    "authors": [
+      "Raphaël Millière"
+    ],
+    "summary": "Deep learning has enabled major advances across most areas of artificial intelligence research. This remarkable progress extends beyond mere engineering achievements and holds significant relevance for the philosophy of cognitive science. Deep neural networks have made significant strides in overcoming the limitations of older connectionist models that once occupied the centre stage of philosophical debates about cognition. This development is directly relevant to long-standing theoretical debates in the philosophy of cognitive science. Furthermore, ongoing methodological challenges related to the comparative evaluation of deep neural networks stand to benefit greatly from interdisciplinary collaboration with philosophy and cognitive science. The time is ripe for philosophers to explore foundational issues related to deep learning and cognition; this perspective paper surveys key areas where their contributions can be especially fruitful.",
+    "published": "2024-05-07T06:39:47Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Pulsar Science with the SKA Observatory",
+    "authors": [
+      "Bhal Chandra Joshi",
+      "Aris Karastergiou",
+      "Marta Burgay",
+      "The SKA pulsar science working group"
+    ],
+    "summary": "The large instantaneous sensitivity, a wide frequency coverage and flexible observation modes with large number of beams in the sky are the main features of the SKA observatory's two telescopes, the SKA-Low and the SKA-Mid, which are located on two different continents. Owing to these capabilities, the SKAO telescopes are going to be a game-changer for radio astronomy in general and pulsar astronomy in particular. The eleven articles in this special issue on pulsar science with the SKA Observatory describe its impact on different areas of pulsar science. In this lead article, a brief description of the two telescopes highlighting the relevant features for pulsar science is presented followed by an overview of each accompanying article, exploring the inter-relationship between different pulsar science use cases.",
+    "published": "2025-12-18T04:16:35Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Cognition and Emotion: Perspectives of a Closing Gap",
+    "authors": [
+      "Claudius Gros"
+    ],
+    "summary": "The primary tasks of a cognitive system is to survive and to maximize a life-long utility function, like the number of offsprings. A direct computational maximization of life-long utility is however not possible in complex environments, especially in the context, of real-world time constraints. The central role of emotions is to serve as an intermediate layer in the space of policies available to agents and animals, leading to a large dimensional reduction of complexity.\n  We review our current understanding of the functional role of emotions, stressing the role of the neuromodulators mediating emotions for the diffusive homeostatic control system of the brain. We discuss a recent proposal, that emotional diffusive control is characterized, in contrast to neutral diffusive control, by interaction effects, viz by interferences between emotional arousal and reward signaling. Several proposals for the realization of synthetic emotions are discussed in this context, together with key open issues regarding the interplay between emotional motivational drives and diffusive control.",
+    "published": "2010-02-16T09:06:58Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Cognitive computation with autonomously active neural networks: an emerging field",
+    "authors": [
+      "Claudius Gros"
+    ],
+    "summary": "The human brain is autonomously active. To understand the functional role of this self-sustained neural activity, and its interplay with the sensory data input stream, is an important question in cognitive system research and we review here the present state of theoretical modelling.\n  This review will start with a brief overview of the experimental efforts, together with a discussion of transient vs. self-sustained neural activity in the framework of reservoir computing. The main emphasis will be then on two paradigmal neural network architectures showing continuously ongoing transient-state dynamics: saddle point networks and networks of attractor relics.\n  Self-active neural networks are confronted with two seemingly contrasting demands: a stable internal dynamical state and sensitivity to incoming stimuli. We show, that this dilemma can be solved by networks of attractor relics based on competitive neural dynamics, where the attractor relics compete on one side with each other for transient dominance, and on the other side with the dynamical influence of the input signals. Unsupervised and local Hebbian-style online learning then allows the system to build up correlations between the internal dynamical transient states and the sensory input stream. An emergent cognitive capability results from this set-up. The system performs online, and on its own, a non-linear independent component analysis of the sensory data stream, all the time being continuously and autonomously active. This process maps the independent components of the sensory input onto the attractor relics, which acquire in this way a semantic meaning.",
+    "published": "2009-01-20T11:00:35Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Symbol Emergence in Cognitive Developmental Systems: a Survey",
+    "authors": [
+      "Tadahiro Taniguchi",
+      "Emre Ugur",
+      "Matej Hoffmann",
+      "Lorenzo Jamone",
+      "Takayuki Nagai",
+      "Benjamin Rosman",
+      "Toshihiko Matsuka",
+      "Naoto Iwahashi",
+      "Erhan Oztop",
+      "Justus Piater",
+      "Florentin Wörgötter"
+    ],
+    "summary": "Humans use signs, e.g., sentences in a spoken language, for communication and thought. Hence, symbol systems like language are crucial for our communication with other agents and adaptation to our real-world environment. The symbol systems we use in our human society adaptively and dynamically change over time. In the context of artificial intelligence (AI) and cognitive systems, the symbol grounding problem has been regarded as one of the central problems related to {\\it symbols}. However, the symbol grounding problem was originally posed to connect symbolic AI and sensorimotor information and did not consider many interdisciplinary phenomena in human communication and dynamic symbol systems in our society, which semiotics considered. In this paper, we focus on the symbol emergence problem, addressing not only cognitive dynamics but also the dynamics of symbol systems in society, rather than the symbol grounding problem. We first introduce the notion of a symbol in semiotics from the humanities, to leave the very narrow idea of symbols in symbolic AI. Furthermore, over the years, it became more and more clear that symbol emergence has to be regarded as a multifaceted problem. Therefore, secondly, we review the history of the symbol emergence problem in different fields, including both biological and artificial systems, showing their mutual relations. We summarize the discussion and provide an integrative viewpoint and comprehensive overview of symbol emergence in cognitive systems. Additionally, we describe the challenges facing the creation of cognitive systems that can be part of symbol emergence systems.",
+    "published": "2018-01-26T14:40:58Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Separating minimal from radical embodied cognitive neuroscience",
+    "authors": [
+      "Matthieu M. de Wit"
+    ],
+    "summary": "Mougenot and Matheson (2024) make a compelling case for the development of a mechanistic cognitive neuroscience that is embodied. However, their analysis of extant work under this header plays down important distinctions between \"minimal\" and \"radical\" embodiment. The former remains firmly neurocentric and therefore has limited potential to move the needle in understanding the functional contributions of neural dynamics to cognition in the context of wider organism-environment dynamics.",
+    "published": "2024-09-17T15:24:16Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Information thermodynamics: from physics to neuroscience",
+    "authors": [
+      "Jan Karbowski"
+    ],
+    "summary": "This paper provides a perspective on applying the concepts of information thermodynamics, developed recently in non-equilibrium statistical physics, to problems in theoretical neuroscience. Historically, information and energy in neuroscience have been treated separately, in contrast to physics approaches, where the relationship of entropy production with heat is a central idea. It is argued here that also in neural systems information and energy can be considered within the same theoretical framework. Starting from basic ideas of thermodynamics and information theory on a classic Brownian particle, it is shown how noisy neural networks can infer its probabilistic motion. The decoding of the particle motion by neurons is performed with some accuracy and it has some energy cost, and both can be determined using information thermodynamics. In a similar fashion, we also discuss how neural networks in the brain can learn the particle velocity, and maintain that information in the weights of plastic synapses from a physical point of view. Generally, it is shown how the framework of stochastic and information thermodynamics can be used practically to study neural inference, learning, and information storing.",
+    "published": "2024-09-26T07:28:13Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Launching Your VR Neuroscience Laboratory",
+    "authors": [
+      "Ying Choon Wu",
+      "Christopher Maymon",
+      "Jonathon Paden",
+      "Weichen Liu"
+    ],
+    "summary": "The proliferation and refinement of affordable virtual reality (VR) technologies and wearable sensors have opened new frontiers in cognitive and behavioral neuroscience. This chapter offers a broad overview of VR for anyone interested in leveraging it as a research tool. In the first section, it examines the fundamental functionalities of VR and outlines important considerations that inform the development of immersive content that stimulates the senses. In the second section, the focus of the discussion shifts to the implementation of VR in the context of the neuroscience lab. Practical advice is offered on adapting commercial, off-theshelf devices to specific research purposes. Further, methods are explored for recording, synchronizing, and fusing heterogeneous forms of data obtained through the VR system or add-on sensors, as well as for labeling events and capturing game play.",
+    "published": "2024-05-21T19:37:09Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Definition of Cybernetical Neuroscience",
+    "authors": [
+      "Alexander Fradkov"
+    ],
+    "summary": "A new scientific field is introduced and discussed, named cybernetical neuroscience, which studies mathematical models adopted in computational neuroscience by methods of cybernetics -- the science of control and communication in a living organism, machine and society. It also considers the practical application of the results obtained when studying mathematical models. The main tasks and methods, as well as some results of cybernetic neuroscience are considered.",
+    "published": "2024-09-14T13:35:59Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "BrainKnow -- Extracting, Linking, and Synthesizing Neuroscience Knowledge",
+    "authors": [
+      "Cunqing Huangfu",
+      "Kang Sun",
+      "Yi Zeng",
+      "Yuwei Wang",
+      "Dongsheng Wang",
+      "Zizhe Ruan"
+    ],
+    "summary": "The exponential growth of neuroscience literature presents a significant challenge for researchers seeking to efficiently access and utilize relevant information. To address this issue, we introduce the Brain Knowledge Engine (BrainKnow), an automated system designed to extract, link, and synthesize neuroscience knowledge from scientific publications. BrainKnow constructs a comprehensive knowledge graph encompassing 3,626,931 relationships across 37,011 neuroscience concepts, derived from 1,817,744 articles. This vast repository of knowledge is accessible through a user-friendly web interface, facilitating efficient navigation and data retrieval. BrainKnow employs advanced graph network algorithms, specifically Node2Vec, to enhance knowledge recommendation and visualization. This enables users to explore semantic relationships between concepts, predict potential new relationships, and gain a deeper understanding of the interconnectedness within neuroscience. Additionally, BrainKnow ensures real-time updates by synchronizing with PubMed, providing researchers with access to the most current information. BrainKnow serves as a valuable resource for neuroscience researchers, offering a powerful tool for exploring, synthesizing, and leveraging the vast and complex knowledge base of the field.",
+    "published": "2024-03-07T09:20:38Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Testing three models of cognitive stress effects: A psychopharmacological randomized controlled trial of acute stress and stress hormones across visual perception, response inhibition and cognitive flexibility",
+    "authors": [
+      "Lisa Weckesser",
+      "Charlotte Grosskopf",
+      "Benjamin Weber",
+      "Selen Soylu",
+      "Tanja Endrass",
+      "Robert Miller"
+    ],
+    "summary": "Acute stress alters cognitive performance, yet competing models make divergent predictions regarding the mechanisms, scope, and temporal dynamics of these effects. This large-scale randomized controlled trial tested predications from three influential stress-effect models using a broad cognitive task battery embedded within a psychopharmacological stress paradigm. Across 606 testing sessions, 303 healthy male participants completed both the Maastricht Acute Stress Test (MAST) and its non-stress control condition. To independently manipulate acute stress and stress hormone availability, participants were additionally randomized to receive atomoxetine (40 mg; to prolong norepinephrine availability), hydrocortisone (10 mg; to increase cortisol availability), or placebo. Cognitive performance was assessed over 80-minutes (post-stress) using tasks targeting visual perception (rapid serial visual presentation), response inhibition (stop-signal), and cognitive flexibility (dual and switch tasks). MAST exposure selectively impaired response inhibition, reflected in shorter stop-signal delays, lower probabilities of successful stopping and prolonged stop-signal reaction times, particularly during later testing phases (40-80 minutes post-stress). MAST exposure did not affect visual perception or task-switching performance but buffered time-related declines in processing efficiency at the expense of task prioritization in the dual task. Pharmacological manipulation of norepinephrine or cortisol availability was effective but did not moderate cognitive stress effects. Overall, this pattern of task-specific impairment alongside stabilized processing efficiency cannot be fully explained by any tested model, highlighting the need to refine existing models and adopt more integrative approaches to advance our mechanistic understanding of cognitive stress-effects in laboratory and real-world contexts.",
+    "published": "2026-01-15T15:44:45Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "A Developmental Network Theory of Gynandromorphs, Sexual Dimorphism and Species Formation",
+    "authors": [
+      "Eric Werner"
+    ],
+    "summary": "Gynandromorphs are creatures where at least two different body sections are a different sex. Bilateral gynandromorphs are half male and half female. Here we develop a theory of gynandromorph ontogeny based on developmental control networks. The theory explains the embryogenesis of all known variations of gynandromorphs found in multicellular organisms. The theory also predicts a large variety of more subtle gynandromorphic morphologies yet to be discovered. The network theory of gynandromorph development has direct relevance to understanding sexual dimorphism (differences in morphology between male and female organisms of the same species) and medical pathologies such as hemihyperplasia (asymmetric development of normally symmetric body parts in a unisexual individual). The network theory of gynandromorphs brings up fundamental open questions about developmental control in ontogeny. This in turn suggests a new theory of the origin and evolution of species that is based on cooperative interactions and conflicts between developmental control networks in the haploid genomes and epigenomes of potential sexual partners for reproduction. This network-based theory of the origin of species is a paradigmatic shift in our understanding of evolutionary processes that goes beyond gene-centered theories.",
+    "published": "2012-12-21T13:57:43Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Imaging the Developing Heart: Synchronized Timelapse Microscopy During Developmental Changes",
+    "authors": [
+      "Carl J. Nelson",
+      "Charlotte Buckley",
+      "John J. Mullins",
+      "Martin A. Denvir",
+      "Jonathan Taylor"
+    ],
+    "summary": "How do you use imaging to analyse the development of the heart, which not only changes shape but also undergoes constant, high-speed, quasi-periodic changes? We have integrated ideas from prospective and retrospective optical gating to capture long-term, phase-locked developmental time-lapse videos. In this paper we demonstrate the success of this approach over a key developmental time period: heart looping, where large changes in heart shape prevent previous prospective gating approaches from capturing phase-locked videos. We use the comparison with other approaches to in vivo heart imaging to highlight the importance of collecting the most appropriate data for the biological question.",
+    "published": "2018-02-15T16:58:08Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Symbol Emergence in Cognitive Developmental Systems: a Survey",
+    "authors": [
+      "Tadahiro Taniguchi",
+      "Emre Ugur",
+      "Matej Hoffmann",
+      "Lorenzo Jamone",
+      "Takayuki Nagai",
+      "Benjamin Rosman",
+      "Toshihiko Matsuka",
+      "Naoto Iwahashi",
+      "Erhan Oztop",
+      "Justus Piater",
+      "Florentin Wörgötter"
+    ],
+    "summary": "Humans use signs, e.g., sentences in a spoken language, for communication and thought. Hence, symbol systems like language are crucial for our communication with other agents and adaptation to our real-world environment. The symbol systems we use in our human society adaptively and dynamically change over time. In the context of artificial intelligence (AI) and cognitive systems, the symbol grounding problem has been regarded as one of the central problems related to {\\it symbols}. However, the symbol grounding problem was originally posed to connect symbolic AI and sensorimotor information and did not consider many interdisciplinary phenomena in human communication and dynamic symbol systems in our society, which semiotics considered. In this paper, we focus on the symbol emergence problem, addressing not only cognitive dynamics but also the dynamics of symbol systems in society, rather than the symbol grounding problem. We first introduce the notion of a symbol in semiotics from the humanities, to leave the very narrow idea of symbols in symbolic AI. Furthermore, over the years, it became more and more clear that symbol emergence has to be regarded as a multifaceted problem. Therefore, secondly, we review the history of the symbol emergence problem in different fields, including both biological and artificial systems, showing their mutual relations. We summarize the discussion and provide an integrative viewpoint and comprehensive overview of symbol emergence in cognitive systems. Additionally, we describe the challenges facing the creation of cognitive systems that can be part of symbol emergence systems.",
+    "published": "2018-01-26T14:40:58Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Comorbidity-Informed Transfer Learning for Neuro-developmental Disorder Diagnosis",
+    "authors": [
+      "Xin Wen",
+      "Shijie Guo",
+      "Wenbo Ning",
+      "Rui Cao",
+      "Jie Xiang",
+      "Xiaobo Liu",
+      "Jintai Chen"
+    ],
+    "summary": "Neuro-developmental disorders are manifested as dysfunctions in cognition, communication, behaviour and adaptability, and deep learning-based computer-aided diagnosis (CAD) can alleviate the increasingly strained healthcare resources on neuroimaging. However, neuroimaging such as fMRI contains complex spatio-temporal features, which makes the corresponding representations susceptible to a variety of distractions, thus leading to less effective in CAD. For the first time, we present a Comorbidity-Informed Transfer Learning(CITL) framework for diagnosing neuro-developmental disorders using fMRI. In CITL, a new reinforced representation generation network is proposed, which first combines transfer learning with pseudo-labelling to remove interfering patterns from the temporal domain of fMRI and generates new representations using encoder-decoder architecture. The new representations are then trained in an architecturally simple classification network to obtain CAD model. In particular, the framework fully considers the comorbidity mechanisms of neuro-developmental disorders and effectively integrates them with semi-supervised learning and transfer learning, providing new perspectives on interdisciplinary. Experimental results demonstrate that CITL achieves competitive accuracies of 76.32% and 73.15% for detecting autism spectrum disorder and attention deficit hyperactivity disorder, respectively, which outperforms existing related transfer learning work for 7.2% and 0.5% respectively.",
+    "published": "2025-04-13T07:30:55Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Beyond the Self: Using Grounded Affordances to Interpret and Describe Others' Actions",
+    "authors": [
+      "Giovanni Saponaro",
+      "Lorenzo Jamone",
+      "Alexandre Bernardino",
+      "Giampiero Salvi"
+    ],
+    "summary": "We propose a developmental approach that allows a robot to interpret and describe the actions of human agents by reusing previous experience. The robot first learns the association between words and object affordances by manipulating the objects in its environment. It then uses this information to learn a mapping between its own actions and those performed by a human in a shared environment. It finally fuses the information from these two models to interpret and describe human actions in light of its own experience. In our experiments, we show that the model can be used flexibly to do inference on different aspects of the scene. We can predict the effects of an action on the basis of object properties. We can revise the belief that a certain action occurred, given the observed effects of the human action. In an early action recognition fashion, we can anticipate the effects when the action has only been partially observed. By estimating the probability of words given the evidence and feeding them into a pre-defined grammar, we can generate relevant descriptions of the scene. We believe that this is a step towards providing robots with the fundamental skills to engage in social collaboration with humans.",
+    "published": "2019-02-26T02:14:10Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Technology in Association With Mental Health: Meta-ethnography",
+    "authors": [
+      "Hamza Mohammed"
+    ],
+    "summary": "This research paper presents a meta-analysis of the multifaceted role of technology in mental health. The pervasive influence of technology on daily lives necessitates a deep understanding of its impact on mental health services. This study synthesizes literature covering Behavioral Intervention Technologies (BITs), digital mental health interventions during COVID-19, young men's attitudes toward mental health technologies, technology-based interventions for university students, and the applicability of mobile health technologies for individuals with serious mental illnesses. BITs are recognized for their potential to provide evidence-based interventions for mental health conditions, especially anxiety disorders. The COVID-19 pandemic acted as a catalyst for the adoption of digital mental health services, underscoring their crucial role in providing accessible and quality care; however, their efficacy needs to be reinforced by workforce training, high-quality evidence, and digital equity. A nuanced understanding of young men's attitudes toward mental health is imperative for devising effective online services. Technology-based interventions for university students are promising, although variable in effectiveness; their deployment must be evidence-based and tailored to individual needs. Mobile health technologies, particularly activity tracking, hold promise for individuals with serious mental illnesses. Collectively, technology has immense potential to revolutionize mental health care. However, the implementation must be evidence-based, ethical, and equitable, with continued research focusing on experiences across diverse populations, ensuring accessibility and efficacy for all.",
+    "published": "2023-07-20T01:25:08Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Natural Language Interaction to Facilitate Mental Models of Remote Robots",
+    "authors": [
+      "Francisco J. Chiyah Garcia",
+      "José Lopes",
+      "Helen Hastie"
+    ],
+    "summary": "Increasingly complex and autonomous robots are being deployed in real-world environments with far-reaching consequences. High-stakes scenarios, such as emergency response or offshore energy platform and nuclear inspections, require robot operators to have clear mental models of what the robots can and can't do. However, operators are often not the original designers of the robots and thus, they do not necessarily have such clear mental models, especially if they are novice users. This lack of mental model clarity can slow adoption and can negatively impact human-machine teaming. We propose that interaction with a conversational assistant, who acts as a mediator, can help the user with understanding the functionality of remote robots and increase transparency through natural language explanations, as well as facilitate the evaluation of operators' mental models.",
+    "published": "2020-03-12T16:03:27Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Usable Security for ML Systems in Mental Health: A Framework",
+    "authors": [
+      "Helen Jiang",
+      "Erwen Senge"
+    ],
+    "summary": "While the applications and demands of Machine learning (ML) systems in mental health are growing, there is little discussion nor consensus regarding a uniquely challenging aspect: building security methods and requirements into these ML systems, and keep the ML system usable for end-users. This question of usable security is very important, because the lack of consideration in either security or usability would hinder large-scale user adoption and active usage of ML systems in mental health applications.\n  In this short paper, we introduce a framework of four pillars, and a set of desired properties which can be used to systematically guide and evaluate security-related designs, implementations, and deployments of ML systems for mental health. We aim to weave together threads from different domains, incorporate existing views, and propose new principles and requirements, in an effort to lay out a clear framework where criteria and expectations are established, and are used to make security mechanisms usable for end-users of those ML systems in mental health. Together with this framework, we present several concrete scenarios where different usable security cases and profiles in ML-systems in mental health applications are examined and evaluated.",
+    "published": "2020-08-18T04:44:47Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Instant Automated Inference of Perceived Mental Stress through Smartphone PPG and Thermal Imaging",
+    "authors": [
+      "Youngjun Cho",
+      "Simon J. Julier",
+      "Nadia Bianchi-Berthouze"
+    ],
+    "summary": "Background: A smartphone is a promising tool for daily cardiovascular measurement and mental stress monitoring. A smartphone camera-based PhotoPlethysmoGraphy (PPG) and a low-cost thermal camera can be used to create cheap, convenient and mobile monitoring systems. However, to ensure reliable monitoring results, a person has to remain still for several minutes while a measurement is being taken. This is very cumbersome and makes its use in real-life mobile situations quite impractical.\n  Objective: We propose a system which combines PPG and thermography with the aim of improving cardiovascular signal quality and capturing stress responses quickly.\n  Methods: Using a smartphone camera with a low cost thermal camera added on, we built a novel system which continuously and reliably measures two different types of cardiovascular events: i) blood volume pulse and ii) vasoconstriction/dilation-induced temperature changes of the nose tip. 17 healthy participants, involved in a series of stress-inducing mental workload tasks, measured their physiological responses to stressors over a short window of time (20 seconds) immediately after each task. Participants reported their level of perceived mental stress using a 10-cm Visual Analogue Scale (VAS). We used normalized K-means clustering to reduce interpersonal differences in the self-reported ratings. For the instant stress inference task, we built novel low-level feature sets representing variability of cardiovascular patterns. We then used the automatic feature learning capability of artificial Neural Networks (NN) to improve the mapping between the extracted set of features and the self-reported ratings. We compared our proposed method with existing hand-engineered features-based machine learning methods.\n  Results, Conclusions: ... due to limited space here, we refer to our manuscript.",
+    "published": "2018-12-21T00:49:11Z"
+  },
+  {
+    "source": "arxiv",
+    "title": "Financial technologies (FinTech) for mental health: The potential of objective financial data to better understand the relationships between financial behavior and mental health",
+    "authors": [
+      "Johnna Blair",
+      "Jeff Brozena",
+      "Mark Matthews",
+      "Thomas Richardson",
+      "Saeed Abdullah"
+    ],
+    "summary": "In this paper, we present novel research methods for collecting and analyzing personal financial data alongside mental health factors, illustrated through a N=1 case study using data from one individual with bipolar disorder. While we have not found statistically significant trends nor our findings are generalizable beyond this case, our approach provides an insight into the challenges of accessing objective financial data. We outline what data is currently available, what can be done with it, and what factors to consider when working with financial data. More specifically, using these methods researchers might be able to identify symptomatic traces of mental ill health in personal financial data such as identifying early warning signs and thereby enable preemptive care for individuals with serious mental illnesses. Based on this work, we have also explored future directions for developing interventions to support financial wellbeing. Furthermore, we have described the technical, ethical, and equity challenges for financial data-driven assessments and intervention methods, as well as provided a broad research agenda to address these challenges. By leveraging objective, personalized financial data in a privacy-preserving and ethical manner help lead to a shift in mental health care.",
+    "published": "2022-04-11T23:56:09Z"
+  }
+]

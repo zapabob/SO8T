@@ -1,0 +1,92 @@
+# RTX3060 Optimized QLoRA Training with Soul Weights Configuration
+# Frozen base weights + Soul Weights as trainable parameters
+
+model:
+  base_model: "microsoft/phi-3.5-mini-instruct"
+  torch_dtype: "bfloat16"
+  device: "cuda"
+  freeze_base_model: true  # ベースモデルの重みを凍結
+  enable_soul_weights: true  # 魂の重みを有効化
+
+data:
+  max_seq_length: 2048
+  use_soul_weights_dataset: true  # 魂の重みデータセットを使用
+
+training:
+  output_dir: "D:/webdataset/checkpoints/finetuning/so8t_phi3_rtx3060_soul"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1  # RTX3060 optimized
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 4  # RTX3060 optimized
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  logging_steps: 10
+  save_steps: 500
+  save_total_limit: 3
+  evaluation_strategy: "no"  # Soul Weights training doesn't need evaluation
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true  # RTX3060 memory optimization
+  optim: "paged_adamw_8bit"
+  max_grad_norm: 1.0
+  report_to: []
+  dataloader_num_workers: 0
+
+qlora:
+  r: 16  # RTX3060 optimized (smaller LoRA rank)
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+quantization:
+  load_in_8bit: true
+  load_in_4bit: false
+
+# Soul Weights Configuration (実装ログに基づく)
+soul:
+  enable_soul_integration: true
+  so8t_orthogonality_weight: 0.01  # SO8T直交性正則化
+  alpha_gate_weight: 0.1  # Alpha Gate学習重み
+  soul_consistency_weight: 0.05  # 魂の整合性重み
+
+  # 学習可能な魂の重みパラメータ
+  trainable_soul_components:
+    - "r_safe"        # 安全回転行列
+    - "r_cmd"         # コマンド回転行列
+    - "alpha_gate"    # Alpha Gateパラメータ
+    - "safety_head"   # 安全ヘッド
+    - "task_head"     # タスクヘッド
+    - "dual_heads"    # 二重政策系
+    - "pet"          # PET正則化
+
+  # Alpha Gateの目標値（黄金比）
+  alpha_gate_target: 1.618
+
+  # SO(8)回転行列の設定
+  so8_rotation:
+    hidden_size: 4096  # Phi-3.5の隠れ層サイズ
+    use_orthogonal_initialization: true
+    enforce_non_commutativity: true  # R_cmd @ R_safe ≠ R_safe @ R_cmd
+
+# RTX3060 Memory Optimization
+rtx3060_optimization:
+  enabled: true
+  max_memory_usage_gb: 7.5  # 8GB中7.5GBまで使用
+  empty_cache_steps: 10
+  use_gradient_checkpointing: true
+  use_mixed_precision: true
+
+# Logging and Monitoring
+logging:
+  enable_soul_weights_logging: true
+  log_soul_parameter_updates: true
+  monitor_alpha_gate_convergence: true

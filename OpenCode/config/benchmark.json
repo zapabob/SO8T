@@ -1,0 +1,42 @@
+{
+  "primary_benchmarks": [
+    "gsm8k",
+    "math",
+    "arc_easy",
+    "hellaswag",
+    "elyza_tasks_100"
+  ],
+  "secondary_benchmarks": [
+    "mmlu",
+    "bbh",
+    "commonsenseqa",
+    "openbookqa",
+    "socialiqa",
+    "piqa",
+    "winogrande",
+    "boolq",
+    "drop",
+    "strategyqa"
+  ],
+  "japanese_benchmarks": [
+    "elyza_tasks_100",
+    "jsquad",
+    "xwinograd_ja"
+  ],
+  "advanced_benchmarks": [
+    "bbh",
+    "drop",
+    "strategyqa",
+    "commonsenseqa",
+    "openbookqa"
+  ],
+  "abc_testing": {
+    "models": {
+      "A": "Qwen/Qwen2.5-7B-Instruct",
+      "B": "unsloth_so8t_qwen_7b_final",
+      "C": "aegis_v25_final"
+    },
+    "sample_size": 10,
+    "bootstrap_iterations": 100
+  }
+}

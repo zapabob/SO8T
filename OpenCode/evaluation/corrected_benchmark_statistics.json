@@ -1,0 +1,65 @@
+{
+  "corrections_applied": "Fixed 95% CI calculation using t-distribution",
+  "sample_size": 5,
+  "confidence_level": "95%",
+  "benchmark_corrections": {
+    "gsm8k": {
+      "original_mean": 71.1048005962434,
+      "original_std": 1.4539831436639001,
+      "corrected_ci_half_width": 1.805358523482596,
+      "corrected_ci_95": "±1.81",
+      "cohens_d": 0.7598441571058384,
+      "t_statistic": 1.6990631875946844,
+      "p_value": 0.08226773925485036,
+      "significant": 0,
+      "sample_size": 5,
+      "t_value_used": 2.7764451051977934,
+      "improvement_over_baseline": 1.1048005962433933
+    },
+    "math": {
+      "original_mean": 37.31641832182355,
+      "original_std": 3.4058649339771403,
+      "corrected_ci_half_width": 4.228939871264054,
+      "corrected_ci_95": "±4.23",
+      "cohens_d": 2.1481821691854135,
+      "t_statistic": 4.8034813583515374,
+      "p_value": 0.0043131073807248085,
+      "significant": 1,
+      "sample_size": 5,
+      "t_value_used": 2.7764451051977934,
+      "improvement_over_baseline": 7.316418321823548
+    },
+    "arc_challenge": {
+      "original_mean": 67.09481618716742,
+      "original_std": 2.4281601436730975,
+      "corrected_ci_half_width": 3.014959032272164,
+      "corrected_ci_95": "±3.01",
+      "cohens_d": 0.8627174746384639,
+      "t_statistic": 1.929094918668556,
+      "p_value": 0.06297321870832176,
+      "significant": 0,
+      "sample_size": 5,
+      "t_value_used": 2.7764451051977934,
+      "improvement_over_baseline": 2.0948161871674245
+    },
+    "elyza_tasks": {
+      "original_mean": 76.44367220453128,
+      "original_std": 2.666164401631982,
+      "corrected_ci_half_width": 3.310480350798913,
+      "corrected_ci_95": "±3.31",
+      "cohens_d": 0.541479063949544,
+      "t_statistic": 1.2107839953841364,
+      "p_value": 0.1463119800963555,
+      "significant": 0,
+      "sample_size": 5,
+      "t_value_used": 2.7764451051977934,
+      "improvement_over_baseline": 1.443672204531282
+    }
+  },
+  "notes": [
+    "Used t-distribution for small sample size (n=5, df=4)",
+    "t(0.975, df=4) ≈ 2.776",
+    "CI formula: t * σ / √n",
+    "Previous CI was overestimated"
+  ]
+}

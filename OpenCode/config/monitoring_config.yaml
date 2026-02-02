@@ -1,0 +1,167 @@
+# =============================================================================
+# Moonshot Pipeline v3.0 - Monitoring Configuration
+# =============================================================================
+# Best Practice: Externalized configuration for environment-specific settings
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Database Configuration (SQLite)
+# -----------------------------------------------------------------------------
+database:
+  type: "sqlite"
+  path: "logs/pipeline_progress.sqlite"
+  table_prefix: "monitor_"
+
+# -----------------------------------------------------------------------------
+# LINE Bot Configuration
+# -----------------------------------------------------------------------------
+line:
+  enabled: true
+  gateway_url: "http://localhost:18789"
+  channel_access_token: "${LINE_CHANNEL_ACCESS_TOKEN}"
+  channel_secret: "${LINE_CHANNEL_SECRET}"
+  message_format: "detailed"  # simple | detailed
+  retry_attempts: 3
+  retry_delay_seconds: 1
+
+# -----------------------------------------------------------------------------
+# Monitoring Settings
+# -----------------------------------------------------------------------------
+monitoring:
+  # Checkpoint interval in seconds
+  checkpoint_interval: 300
+
+  # Maximum rolling checkpoints to keep
+  max_rolling_checkpoints: 3
+
+  # Metrics collection interval in seconds
+  metrics_interval: 10
+
+  # Enable real-time metrics
+  enable_realtime: true
+
+# -----------------------------------------------------------------------------
+# Metrics Configuration
+# -----------------------------------------------------------------------------
+metrics:
+  # Core metrics to collect
+  enabled:
+    - "loss"
+    - "learning_rate"
+    - "step"
+    - "eta"
+    - "gpu_memory"
+    - "epoch"
+    - "batch_size"
+    - "data_progress"
+
+  # GPU metrics settings
+  gpu:
+    device_id: 0
+    memory_unit: "GB"
+    threshold_warning_gb: 10.0
+    threshold_critical_gb: 11.0
+
+  # ETA calculation settings
+  eta:
+    smoothing_factor: 0.1
+    min_samples_for_eta: 10
+
+# -----------------------------------------------------------------------------
+# Notification Settings
+# -----------------------------------------------------------------------------
+notifications:
+  # Events that trigger notifications
+  events:
+    phase_start: true
+    phase_complete: true
+    checkpoint_saved: true
+    error_occurred: true
+    training_complete: true
+
+  # Notification throttling (prevent spam)
+  throttling:
+    min_interval_seconds: 60
+    max_per_hour: 10
+
+  # Content settings
+  content:
+    include_timestamp: true
+    include_run_id: true
+    include_emoji: true
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file:
+    enabled: true
+    path: "logs/monitoring.log"
+    max_size_mb: 100
+    backup_count: 5
+
+# -----------------------------------------------------------------------------
+# Dashboard Configuration
+# -----------------------------------------------------------------------------
+dashboard:
+  enabled: true
+  refresh_interval_seconds: 5
+  theme: "dark"
+
+# -----------------------------------------------------------------------------
+# Dry Run Configuration
+# -----------------------------------------------------------------------------
+dry_run:
+  enabled: true
+  tests:
+    - "database"
+    - "line_connection"
+    - "metrics_calculation"
+    - "eta_calculation"
+    - "error_handling"
+    - "all_metrics"
+
+  # Simulation settings
+  simulation:
+    num_phases: 8
+    steps_per_phase: 100
+    loss_range: [0.1, 2.0]
+    lr_range: [1e-6, 2e-5]
+
+# -----------------------------------------------------------------------------
+# Pipeline Phases
+# -----------------------------------------------------------------------------
+phases:
+  - name: "setup"
+    display_name: "Setup & Validation"
+    metrics: ["system_info"]
+
+  - name: "data"
+    display_name: "Data Validation"
+    metrics: ["data_progress"]
+
+  - name: "sft"
+    display_name: "SFT Training"
+    metrics: ["loss", "learning_rate", "step", "epoch", "batch_size", "gpu_memory", "eta"]
+
+  - name: "grpo"
+    display_name: "GRPO Training"
+    metrics: ["loss", "learning_rate", "step", "epoch", "batch_size", "gpu_memory", "eta"]
+
+  - name: "benchmark"
+    display_name: "ABC Benchmark"
+    metrics: ["accuracy", "runtime"]
+
+  - name: "statistics"
+    display_name: "Statistical Analysis"
+    metrics: ["p_value", "confidence_interval"]
+
+  - name: "visualize"
+    display_name: "Visualization"
+    metrics: ["charts_generated"]
+
+  - name: "release"
+    display_name: "HF Release"
+    metrics: ["model_size", "upload_status"]

@@ -1,0 +1,48 @@
+# SO8T Project Git LFS Configuration
+# Large model files are managed by Git LFS to prevent repository bloat
+
+# Model weight files (GGUF format)
+*.gguf filter=lfs diff=lfs merge=lfs -text
+*.GGUF filter=lfs diff=lfs merge=lfs -text
+
+# SafeTensor files
+*.safetensors filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
+
+# Large checkpoint files
+*.ckpt filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text
+
+# Quantization data
+*.imatrix filter=lfs diff=lfs merge=lfs -text
+
+# Large data files (datasets, embeddings)
+*.npy filter=lfs diff=lfs merge=lfs -text
+*.npz filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text
+*.hdf5 filter=lfs diff=lfs merge=lfs -text
+
+# Large result files
+results/**/*.json filter=lfs diff=lfs merge=lfs -text
+data/**/*.jsonl filter=lfs diff=lfs merge=lfs -text
+
+# Model-specific large files
+models/**/*.safetensors filter=lfs diff=lfs merge=lfs -text
+models/**/*.bin filter=lfs diff=lfs merge=lfs -text
+models/**/*.gguf filter=lfs diff=lfs merge=lfs -text
+
+# Exclude temporary and cache files from LFS
+temp_*/** -filter -diff -merge
+tmp_*/** -filter -diff -merge
+__pycache__/** -filter -diff -merge
+.cache/** -filter -diff -merge
+*.tmp -filter -diff -merge
+
+# Text files should remain in regular Git
+*.md -filter -diff -merge
+*.txt -filter -diff -merge
+*.py -filter -diff -merge
+*.yaml -filter -diff -merge
+*.yml -filter -diff -merge
+*.json -filter -diff -merge
+*.toml -filter -diff -merge

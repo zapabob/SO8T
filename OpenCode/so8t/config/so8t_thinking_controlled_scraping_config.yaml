@@ -1,0 +1,211 @@
+# SO8T/thinkingモデル統制Webスクレイピング設定ファイル
+
+# SO8T/thinkingモデル設定
+so8t_model:
+  model_path: null  # nullの場合は自動検出
+  use_so8t_control: true
+  use_quadruple_thinking: true
+  use_four_class_classification: true
+
+# Cursorブラウザ設定
+cursor_browser:
+  use_cursor_browser: true
+  remote_debugging_port: 9222
+  num_browsers: 10
+  base_port: 9222
+
+# スクレイピング設定
+scraping:
+  delay_per_action: 1.5  # アクション間の遅延（秒）
+  timeout: 30000  # ページ読み込みタイムアウト（ミリ秒）
+  max_pages_per_keyword: 5  # キーワードあたりの最大ページ数
+  max_memory_gb: 8.0  # 最大メモリ使用量（GB）
+  max_cpu_percent: 80.0  # 最大CPU使用率（%）
+
+# 四重推論・四値分類設定
+reasoning:
+  use_knowledge: true
+  use_classification: true
+  use_rag: true
+  knowledge_base_path: null
+  rag_store_path: null
+
+# データクレンジング・データセット作成設定
+data_processing:
+  enabled: true
+  num_workers: 4  # 並列処理ワーカー数
+  batch_size: 100  # バッチサイズ
+  create_dataset: true  # データセット作成を有効化
+  train_ratio: 0.8
+  val_ratio: 0.1
+  test_ratio: 0.1
+
+# 監査ログ設定
+audit_log:
+  enabled: true
+  db_path: "database/so8t_scraping_audit.db"
+  log_all_events: true
+  log_so8t_decisions: true
+  log_data_cleaning: true
+  log_dataset_creation: true
+
+# 電源断保護設定
+power_failure_protection:
+  enabled: true
+  checkpoint_dir: "D:/webdataset/checkpoints/power_failure_recovery"
+  checkpoint_interval: 300.0  # チェックポイント保存間隔（秒、5分）
+  max_checkpoints: 10  # 最大チェックポイント数
+  resume: true  # チェックポイントから再開
+
+# Streamlitダッシュボード設定
+dashboard:
+  enabled: true
+  auto_start: true  # 自動起動
+  port: 8501  # Streamlitポート
+  host: "localhost"
+
+# 出力設定
+output:
+  base_dir: "D:/webdataset/processed"
+  screenshots_dir: "D:/webdataset/processed/screenshots"
+  cleaned_dir: "D:/webdataset/cleaned"
+  dataset_dir: "D:/webdataset/datasets"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

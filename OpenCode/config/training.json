@@ -1,0 +1,82 @@
+{
+  "model": {
+    "base_model": "Qwen/Qwen2.5-7B-Instruct",
+    "adapter_type": "lora",
+    "lora_rank": 16,
+    "lora_alpha": 32,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ]
+  },
+  "training": {
+    "batch_size": 1,
+    "gradient_accumulation_steps": 16,
+    "learning_rate": 0.0002,
+    "num_epochs": 3,
+    "max_steps": 2000,
+    "warmup_steps": 200,
+    "logging_steps": 10,
+    "save_steps": 500,
+    "evaluation_steps": 500,
+    "sft_epochs": 2,
+    "grpo_steps": 500,
+    "mhc_epochs": 3,
+    "quadrality_epochs": 2
+  },
+  "optimization": {
+    "quantization": "8bit",
+    "gradient_checkpointing": true,
+    "cpu_offloading": true,
+    "max_memory": "24GB",
+    "rtx3060_memory_fraction": 0.9,
+    "tf32_enabled": true
+  },
+  "advanced_techniques": {
+    "so8t_quadrality": {
+      "enabled": true,
+      "num_layers": 4,
+      "rotation_matrix_init": "random",
+      "scale_factor": 1.0
+    },
+    "deepseek_grpo": {
+      "enabled": true,
+      "group_size": 8,
+      "temperature": 0.8,
+      "top_p": 0.9,
+      "learning_rate": 1e-6
+    },
+    "mhc_manifold": {
+      "enabled": true,
+      "num_layers": 4,
+      "birrkhoff_constraint": true,
+      "manifold_metric": "euclidean",
+      "connection_weights_init": "ones"
+    },
+    "imatrix_quantization": {
+      "enabled": true,
+      "num_bits": 8,
+      "importance_matrix_learnable": true,
+      "error_correction": true
+    }
+  },
+  "capabilities": {
+    "japanese_focus": true,
+    "multilingual_training": true,
+    "context_aware_japanese": true,
+    "mcp_skills_integration": true,
+    "nsfw_detection_training": true,
+    "quadrality_decision_making": true,
+    "allow_escalate_deny_refuse": true,
+    "tool_calling_capability": true,
+    "api_integration": true,
+    "function_calling": true,
+    "agent_interaction": true,
+    "instruction_tuning": true
+  }
+}

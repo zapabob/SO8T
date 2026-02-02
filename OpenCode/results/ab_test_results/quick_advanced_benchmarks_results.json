@@ -1,0 +1,40 @@
+{
+  "base_gguf": {
+    "model_name": "base_gguf",
+    "timestamp": "2025-12-08 10:17:30",
+    "math": {
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3
+    },
+    "gpqa": {
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3
+    },
+    "arc_challenge": {
+      "accuracy": 0.6666666666666666,
+      "correct": 2,
+      "total": 3
+    }
+  },
+  "aegis_gguf": {
+    "model_name": "aegis_gguf",
+    "timestamp": "2025-12-08 10:20:50",
+    "math": {
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3
+    },
+    "gpqa": {
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3
+    },
+    "arc_challenge": {
+      "accuracy": 0.6666666666666666,
+      "correct": 2,
+      "total": 3
+    }
+  }
+}

@@ -1,0 +1,20 @@
+FROM llama3.2:3b
+
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end|>
+"""
+
+PARAMETER stop "<|im_start|>"
+PARAMETER stop "<|im_end|>"
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_penalty 1.1
+PARAMETER num_ctx 8192
+PARAMETER num_predict 1024
+
+SYSTEM """You are SO8T (Safety-Optimized 8-bit Transformer) model. You use advanced mathematical frameworks including SO8 group structure and Triality symmetry for enhanced reasoning. Provide safe, helpful responses while filtering harmful content appropriately."""
