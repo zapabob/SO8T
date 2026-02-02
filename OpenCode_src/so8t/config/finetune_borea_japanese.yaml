@@ -1,0 +1,81 @@
+# Borea-Phi-3.5-mini 日本語ファインチューニング設定（QLoRA 8bit）
+
+# モデル設定
+model:
+  base_model: "Borea-Phi-3.5-mini-Instruct-Common"
+  model_type: "phi3"
+  
+  # LoRA設定
+  lora:
+    r: 64                    # LoRAランク
+    lora_alpha: 128          # LoRAスケーリング係数
+    target_modules:          # LoRA適用対象
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+    lora_dropout: 0.05
+    bias: "none"
+    task_type: "CAUSAL_LM"
+
+# データ設定
+data:
+  # 訓練データ
+  train_data:
+    - "data/splits/train.jsonl"
+  
+  # 検証データ
+  val_data: "data/splits/val.jsonl"
+  
+  # データ処理
+  max_seq_length: 2048
+  preprocessing_num_workers: 4
+
+# 学習設定
+training:
+  # 基本設定
+  output_dir: "./checkpoints/borea_phi35_mini_japanese"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1  # メモリ削減のため1に変更
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16  # バッチサイズ削減のため増加
+  
+  # 最適化
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+  
+  # スケジューラ
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.1
+  warmup_steps: 0  # warmup_ratioを使用
+  
+  # 精度（メモリ削減のためfp16を使用）
+  fp16: true
+  bf16: false
+  tf32: false
+  
+  # ログ・保存
+  logging_steps: 10
+  save_steps: 500
+  save_total_limit: 5
+  save_strategy: "steps"
+  evaluation_strategy: "steps"
+  eval_steps: 500
+  
+  # その他
+  report_to: []
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
+  
+  # メモリ効率化
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+

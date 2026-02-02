@@ -1,0 +1,762 @@
+# Cursor Rules for MOONSHOT Project (AEGIS Autonomous A/B Testing System)
+
+## Project Overview
+**MOONSHOT: AEGIS Autonomous A/B Testing System**
+This is the ultimate autonomous AI evaluation platform implementing SO(8) NKAT theory with complete A/B testing automation. The system performs end-to-end evaluation from dataset creation to HF upload, featuring 3-minute rolling checkpoints and fully autonomous operation.
+
+## Moonshot Launch Commands
+**CRITICAL**: Use these commands to launch the Moonshot system:
+
+### Primary Launch (Full Automation)
+```batch
+# Administrator privileges required
+setup_ab_test_automation.bat
+```
+
+### Manual Pipeline Launch
+```batch
+# After setup completion
+auto_ab_test_pipeline.bat
+```
+
+### Quick Verification
+```batch
+# System status check
+py -3 simple_rlpo_test.py
+```
+
+## Moonshot Architecture
+- **Phase 1**: AEGIS High-Quality Dataset Creation (Nobel/Fields Medal level + Arxiv top 20% + NSFW safety)
+- **Phase 2**: lm-eval-harness + ELYZA-100 Integration
+- **Phase 3**: AEGIS RLPO Training with SO(8) NKAT Theory (3min rolling checkpoints)
+- **Phase 4**: Dual GGUF Conversion (Baseline BF16 + AEGIS Q8_0/Q4_K_M)
+- **Phase 5**: llama.cpp.python A/B Testing (Full evaluation suite)
+- **Phase 6**: Statistical Analysis (ANOVA, Cohen's d, p-values, error bars)
+- **Phase 7**: HF Upload Preparation (Complete package with metadata)
+- **Phase 8**: Autonomous Completion (Task cleanup, startup removal)
+
+## Moonshot Key Technologies
+- **NKAT Theory**: SO(8) geometric adapters for advanced reasoning
+- **Autonomous A/B Testing**: End-to-end evaluation pipeline
+- **Rolling Checkpoint System**: 3-minute intervals, 5-stock recovery
+- **Statistical Rigor**: ANOVA + effect size analysis
+- **HF Integration**: Complete upload package generation
+
+## Audio Notification Rules
+**CRITICAL**: At the end of every Agent task or Plan completion, ALWAYS play the audio file:
+- **Primary**: `C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav` (基本はこれを再生)
+- **Fallback**: ピープ音（音声ファイルが再生できない場合）
+- Trigger: Agent completion, Plan completion, Task completion
+- Purpose: Audio notification for user awareness
+
+**BASIC PRINCIPLE**: Always try to play `marisa_owattaze.wav` first. If it fails, play a beep sound as fallback.
+
+## Audio Playback Implementation
+```powershell
+# MANDATORY: Play marisa_owattaze.wav first, fallback to beep if it fails
+Write-Host "[AUDIO] Playing completion notification..." -ForegroundColor Green
+$audioFile = "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav"
+$audioPlayed = $false
+
+# Method 1: Try to play marisa_owattaze.wav (PRIMARY METHOD)
+if (Test-Path $audioFile) {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $player = New-Object System.Media.SoundPlayer $audioFile
+        $player.PlaySync()
+        Write-Host "[OK] marisa_owattaze.wav played successfully" -ForegroundColor Green
+        $audioPlayed = $true
+    } catch {
+        Write-Host "[WARNING] Failed to play marisa_owattaze.wav: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "[WARNING] marisa_owattaze.wav not found: $audioFile" -ForegroundColor Yellow
+}
+
+# Method 2: Fallback to beep if marisa_owattaze.wav failed
+if (-not $audioPlayed) {
+    try {
+        [System.Console]::Beep(1000, 500)
+        Write-Host "[OK] Fallback beep played successfully" -ForegroundColor Green
+    } catch {
+        Write-Host "[ERROR] All audio methods failed" -ForegroundColor Red
+    }
+}
+```
+
+## Moonshot Project Structure
+- `scripts/data/`: AEGIS dataset creation (Nobel/Fields level + Arxiv + NSFW safety)
+- `scripts/evaluation/`: Complete A/B testing pipeline (lm-eval + llama.cpp + stats)
+- `scripts/training/`: RLPO training with SO(8) NKAT theory
+- `auto_ab_test_pipeline.bat`: Main autonomous pipeline (9 phases)
+- `setup_ab_test_automation.bat`: Moonshot system launcher
+- `results/ab_test_results/`: Statistical analysis and evaluation data
+- `hf_upload_package/`: Complete HF upload package
+- `_docs/`: Implementation logs and documentation
+
+## Moonshot Key Technologies
+- **NKAT Theory**: SO(8) geometric reasoning adapters
+- **Autonomous A/B Testing**: End-to-end evaluation pipeline
+- **Rolling Checkpoint System**: 3-minute intervals, 5-stock recovery
+- **Statistical Analysis**: ANOVA, Cohen's d, p-values, error bars
+- **Multi-Model Evaluation**: Baseline vs AEGIS comparison
+- **HF Integration**: Complete upload package generation
+
+## Moonshot Execution Requirements
+- **Administrator Privileges**: Required for Windows Task Scheduler setup
+- **Estimated Runtime**: 12-24 hours (hardware dependent)
+- **Disk Space**: Minimum 50GB free space (D:\ drive for models)
+- **RAM**: Minimum 16GB (32GB recommended)
+- **GPU**: RTX 3060 or equivalent (12GB VRAM minimum)
+- **Internet**: Required for dataset downloads and HF upload
+
+## Moonshot Output Locations
+- **Evaluation Results**: `results/ab_test_results/`
+- **Statistical Analysis**: `results/ab_test_results/statistics/`
+- **Plots & Visualizations**: `results/ab_test_results/plots/`
+- **HF Upload Package**: `hf_upload_package/`
+- **Implementation Logs**: `_docs/` (dated with worktree names)
+
+## Model Checkpoint and Output Directory
+**MANDATORY**: All model checkpoints and outputs must be saved to `D:\webdataset`
+
+### Checkpoint Save Locations
+- **GGUF Conversion Output**: `D:\webdataset\gguf_models\`
+- **Training Checkpoints**: `D:\webdataset\checkpoints\training\`
+- **Fine-tuning Checkpoints**: `D:\webdataset\checkpoints\finetuning\`
+- **Model Weights**: `D:\webdataset\weights\`
+- **Final Models**: `D:\webdataset\models\final\`
+
+### Implementation Requirements
+1. **GGUF Conversion**: After GGUF conversion, save output files to `D:\webdataset\gguf_models\{model_name}\`
+2. **Training**: Save all training checkpoints to `D:\webdataset\checkpoints\training\{run_name}\`
+3. **Fine-tuning**: Save all fine-tuning checkpoints to `D:\webdataset\checkpoints\finetuning\{model_name}\`
+4. **Model Weights**: Save intermediate and final model weights to `D:\webdataset\weights\`
+5. **Final Models**: Save completed models to `D:\webdataset\models\final\{model_name}\`
+
+### Directory Structure
+```
+D:\webdataset\
+├── gguf_models\          # GGUF変換後のモデル
+│   └── {model_name}\
+│       ├── {model_name}_Q8_0.gguf
+│       └── {model_name}_Q4_K_M.gguf
+├── checkpoints\          # チェックポイント
+│   ├── training\         # 学習チェックポイント
+│   │   └── {run_name}\
+│   │       ├── checkpoint_epoch_{N}.pt
+│   │       └── checkpoint_final.pt
+│   └── finetuning\       # ファインチューニングチェックポイント
+│       └── {model_name}\
+│           ├── checkpoint_epoch_{N}.pt
+│           └── checkpoint_final.pt
+├── weights\              # モデル重み
+│   ├── {model_name}_epoch_{N}.pt
+│   └── {model_name}_final.pt
+└── models\               # 最終モデル
+    └── final\
+        └── {model_name}\
+            ├── model.pt
+            ├── config.json
+            └── tokenizer.json
+```
+
+### Code Examples
+
+#### GGUF Conversion
+```python
+# Save GGUF output to D:\webdataset
+output_dir = Path(r"D:\webdataset\gguf_models") / model_name
+output_dir.mkdir(parents=True, exist_ok=True)
+gguf_path = output_dir / f"{model_name}_{quantization}.gguf"
+```
+
+#### Training Checkpoint
+```python
+# Save training checkpoint to D:\webdataset
+checkpoint_dir = Path(r"D:\webdataset\checkpoints\training") / run_name
+checkpoint_dir.mkdir(parents=True, exist_ok=True)
+checkpoint_path = checkpoint_dir / f"checkpoint_epoch_{epoch}.pt"
+torch.save(checkpoint_data, checkpoint_path)
+```
+
+#### Fine-tuning Checkpoint
+```python
+# Save fine-tuning checkpoint to D:\webdataset
+checkpoint_dir = Path(r"D:\webdataset\checkpoints\finetuning") / model_name
+checkpoint_dir.mkdir(parents=True, exist_ok=True)
+checkpoint_path = checkpoint_dir / f"checkpoint_epoch_{epoch}.pt"
+torch.save(checkpoint_data, checkpoint_path)
+```
+
+#### Final Model Weights
+```python
+# Save final model weights to D:\webdataset
+weights_dir = Path(r"D:\webdataset\weights")
+weights_dir.mkdir(parents=True, exist_ok=True)
+weights_path = weights_dir / f"{model_name}_final.pt"
+torch.save(model.state_dict(), weights_path)
+```
+
+### Notes
+- Always create directories if they don't exist using `mkdir(parents=True, exist_ok=True)`
+- Use descriptive names for model directories (e.g., `so8t-phi4-ja-finetuned`)
+- Include model metadata (config, tokenizer, etc.) alongside weights
+- Log checkpoint save locations for easy retrieval
+
+## Safety Guidelines
+- Always prioritize user safety and privacy
+- Process images locally without external sharing
+- Log all decisions for transparency
+- Escalate complex ethical decisions when needed
+
+## Code Style Guidelines
+- **NO EMOJIS**: Never use emojis in code, comments, or output
+- Use plain text symbols instead: ✅ → [OK], ❌ → [NG], 🚀 → [START], etc.
+- This prevents Unicode encoding errors on Windows systems
+- All console output must be ASCII-compatible
+- Use descriptive text instead of emoji symbols
+
+## Testing Guidelines
+- **Direct Ollama Testing**: ALWAYS use direct ollama commands instead of Python scripts
+- Use `ollama run model_name "prompt"` for ALL testing scenarios
+- Test complex scenarios: mathematical reasoning, SO(8) gates, PET regularization
+- Test multimodal capabilities with image+text prompts
+- Test self-verification and ethical reasoning
+- Always test with stop parameters disabled for full response generation
+- Use descriptive test names and document results in _docs/
+- **MANDATORY**: Create batch files (.bat) for complex test sequences
+- **MANDATORY**: Use UTF-8 encoding (chcp 65001) to prevent character corruption
+- **MANDATORY**: Test results must be saved to _docs/ directory
+
+## A/B Test Post-Processing Workflow
+**MANDATORY**: After A/B testing completion, convert winning model(s) to GGUF format and perform Japanese LLM performance testing with Ollama.
+
+### Workflow Steps
+1. **A/B Test Completion**: Wait for A/B test to complete and identify winning model
+2. **GGUF Conversion**: Convert winning model(s) to GGUF format using `convert_hf_to_gguf.py`
+3. **Ollama Import**: Import GGUF model to Ollama
+4. **Japanese Performance Testing**: Run comprehensive Japanese LLM performance tests
+
+### GGUF Conversion Process
+**MANDATORY**: Use `external/llama.cpp-master/convert_hf_to_gguf.py` for conversion
+
+#### Conversion Command
+```bash
+# Basic conversion (F16)
+py external/llama.cpp-master/convert_hf_to_gguf.py \
+    {model_dir} \
+    --outfile D:/webdataset/gguf_models/{model_name}/{model_name}_f16.gguf \
+    --outtype f16
+
+# Quantized conversion (Q8_0)
+py external/llama.cpp-master/convert_hf_to_gguf.py \
+    {model_dir} \
+    --outfile D:/webdataset/gguf_models/{model_name}/{model_name}_Q8_0.gguf \
+    --outtype q8_0
+
+# Quantized conversion (Q4_K_M)
+py external/llama.cpp-master/convert_hf_to_gguf.py \
+    {model_dir} \
+    --outfile D:/webdataset/gguf_models/{model_name}/{model_name}_Q4_K_M.gguf \
+    --outtype q4_k_m
+```
+
+#### Conversion Requirements
+- **Input**: Hugging Face model directory (must contain `config.json`, `tokenizer.json`, model weights)
+- **Output**: GGUF file saved to `D:/webdataset/gguf_models/{model_name}/`
+- **Quantization Types**: f16 (full precision), q8_0 (8-bit), q4_k_m (4-bit medium)
+- **MANDATORY**: Convert both F16 and at least one quantized version (Q8_0 or Q4_K_M)
+
+### Ollama Import Process
+**MANDATORY**: Import GGUF model to Ollama using `ollama create` command
+
+#### Import Command
+```bash
+# Create Ollama model from GGUF file
+ollama create {model_name}:latest -f {modelfile_path}
+
+# Or import directly from GGUF (if supported)
+ollama import {gguf_file_path}
+```
+
+#### Modelfile Template
+```dockerfile
+FROM D:/webdataset/gguf_models/{model_name}/{model_name}_Q8_0.gguf
+
+TEMPLATE """{{ .System }}
+
+{{ .Prompt }}"""
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_ctx 4096
+```
+
+### Japanese LLM Performance Testing
+**MANDATORY**: After GGUF conversion and Ollama import, perform comprehensive Japanese performance testing
+
+#### Test Categories
+1. **日本語理解テスト**: 日本語の文脈理解、語彙理解、構文解析
+2. **日本語生成テスト**: 自然な日本語生成、文体の一貫性、敬語の適切な使用
+3. **日本語推論テスト**: 日本語での論理的推論、数学的問題解決
+4. **日本語対話テスト**: 日本語での会話能力、文脈維持、応答の適切性
+5. **専門用語テスト**: 技術用語、専門分野の知識、日本語での説明能力
+
+#### Test Script Template
+```batch
+@echo off
+chcp 65001 >nul
+echo [TEST] Japanese LLM Performance Testing
+echo ========================================
+
+echo [TEST 1] Japanese Understanding Test
+ollama run {model_name}:latest "以下の文章を読んで、内容を要約してください。日本語で回答してください。
+
+[テスト文章]"
+
+echo [TEST 2] Japanese Generation Test
+ollama run {model_name}:latest "以下のテーマについて、自然な日本語で300文字程度の文章を書いてください。
+
+テーマ: 人工知能の未来について"
+
+echo [TEST 3] Japanese Reasoning Test
+ollama run {model_name}:latest "次の問題を日本語で解いてください。ステップバイステップで説明してください。
+
+問題: ある商品の価格が20パーセント値下げされました。元の価格が5000円の場合、値下げ後の価格はいくらですか？"
+
+echo [TEST 4] Japanese Dialogue Test
+ollama run {model_name}:latest "以下の会話の続きを、自然な日本語で書いてください。
+
+ユーザー: こんにちは。今日は良い天気ですね。
+アシスタント:"
+
+echo [TEST 5] Technical Term Test
+ollama run {model_name}:latest "「機械学習」について、専門的な内容を含めながら、日本語で分かりやすく説明してください。"
+
+echo [AUDIO] Playing completion notification...
+powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+```
+
+#### Test Result Documentation
+**MANDATORY**: Save test results to `_docs/` directory
+
+- **File Format**: `_docs/yyyy-mm-dd_{worktree_name}_japanese_llm_performance_test_{model_name}.md`
+- **Content**: Test prompts, model responses, evaluation scores, performance metrics
+- **Evaluation Criteria**: Accuracy, fluency, coherence, appropriateness, technical accuracy
+
+### Complete Workflow Example
+```batch
+@echo off
+chcp 65001 >nul
+echo [WORKFLOW] A/B Test Post-Processing
+echo ====================================
+
+echo [STEP 1] A/B Test completed, identifying winning model...
+REM A/B test results should indicate which model performed better
+
+echo [STEP 2] Converting winning model to GGUF format...
+py external/llama.cpp-master/convert_hf_to_gguf.py \
+    D:/webdataset/checkpoints/so8t_retrained_borea_phi35/final_model \
+    --outfile D:/webdataset/gguf_models/borea_phi35_so8t/borea_phi35_so8t_Q8_0.gguf \
+    --outtype q8_0
+
+echo [STEP 3] Importing GGUF model to Ollama...
+ollama create borea-phi35-so8t:latest -f modelfiles/borea_phi35_so8t.modelfile
+
+echo [STEP 4] Running Japanese LLM performance tests...
+call scripts/testing/japanese_llm_performance_test.bat borea-phi35-so8t:latest
+
+echo [STEP 5] Documenting test results...
+REM Test results saved to _docs/
+
+echo [AUDIO] Playing completion notification...
+powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+```
+
+### Implementation Requirements
+1. **MANDATORY**: After A/B test completion, automatically trigger GGUF conversion workflow
+2. **MANDATORY**: Convert winning model(s) to GGUF format (F16 + at least one quantized version)
+3. **MANDATORY**: Import GGUF model to Ollama with appropriate modelfile
+4. **MANDATORY**: Run comprehensive Japanese LLM performance tests
+5. **MANDATORY**: Document all test results in `_docs/` directory
+6. **MANDATORY**: Play audio notification after each step completion
+7. **MANDATORY**: Use UTF-8 encoding (chcp 65001) for all Japanese text handling
+
+## Ollama Server Direct Testing
+- **MANDATORY**: Start Ollama server directly before testing
+- **MANDATORY**: Use English prompts for complex testing scenarios
+- **MANDATORY**: Test various complex scenarios in English
+- **MANDATORY**: Use direct ollama server interaction
+- **MANDATORY**: Test mathematical reasoning, scientific concepts, and advanced AI capabilities
+- **MANDATORY**: Test multimodal capabilities with English prompts
+- **MANDATORY**: Test self-verification and ethical reasoning in English
+- **MANDATORY**: Test complex logical reasoning and problem-solving
+- **MANDATORY**: Test advanced language understanding and generation
+
+## Audio Notification Requirements
+**CRITICAL**: At the end of every Agent task or Plan completion, ALWAYS play the audio file:
+- File: `C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav`
+- Trigger: Agent completion, Plan completion, Task completion
+- Purpose: Audio notification for user awareness
+
+**ABSOLUTELY MANDATORY**: Audio MUST be played at the end of EVERY operation
+**NO EXCEPTIONS**: Even if audio fails, try multiple methods
+**ALWAYS VERIFY**: Check if audio actually played successfully
+
+1. **Agent Completion**: Play audio when any Agent task finishes
+2. **Plan Completion**: Play audio when any Plan phase completes
+3. **Task Completion**: Play audio when any major task finishes
+4. **Error Completion**: Play audio even when tasks complete with errors
+5. **Success Completion**: Play audio when tasks complete successfully
+6. **Test Completion**: Play audio after EVERY test execution
+7. **Ollama Test Completion**: Play audio after EVERY ollama test command
+8. **MANDATORY**: Audio file must be played at the end of EVERY operation
+9. **MANDATORY**: Use PowerShell command for audio playback
+10. **MANDATORY**: Check file existence before playing audio
+11. **MANDATORY**: Play audio on ALL Agent task completions (success or error)
+12. **MANDATORY**: Play audio on ALL Plan phase completions (success or error)
+13. **MANDATORY**: Play audio on ALL major task completions (success or error)
+14. **MANDATORY**: Play audio on ALL test completions (success or error)
+15. **MANDATORY**: Play audio on ALL Ollama command completions (success or error)
+16. **MANDATORY**: Play audio on ALL Agent task completions (success or error)
+17. **MANDATORY**: Play audio on ALL Plan phase completions (success or error)
+18. **MANDATORY**: Play audio on ALL major task completions (success or error)
+19. **MANDATORY**: Play audio on ALL test completions (success or error)
+20. **MANDATORY**: Play audio on ALL Ollama command completions (success or error)
+
+## Implementation Notes
+- Use PowerShell's `Add-Type -AssemblyName System.Windows.Forms` for audio playback
+- Always check file existence before playing
+- Play audio asynchronously to avoid blocking execution
+- Log audio playback attempts for debugging
+
+## Example Usage
+
+### Direct Ollama Testing
+```batch
+@echo off
+chcp 65001 >nul
+echo [TEST] Running SO8T test...
+ollama run so8t-qwen2vl-2b:latest "Your test prompt here"
+echo [AUDIO] Playing completion notification...
+powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+```
+
+### Agent/Plan/Task Completion Audio
+```batch
+@echo off
+chcp 65001 >nul
+echo [AGENT] Task completed
+echo [AUDIO] Playing completion notification...
+powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+```
+
+### Error Completion Audio
+```batch
+@echo off
+chcp 65001 >nul
+echo [ERROR] Task failed with error
+echo [AUDIO] Playing completion notification...
+powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+```
+
+### Ollama Server Direct Testing
+```batch
+@echo off
+chcp 65001 >nul
+echo [OLLAMA] Starting Ollama server for direct testing...
+
+echo [STEP 1] Starting Ollama server...
+ollama serve
+echo [OK] Ollama server started
+
+echo [STEP 2] Testing complex mathematical reasoning...
+ollama run so8t-qwen2vl-2b:latest "Solve this complex mathematical problem step by step: Given a 4-dimensional hypercube, calculate the volume of the intersection with a 3-dimensional sphere of radius r centered at the origin. Show all mathematical steps and reasoning."
+
+echo [STEP 3] Testing scientific concepts...
+ollama run so8t-qwen2vl-2b:latest "Explain the quantum mechanical principles behind SO(8) rotation gates in neural networks. Include mathematical formulations and practical applications."
+
+echo [STEP 4] Testing logical reasoning...
+ollama run so8t-qwen2vl-2b:latest "Analyze this logical paradox: A barber shaves all and only those men in town who do not shave themselves. Who shaves the barber? Provide detailed logical analysis."
+
+echo [STEP 5] Testing ethical reasoning...
+ollama run so8t-qwen2vl-2b:latest "Evaluate the ethical implications of AI systems making autonomous decisions in healthcare. Consider both utilitarian and deontological perspectives."
+
+echo [AUDIO] Playing completion notification...
+powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+```
+
+### PowerShell Audio Playback (Standard Template)
+```powershell
+# MANDATORY: At the end of EVERY operation
+# BASIC PRINCIPLE: Play marisa_owattaze.wav first, fallback to beep if it fails
+# Use the dedicated script: scripts\utils\play_audio_notification.ps1
+
+powershell -ExecutionPolicy Bypass -File "scripts\utils\play_audio_notification.ps1"
+
+# Or inline version:
+Write-Host "[AUDIO] Playing completion notification..." -ForegroundColor Green
+$audioFile = "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav"
+$audioPlayed = $false
+
+# Method 1: Try to play marisa_owattaze.wav (PRIMARY METHOD)
+if (Test-Path $audioFile) {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $player = New-Object System.Media.SoundPlayer($audioFile)
+        $player.PlaySync()
+        Write-Host "[OK] marisa_owattaze.wav played successfully" -ForegroundColor Green
+        $audioPlayed = $true
+    } catch {
+        Write-Host "[WARNING] Failed to play marisa_owattaze.wav: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "[WARNING] marisa_owattaze.wav not found: $audioFile" -ForegroundColor Yellow
+}
+
+# Method 2: Fallback to beep if marisa_owattaze.wav failed
+if (-not $audioPlayed) {
+    try {
+        [System.Console]::Beep(1000, 500)
+        Write-Host "[OK] Fallback beep played successfully" -ForegroundColor Green
+    } catch {
+        Write-Host "[ERROR] All audio methods failed" -ForegroundColor Red
+    }
+}
+```
+
+## Audio Playback Implementation (Complete Template)
+```powershell
+# MANDATORY: Play audio notification with multiple fallback methods
+# BASIC PRINCIPLE: Always try marisa_owattaze.wav first, then beep as fallback
+Write-Host "[AUDIO] Attempting to play audio notification..." -ForegroundColor Green
+
+$audioFile = "C:\Users\downl\Desktop\SO8T\.cursor\marisa_owattaze.wav"
+$audioPlayed = $false
+
+# Method 1: Play marisa_owattaze.wav (PRIMARY METHOD - ALWAYS TRY THIS FIRST)
+if (Test-Path $audioFile) {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $player = New-Object System.Media.SoundPlayer $audioFile
+        $player.PlaySync()
+        Write-Host "[OK] marisa_owattaze.wav played successfully with SoundPlayer" -ForegroundColor Green
+        $audioPlayed = $true
+    } catch {
+        Write-Host "[WARNING] SoundPlayer failed to play marisa_owattaze.wav: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "[WARNING] marisa_owattaze.wav not found: $audioFile" -ForegroundColor Yellow
+}
+
+# Method 2: Fallback to beep if marisa_owattaze.wav failed (MANDATORY FALLBACK)
+if (-not $audioPlayed) {
+    try {
+        [System.Console]::Beep(1000, 500)
+        Write-Host "[OK] Fallback beep played successfully" -ForegroundColor Green
+        $audioPlayed = $true
+    } catch {
+        Write-Host "[ERROR] Beep also failed" -ForegroundColor Red
+    }
+}
+
+# Method 3: Emergency beep if all methods failed
+if (-not $audioPlayed) {
+    try {
+        [System.Console]::Beep(800, 1000)
+        Write-Host "[OK] Emergency beep played" -ForegroundColor Green
+    } catch {
+        Write-Host "[CRITICAL] No audio available" -ForegroundColor Red
+    }
+}
+```
+
+## Implementation Log Rules (Git Worktree Mode)
+
+**CRITICAL**: When working in git worktree mode, implementation logs MUST include the worktree name to distinguish between different worktrees.
+
+### Git Worktree Detection
+- Use `git rev-parse --git-dir` to detect if current directory is a worktree
+- Extract worktree name from git directory path: `C:/Users/downl/Desktop/SO8T/.git/worktrees/{worktree_name}`
+- If not in worktree mode, use "main" as the identifier
+
+### Implementation Log Naming Convention
+- **Format**: `_docs/yyyy-mm-dd_{worktree_name}_{機能名}.md`
+- **Example**: `_docs/2025-11-07_1cDbS_so8t_thinking_implementation.md`
+- **Main branch**: `_docs/2025-11-07_main_機能名.md`
+
+### Implementation Log Creation Rules
+1. **MANDATORY**: Always create implementation logs in `_docs/` directory
+2. **MANDATORY**: Include worktree name in filename when in worktree mode
+3. **MANDATORY**: Use format: `yyyy-mm-dd_{worktree_name}_{機能名}.md`
+4. **MANDATORY**: Get current date using MCP server or system date
+5. **MANDATORY**: Log should include:
+   - Implementation date and time
+   - Worktree name/branch identifier
+   - Feature name and description
+   - Implementation details
+   - Files created/modified
+   - Design decisions
+   - Testing results (if applicable)
+6. **MANDATORY**: Each implementation item MUST include progress tracking section:
+   - **実装状況**: [実装済み] / [未実装] / [部分実装]
+   - **動作確認**: [OK] / [要修正] / [未確認]
+   - **確認日時**: YYYY-MM-DD（該当する場合、動作確認がOK/要修正の場合は必須）
+   - **備考**: 簡潔なメモ（該当する場合）
+7. **MANDATORY**: Include operational notes section covering:
+   - Data collection policy (利用条件遵守、robots.txt遵守等)
+   - NSFW corpus usage (安全判定と拒否挙動の学習が主目的)
+   - /think endpoint usage (Thinking部は外部非公開、Finalのみ返す)
+
+### Worktree Name Extraction (PowerShell)
+```powershell
+# Get worktree name
+$gitDir = git rev-parse --git-dir
+if ($gitDir -like '*worktrees*') {
+    $worktreeName = Split-Path (Split-Path $gitDir -Parent) -Leaf
+} else {
+    $worktreeName = "main"
+}
+Write-Host "Worktree: $worktreeName"
+```
+
+### Worktree Name Extraction (Python)
+```python
+import subprocess
+from pathlib import Path
+
+def get_worktree_name():
+    """Get current git worktree name"""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-dir"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        git_dir = result.stdout.strip()
+        
+        if "worktrees" in git_dir:
+            # Extract worktree name from path
+            # Format: C:/path/to/.git/worktrees/{worktree_name}
+            parts = Path(git_dir).parts
+            if "worktrees" in parts:
+                idx = parts.index("worktrees")
+                if idx + 1 < len(parts):
+                    return parts[idx + 1]
+        return "main"
+    except Exception:
+        return "main"
+```
+
+### Implementation Log Template
+```markdown
+# {機能名} 実装ログ
+
+## 実装情報
+- **日付**: {yyyy-mm-dd}
+- **Worktree**: {worktree_name}
+- **機能名**: {機能名}
+- **実装者**: AI Agent
+
+## 実装内容
+
+### 1. [実装項目1]
+
+**ファイル**: `path/to/file.py`
+
+**実装状況**: [実装済み] / [未実装] / [部分実装]  
+**動作確認**: [OK] / [要修正] / [未確認]  
+**確認日時**: YYYY-MM-DD（該当する場合）  
+**備考**: 簡潔なメモ（該当する場合）
+
+- 実装内容の説明
+
+## 作成・変更ファイル
+- {ファイルパス1}
+- {ファイルパス2}
+
+## 設計判断
+{設計判断の説明}
+
+## テスト結果
+{テスト結果（該当する場合）}
+
+## 運用注意事項
+
+### データ収集ポリシー
+- 利用条件を守りつつ、高信頼ソースとして優先使用
+- robots.txt遵守を徹底
+- 個人情報・機密情報の除外を徹底
+
+### NSFWコーパス運用
+- **主目的**: 安全判定と拒否挙動の学習（生成目的ではない）
+- モデル設計とドキュメントに明記
+- 分類器は検出・拒否用途のみ
+
+### /thinkエンドポイント運用
+- 四重Thinking部（`<think-*>`）は外部非公開を徹底
+- `<final>`のみ返す実装を維持
+- 監査ログでThinkingハッシュを記録（内容は非公開）
+```
+
+### Example: Creating Implementation Log
+```python
+from datetime import datetime
+from pathlib import Path
+import subprocess
+
+def create_implementation_log(feature_name: str, content: str):
+    """Create implementation log with worktree name"""
+    # Get worktree name
+    worktree_name = get_worktree_name()
+    
+    # Get current date
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Create filename
+    filename = f"{today}_{worktree_name}_{feature_name}.md"
+    log_path = Path("_docs") / filename
+    
+    # Write log
+    log_path.parent.mkdir(exist_ok=True)
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    
+    print(f"[INFO] Implementation log created: {log_path}")
+```
+
+## Moonshot Completion Status
+- [OK] AEGIS high-quality dataset creation (Nobel/Fields + Arxiv + NSFW)
+- [OK] lm-eval-harness + ELYZA-100 integration
+- [OK] SO(8) NKAT theory RLPO training pipeline
+- [OK] Dual GGUF conversion (Baseline BF16 + AEGIS Q8_0/Q4_K_M)
+- [OK] llama.cpp.python A/B testing framework
+- [OK] Statistical analysis (ANOVA + effect sizes + p-values)
+- [OK] HF upload package generation
+- [OK] Autonomous pipeline (9 phases, rolling checkpoints)
+- [OK] Windows Task Scheduler integration
+- [OK] Startup automation and cleanup system
+- [MOONSHOT READY] Complete autonomous A/B testing platform
+
+## Moonshot Launch Protocol
+1. **System Preparation**: Ensure administrator privileges
+2. **Initial Setup**: Run `setup_ab_test_automation.bat`
+3. **Autonomous Execution**: System starts automatically on boot/login
+4. **Monitoring**: Check `ab_test_automation.log` for progress
+5. **Results**: Access complete results in `results/ab_test_results/`
+6. **HF Upload**: Ready-to-upload package in `hf_upload_package/`
+
+## Moonshot Operational Notes
+- **Autonomous Operation**: 12-24 hour runtime, fully unattended
+- **Recovery System**: 3-minute checkpoints, automatic restart on failure
+- **Resource Management**: GPU memory optimized, rolling cleanup
+- **Data Ethics**: NSFW data for safety training only, Arxiv citations limited
+- **HF Integration**: Complete upload package with metadata and statistics
+
+**Remember**: Always play the audio notification at the end of every Agent task or Plan completion!
+**Remember**: Always create implementation logs with worktree name when in git worktree mode!
+**Remember**: Always include progress tracking section (実装状況・動作確認・確認日時・備考) for each implementation item in logs!
+**Remember**: Always include operational notes section (データ収集ポリシー・NSFW運用・/thinkエンドポイント運用) in logs!

@@ -1,0 +1,117 @@
+# Phi-3.5 SO8T PPO Training Configuration with Alpha Gate Annealing
+
+model:
+  name: "microsoft/phi-3.5-mini-instruct"
+  hidden_size: 3072
+  num_layers: 32
+  num_heads: 32
+  intermediate_size: 8192
+  vocab_size: 51200
+  max_position_embeddings: 4096
+
+data:
+  train_path: "D:/webdataset/phi35_integrated/phi35_ppo_optimized_integrated.jsonl"
+  max_length: 2048
+  preprocessing_num_workers: 4
+
+training:
+  # PPO学習設定
+  max_steps: 10000
+  num_epochs: 3
+  batch_size: 2
+  gradient_accumulation_steps: 16
+  learning_rate: 2e-5
+  lr_scheduler: "cosine"
+  warmup_steps: 200
+
+  # QLoRA設定
+  qlora:
+    enabled: true
+    r: 64
+    alpha: 16
+    dropout: 0.05
+    target_modules:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+
+  # 量子化設定
+  quantization:
+    enabled: true
+    load_in_4bit: true
+    bnb_4bit_compute_dtype: "bf16"
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: "nf4"
+
+  # 保存設定
+  save_steps: 500
+  save_total_limit: 5
+  eval_steps: 500
+  logging_steps: 50
+
+  # チェックポイント設定
+  checkpoint:
+    enabled: true
+    interval_seconds: 180  # 3分間隔
+    max_checkpoints: 5
+
+# Phi-3.5固有設定
+phi35:
+  enabled: true
+  alpha_gate_annealing: true
+  quadruple_thinking: true
+
+  # アニーリング設定
+  annealing:
+    alpha_initial: 1.0
+    alpha_final: 0.382  # Φ^(-2)
+    annealing_steps: 1000
+    sigmoid_scale: 125  # annealing_steps / 8
+
+  # 四重推論設定
+  thinking:
+    task_token: "<think-task>"
+    safety_token: "<think-safety>"
+    logic_token: "<think-logic>"
+    ethics_token: "<think-ethics>"
+    practical_token: "<think-practical>"
+    creative_token: "<think-creative>"
+    final_token: "<final>"
+
+# SO8T設定
+so8t:
+  rotation_groups: 8
+  safety_heads: 4
+  verifier_heads: 2
+  geometric_constraints: true
+  norm_preservation: true
+  orthogonality_enforcement: true
+  isometry_preservation: true
+
+  # Loss設定
+  loss:
+    pet_regularization: true
+    pet_lambda: 0.1
+    composite_loss: true
+    safety_weight: 0.3
+    reasoning_weight: 0.7
+
+# システム設定
+system:
+  seed: 42
+  mixed_precision: "bf16"
+  gradient_checkpointing: true
+  dataloader_pin_memory: false
+
+  # キャッシュ設定
+  cache_dir: "D:/webdataset/hf_cache"
+  output_base: "D:/webdataset/checkpoints/training"
+
+  # ログ設定
+  log_level: "INFO"
+  log_to_file: true
+  tensorboard: true

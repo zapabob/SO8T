@@ -1,0 +1,65 @@
+{
+  "models": {
+    "Phi-3.5-mini-instruct-FP16": {
+      "path": "models/gguf/phi-3.5-mini-instruct-fp16.gguf",
+      "type": "gguf",
+      "description": "Microsoft Phi-3.5-mini-instruct in GGUF FP16 format",
+      "official_scores": {
+        "gsm8k": 0.862,
+        "math": 0.485,
+        "arc_challenge": 0.846
+      }
+    },
+    "Borea-phi3.5-instinct-jp-FP16": {
+      "path": "models/gguf/borea-phi3.5-instinct-jp-fp16.gguf",
+      "type": "gguf",
+      "description": "HODACHI Borea Phi-3.5-mini-Instruct-Jp in GGUF FP16 format",
+      "estimated_scores": {
+        "gsm8k": 0.891,
+        "math": 0.298,
+        "arc_challenge": 0.783
+      }
+    },
+    "AEGIS-Phi3.5mini-jp-v2.4-FP16": {
+      "path": "AEGIS-Phi3.5mini-jp",
+      "type": "transformers",
+      "description": "SO8T AEGIS Phi-3.5mini-jp v2.4 (fallback to Transformers)",
+      "measured_scores": {
+        "gsm8k": 0.982,
+        "math": 0.322,
+        "arc_challenge": 0.453
+      }
+    }
+  },
+  "evaluation_settings": {
+    "benchmarks": ["gsm8k", "math", "arc_challenge"],
+    "default_samples": {
+      "gsm8k": 100,
+      "math": 50,
+      "arc_challenge": 100
+    },
+    "gguf_settings": {
+      "n_gpu_layers": -1,
+      "n_ctx": 4096,
+      "n_threads": 8
+    },
+    "temperature": 0.0,
+    "protocols": {
+      "gsm8k": "8-shot CoT",
+      "math": "0-shot CoT",
+      "arc_challenge": "10-shot"
+    }
+  },
+  "memory_requirements": {
+    "fp16_gguf": {
+      "phi_3_5_mini": "~7.5GB VRAM",
+      "estimated_load_time": "30-60 seconds",
+      "inference_speed": "Fast"
+    },
+    "quantized_comparison": {
+      "q8_0": "~4GB VRAM",
+      "q4_k_m": "~2.5GB VRAM",
+      "trade_off": "Speed vs Accuracy"
+    }
+  }
+}

@@ -1,0 +1,132 @@
+# データ収集・前処理パイプライン設定
+
+# 出力ディレクトリ（D:\webdatasetを使用）
+output_dir: "D:/webdataset/processed"
+checkpoint_dir: "D:/webdataset/checkpoints/pipeline"
+target_size_gb: 300.0
+
+# データソース設定
+data_sources:
+  enable_specialized_crawlers: true
+  enable_parallel_crawler: true
+  max_pages_per_source: 1000
+  
+  # 専用クローラー設定
+  enable_kanpou_4web: true
+  enable_egov: true
+  enable_zenn: true
+  enable_qiita: true
+  enable_wikipedia_ja: true
+  
+  # API設定
+  zenn_api_enabled: false
+  qiita_api_enabled: false
+  qiita_api_token: null
+  
+  # Phase 1拡張: 追加データソース
+  phase1_extended:
+    enabled: true
+    
+    # プログラミング言語ベストプラクティス
+    programming_best_practices:
+      enabled: true
+      languages: ["python", "javascript", "java", "rust", "go", "csharp"]
+      max_samples_per_language: 10000
+    
+    # Arxiv論文
+    arxiv:
+      enabled: true
+      categories: ["cs.AI", "cs.CL", "cs.LG", "math", "physics"]
+      max_papers: 50000
+      date_from: "2020-01-01"
+    
+    # オープンアクセス論文
+    open_access_papers:
+      enabled: true
+      repositories: ["pmc", "doaj", "europe_pmc", "core", "zenodo"]
+      max_papers: 100000
+    
+    # ドメイン別知識サイト
+    domain_knowledge:
+      enabled: true
+      japanese_sites: ["kotobank", "weblio", "jstage", "cinii"]
+      english_sites: ["britannica", "khan_academy", "mit_ocw"]
+      max_samples_per_site: 50000
+
+# クローラー設定
+crawler:
+  delay_per_domain: 1.0
+  timeout: 15
+  max_workers: 4
+  target_samples: 10000000
+  max_depth: 4
+  checkpoint_interval: 180  # 3分間隔
+  max_checkpoints: 5  # チェックポイント数（最大5個ローテーション）
+  language_weights:
+    ja: 0.7  # 日本語70%
+    en: 0.2  # 英語20%
+    zh: 0.1  # 中国語10%
+
+# NSFW検知設定
+nsfw_detection:
+  enabled: true
+  model_path: "models/nsfw_classifier.joblib"
+  confidence_threshold: 0.7
+
+# データクレンジング設定
+data_cleaning:
+  enabled: true
+  min_length: 50
+  max_length: 10000
+  min_quality_score: 0.7
+
+# キーワード設定
+keywords_config: "scripts/data/wikipedia_domain_keywords.json"
+
+# 四重推論/thinking設定
+thinking:
+  enabled: true
+  use_quadruple: true
+  use_redacted: false
+
+# 四値分類設定
+four_class_classification:
+  enabled: true
+  use_model: false  # ルールベース分類を使用（モデル使用時はtrue）
+  model_path: "models/four_class_model"
+
+# MLOps/LLMOps可視化設定
+mlops:
+  # MLflow設定
+  mlflow:
+    enabled: true
+    tracking_uri: "file:./mlruns"
+    experiment_name: "SO8T_Production"
+  
+  # W&B設定（無効化）
+  wandb:
+    enabled: false
+    project: "so8t-production"
+    entity: null
+  
+  # TensorBoard設定（無効化）
+  tensorboard:
+    enabled: false
+    log_dir: "runs"
+
+# チェックポイント設定
+checkpoint:
+  save_dir: "D:/webdataset/checkpoints/pipeline"
+  interval_seconds: 300  # 5分間隔
+  max_checkpoints: 10
+
+# 進捗管理設定
+progress:
+  log_interval: 1800  # 30分間隔
+
+
+
+
+
+
+

@@ -1,0 +1,94 @@
+{
+  "search_timestamp": "2026-01-17T01:28:56.765971",
+  "search_queries_used": 54,
+  "papers_found": 4,
+  "papers": [
+    {
+      "title": "MatchTIR: Fine-Grained Supervision for Tool-Integrated Reasoning via Bipartite Matching",
+      "authors": [
+        "Changle Qu",
+        "Sunhao Dai",
+        "Hengyi Cai"
+      ],
+      "summary": "Tool-Integrated Reasoning (TIR) empowers large language models (LLMs) to tackle complex tasks by interleaving reasoning steps with external tool interactions. However, existing reinforcement learning ...",
+      "published": "2026-01-15T18:59:23Z",
+      "link": "http://arxiv.org/abs/2601.10712v1",
+      "conference": "Unknown",
+      "relevance_scores": {
+        "transformer": 0,
+        "llm": 3,
+        "geometric": 0,
+        "grpo": 1,
+        "total": 4
+      }
+    },
+    {
+      "title": "From One-to-One to Many-to-Many: Dynamic Cross-Layer Injection for Deep Vision-Language Fusion",
+      "authors": [
+        "Cheng Chen",
+        "Yuyu Guo",
+        "Pengpeng Zeng"
+      ],
+      "summary": "Vision-Language Models (VLMs) create a severe visual feature bottleneck by using a crude, asymmetric connection that links only the output of the vision encoder to the input of the large language mode...",
+      "published": "2026-01-15T18:59:10Z",
+      "link": "http://arxiv.org/abs/2601.10710v1",
+      "conference": "Unknown",
+      "relevance_scores": {
+        "transformer": 0,
+        "llm": 3,
+        "geometric": 0,
+        "grpo": 0,
+        "total": 3
+      }
+    },
+    {
+      "title": "Alterbute: Editing Intrinsic Attributes of Objects in Images",
+      "authors": [
+        "Tal Reiss",
+        "Daniel Winter",
+        "Matan Cohen"
+      ],
+      "summary": "We introduce Alterbute, a diffusion-based method for editing an object's intrinsic attributes in an image. We allow changing color, texture, material, and even the shape of an object, while preserving...",
+      "published": "2026-01-15T18:59:53Z",
+      "link": "http://arxiv.org/abs/2601.10714v1",
+      "conference": "Unknown",
+      "relevance_scores": {
+        "transformer": 0,
+        "llm": 1,
+        "geometric": 2,
+        "grpo": 0,
+        "total": 3
+      }
+    },
+    {
+      "title": "Euclid preparation. 3D reconstruction of the cosmic web with simulated Euclid Deep spectroscopic samples",
+      "authors": [
+        "Euclid Collaboration",
+        "K. Kraljic",
+        "C. Laigle"
+      ],
+      "summary": "The ongoing Euclid mission aims to measure spectroscopic redshifts for approximately two million galaxies using the H $α$ line emission detected in near-infrared slitless spectroscopic data from the E...",
+      "published": "2026-01-15T18:59:07Z",
+      "link": "http://arxiv.org/abs/2601.10709v1",
+      "conference": "Unknown",
+      "relevance_scores": {
+        "transformer": 0,
+        "llm": 0,
+        "geometric": 2,
+        "grpo": 0,
+        "total": 2
+      }
+    }
+  ],
+  "category_breakdown": {
+    "transformer_focused": 0,
+    "llm_focused": 3,
+    "geometric_focused": 2,
+    "grpo_focused": 1
+  },
+  "so8t_relevance_analysis": {
+    "high_relevance": 1,
+    "medium_relevance": 3,
+    "low_relevance": 0
+  }
+}

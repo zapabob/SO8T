@@ -1,0 +1,17 @@
+{
+  "gpu": {
+    "name": "RTX 3060",
+    "memory_gb": 12,
+    "cuda_version": "12.1+"
+  },
+  "cpu": {
+    "memory_gb": 32,
+    "cores": "8+"
+  },
+  "optimization": {
+    "quantization": "8bit",
+    "gradient_checkpointing": true,
+    "cpu_offloading": true,
+    "flash_attention": true
+  }
+}

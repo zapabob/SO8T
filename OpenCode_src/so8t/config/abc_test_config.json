@@ -1,0 +1,29 @@
+{
+  "models": {
+    "modela": {
+      "path": "D:/webdataset/gguf_models/borea_phi35_instruct_jp_f16.gguf",
+      "type": "gguf",
+      "description": "Borea-Phi3.5-instruct-jp (GGUF BF16) - ABC Test Model A"
+    },
+    "modelb": {
+      "path": "D:/webdataset/models/aegis_v2_phi35_thinking/final",
+      "type": "hf",
+      "description": "AEGIS-v2.0-Phi3.5-thinking Model - ABC Test Model B"
+    },
+    "modelc": {
+      "path": "D:/webdataset/models/borea_phi35_so8t_rtx3060/final",
+      "type": "hf",
+      "description": "AEGIS-Phi3.5-Golden-Sigmoid Model - ABC Test Model C"
+    }
+  },
+  "benchmark_config": {
+    "max_samples": 100,
+    "batch_size": 1,
+    "num_fewshot": 0,
+    "timeout": 600
+  },
+  "output": {
+    "results_dir": "D:/webdataset/results/abc_test_results",
+    "hf_submission_dir": "D:/webdataset/results/hf_submission"
+  }
+}

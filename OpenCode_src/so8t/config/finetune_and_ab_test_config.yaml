@@ -1,0 +1,55 @@
+# Fine-tuning & A/Bテスト統合パイプライン設定
+
+# 出力ディレクトリ
+output_dir: "D:/webdataset/finetuned_models"
+
+# データ設定
+data:
+  input_path: "D:/webdataset/processed/four_class/four_class_20251108_035137.jsonl"
+  format_type: "instruction"  # instruction, chat, completion
+  max_length: 2048
+
+# モデル設定
+model:
+  base_model: "Qwen/Qwen2.5-7B-Instruct"  # または "microsoft/Phi-3.5-mini-instruct"
+
+# 学習設定
+training:
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  logging_steps: 10
+  save_steps: 500
+  save_total_limit: 5
+  eval_steps: 500
+  fp16: true
+  bf16: false
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+  
+  # LoRA設定
+  lora_r: 64
+  lora_alpha: 128
+  lora_target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_dropout: 0.05
+
+# テスト設定
+test:
+  test_data_path: "D:/webdataset/processed/four_class/four_class_20251108_035137.jsonl"
+  model_a_path: null  # SO8TTransformerModelチェックポイントパス（オプション）
+
+# デバイス設定
+device: "cuda"  # cuda or cpu
+

@@ -1,0 +1,61 @@
+{
+    "model": {
+        "base_model": "microsoft/Phi-3.5-mini-instruct",
+        "model_name": "AEGIS-v2.0-Borea-Phi3.5-Optimized-Test",
+        "quantization": ["Q8_0"]
+    },
+    "training": {
+        "max_steps": 1000,
+        "batch_size": 1,
+        "learning_rate": 2e-4,
+        "warmup_steps": 10,
+        "gradient_accumulation_steps": 16,
+        "save_steps": 50,
+        "logging_steps": 10,
+        "test_mode": false,
+        "use_unsloth": true,
+        "gpu_memory_limit": 0.75
+    },
+    "so8t": {
+        "enable_so8t": true,
+        "alpha_gate_enabled": true,
+        "alpha_initial": -0.5,
+        "alpha_target": 0.382,
+        "annealing_steps": 500,
+        "orthogonality_weight": 0.03868643499581474
+    },
+    "bayesian_optimization": {
+        "enable_bayesian_optimization": false,
+        "bayesian_trials": 10,
+        "bayesian_timeout": 1800,
+        "optimize_learning_rate": true,
+        "optimize_batch_size": true,
+        "optimize_alpha_params": true
+    },
+    "lora": {
+        "r": 8,
+        "lora_alpha": 64,
+        "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        "lora_dropout": 0.17080305311250416,
+        "bias": "none",
+        "task_type": "CAUSAL_LM"
+    },
+    "data": {
+        "train_file": "data/so8t_cot_enhanced_training_dataset_70k.jsonl",
+        "max_samples": 70000,
+        "validation_split": 0.1,
+        "max_length": 2048,
+        "preprocessing_num_workers": 4,
+        "include_mathematical_documents": true,
+        "mathematical_enhancement_weight": 0.8,
+        "dataset_quality_verified": true,
+        "nsfw_detection_enabled": true,
+        "qc_controlled": true,
+        "cot_enhanced": true,
+        "thinking_model_optimized": true
+    },
+    "gguf": {
+        "output_dir": "H:/from_D/webdataset/gguf_models",
+        "quantization_types": ["q8_0"]
+    }
+}

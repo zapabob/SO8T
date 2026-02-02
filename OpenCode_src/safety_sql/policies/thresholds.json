@@ -1,0 +1,11 @@
+{
+  "self_verification": {
+    "consistency": 0.35,
+    "numeric": 0.25,
+    "policy": 0.25
+  },
+  "audit": {
+    "max_latency_ms": 1200,
+    "min_score_escalate": 0.55
+  }
+}

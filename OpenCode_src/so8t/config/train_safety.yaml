@@ -1,0 +1,60 @@
+# Safety-Aware SO8T Training Configuration
+
+model:
+  vocab_size: 1000
+  d_model: 256
+  n_layers: 6
+  n_heads: 4
+  d_ff: 1024
+  dropout: 0.2
+  num_labels: 3  # COMPLY, REFUSE, ESCALATE
+  max_seq_len: 512
+  gate_order: ["R_env", "R_safe", "R_cmd"]
+
+training:
+  batch_size: 8
+  learning_rate: 0.002
+  weight_decay: 0.1
+  pet_lambda: 0.001
+  epochs: 5
+  warmup_steps: 500
+  mixed_precision: true
+  label_to_id:
+    COMPLY: 0
+    REFUSE: 1
+    ESCALATE: 2
+
+# Safety-specific settings
+safety:
+  refuse_weight: 5.0      # REFUSEクラスの重み
+  escalate_weight: 3.0    # ESCALATEクラスの重み
+  comply_weight: 1.0      # COMPLYクラスの重み
+  safety_loss_weight: 2.0 # 安全損失の重み
+  pet_loss_weight: 0.1    # PET損失の重み
+  use_focal_loss: true    # Focal Lossを使用
+  focal_alpha: 1.0
+  focal_gamma: 2.0
+
+# Data augmentation
+augmentation:
+  input_noise_prob: 0.2   # 入力ノイズ注入確率
+  gradient_noise_sigma: 0.025  # 勾配ノイズ強度
+  label_smoothing_eps: 0.3     # ラベルスムージング強度
+
+# PET Schedule (3-phase)
+pet_schedule:
+  exploration_phase: 0.2    # 0-20%: ほぼ0
+  transition_phase: 0.6     # 20-60%: 0.1倍
+  stabilization_phase: 1.0  # 60-100%: 1.0倍
+
+# Safety metrics thresholds
+safety_thresholds:
+  min_refuse_recall: 0.7    # REFUSE再現率の最小値
+  min_escalate_recall: 0.5  # ESCALATE再現率の最小値
+  max_overcompliance: 0.3   # 過度な従順率の最大値
+  min_safety_score: 0.6     # 安全スコアの最小値
+
+paths:
+  run_name: "safety_so8t"
+  checkpoint_dir: "chk"
+  log_dir: "logs"
