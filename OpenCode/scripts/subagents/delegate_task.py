@@ -20,15 +20,20 @@ def main():
     parser.add_argument("task", help="Task description to route")
     parser.add_argument("--registry", default=str(PROJECT_ROOT / "config" / "subagents" / "registry.yaml"))
     parser.add_argument("--strategy", default="auto", choices=["auto","single","single_best","parallel"])
+    parser.add_argument("--permissions", default="", help="Comma-separated required permissions")
     parser.add_argument("--json", action="store_true", help="Print JSON output")
     args = parser.parse_args()
 
     registry = load_registry(Path(args.registry))
     router = DynamicTaskRouter(registry)
-    decision = router.route_task(args.task, strategy=args.strategy)
+    required_permissions = [p.strip() for p in args.permissions.split(",") if p.strip()]
+    decision = router.route_task(
+        args.task, strategy=args.strategy, required_permissions=required_permissions
+    )
     payload = {
         "strategy": decision.strategy,
         "reasoning": decision.reasoning,
+        "required_permissions": required_permissions,
         "assignments": [
             {
                 "subagent": a.subagent_name,

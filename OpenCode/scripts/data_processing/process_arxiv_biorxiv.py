@@ -49,6 +49,9 @@ class ArxivBioRxivProcessor:
         self.raw_dir.mkdir(parents=True, exist_ok=True)
         self.processed_dir.mkdir(parents=True, exist_ok=True)
         self.cleaned_dir.mkdir(parents=True, exist_ok=True)
+
+        # Subagent routing (operational logging)
+        self._log_subagent_route()
         
         # 期間設定
         self.start_year = 2024
@@ -59,6 +62,52 @@ class ArxivBioRxivProcessor:
         self.download_metrics = {}
         if download_metrics_path:
             self.download_metrics = self._load_download_metrics(download_metrics_path)
+
+    def _log_subagent_route(self) -> None:
+        """Log subagent routing decision for deep research pipeline."""
+        try:
+            registry_path = self.project_root / "config" / "subagents" / "registry.yaml"
+            if not registry_path.exists():
+                return
+            sys.path.insert(0, str(self.project_root))
+            from src.subagents.registry import load_registry
+            from src.subagents.router import DynamicTaskRouter
+
+            registry = load_registry(registry_path)
+            router = DynamicTaskRouter(registry)
+            decision = router.route_task(
+                "arXiv/BioRxiv API download for 2024-2026",
+                strategy="parallel",
+                required_permissions=["network-read", "write-data", "write-metadata"],
+            )
+
+            logs_dir = self.project_root / "logs" / "subagents"
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "task": "arXiv/BioRxiv API download for 2024-2026",
+                "required_permissions": ["network-read", "write-data", "write-metadata"],
+                "decision": {
+                    "strategy": decision.strategy,
+                    "reasoning": decision.reasoning,
+                    "assignments": [
+                        {
+                            "subagent": a.subagent_name,
+                            "task_portion": a.task_portion,
+                            "score": a.score,
+                            "capabilities": a.capabilities,
+                        }
+                        for a in decision.assignments
+                    ],
+                },
+                "timestamp": datetime.now().isoformat(),
+            }
+            log_path = logs_dir / f"deep_research_route_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            log_path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            logger.info("[SUBAGENT] Routing logged: %s", log_path)
+        except Exception as exc:
+            logger.warning("[SUBAGENT] Routing log skipped: %s", exc)
 
     def _load_download_metrics(self, path: Path) -> Dict[str, int]:
         """Load download counts from JSON or CSV (id,download_count)."""

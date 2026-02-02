@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 import re
 
 from .schema import SubagentDefinition
 from .registry import SubagentRegistry
+from .permissions import satisfies_permissions
 
 
 @dataclass
@@ -37,9 +38,18 @@ class DynamicTaskRouter:
                 score = max(score, float(trigger.confidence_threshold))
         return score
 
-    def route_task(self, task: str, strategy: str = "auto") -> RoutingDecision:
+    def route_task(
+        self,
+        task: str,
+        strategy: str = "auto",
+        required_permissions: Optional[List[str]] = None,
+    ) -> RoutingDecision:
         candidates: List[SubagentAssignment] = []
         for subagent in self.registry.subagents.values():
+            if required_permissions and not satisfies_permissions(
+                subagent, required_permissions
+            ):
+                continue
             score = self._score_subagent(task, subagent)
             if score > 0:
                 capabilities = [cap.name for cap in subagent.capabilities]

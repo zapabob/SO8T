@@ -1,0 +1,20 @@
+﻿version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/OpenCode"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "flash-attn"
+  - package-ecosystem: "pip"
+    directory: "/OpenCode_src"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "flash-attn"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

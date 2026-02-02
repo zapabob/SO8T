@@ -133,6 +133,16 @@ class MoonshotPipelineV3:
         except Exception as e:
             logger.warning("Failed to log future plan to SQL: %s", e)
 
+    def _log_operational_routes(self) -> None:
+        """Generate operational routing plan for subagents."""
+        try:
+            script = self.project_root / "scripts" / "subagents" / "operational_router.py"
+            if script.exists():
+                subprocess.run([sys.executable, str(script)], cwd=self.project_root, check=False)
+                logger.info("[SUBAGENT] Operational routing plan generated.")
+        except Exception as exc:
+            logger.warning("[SUBAGENT] Operational routing skipped: %s", exc)
+
     def print_progress(self, phase: str, step: str, message: str, progress: float):
         """Print progress with bar."""
         bar_len = 30
@@ -347,6 +357,7 @@ class MoonshotPipelineV3:
             record_run(run_id, git_commit_hash=self._get_git_commit())
             logger.info(f"SQL tracking initialized: {run_id}")
             self._record_future_plan(run_id)
+            self._log_operational_routes()
         except Exception as e:
             logger.warning(f"SQL tracking not available: {e}")
 

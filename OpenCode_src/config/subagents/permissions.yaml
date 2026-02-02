@@ -1,0 +1,19 @@
+﻿permissions:
+  network-read:
+    description: External network/API access for data retrieval
+  write-data:
+    description: Write raw/processed datasets
+  write-metadata:
+    description: Write provenance/citation metadata
+  read-data:
+    description: Read local datasets
+  gpu-use:
+    description: Use GPU for inference/training
+  write-results:
+    description: Write benchmark outputs
+  write-reports:
+    description: Write evaluation/citation reports
+  read-docs:
+    description: Read documentation and model cards
+  write-docs:
+    description: Update README/model cards
