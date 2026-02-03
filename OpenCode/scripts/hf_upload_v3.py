@@ -204,8 +204,28 @@ batch_size: 2 (per device)
 gradient_checkpointing: true
 ```
 
+## Dataset Breakdown / データセット内訳（SFT用）
+
+| Source | Samples | Ratio |
+|--------|---------|-------|
+| ArXiv 2024-2026 | 25,000 | 25% |
+| Quadruple CoT (think) | 20,000 | 20% |
+| Skill/MCP | 12,000 | 12% |
+| DeepResearch | 10,000 | 10% |
+| File Operations | 8,000 | 8% |
+| Defense | 8,000 | 8% |
+| JAXA | 7,000 | 7% |
+| Drug/Chemistry | 5,000 | 5% |
+| NSFW (safety) | 5,000 | 5% |
+
+Detailed statistics are included in datasets/dataset_statistics.json in the HF upload package.
+
 ## Citations / 参考文献
 
+- Zhang et al. (2025). mHC: Manifold-Constrained Hyper-Connections. arXiv:2512.24880
+- WZ1119 (2026). KromHC: Kronecker-Factorized Doubly-Stochastic Residuals. arXiv:2601.21579
+- AMAP-ML (2026). MathForge / DGPO. arXiv:2601.20614
+- SakanaAI (2024). ShinkaEvolve. arXiv:2509.19349
 - SakanaAI (2024). Evolutionary Model Merge. GitHub: sakanaai/evolutionary-model-merge
 - DeepSeek-AI (2024). DeepSeekMath: Group Relative Policy Optimization. arXiv:2402.03300
 - SO8T Project (2025). Safe Operation 8-Task Architecture. GitHub: zapabob/SO8T
