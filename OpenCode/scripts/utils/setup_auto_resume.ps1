@@ -20,7 +20,7 @@ if (-not $isAdmin) {
 
 # プロジェクトルートパス（スクリプトの場所から自動検出）
 if ($PSScriptRoot) {
-    $PROJECT_ROOT = Split-Path -Parent $PSScriptRoot
+    $PROJECT_ROOT = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 } else {
     # PSScriptRootが利用できない場合、現在のディレクトリから検索
     $currentDir = Get-Location
@@ -35,7 +35,7 @@ if ($PSScriptRoot) {
     }
 }
 
-$STARTUP_SCRIPT = Join-Path $PROJECT_ROOT "scripts\auto_resume_startup.bat"
+$STARTUP_SCRIPT = Join-Path $PROJECT_ROOT "scripts\utils\auto_resume_startup.bat"
 
 if (-not (Test-Path $STARTUP_SCRIPT)) {
     Write-Host "[ERROR] Startup script not found: $STARTUP_SCRIPT" -ForegroundColor Red

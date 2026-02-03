@@ -98,8 +98,8 @@ if ($Status) {
 
 # Run pipeline normally
 Write-Host "[RUN] Starting Moonshot Pipeline v3.0..." -ForegroundColor Yellow
-Write-Host "[RUN] Checkpoint interval: 300 seconds (5 min)" -ForegroundColor Yellow
-Write-Host "[RUN] Max rolling checkpoints: 3" -ForegroundColor Yellow
+Write-Host "[RUN] Checkpoint interval: 180 seconds (3 min)" -ForegroundColor Yellow
+Write-Host "[RUN] Max rolling checkpoints: 5" -ForegroundColor Yellow
 Write-Host "[RUN] Power failure recovery: enabled" -ForegroundColor Yellow
 Write-Host ""
 

@@ -8,7 +8,7 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 REM プロジェクトルートパス
-set "PROJECT_ROOT=%~dp0.."
+set "PROJECT_ROOT=%~dp0..\.."
 set "PROJECT_ROOT=%PROJECT_ROOT:~0,-1%"
 
 REM ログディレクトリ
@@ -34,10 +34,16 @@ if errorlevel 1 (
 )
 
 REM 自動再開スクリプトのパス
-set "AUTO_RESUME_SCRIPT=%PROJECT_ROOT%\scripts\auto_resume.py"
+set "AUTO_RESUME_SCRIPT=%PROJECT_ROOT%\scripts\utils\auto_resume.py"
+set "MOONSHOT_BOOT_SCRIPT=%PROJECT_ROOT%\scripts\utils\boot_pipeline_launcher.py"
 
 if not exist "%AUTO_RESUME_SCRIPT%" (
     echo [%TIMESTAMP%] [ERROR] Auto resume script not found: %AUTO_RESUME_SCRIPT% >> "%LOG_FILE%"
+    exit /b 1
+)
+
+if not exist "%MOONSHOT_BOOT_SCRIPT%" (
+    echo [%TIMESTAMP%] [ERROR] Moonshot boot launcher not found: %MOONSHOT_BOOT_SCRIPT% >> "%LOG_FILE%"
     exit /b 1
 )
 
@@ -47,12 +53,13 @@ echo [%TIMESTAMP%] [INFO] Command: py -3 "%AUTO_RESUME_SCRIPT%" >> "%LOG_FILE%"
 
 REM Pythonスクリプトを実行（バックグラウンド）
 start /MIN "SO8T-AutoResume" py -3 "%AUTO_RESUME_SCRIPT%" >> "%LOG_FILE%" 2>&1
+start /MIN "Moonshot-AutoResume" py -3 "%MOONSHOT_BOOT_SCRIPT%" --use-existing-datasets >> "%LOG_FILE%" 2>&1
 
 if errorlevel 1 (
-    echo [%TIMESTAMP%] [ERROR] Failed to start auto resume script >> "%LOG_FILE%"
+    echo [%TIMESTAMP%] [ERROR] Failed to start auto resume script(s) >> "%LOG_FILE%"
     exit /b 1
 ) else (
-    echo [%TIMESTAMP%] [OK] Auto resume script started successfully >> "%LOG_FILE%"
+    echo [%TIMESTAMP%] [OK] Auto resume script(s) started successfully >> "%LOG_FILE%"
 )
 
 REM 少し待機してから終了

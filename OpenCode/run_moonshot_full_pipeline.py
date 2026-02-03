@@ -5,7 +5,7 @@ Moonshot Pipeline v3.0 - Full Automatic Pipeline.
 End-to-end pipeline for building zapabobouj-AEGIS-phi3.5-jp-v3.0.
 
 Features:
-- Power failure protection with 5-min rolling checkpoints (3 kept)
+- Power failure protection with 3-min rolling checkpoints (5 kept)
 - Auto-start on system boot via Windows Task Scheduler
 - Sigmoid decay learning rate scheduler (Φ⁻² final value)
 - SFT + GRPO training with DeepseekGLPO
@@ -79,11 +79,13 @@ class PipelineConfig:
     benchmark_samples: int = 100
 
     # Checkpoint
-    checkpoint_interval: int = 300  # 5 minutes
-    max_rolling_checkpoints: int = 3
+    checkpoint_interval: int = 180  # 3 minutes
+    max_rolling_checkpoints: int = 5
 
     # Output
     output_model_name: str = "zapabobouj-AEGIS-phi3.5-jp-v3.0"
+    hf_repo_id: Optional[str] = None
+    dry_run: bool = False
 
 
 class MoonshotFullPipeline:
@@ -105,6 +107,7 @@ class MoonshotFullPipeline:
         self.start_time = datetime.now()
         self.run_id = f"moonshot_v3_{self.start_time.strftime('%Y%m%d_%H%M%S')}"
         self.checkpoints: List[Dict] = []
+        self.last_error: Optional[str] = None
 
         self._setup_logging()
         self._setup_sql()
@@ -143,6 +146,186 @@ class MoonshotFullPipeline:
         except Exception as e:
             self.logger.warning("[SQL] Not available: %s", e)
             self.sql_available = False
+
+    def _get_worktree_name(self) -> str:
+        try:
+            return PROJECT_ROOT.name
+        except Exception:
+            return "unknown"
+
+    def _safe_slug(self, text: str, max_len: int = 40) -> str:
+        if not text:
+            return "error"
+        cleaned = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in text)
+        return cleaned[:max_len].strip("_") or "error"
+
+    def _write_failure_report(self, phase: str, error_message: str) -> Path:
+        date_prefix = datetime.now().strftime("%Y-%m-%d")
+        worktree = self._get_worktree_name()
+        slug = self._safe_slug(error_message)
+        filename = f"{date_prefix}_{slug}_{worktree}.md"
+        report_path = PROJECT_ROOT / "_docs" / filename
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+
+        content = [
+            "# Moonshot Pipeline Failure Report",
+            "",
+            f"- Date: {datetime.now().isoformat()}",
+            f"- Phase: {phase}",
+            f"- Run ID: {self.run_id}",
+            f"- Worktree: {worktree}",
+            "",
+            "## Error",
+            error_message or "unknown",
+            "",
+            "## Notes",
+            "Auto-resume task has been removed from startup.",
+        ]
+        report_path.write_text("\n".join(content), encoding="utf-8")
+        return report_path
+
+    def _remove_windows_startup(self) -> None:
+        task_name = "MoonshotPipelineV3_AutoResume"
+        try:
+            subprocess.run(
+                [
+                    "powershell",
+                    "-Command",
+                    f"Get-ScheduledTask -TaskName '{task_name}' -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except Exception:
+            pass
+
+    def _run_command(self, cmd: List[str], phase: str, allow_fail: bool = False) -> bool:
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=PROJECT_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=1800,
+            )
+            if result.stdout:
+                self._log_progress(phase, result.stdout.strip())
+            if result.stderr:
+                self._log_progress(phase, result.stderr.strip())
+            if result.returncode != 0 and not allow_fail:
+                self.last_error = f"Command failed: {' '.join(cmd)}"
+                return False
+            return True
+        except Exception as e:
+            self.last_error = str(e)
+            self._log_progress(phase, f"Command error: {e}")
+            return False
+
+    def _find_latest_file(self, pattern: str) -> Optional[Path]:
+        files = list(PROJECT_ROOT.glob(pattern))
+        if not files:
+            return None
+        return max(files, key=lambda p: p.stat().st_mtime)
+
+    def _prepare_hf_upload(self) -> Optional[Path]:
+        """Prepare HF upload package with safetensors, stats, plots, datasets."""
+        prep_cmd = [
+            sys.executable,
+            str(PROJECT_ROOT / "scripts" / "evaluation" / "prepare_hf_upload.py"),
+            "--results_dir",
+            "results/ab_test_results",
+            "--upload_dir",
+            "hf_upload_package",
+        ]
+        if not self._run_command(prep_cmd, "HF_PREP"):
+            return None
+        return PROJECT_ROOT / "hf_upload_package"
+
+    def _hfcli_upload(self, repo_id: str) -> bool:
+        """Upload prepared package via HF CLI."""
+        upload_dir = PROJECT_ROOT / "hf_upload_package"
+        if not upload_dir.exists():
+            self._log_progress("HF_UPLOAD", "Upload package not found")
+            return False
+        cmd = [
+            "huggingface-cli",
+            "upload",
+            repo_id,
+            str(upload_dir),
+        ]
+        return self._run_command(cmd, "HF_UPLOAD")
+
+    def _update_hf_readme_with_benchmarks(self, repo_id: str) -> bool:
+        """Update HF README with benchmark stats and error-bar charts."""
+        results_file = self._find_latest_file("results/ab_test_results/ab_test_results_final_*.json")
+        stats_file = PROJECT_ROOT / "results" / "ab_test_results" / "statistics" / "statistical_analysis_results.json"
+        viz_dir = PROJECT_ROOT / "results" / "ab_test_results" / "plots"
+
+        if not results_file or not stats_file.exists():
+            self._log_progress("HF_README", "Benchmark results not found; skipping README update")
+            return False
+
+        cmd = [
+            sys.executable,
+            str(PROJECT_ROOT / "scripts" / "utils" / "update_hf_readme_with_benchmarks.py"),
+            "--repo_id",
+            repo_id,
+            "--results_file",
+            str(results_file),
+            "--statistical_analysis_file",
+            str(stats_file),
+            "--visualization_dir",
+            str(viz_dir),
+        ]
+        return self._run_command(cmd, "HF_README", allow_fail=True)
+
+    def _git_commit_and_push(self) -> bool:
+        """Commit and push source/README updates excluding large files."""
+        # Stage all
+        if not self._run_command(["git", "add", "-A"], "GIT"):
+            return False
+
+        # Exclude known large dirs
+        exclude_dirs = [
+            "hf_upload_package",
+            "gguf_models",
+            "training_output",
+            "results",
+            "datasets",
+            "data",
+            "_data",
+            "webdataset",
+        ]
+        for d in exclude_dirs:
+            self._run_command(["git", "reset", "--", d], "GIT", allow_fail=True)
+
+        # Exclude files listed in large_files.txt if present
+        large_list = PROJECT_ROOT / "large_files.txt"
+        if large_list.exists():
+            try:
+                for line in large_list.read_text(encoding="utf-8").splitlines():
+                    path = line.strip()
+                    if not path:
+                        continue
+                    self._run_command(["git", "reset", "--", path], "GIT", allow_fail=True)
+            except Exception:
+                pass
+
+        # Commit if there are staged changes
+        status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if not status.stdout.strip():
+            self._log_progress("GIT", "No changes to commit")
+            return True
+
+        if not self._run_command(["git", "commit", "-m", "Update pipeline outputs and README"], "GIT"):
+            return False
+        return self._run_command(["git", "push"], "GIT")
 
     def _get_git_commit(self) -> str:
         """Get current git commit hash."""
@@ -275,6 +458,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self.last_error = str(e)
             self._log_progress("SETUP", f"Error: {e}")
             return False
 
@@ -320,6 +504,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self.last_error = str(e)
             self._log_progress("DATA", f"Error: {e}")
             return False
 
@@ -358,6 +543,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self.last_error = str(e)
             self._log_progress("SFT", f"Error: {e}")
             return False
 
@@ -394,6 +580,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self.last_error = str(e)
             self._log_progress("GRPO", f"Error: {e}")
             return False
 
@@ -415,6 +602,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self.last_error = str(e)
             self._log_progress("BENCH", f"Error: {e}")
             return False
 
@@ -434,6 +622,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self.last_error = str(e)
             self._log_progress("STATS", f"Error: {e}")
             return False
 
@@ -453,6 +642,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self.last_error = str(e)
             self._log_progress("VIZ", f"Error: {e}")
             return False
 
@@ -484,19 +674,41 @@ class MoonshotFullPipeline:
             self._log_progress(
                 "RELEASE", f"Model ready: {self.config.output_model_name}"
             )
+
+            # Prepare HF upload package (safetensors, stats, plots, dataset breakdown)
+            upload_dir = self._prepare_hf_upload()
+            if not upload_dir:
+                return False
+
+            # Upload to HF via CLI if repo ID is provided
+            repo_id = self.config.hf_repo_id or os.getenv("HF_REPO_ID")
+            if repo_id:
+                if not self._hfcli_upload(repo_id):
+                    return False
+                # Update README with benchmarks and error-bar charts
+                self._update_hf_readme_with_benchmarks(repo_id)
+            else:
+                self._log_progress("HF_UPLOAD", "HF_REPO_ID not set; skipping upload")
+
+            # GitHub update: commit and push (excluding large files)
+            if not self._git_commit_and_push():
+                return False
             return True
 
         except Exception as e:
+            self.last_error = str(e)
             self._log_progress("RELEASE", f"Error: {e}")
             return False
 
-    def run(self, skip_training: bool = False, resume: bool = False) -> bool:
+    def run(self, skip_training: bool = False, resume: bool = False, dry_run: bool = False) -> bool:
         """Execute the full pipeline."""
         self.logger.info("=" * 70)
         self.logger.info("Moonshot Pipeline v3.0 - Full Automatic Pipeline")
         self.logger.info("=" * 70)
         self.logger.info("Model: %s", self.config.output_model_name)
         self.logger.info("Run ID: %s", self.run_id)
+        if dry_run or self.config.dry_run:
+            self.logger.info("Mode: DRY-RUN (setup/data only)")
         self.logger.info("=" * 70)
 
         # Power failure recovery check
@@ -512,6 +724,19 @@ class MoonshotFullPipeline:
                 self._capture_rolling_checkpoint()
 
         # Execute phases
+        if dry_run or self.config.dry_run:
+            # Only run setup + data validation
+            setup_ok = self.run_phase_setup()
+            data_ok = self.run_phase_data() if setup_ok else False
+            if not (setup_ok and data_ok):
+                error_message = self.last_error or "Dry-run failed"
+                report_path = self._write_failure_report("dry_run", error_message)
+                self._log_progress("ERROR", f"Failure report saved: {report_path}")
+                self._remove_windows_startup()
+                return False
+            self._log_progress("SUMMARY", "Dry-run completed successfully")
+            return True
+
         phases_funcs = [
             self.run_phase_setup,
             self.run_phase_data,
@@ -531,6 +756,10 @@ class MoonshotFullPipeline:
 
             if not success:
                 self._log_progress("ERROR", f"Phase {phase_name} failed")
+                error_message = self.last_error or f"Phase {phase_name} failed"
+                report_path = self._write_failure_report(phase_name, error_message)
+                self._log_progress("ERROR", f"Failure report saved: {report_path}")
+                self._remove_windows_startup()
                 return False
 
         # Final summary
@@ -556,6 +785,8 @@ class MoonshotFullPipeline:
         self.logger.info("=" * 70)
         self.logger.info("Pipeline completed successfully!")
         self.logger.info("=" * 70)
+        if not (dry_run or self.config.dry_run):
+            self._remove_windows_startup()
 
         return True
 
@@ -565,9 +796,45 @@ def setup_windows_startup() -> bool:
     script_path = Path(__file__).resolve()
     python_exe = sys.executable
     task_name = "MoonshotPipelineV3_AutoResume"
+    reuse_task_name = "SO8T-AutoResume"
+    reuse_script = PROJECT_ROOT / "scripts" / "utils" / "auto_resume_startup.bat"
 
-    powershell_script = f'''
-$Action = New-ScheduledTaskAction -Execute "{python_exe}" -Argument "-FullPath \\"{script_path}\\"" -WorkingDirectory "{PROJECT_ROOT}"
+    # Prefer reusing existing SO8T auto-resume task if present
+    try:
+        existing = subprocess.run(
+            [
+                "powershell",
+                "-Command",
+                f"Get-ScheduledTask -TaskName '{reuse_task_name}' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty TaskName",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if existing.stdout.strip():
+            print(f"[STARTUP] Reusing existing task: {reuse_task_name}")
+            return True
+    except Exception:
+        pass
+
+    if reuse_script.exists():
+        powershell_script = f'''
+$Action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c \\"{reuse_script}\\"" -WorkingDirectory "{PROJECT_ROOT}"
+$Trigger = New-ScheduledTaskTrigger -AtStartup -RandomDelay "00:01:00"
+$Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries $true -DontStopIfGoingOnBatteries $true -RunOnlyIfNetworkAvailable $true
+$Principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\\SYSTEM" -RunLevel "Highest"
+
+try {{
+    Get-ScheduledTask -TaskName "{reuse_task_name}" -ErrorAction Stop | Unregister-ScheduledTask -Confirm:$false -ErrorAction Stop
+    Start-Sleep -Seconds 2
+}} catch {{ }}
+
+Register-ScheduledTask -TaskName "{reuse_task_name}" -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Force
+Write-Host "Task registered successfully"
+'''
+    else:
+        powershell_script = f'''
+$Action = New-ScheduledTaskAction -Execute "{python_exe}" -Argument "\\"{script_path}\\" --resume" -WorkingDirectory "{PROJECT_ROOT}"
 $Trigger = New-ScheduledTaskTrigger -AtStartup -RandomDelay "00:01:00"
 $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries $true -DontStopIfGoingOnBatteries $true -RunOnlyIfNetworkAvailable $true
 $Principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\\SYSTEM" -RunLevel "Highest"
@@ -577,7 +844,7 @@ try {{
     Start-Sleep -Seconds 2
 }} catch {{ }}
 
-Register-ScheduledTask -TaskName "{taskName}" -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Force
+Register-ScheduledTask -TaskName "{task_name}" -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Force
 Write-Host "Task registered successfully"
 '''
 
@@ -589,7 +856,10 @@ Write-Host "Task registered successfully"
             timeout=30,
         )
         if result.returncode == 0:
-            print("[STARTUP] Windows Task Scheduler: OK")
+            if reuse_script.exists():
+                print(f"[STARTUP] Windows Task Scheduler: OK ({reuse_task_name})")
+            else:
+                print("[STARTUP] Windows Task Scheduler: OK")
             return True
         else:
             print(f"[STARTUP] Failed: {result.stderr}")
@@ -663,6 +933,7 @@ Examples:
         "--setup-startup", action="store_true", help="Setup Windows auto-start"
     )
     parser.add_argument("--status", action="store_true", help="Check pipeline status")
+    parser.add_argument("--dry-run", action="store_true", help="Run setup + data only")
     parser.add_argument("--warmup", type=int, default=100, help="Warmup steps")
     parser.add_argument("--total", type=int, default=1000, help="Total training steps")
     parser.add_argument("--epochs", type=int, default=3, help="SFT epochs")
@@ -696,6 +967,7 @@ Examples:
         total_steps=args.total,
         sft_epochs=args.epochs,
         benchmark_seeds=args.seeds,
+        dry_run=args.dry_run,
     )
 
     # Run pipeline
@@ -703,6 +975,7 @@ Examples:
     success = pipeline.run(
         skip_training=args.skip_training,
         resume=args.resume,
+        dry_run=args.dry_run,
     )
 
     sys.exit(0 if success else 1)

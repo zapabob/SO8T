@@ -3,7 +3,7 @@
 Boot-time wrapper for Moonshot Pipeline v3.0 with power failure protection.
 
 Features:
-- Rolling checkpoints every 5 minutes (3 snapshots kept)
+- Rolling checkpoints every 3 minutes (5 snapshots kept)
 - Automatic resume from last checkpoint on power failure
 - Power-on auto-start via Windows Task Scheduler
 - SQL-based progress tracking
@@ -28,15 +28,15 @@ from typing import Optional, Dict, Any
 from tqdm import tqdm
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-PIPELINE_SCRIPT = PROJECT_ROOT / "run_moonshot_pipeline_2025_2026.py"
+PIPELINE_SCRIPT = PROJECT_ROOT / "run_moonshot_full_pipeline.py"
 LOG_DIR = PROJECT_ROOT / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / "boot_pipeline_launcher.log"
 CHECKPOINT_SOURCE = PROJECT_ROOT / "checkpoints" / "latest_checkpoint.json"
 ROLLING_DIR = PROJECT_ROOT / "checkpoints" / "rolling_snapshots"
 ROLLING_DIR.mkdir(parents=True, exist_ok=True)
-CHECKPOINT_INTERVAL_SECONDS = 300
-MAX_ROLLING_CHECKPOINTS = 3
+CHECKPOINT_INTERVAL_SECONDS = 180
+MAX_ROLLING_CHECKPOINTS = 5
 
 try:
     from .pipeline_progress_store import (
@@ -65,6 +65,55 @@ def setup_logger() -> logging.Logger:
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
     return logger
+
+
+def show_status() -> None:
+    """Print startup + pipeline status."""
+    print("=" * 60)
+    print("Moonshot Pipeline v3.0 - Boot Launcher Status")
+    print("=" * 60)
+
+    # Task Scheduler status
+    try:
+        result = subprocess.run(
+            [
+                "powershell",
+                "-Command",
+                "Get-ScheduledTask -TaskName 'MoonshotPipelineV3*' 2>$null | Select-Object -ExpandProperty TaskName",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        print("Task Scheduler:", "OK" if result.stdout.strip() else "Not set")
+    except Exception:
+        print("Task Scheduler: Unknown")
+
+    # Last run status
+    status_path = LOG_DIR / "last_run_status.json"
+    if status_path.exists():
+        try:
+            status = json.loads(status_path.read_text(encoding="utf-8"))
+            print("Last Run:", status.get("timestamp", "N/A"))
+            print("Completed:", status.get("completed", False))
+            print("Phase:", status.get("phase", "N/A"))
+        except Exception:
+            print("Last Run: <failed to read>")
+    else:
+        print("Last Run: Not found")
+
+    # Rolling checkpoint
+    latest = None
+    if SQL_STORE_AVAILABLE:
+        try:
+            latest = get_latest_rolling_checkpoint_any()
+        except Exception:
+            latest = None
+    if latest:
+        print("Rolling Checkpoint:", latest.get("checkpoint_path"))
+    else:
+        snapshots = sorted(ROLLING_DIR.glob("rolling_checkpoint_*.json"))
+        print("Rolling Checkpoint:", snapshots[-1].name if snapshots else "None")
 
 
 class RollingCheckpointManager(threading.Thread):
@@ -313,8 +362,44 @@ def setup_windows_startup() -> bool:
     script_path = Path(__file__).resolve()
     python_exe = sys.executable
     task_name = "MoonshotPipelineV3_AutoResume"
+    reuse_task_name = "SO8T-AutoResume"
+    reuse_script = PROJECT_ROOT / "scripts" / "utils" / "auto_resume_startup.bat"
 
-    powershell_script = f'''
+    # Prefer reusing existing SO8T auto-resume task if present
+    try:
+        existing = subprocess.run(
+            [
+                "powershell",
+                "-Command",
+                f"Get-ScheduledTask -TaskName '{reuse_task_name}' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty TaskName",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if existing.stdout.strip():
+            print(f"[STARTUP] Reusing existing task: {reuse_task_name}")
+            return True
+    except Exception:
+        pass
+
+    if reuse_script.exists():
+        powershell_script = f'''
+$Action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c \\"{reuse_script}\\"" -WorkingDirectory "{PROJECT_ROOT}"
+$Trigger = New-ScheduledTaskTrigger -AtStartup -RandomDelay "00:01:00"
+$Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries $true -DontStopIfGoingOnBatteries $true -RunOnlyIfNetworkAvailable $true
+$Principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\\SYSTEM" -RunLevel "Highest"
+
+try {{
+    Get-ScheduledTask -TaskName "{reuse_task_name}" -ErrorAction Stop | Unregister-ScheduledTask -Confirm:$false -ErrorAction Stop
+    Start-Sleep -Seconds 2
+}} catch {{ }}
+
+Register-ScheduledTask -TaskName "{reuse_task_name}" -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Force
+Write-Host "Task \\"{reuse_task_name}\\" registered successfully"
+'''
+    else:
+        powershell_script = f'''
 $Action = New-ScheduledTaskAction -Execute "{python_exe}" -Argument "-FullPath \\"{script_path}\\" --use-existing-datasets" -WorkingDirectory "{PROJECT_ROOT}"
 $Trigger = New-ScheduledTaskTrigger -AtStartup -RandomDelay "00:01:00"
 $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries $true -DontStopIfGoingOnBatteries $true -RunOnlyIfNetworkAvailable $true
@@ -325,8 +410,8 @@ try {{
     Start-Sleep -Seconds 2
 }} catch {{ }}
 
-Register-ScheduledTask -TaskName "{taskName}" -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Force
-Write-Host "Task \\"{taskName}\\" registered successfully"
+Register-ScheduledTask -TaskName "{task_name}" -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Force
+Write-Host "Task \\"{task_name}\\" registered successfully"
 '''
 
     try:
@@ -338,7 +423,10 @@ Write-Host "Task \\"{taskName}\\" registered successfully"
         )
         if result.returncode == 0:
             print("[STARTUP] Windows Task Scheduler: OK")
-            print(f"[STARTUP] Task Name: {task_name}")
+            if reuse_script.exists():
+                print(f"[STARTUP] Task Name: {reuse_task_name}")
+            else:
+                print(f"[STARTUP] Task Name: {task_name}")
             print(f"[STARTUP] Trigger: System startup (1 min delay)")
             return True
         else:
@@ -381,7 +469,7 @@ def main() -> None:
     parser.add_argument(
         "--remove-startup", action="store_true", help="Remove Windows auto-start"
     )
-    parser.add_argument("--status", action="status", help="Check startup status")
+    parser.add_argument("--status", action="store_true", help="Check startup status")
     parser.add_argument("--use-existing-datasets", action="store_true", default=True)
 
     args = parser.parse_args()
@@ -392,6 +480,10 @@ def main() -> None:
 
     if args.remove_startup:
         remove_windows_startup()
+        return
+
+    if args.status:
+        show_status()
         return
 
     logger = setup_logger()

@@ -8,7 +8,7 @@ REM   startup.bat --remove-startup   - Remove Task Scheduler entry
 REM   startup.bat --status           - Check startup status
 REM
 REM Features:
-REM   - Rolling checkpoints every 5 minutes (3 kept)
+REM   - Rolling checkpoints every 3 minutes (5 kept)
 REM   - Power failure auto-resume
 REM   - SQL progress tracking
 REM   - Simple English progress logging
@@ -47,8 +47,8 @@ if "%1"=="--status" goto check_status
 
 REM Run pipeline normally
 echo [RUN] Starting Moonshot Pipeline v3.0...
-echo [RUN] Checkpoint interval: 300 seconds (5 min)
-echo [RUN] Max rolling checkpoints: 3
+echo [RUN] Checkpoint interval: 180 seconds (3 min)
+echo [RUN] Max rolling checkpoints: 5
 echo.
 
 %PYTHON% -3 "%SCRIPT_DIR%\scripts\utils\boot_pipeline_launcher.py" --use-existing-datasets

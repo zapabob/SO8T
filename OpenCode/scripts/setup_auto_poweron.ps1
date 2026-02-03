@@ -5,13 +5,13 @@
 
 .DESCRIPTION
     Configures Windows Task Scheduler for automatic pipeline resume on power-on.
-    Ensures rolling checkpoints every 5 minutes and progress tracking.
+    Ensures rolling checkpoints every 3 minutes and progress tracking.
 
 .PARAMETER PipelineScript
     Path to the pipeline script (default: run_moonshot_pipeline_2025_2026.py)
 
 .PARAMETER CheckpointInterval
-    Checkpoint capture interval in seconds (default: 300 = 5 minutes)
+    Checkpoint capture interval in seconds (default: 180 = 3 minutes)
 
 .PARAMETER MaxCheckpoints
     Maximum number of rolling checkpoints to keep (default: 3)
@@ -22,8 +22,8 @@
 
 param(
     [string]$PipelineScript = "run_moonshot_pipeline_2025_2026.py",
-    [int]$CheckpointInterval = 300,
-    [int]$MaxCheckpoints = 3,
+    [int]$CheckpointInterval = 180,
+    [int]$MaxCheckpoints = 5,
     [string]$TaskName = "MoonshotPipelineV3_AutoResume"
 )
 
@@ -202,7 +202,7 @@ Run this script to configure automatic pipeline resume on power-on:
 ## Features
 
 - **Automatic Startup**: Pipeline resumes on system boot
-- **Rolling Checkpoints**: 3 snapshots every 5 minutes
+- **Rolling Checkpoints**: 5 snapshots every 3 minutes
 - **Progress Logging**: Tqdm-style progress in `logs/pipeline_progress.log`
 - **SQL Tracking**: All progress saved to `logs/pipeline_progress.sqlite`
 
