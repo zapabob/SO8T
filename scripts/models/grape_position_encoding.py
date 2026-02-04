@@ -275,6 +275,86 @@ def _phi3_attention_forward_with_alibi(
     return attn_output, attn_weights, past_key_value
 
 
+def _phi3_attention_forward_with_alibi_v2(
+    self,
+    hidden_states: torch.Tensor,
+    position_embeddings: Tuple[torch.Tensor, torch.Tensor],
+    attention_mask: Optional[torch.Tensor],
+    past_key_values: Optional[object] = None,
+    cache_position: Optional[torch.LongTensor] = None,
+    **kwargs,
+):
+    input_shape = hidden_states.shape[:-1]
+    hidden_shape = (*input_shape, -1, self.head_dim)
+
+    qkv = self.qkv_proj(hidden_states)
+    query_pos = self.config.num_attention_heads * self.head_dim
+    query_states = qkv[..., :query_pos]
+    key_states = qkv[..., query_pos : query_pos + self.num_key_value_heads * self.head_dim]
+    value_states = qkv[..., query_pos + self.num_key_value_heads * self.head_dim :]
+
+    query_states = query_states.view(hidden_shape).transpose(1, 2)
+    key_states = key_states.view(hidden_shape).transpose(1, 2)
+    value_states = value_states.view(hidden_shape).transpose(1, 2)
+
+    cos, sin = position_embeddings
+    apply_rotary_pos_emb = getattr(self, "_grape_apply_rotary_pos_emb", None)
+    repeat_kv = getattr(self, "_grape_repeat_kv", None)
+    if apply_rotary_pos_emb is None or repeat_kv is None:
+        raise RuntimeError("GRAPE additive patch missing rotary helpers")
+
+    query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+
+    if past_key_values is not None:
+        cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
+        key_states, value_states = past_key_values.update(key_states, value_states, self.layer_idx, cache_kwargs)
+
+    key_states = repeat_kv(key_states, self.num_key_value_groups)
+    value_states = repeat_kv(value_states, self.num_key_value_groups)
+
+    attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) * self.scaling
+
+    if attention_mask is not None:
+        causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
+        if causal_mask.dtype == torch.bool:
+            causal_mask = causal_mask.masked_fill(
+                causal_mask, torch.finfo(attn_weights.dtype).min
+            )
+        attn_weights = attn_weights + causal_mask.to(dtype=attn_weights.dtype, device=attn_weights.device)
+    else:
+        min_val = torch.finfo(attn_weights.dtype).min
+        q_len = attn_weights.shape[-2]
+        kv_len = attn_weights.shape[-1]
+        diagonal = 1 + kv_len - q_len
+        causal = torch.zeros((q_len, kv_len), dtype=attn_weights.dtype, device=attn_weights.device)
+        if diagonal > 0:
+            causal = causal + torch.triu(
+                torch.full((q_len, kv_len), min_val, dtype=attn_weights.dtype, device=attn_weights.device),
+                diagonal=diagonal,
+            )
+        attn_weights = attn_weights + causal.view(1, 1, q_len, kv_len)
+
+    q_len = attn_weights.shape[-2]
+    kv_len = attn_weights.shape[-1]
+    alibi = _build_alibi_bias(
+        slopes=getattr(self, "grape_additive_bias", None),
+        q_len=q_len,
+        kv_len=kv_len,
+        device=attn_weights.device,
+        dtype=attn_weights.dtype,
+    )
+    if alibi is not None:
+        attn_weights = attn_weights + alibi
+
+    attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
+    attn_weights = torch.nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
+    attn_output = torch.matmul(attn_weights, value_states)
+    attn_output = attn_output.transpose(1, 2).contiguous()
+    attn_output = attn_output.reshape(*input_shape, -1)
+    attn_output = self.o_proj(attn_output)
+    return attn_output, attn_weights
+
+
 def enable_additive_grape(model, config: GrapePatchConfig) -> bool:
     """Enable additive GRAPE (ALiBi/FoX-style) by configuring model flags.
 
@@ -328,8 +408,6 @@ def patch_attention_with_additive_grape(model, config: GrapePatchConfig) -> int:
     required_attrs = (
         "qkv_proj",
         "o_proj",
-        "rotary_emb",
-        "num_heads",
         "num_key_value_heads",
         "num_key_value_groups",
         "head_dim",
@@ -343,12 +421,16 @@ def patch_attention_with_additive_grape(model, config: GrapePatchConfig) -> int:
         apply_rotary_pos_emb, repeat_kv = _resolve_phi3_ops(module)
         if apply_rotary_pos_emb is None or repeat_kv is None:
             continue
+        uses_position_embeddings = not hasattr(module, "rotary_emb")
         module.grape_additive_bias = slopes
         module._grape_apply_rotary_pos_emb = apply_rotary_pos_emb
         module._grape_repeat_kv = repeat_kv
         module._grape_additive_patched = True
         module._grape_original_forward = module.forward
-        module.forward = types.MethodType(_phi3_attention_forward_with_alibi, module)
+        if uses_position_embeddings:
+            module.forward = types.MethodType(_phi3_attention_forward_with_alibi_v2, module)
+        else:
+            module.forward = types.MethodType(_phi3_attention_forward_with_alibi, module)
         patched += 1
 
     if patched:
