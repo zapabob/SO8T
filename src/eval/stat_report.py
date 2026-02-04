@@ -4,12 +4,16 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.io as pio
 
 
 def load_scores(path: Path) -> pd.DataFrame:
@@ -83,11 +87,42 @@ def plot_distributions(df: pd.DataFrame, outdir: Path) -> None:
     plt.close()
 
 
+def plot_html(df: pd.DataFrame, outdir: Path) -> None:
+    fig = make_subplots(rows=1, cols=3, subplot_titles=(
+        'Boxplot', 'Violin', 'Mean ± SD'
+    ))
+
+    box = px.box(df, x='model', y='score').data
+    for trace in box:
+        fig.add_trace(trace, row=1, col=1)
+
+    violin = px.violin(df, x='model', y='score', box=True, points='outliers').data
+    for trace in violin:
+        fig.add_trace(trace, row=1, col=2)
+
+    means = df.groupby('model')['score'].agg(['mean', 'std']).reset_index()
+    fig.add_trace(
+        go.Scatter(
+            x=means['model'],
+            y=means['mean'],
+            error_y=dict(type='data', array=means['std']),
+            mode='markers',
+            name='Mean ± SD',
+        ),
+        row=1, col=3
+    )
+
+    fig.update_layout(height=450, width=1200, title_text='Model Score Summary')
+    html_path = outdir / 'score_report.html'
+    pio.write_html(fig, file=str(html_path), auto_open=False)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description='Generate ANOVA and Cohen\'s d report + plots')
     parser.add_argument('--input', required=True)
     parser.add_argument('--outdir', default='reports/stats')
     parser.add_argument('--no-plots', action='store_true')
+    parser.add_argument('--html', action='store_true', help='Generate Plotly HTML report')
     args = parser.parse_args()
 
     df = load_scores(Path(args.input))
@@ -116,6 +151,8 @@ def main() -> None:
 
     if not args.no_plots:
         plot_distributions(df, outdir)
+    if args.html:
+        plot_html(df, outdir)
 
 
 if __name__ == '__main__':

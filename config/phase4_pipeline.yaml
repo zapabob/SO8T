@@ -1,21 +1,50 @@
 ﻿version: 1
+defaults:
+  timeout: 30
+  retries: 3
+  backoff_seconds: 1.0
+  min_interval_seconds: 0.5
 api_sources:
   - name: openfda_drug_event_2024_2026
     url: https://api.fda.gov/drug/event.json
     params:
       search: 'receivedate:[20240101+TO+20261231]'
       limit: 100
+    pagination:
+      type: offset
+      param: skip
+      page_size_param: limit
+      page_size: 100
+      start: 0
+      max_pages: 5
+    results_path: results
   - name: openfda_drug_label
     url: https://api.fda.gov/drug/label.json
     params:
       search: 'effective_time:[20240101+TO+20261231]'
       limit: 100
+    pagination:
+      type: offset
+      param: skip
+      page_size_param: limit
+      page_size: 100
+      start: 0
+      max_pages: 5
+    results_path: results
   - name: reliefweb_reports_2024_2026
     url: https://api.reliefweb.int/v1/reports
     params:
       appname: so8t
       query[value]: '2024'
       limit: 100
+    pagination:
+      type: offset
+      param: offset
+      page_size_param: limit
+      page_size: 100
+      start: 0
+      max_pages: 5
+    results_path: data
 pdf_sources:
   - name: jaxa_space_education_report_2024_2025
     url: https://edu.jaxa.jp/about/activityreport/assets/report2024-2025.pdf
