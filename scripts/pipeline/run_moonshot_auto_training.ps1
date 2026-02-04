@@ -24,6 +24,11 @@ Usage examples:
   # Use </thinking> style + quadruple tokens + notify
   .\scripts\pipeline\run_moonshot_auto_training.ps1 -ThinkTagStyle openai -QuadrupleTokens `
     -DiscordWebhook "https://discord.com/api/webhooks/..." -NotifyOnStart -NotifyOnSuccess -NotifyOnFailure
+
+  # Notify checkpoint + periodic summary (15 min, last 20 lines)
+  .\scripts\pipeline\run_moonshot_auto_training.ps1 `
+    -DiscordWebhook "https://discord.com/api/webhooks/..." `
+    -NotifyCheckpoint -NotifySummaryMinutes 15 -NotifySummaryLines 20
 #>
 
 [CmdletBinding()]
@@ -50,7 +55,10 @@ param(
     [string]$SlackWebhook,
     [switch]$NotifyOnStart,
     [switch]$NotifyOnSuccess,
-    [switch]$NotifyOnFailure
+    [switch]$NotifyOnFailure,
+    [switch]$NotifyCheckpoint,
+    [int]$NotifySummaryMinutes = 15,
+    [int]$NotifySummaryLines = 20
 )
 
 Set-StrictMode -Version Latest
@@ -196,11 +204,15 @@ if (-not $SlackWebhook -and $env:SO8T_SLACK_WEBHOOK) { $SlackWebhook = $env:SO8T
 
 $notifyExplicit = $PSBoundParameters.ContainsKey("NotifyOnStart") -or `
     $PSBoundParameters.ContainsKey("NotifyOnSuccess") -or `
-    $PSBoundParameters.ContainsKey("NotifyOnFailure")
+    $PSBoundParameters.ContainsKey("NotifyOnFailure") -or `
+    $PSBoundParameters.ContainsKey("NotifyCheckpoint") -or `
+    $PSBoundParameters.ContainsKey("NotifySummaryMinutes") -or `
+    $PSBoundParameters.ContainsKey("NotifySummaryLines")
 if (-not $notifyExplicit -and ($DiscordWebhook -or $SlackWebhook)) {
     $NotifyOnStart = $true
     $NotifyOnSuccess = $true
     $NotifyOnFailure = $true
+    $NotifyCheckpoint = $true
 }
 
 # Environment defaults for 5-min checkpoints with 3 rolling slots
@@ -211,6 +223,13 @@ $env:SO8T_SUBAGENT_SCHEDULE = "1"
 $env:SO8T_GRAPE_VARIANT = $GrapeVariant
 if ($ThinkTagStyle) { $env:SO8T_THINK_TAG_STYLE = $ThinkTagStyle }
 if ($QuadrupleTokens) { $env:SO8T_QUADRUPLE_TOKENS = "1" }
+
+if ($env:SO8T_NOTIFY_SUMMARY_MINUTES -and -not $PSBoundParameters.ContainsKey("NotifySummaryMinutes")) {
+    [int]$NotifySummaryMinutes = $env:SO8T_NOTIFY_SUMMARY_MINUTES
+}
+if ($env:SO8T_NOTIFY_SUMMARY_LINES -and -not $PSBoundParameters.ContainsKey("NotifySummaryLines")) {
+    [int]$NotifySummaryLines = $env:SO8T_NOTIFY_SUMMARY_LINES
+}
 
 if ($Recover) {
     $env:SO8T_RECOVER = "1"
@@ -239,7 +258,7 @@ Write-Host "=============================================" -ForegroundColor Cyan
 if ($NotifyOnStart) {
     $tagStyle = if ($env:SO8T_THINK_TAG_STYLE) { $env:SO8T_THINK_TAG_STYLE } else { "legacy" }
     $quad = if ($env:SO8T_QUADRUPLE_TOKENS -eq "1") { "on" } else { "off" }
-    $startMessage = "[SO8T] Moonshot pipeline start (2025-2026)`nRecover: $Recover`nCollectNewData: $CollectNewData`nThinkTagStyle: $tagStyle`nQuadrupleTokens: $quad`nLog: $logPath"
+    $startMessage = "[SO8T] Moonshot pipeline start (2025-2026)`nRecover: $Recover`nCollectNewData: $CollectNewData`nThinkTagStyle: $tagStyle`nQuadrupleTokens: $quad`nNotifySummaryMinutes: $NotifySummaryMinutes`nLog: $logPath"
     Send-WebhookMessage -Message $startMessage
 }
 
@@ -268,15 +287,49 @@ if ($GrapeVariant) { $args += @("--grape-variant", $GrapeVariant) }
 
 Write-Host "[INFO] Launching: py -3 $launcher $($args -join ' ')" -ForegroundColor Green
 
-& py -3 $launcher @args 2>&1 | Tee-Object -FilePath $logPath
+$recentLines = New-Object System.Collections.Generic.Queue[string]
+$lastSummary = Get-Date
+$lastCheckpointNotice = Get-Date.AddMinutes(-999)
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Pipeline failed (exit code: $LASTEXITCODE)." -ForegroundColor Red
+& py -3 $launcher @args 2>&1 | ForEach-Object {
+    $line = $_
+    if ($null -ne $line) {
+        Add-Content -Path $logPath -Value $line -Encoding UTF8
+        Write-Host $line
+        $recentLines.Enqueue($line)
+        while ($recentLines.Count -gt $NotifySummaryLines) {
+            [void]$recentLines.Dequeue()
+        }
+        $now = Get-Date
+
+        if ($NotifyCheckpoint -and $line -match "(?i)checkpoint" -and $line -match "\\.pt") {
+            if (($now - $lastCheckpointNotice).TotalSeconds -gt 30) {
+                $message = "[SO8T] Checkpoint saved`n$line`nLog: $logPath"
+                Send-WebhookMessage -Message $message
+                $lastCheckpointNotice = $now
+            }
+        }
+
+        if ($NotifySummaryMinutes -gt 0 -and ($now - $lastSummary).TotalMinutes -ge $NotifySummaryMinutes) {
+            if ($recentLines.Count -gt 0) {
+                $summary = ($recentLines.ToArray() -join "`n")
+                $message = "[SO8T] Progress summary (last $NotifySummaryLines lines)`n$summary`nLog: $logPath"
+                Send-WebhookMessage -Message $message
+                $lastSummary = $now
+            }
+        }
+    }
+}
+
+$exitCode = $LASTEXITCODE
+
+if ($exitCode -ne 0) {
+    Write-Host "[ERROR] Pipeline failed (exit code: $exitCode)." -ForegroundColor Red
     if ($NotifyOnFailure) {
-        $failMessage = "[SO8T] Moonshot pipeline FAILED (exit code: $LASTEXITCODE)`nLog: $logPath"
+        $failMessage = "[SO8T] Moonshot pipeline FAILED (exit code: $exitCode)`nLog: $logPath"
         Send-WebhookMessage -Message $failMessage
     }
-    exit $LASTEXITCODE
+    exit $exitCode
 }
 
 Write-Host "[SUCCESS] Pipeline completed." -ForegroundColor Green
