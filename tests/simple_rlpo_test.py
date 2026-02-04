@@ -19,8 +19,8 @@ def test_environment():
 def test_imports():
     print("📦 Testing Imports...")
     try:
-        from scripts.models.so8t_residual_adapter import SO8ResidualAdapter
-        from scripts.utils.checkpoint_manager import RollingCheckpointManager
+        from src.models.so8t_residual_adapter import SO8ResidualAdapter
+        from src.utils.checkpoint_manager import RollingCheckpointManager
         print("✅ All imports successful")
         return True
     except ImportError as e:
@@ -43,7 +43,7 @@ def test_datasets():
 def test_nkat_adapter():
     print("🧬 Testing NKAT Adapter...")
     try:
-        from scripts.models.so8t_residual_adapter import SO8ResidualAdapter, inject_nkat_to_all_layers
+        from src.models.so8t_residual_adapter import SO8ResidualAdapter, inject_nkat_to_all_layers
         from transformers import AutoModelForCausalLM
 
         # アダプター単体テスト
@@ -73,7 +73,7 @@ def test_nkat_adapter():
 def test_checkpoint_manager():
     print("💾 Testing Checkpoint Manager...")
     try:
-        from scripts.utils.checkpoint_manager import create_task_manager
+        from src.utils.checkpoint_manager import create_task_manager
         manager = create_task_manager("test_task", "test_checkpoints")
         status = manager.get_status()
         print(f"✅ Checkpoint manager created - Task: {status['task_name']}")
@@ -85,7 +85,7 @@ def test_checkpoint_manager():
 def test_full_layer_adapters():
     print("🧬 Testing Full Layer NKAT Adapters...")
     try:
-        from scripts.models.so8t_residual_adapter import inject_nkat_to_all_layers
+        from src.models.so8t_residual_adapter import inject_nkat_to_all_layers
         from transformers import AutoModelForCausalLM
 
         model = AutoModelForCausalLM.from_pretrained(

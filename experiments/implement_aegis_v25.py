@@ -416,7 +416,7 @@ class AEGISv25Implementation:
         """AEGIS v2.5のABCテスト実行"""
         logger.info("Running ABC test for AEGIS v2.5")
 
-        from scripts.evaluation.plan_mode_official_abctest import OfficialABCTestPlan
+        from src.evaluation.plan_mode_official_abctest import OfficialABCTestPlan
 
         # ABCテスト設定
         abc_config = {

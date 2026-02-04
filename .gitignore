@@ -629,3 +629,7 @@ unsloth_compiled_cache/
 .specstory/
 push_result.txt
 
+
+# Ignore embedded external repo
+external/GRAPE/
+

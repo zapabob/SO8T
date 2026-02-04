@@ -10,6 +10,56 @@
       - dataset_ingestion
       - quality_assurance
 
+  - id: enrich-academic
+    description: "Scale academic datasets with citation filtering (arXiv/BioRxiv)"
+    routing_strategy: parallel
+    tags:
+      - enrichment
+      - academic
+      - citations
+    required_capabilities:
+      - dataset_ingestion
+      - paper_summarization
+
+  - id: enrich-popculture
+    description: "Generate pop-culture critique datasets (anime/film narrative logic)"
+    routing_strategy: parallel
+    tags:
+      - enrichment
+      - pop_culture
+    required_capabilities:
+      - osint_grounding
+
+  - id: enrich-world
+    description: "Map world affairs events to primary sources (2024-2026)"
+    routing_strategy: parallel
+    tags:
+      - enrichment
+      - world_affairs
+    required_capabilities:
+      - osint_grounding
+
+  - id: enrich-pharma
+    description: "Pharma safety enrichment (efficacy, side effects, abuse potential)"
+    routing_strategy: parallel
+    tags:
+      - enrichment
+      - pharma
+      - safety
+    required_capabilities:
+      - dataset_ingestion
+      - reward_design
+
+  - id: reward-strategy
+    description: "Apply quadrality reward strategy for GRPO"
+    routing_strategy: single_best
+    tags:
+      - reward
+      - grpo
+      - policy
+    required_capabilities:
+      - reward_design
+
   - id: sft
     description: "Run SFT/RLPO training for AEGIS foundation model"
     routing_strategy: single_best

@@ -29,7 +29,7 @@ except Exception as e:
 # Test PPOConfig
 print("2. Testing PPOConfig...")
 try:
-    from scripts.training.train_aegis_v2_ppo_so8t import PPOConfig
+    from src.training.train_aegis_v2_ppo_so8t import PPOConfig
     ppo_config = PPOConfig()
     print(f"   PPOConfig created: alpha_initial={ppo_config.alpha_initial}")
 except Exception as e:

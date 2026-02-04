@@ -36,7 +36,7 @@ except Exception as e:
 # Test 3: PPOTrainer initialization
 print("3. Initializing PPOTrainer...")
 try:
-    from scripts.training.train_aegis_v2_ppo_so8t import PPOTrainer
+    from src.training.train_aegis_v2_ppo_so8t import PPOTrainer
     print("   PPOTrainer class imported")
 
     trainer = PPOTrainer(config_path, 'models/Borea-Phi-3.5-mini-Instruct-Jp')

@@ -1,21 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-SO8T Common Utilities
-共通ユーティリティライブラリ
-"""
+# Auto-generated shim. Do not edit.
+from src.infra.utils.common.__init__ import *  # noqa: F401,F403
 
-from .logging_utils import setup_logging, get_logger
-from .config_utils import load_config, save_config, merge_configs
-from .cuda_utils import check_cuda_availability, get_optimal_device
-from .file_utils import ensure_dir, safe_file_write, atomic_write
-from .data_utils import calculate_dataset_stats, validate_dataset_format
+def _run():
+    import src.infra.utils.common.__init__ as _m
+    if hasattr(_m, 'main'):
+        _m.main()
 
-__all__ = [
-    'setup_logging', 'get_logger',
-    'load_config', 'save_config', 'merge_configs',
-    'check_cuda_availability', 'get_optimal_device',
-    'ensure_dir', 'safe_file_write', 'atomic_write',
-    'calculate_dataset_stats', 'validate_dataset_format'
-]
-
-
+if __name__ == '__main__':
+    _run()

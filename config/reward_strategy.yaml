@@ -1,0 +1,5 @@
+﻿reward_weights:
+  reasoning_mastery: 2.0
+  skill_usage: 1.0
+  precision_failure: -1.0
+  tool_hallucination: -2.0

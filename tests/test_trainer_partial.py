@@ -26,7 +26,7 @@ except Exception as e:
 
 print("2. Testing step-by-step PPOTrainer init...")
 try:
-    from scripts.training.train_aegis_v2_ppo_so8t import PPOConfig
+    from src.training.train_aegis_v2_ppo_so8t import PPOConfig
     from so8_rotation_adapter import (
         SO8PhaseTransitionAnnealer,
         ChaosInducedDiversityEnhancer,

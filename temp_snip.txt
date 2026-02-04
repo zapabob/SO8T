@@ -1,0 +1,40 @@
+﻿        integration = quad_inference.get('integration', {})
+        
+        # <think>繧ｿ繧ｰ蜀・・蝗幃㍾謗ｨ隲匁ｧ矩繧堤函謌・        thinking_content = f"""<think>
+[Vector_State]
+- 隲匁枚繧ｿ繧､繝医Ν: {paper.get('title', '')}
+- 繝峨Γ繧､繝ｳ: {observation.get('domain', '')}
+- 荳ｻ隕√き繝・ざ繝ｪ: {', '.join(paper.get('categories', [])[:3])}
+- 蠑慕畑謨ｰ: {paper.get('citation_count', 0)}
+- 謚ｽ蜃ｺ縺輔ｌ縺滓焚蛟､: {', '.join(observation.get('extracted_numbers', [])[:5])}
+- 謚ｽ蜃ｺ縺輔ｌ縺滓婿遞句ｼ・ {', '.join(observation.get('extracted_equations', [])[:3])}
+
+[Spinor_Plus_Logic]
+- 謗ｨ隲悶ち繧､繝・ {deduction.get('reasoning_type', '')}
+- 逅・ｫ也噪繧ｭ繝ｼ繝ｯ繝ｼ繝・ {', '.join(deduction.get('theoretical_keywords', [])[:3])}
+- 繝峨Γ繧､繝ｳ繧｢繝励Ο繝ｼ繝・ {', '.join(deduction.get('domain_approaches', [])[:3])}
+- 隲也炊讒矩: {deduction.get('logical_structure', '')}
+
+[Spinor_Minus_Synthesis]
+- 繧ｨ繝・ず繧ｱ繝ｼ繧ｹ: {', '.join(abduction.get('edge_case_keywords', [])[:3])}
+- 莉｣譖ｿ繧｢繝励Ο繝ｼ繝・ {', '.join(abduction.get('alternative_approaches', [])[:2])}
+- 貍皮ｹｹ縺ｸ縺ｮ謖第姶: {abduction.get('challenges_to_deduction', '')}
+
+[Quadrality_Integration]
+- 邨ｱ蜷医＆繧後◆豢槫ｯ・ {integration.get('integrated_insights', {}).get('synthesis', '')}
+- 蜩∬ｳｪ繧ｹ繧ｳ繧｢: {integration.get('quality_score', 0):.3f}
+- 鮟・≡豈泌庶譚溯ｷ晞屬: {integration.get('golden_ratio_convergence', {}).get('convergence_distance', 0):.3f}
+- 譛邨よ耳隲・ {integration.get('final_reasoning', '')}
+</think>
+
+<alpha_gate> VALIDATED </alpha_gate>"""
+        
+        # 譛邨ょ屓遲費ｼ郁ｫ匁枚縺ｮ隕∫ｴ・ｒ邁｡貎斐↓・・        final_answer = paper.get('summary', '')[:500]  # 譛蛻昴・500譁・ｭ・        
+        return {
+            'instruction': f"莉･荳九・隲匁枚繧貞・譫舌＠縲∝屁驥肴耳隲匁ｧ矩縺ｧ逅・ｧ｣縺励※縺上□縺輔＞: {paper.get('title', '')}",
+            'input': paper.get('summary', '')[:1000],  # 譛蛻昴・1000譁・ｭ・            'thinking': thinking_content,
+            'output': final_answer,
+            'format': 'so8t_quadruple_thinking',
+            'generated_at': datetime.now().isoformat()
+        }
+    

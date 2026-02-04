@@ -1,21 +1,10 @@
-import os
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
-from datasets import load_dataset
+# Auto-generated shim. Do not edit.
+from src.data.check_dataset import *  # noqa: F401,F403
 
-dataset_names = [
-    "Borea/Phi-3.5-instinct-jp",
-    "Borea/Phi-3.5-mini-Instruct-Jp",
-    "Borea/Phi3.5-instinct-jp",
-    "mmnga/HODACHI-Borea-Phi-3.5-mini-Instruct-Jp-gguf" # Unlikely a dataset
-]
+def _run():
+    import src.data.check_dataset as _m
+    if hasattr(_m, 'main'):
+        _m.main()
 
-for name in dataset_names:
-    print(f"Checking {name}...")
-    try:
-        ds = load_dataset(name, split="train", streaming=True)
-        print(f"✅ Found dataset: {name}")
-        # Try to read one item
-        print(next(iter(ds)))
-        break
-    except Exception as e:
-        print(f"❌ Failed: {e}")
+if __name__ == '__main__':
+    _run()

@@ -1,12 +1,10 @@
-import os
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
-from datasets import load_dataset
+# Auto-generated shim. Do not edit.
+from src.infra.utils.check_tfmc import *  # noqa: F401,F403
 
-name = "TFMC/imatrix-dataset-for-japanese-llm"
-print(f"Checking {name}...")
-try:
-    ds = load_dataset(name, split="train", streaming=True)
-    print(f"✅ Found dataset: {name}")
-    print(next(iter(ds)))
-except Exception as e:
-    print(f"❌ Failed: {e}")
+def _run():
+    import src.infra.utils.check_tfmc as _m
+    if hasattr(_m, 'main'):
+        _m.main()
+
+if __name__ == '__main__':
+    _run()

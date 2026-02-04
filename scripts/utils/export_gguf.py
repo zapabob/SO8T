@@ -1,46 +1,10 @@
-"""
-Exports SO8T checkpoints to GGUF using llama.cpp tooling.
-"""
+# Auto-generated shim. Do not edit.
+from src.infra.utils.export_gguf import *  # noqa: F401,F403
 
-from __future__ import annotations
+def _run():
+    import src.infra.utils.export_gguf as _m
+    if hasattr(_m, 'main'):
+        _m.main()
 
-import argparse
-from pathlib import Path
-
-import torch
-
-
-def merge_lora(base_model: Path, lora_path: Path, output: Path) -> None:
-    base = torch.load(base_model, map_location="cpu")
-    adapter = torch.load(lora_path, map_location="cpu")
-    for key, value in adapter.items():
-        if key in base:
-            base[key] += value
-        else:
-            base[key] = value
-    torch.save(base, output)
-
-
-def convert_to_gguf(checkpoint: Path, output: Path) -> None:
-    # Placeholder for downstream llama.cpp invocation
-    torch.save({"checkpoint": str(checkpoint)}, output)
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--lora", type=Path)
-    parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
-
-    temp = args.checkpoint
-    if args.lora:
-        merged = args.output.with_suffix(".merged.pt")
-        merge_lora(args.checkpoint, args.lora, merged)
-        temp = merged
-
-    convert_to_gguf(temp, args.output)
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    _run()

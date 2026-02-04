@@ -1,33 +1,10 @@
-#!/usr/bin/env python3
-"""
-訓練実行ラッパースクリプト
-PowerShellの文字エンコーディング問題を回避するため
-"""
+# Auto-generated shim. Do not edit.
+from src.infra.pipeline.manual.run_train_safety import *  # noqa: F401,F403
 
-import sys
-import os
-from pathlib import Path
+def _run():
+    import src.infra.pipeline.manual.run_train_safety as _m
+    if hasattr(_m, 'main'):
+        _m.main()
 
-# スクリプトのディレクトリに移動
-script_dir = Path(__file__).parent.absolute()
-os.chdir(script_dir)
-
-print(f"Working directory: {os.getcwd()}")
-
-# train_safety.pyをインポートして実行
-sys.path.insert(0, str(script_dir))
-
-# コマンドライン引数を設定
-sys.argv = [
-    "train_safety.py",
-    "--config", "configs/train_safety.yaml",
-    "--data_dir", "data",
-    "--output_dir", "chk"
-]
-
-# train_safety.pyの main() を実行
-from train_safety import main
-
-if __name__ == "__main__":
-    main()
-
+if __name__ == '__main__':
+    _run()

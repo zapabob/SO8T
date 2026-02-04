@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from scripts.evaluation import deepeval_ethics_test as de
+from src.evaluation import deepeval_ethics_test as de
 
 
 def test_sanitize_name_replaces_forbidden_chars():

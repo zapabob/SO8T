@@ -1,26 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""学習ログ確認スクリプト"""
+# Auto-generated shim. Do not edit.
+from src.infra.utils.check_training_log import *  # noqa: F401,F403
 
-from pathlib import Path
+def _run():
+    import src.infra.utils.check_training_log as _m
+    if hasattr(_m, 'main'):
+        _m.main()
 
-log_file = Path("logs/train_so8t_quadruple_ppo.log")
-
-print(f"[INFO] Log file exists: {log_file.exists()}")
-if log_file.exists():
-    print(f"[INFO] Log file size: {log_file.stat().st_size} bytes")
-    print("")
-    print("[Last 30 lines:]")
-    print("="*60)
-    with open(log_file, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-        for line in lines[-30:]:
-            print(line.rstrip())
-else:
-    print("[INFO] Log file not found yet")
-
-
-
-
-
-
+if __name__ == '__main__':
+    _run()

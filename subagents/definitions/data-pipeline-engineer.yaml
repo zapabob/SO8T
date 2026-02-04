@@ -9,6 +9,7 @@
       - "data validation"
       - "arxiv"
       - "biorxiv"
+      - "pharmacology safety"
     communication_style: "structured, implementation-focused"
     risk_tolerance: "medium"
 

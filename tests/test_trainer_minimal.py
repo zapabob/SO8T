@@ -28,7 +28,7 @@ except Exception as e:
 print("2. Testing PPOTrainer minimal init...")
 try:
     # Import minimal components
-    from scripts.training.train_aegis_v2_ppo_so8t import PPOConfig
+    from src.training.train_aegis_v2_ppo_so8t import PPOConfig
     print("   PPOConfig imported")
 
     # Create minimal trainer instance with just basic setup

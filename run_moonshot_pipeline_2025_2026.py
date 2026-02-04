@@ -16,10 +16,10 @@ os.environ.setdefault("UNSLOTH_COMPILE_DISABLE", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 os.environ.setdefault("LC_ALL", "C")
 
-from scripts.pipeline.integrated_moonshot_pipeline_2025_2026 import (
+from src.pipeline.integrated_moonshot_pipeline_2025_2026 import (
     IntegratedMoonshotPipeline2025_2026,
 )
-from scripts.utils.startup_manager import StartupManager
+from src.utils.startup_manager import StartupManager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -89,6 +89,21 @@ def main() -> None:
         help="Generate subagent schedule at pipeline start",
     )
     parser.add_argument(
+        "--dynamic-dispatch",
+        action="store_true",
+        help="Generate dynamic dispatch schedule via tools/dynamic_skill_dispatcher.py",
+    )
+    parser.add_argument(
+        "--skip-enrichment",
+        action="store_true",
+        help="Skip Phase 4 multi-domain enrichment",
+    )
+    parser.add_argument(
+        "--skip-reward-strategy",
+        action="store_true",
+        help="Skip Phase 5 quadrality reward strategy",
+    )
+    parser.add_argument(
         "--enable-mhc",
         action="store_true",
         help="Enable mHC manifold projection integration",
@@ -136,6 +151,15 @@ def main() -> None:
         os.environ["SO8T_SUBAGENT_STRATEGY"] = args.subagent_strategy
     if args.subagent_schedule:
         os.environ["SO8T_SUBAGENT_SCHEDULE"] = "1"
+    if args.dynamic_dispatch:
+        os.environ["SO8T_DYNAMIC_DISPATCH"] = "1"
+    if args.skip_enrichment:
+        os.environ["SO8T_ENRICH_ACADEMIC"] = "0"
+        os.environ["SO8T_ENRICH_POP"] = "0"
+        os.environ["SO8T_ENRICH_WORLD"] = "0"
+        os.environ["SO8T_ENRICH_PHARMA"] = "0"
+    if args.skip_reward_strategy:
+        os.environ["SO8T_REWARD_STRATEGY"] = "0"
     if args.enable_mhc:
         os.environ["SO8T_MHC_ENABLE"] = "1"
     if args.enable_so8:
@@ -179,6 +203,12 @@ def main() -> None:
             startup_args.extend(["--subagent-strategy", args.subagent_strategy])
         if args.subagent_schedule:
             startup_args.append("--subagent-schedule")
+        if args.dynamic_dispatch:
+            startup_args.append("--dynamic-dispatch")
+        if args.skip_enrichment:
+            startup_args.append("--skip-enrichment")
+        if args.skip_reward_strategy:
+            startup_args.append("--skip-reward-strategy")
         if args.enable_mhc:
             startup_args.append("--enable-mhc")
         if args.enable_so8:

@@ -1,56 +1,10 @@
-#!/usr/bin/env python3
+# Auto-generated shim. Do not edit.
+from src.infra.utils.fix_unicode import *  # noqa: F401,F403
 
-with open('scripts/training/aegis_finetuning_pipeline.py', 'r', encoding='utf-8') as f:
-    content = f.read()
+def _run():
+    import src.infra.utils.fix_unicode as _m
+    if hasattr(_m, 'main'):
+        _m.main()
 
-# Replace Unicode characters with ASCII
-content = content.replace('✓', '[OK]')
-content = content.replace('✗', '[NG]')
-content = content.replace('❌', '[ERROR]')
-
-with open('scripts/training/aegis_finetuning_pipeline.py', 'w', encoding='utf-8') as f:
-    f.write(content)
-
-print('Unicode characters replaced successfully')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == '__main__':
+    _run()

@@ -9,6 +9,8 @@ subagent:
       - "OSINT data synthesis"
       - "Agentic Tree Search"
       - "SO8T Quadrality Analysis"
+      - "world affairs mapping"
+      - "pop-culture review"
     communication_style: "collaborative, scientific, precise"
     risk_tolerance: "medium"
 
@@ -40,6 +42,6 @@ subagent:
         - "read-web"
 
   triggers:
-    - pattern: "autonomously research|evolve code|automated discovery|research lifecycle"
+    - pattern: "autonomously research|evolve code|automated discovery|research lifecycle|world affairs|pop culture|anime|film"
       confidence_threshold: 0.8
       priority: "high"

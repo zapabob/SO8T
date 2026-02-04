@@ -1,0 +1,23 @@
+version: 1
+sources:
+  pharmacology:
+    description: "Drug action, side effects, abuse potential (detection use)"
+    files:
+      - data/pharmacology/actions.jsonl
+      - data/pharmacology/side_effects.jsonl
+      - data/pharmacology/abuse_detection.jsonl
+  nsfw_detection:
+    description: "Safety-oriented NSFW detection dataset"
+    files:
+      - data/nsfw_detection_dataset.jsonl
+  academia:
+    description: "Science, math, CoT, MCP/Skill data"
+    files:
+      - data/academic/science_math_cot.jsonl
+      - data/academic/mcp_skill.jsonl
+  intelligence:
+    description: "Defense whitepapers, JAXA docs, 2024-2026 geopolitics"
+    files:
+      - data/intel/defense_whitepapers.jsonl
+      - data/intel/jaxa_briefs.jsonl
+      - data/intel/geopolitics_2024_2026.jsonl

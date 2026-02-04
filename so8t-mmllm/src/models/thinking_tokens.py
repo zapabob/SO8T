@@ -54,6 +54,8 @@ def _build_simple_think_tokens(style: Optional[str] = None) -> Dict[str, str]:
 QUADRUPLE_THINKING_TOKENS = {
     "think_task_start": "<think-task>",
     "think_task_end": "</think-task>",
+    "think_analysis_start": "<think-analysis>",
+    "think_analysis_end": "</think-analysis>",
     "think_safety_start": "<think-safety>",
     "think_safety_end": "</think-safety>",
     "think_policy_start": "<think-policy>",
@@ -283,6 +285,7 @@ def format_quadruple_thinking_output(
     safety: str,
     policy: str,
     final: str,
+    analysis: Optional[str] = None,
 ) -> str:
     """
     四重推論を特殊トークンで囲んだ形式にフォーマット
@@ -297,8 +300,10 @@ def format_quadruple_thinking_output(
         フォーマット済みテキスト
     """
     tokens = QUADRUPLE_THINKING_TOKENS
+    analysis = analysis or ""
     return (
         f"{tokens['think_task_start']}{task}{tokens['think_task_end']}"
+        f"{tokens['think_analysis_start']}{analysis}{tokens['think_analysis_end']}"
         f"{tokens['think_safety_start']}{safety}{tokens['think_safety_end']}"
         f"{tokens['think_policy_start']}{policy}{tokens['think_policy_end']}"
         f"{tokens['final_start']}{final}{tokens['final_end']}"
@@ -313,6 +318,7 @@ def format_thinking_output(
     task: Optional[str] = None,
     safety: Optional[str] = None,
     policy: Optional[str] = None,
+    analysis: Optional[str] = None,
     thinking_tag_style: Optional[str] = None,
 ) -> str:
     """
@@ -331,7 +337,7 @@ def format_thinking_output(
         フォーマット済みテキスト
     """
     if use_quadruple and task and safety and policy:
-        return format_quadruple_thinking_output(task, safety, policy, final)
+        return format_quadruple_thinking_output(task, safety, policy, final, analysis=analysis)
     
     tokens = get_thinking_tokens(use_redacted, use_quadruple, thinking_tag_style)
     

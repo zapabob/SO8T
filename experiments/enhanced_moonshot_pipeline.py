@@ -22,7 +22,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
 
 try:
-    from scripts.models.grape_position_encoding import (
+    from src.models.grape_position_encoding import (
         GrapePatchConfig,
         patch_rotary_embeddings,
         enable_additive_grape,
@@ -35,17 +35,17 @@ except Exception:
     patch_attention_with_additive_grape = None
 
 try:
-    from scripts.models.so8t_residual_adapter import inject_nkat_to_all_layers
+    from src.models.so8t_residual_adapter import inject_nkat_to_all_layers
 except Exception:
     inject_nkat_to_all_layers = None
 
 try:
-    from scripts.models.mhc_manifold import apply_mhc_projection_to_model
+    from src.models.mhc_manifold import apply_mhc_projection_to_model
 except Exception:
     apply_mhc_projection_to_model = None
 
 try:
-    from scripts.utils.artifact_qa import collect_artifacts, summarize_artifacts, write_report
+    from src.utils.artifact_qa import collect_artifacts, summarize_artifacts, write_report
 except Exception:
     collect_artifacts = None
     summarize_artifacts = None

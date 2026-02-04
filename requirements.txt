@@ -112,3 +112,7 @@ passlib>=1.7.4
 # Additional security monitoring
 bandit>=1.7.0
 safety>=3.0.0
+
+# Phase4 pipeline dependencies
+pypdf>=4.0.0
+huggingface_hub>=0.24.0

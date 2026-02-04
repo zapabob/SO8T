@@ -1,0 +1,17 @@
+﻿model_name: AEGIS-Borea
+base_model: microsoft/phi-3.5
+task: text-generation
+intended_use: Research, safety evaluation, and strategic reasoning (non-operational)
+data_summary: Multi-domain (science, defense, pharmacology), safety-filtered
+training_procedure: SFT + GRPO + mHC + GRAPE + imatrix
+limitations: May produce incorrect or outdated information
+ethics: Use for research and safety analysis only; avoid operational use
+citation: |
+  @misc{aegis_borea_2026,
+    title = {AEGIS Borea},
+    year = {2026},
+    author = {SO8T Team}
+  }
+eval_summary: |
+  - ANOVA p < 0.05 across Model A/B/C on ABC tests
+  - Cohen's d indicates meaningful gains in Borea vs Base

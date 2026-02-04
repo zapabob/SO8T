@@ -97,7 +97,7 @@ def test_task_manager_gguf():
     print("=" * 50)
 
     try:
-        from scripts.utils.task_manager import run_gguf_conversion
+        from src.utils.task_manager import run_gguf_conversion
 
         # 簡単なテスト（実際のモデル変換は行わない）
         print("✅ GGUF conversion function imported")

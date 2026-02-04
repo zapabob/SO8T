@@ -1,27 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""Deep Researchログ確認スクリプト"""
+# Auto-generated shim. Do not edit.
+from src.infra.utils.check_deep_research_log import *  # noqa: F401,F403
 
-from pathlib import Path
+def _run():
+    import src.infra.utils.check_deep_research_log as _m
+    if hasattr(_m, 'main'):
+        _m.main()
 
-log_file = Path('logs/create_deep_research_thinking_dataset.log')
-
-print(f"[INFO] Log file exists: {log_file.exists()}")
-if log_file.exists():
-    size = log_file.stat().st_size
-    print(f"[INFO] Log file size: {size:,} bytes")
-    print()
-    print("Last 50 lines:")
-    print("="*60)
-    with open(log_file, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-        for line in lines[-50:]:
-            print(line.rstrip())
-else:
-    print("[INFO] Log file not found")
-
-
-
-
-
-
+if __name__ == '__main__':
+    _run()
