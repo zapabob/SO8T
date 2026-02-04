@@ -39,9 +39,11 @@ class StartupManager:
 
             arg_string = " ".join(_quote(arg) for arg in extra_args)
 
+            checkpoint_interval = os.getenv("SO8T_CHECKPOINT_INTERVAL", "300")
+            rolling_checkpoints = os.getenv("SO8T_ROLLING_CHECKPOINTS", "5")
             env_lines = [
-                "set SO8T_CHECKPOINT_INTERVAL=300",
-                "set SO8T_ROLLING_CHECKPOINTS=5",
+                f"set SO8T_CHECKPOINT_INTERVAL={checkpoint_interval}",
+                f"set SO8T_ROLLING_CHECKPOINTS={rolling_checkpoints}",
             ]
             optional_envs = [
                 "SO8T_GRAPE_VARIANT",

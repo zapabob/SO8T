@@ -6,24 +6,49 @@ Thinking特殊トークン定義とトークナイザー拡張
 """
 
 from typing import List, Dict, Optional, Tuple
+import os
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 
 # Thinking特殊トークン定義
-THINKING_SPECIAL_TOKENS = {
-    "think_start": "<think>",
-    "think_end": "</think>",
-    "final_start": "<final>",
-    "final_end": "</final>",
-}
+DEFAULT_THINK_TAG_STYLE = "legacy"  # legacy | openai | thinking
 
-# ユーザーが提示した形式（<think>）もサポート
-REDACTED_REASONING_TOKENS = {
-    "reasoning_start": "<think>",
-    "reasoning_end": "</think>",
-    "final_start": "<final>",
-    "final_end": "</final>",
-}
+def _resolve_think_tag_style(style: Optional[str] = None) -> str:
+    """
+    Resolve thinking tag style.
+    legacy  : <think>...</think>
+    openai  : <think>...</thinking>
+    thinking: <thinking>...</thinking>
+    """
+    raw = (style or os.environ.get("SO8T_THINK_TAG_STYLE", DEFAULT_THINK_TAG_STYLE)).strip().lower()
+    if raw in ("legacy", "think", "default"):
+        return "legacy"
+    if raw in ("openai", "thinking"):
+        return raw
+    return "legacy"
+
+def _build_simple_think_tokens(style: Optional[str] = None) -> Dict[str, str]:
+    resolved = _resolve_think_tag_style(style)
+    if resolved == "openai":
+        return {
+            "think_start": "<think>",
+            "think_end": "</thinking>",
+            "final_start": "<final>",
+            "final_end": "</final>",
+        }
+    if resolved == "thinking":
+        return {
+            "think_start": "<thinking>",
+            "think_end": "</thinking>",
+            "final_start": "<final>",
+            "final_end": "</final>",
+        }
+    return {
+        "think_start": "<think>",
+        "think_end": "</think>",
+        "final_start": "<final>",
+        "final_end": "</final>",
+    }
 
 # 四重推論形式（Task/Safety/Policy/Final）
 QUADRUPLE_THINKING_TOKENS = {
@@ -38,10 +63,14 @@ QUADRUPLE_THINKING_TOKENS = {
 }
 
 # デフォルトは<think>形式を使用
-DEFAULT_SPECIAL_TOKENS = THINKING_SPECIAL_TOKENS
+DEFAULT_SPECIAL_TOKENS = _build_simple_think_tokens()
 
 
-def get_thinking_tokens(use_redacted: bool = False, use_quadruple: bool = False) -> Dict[str, str]:
+def get_thinking_tokens(
+    use_redacted: bool = False,
+    use_quadruple: bool = False,
+    thinking_tag_style: Optional[str] = None,
+) -> Dict[str, str]:
     """
     Thinking特殊トークンの辞書を取得
     
@@ -54,15 +83,22 @@ def get_thinking_tokens(use_redacted: bool = False, use_quadruple: bool = False)
     """
     if use_quadruple:
         return QUADRUPLE_THINKING_TOKENS
+    base_tokens = _build_simple_think_tokens(thinking_tag_style)
     if use_redacted:
-        return REDACTED_REASONING_TOKENS
-    return DEFAULT_SPECIAL_TOKENS
+        return {
+            "reasoning_start": base_tokens["think_start"],
+            "reasoning_end": base_tokens["think_end"],
+            "final_start": base_tokens["final_start"],
+            "final_end": base_tokens["final_end"],
+        }
+    return base_tokens
 
 
 def add_thinking_tokens_to_tokenizer(
     tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast,
     use_redacted: bool = False,
     use_quadruple: bool = False,
+    thinking_tag_style: Optional[str] = None,
 ) -> PreTrainedTokenizer | PreTrainedTokenizerFast:
     """
     トークナイザーにThinking特殊トークンを追加
@@ -75,7 +111,7 @@ def add_thinking_tokens_to_tokenizer(
     Returns:
         特殊トークンが追加されたトークナイザー
     """
-    tokens = get_thinking_tokens(use_redacted, use_quadruple)
+    tokens = get_thinking_tokens(use_redacted, use_quadruple, thinking_tag_style)
     
     # 特殊トークンのリストを作成
     special_tokens_list = list(tokens.values())
@@ -101,6 +137,8 @@ def add_thinking_tokens_to_tokenizer(
 def get_token_ids(
     tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast,
     use_redacted: bool = False,
+    use_quadruple: bool = False,
+    thinking_tag_style: Optional[str] = None,
 ) -> Dict[str, int]:
     """
     Thinking特殊トークンのIDを取得
@@ -112,7 +150,7 @@ def get_token_ids(
     Returns:
         トークン名とIDのマッピング
     """
-    tokens = get_thinking_tokens(use_redacted)
+    tokens = get_thinking_tokens(use_redacted, use_quadruple, thinking_tag_style)
     token_ids = {}
     
     for key, token_str in tokens.items():
@@ -189,6 +227,7 @@ def extract_thinking_and_final(
     text: str,
     use_redacted: bool = False,
     use_quadruple: bool = False,
+    thinking_tag_style: Optional[str] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
     """
     テキストからThinking部分とFinal部分を抽出
@@ -208,7 +247,7 @@ def extract_thinking_and_final(
         thinking_text = "\n".join(thinking_parts) if thinking_parts else None
         return thinking_text, final
     
-    tokens = get_thinking_tokens(use_redacted, use_quadruple)
+    tokens = get_thinking_tokens(use_redacted, use_quadruple, thinking_tag_style)
     
     # Thinking部分の抽出
     think_start_tag = tokens.get("think_start") or tokens.get("reasoning_start")
@@ -274,6 +313,7 @@ def format_thinking_output(
     task: Optional[str] = None,
     safety: Optional[str] = None,
     policy: Optional[str] = None,
+    thinking_tag_style: Optional[str] = None,
 ) -> str:
     """
     ThinkingとFinalを特殊トークンで囲んだ形式にフォーマット
@@ -293,7 +333,7 @@ def format_thinking_output(
     if use_quadruple and task and safety and policy:
         return format_quadruple_thinking_output(task, safety, policy, final)
     
-    tokens = get_thinking_tokens(use_redacted, use_quadruple)
+    tokens = get_thinking_tokens(use_redacted, use_quadruple, thinking_tag_style)
     
     think_start_tag = tokens.get("think_start") or tokens.get("reasoning_start")
     think_end_tag = tokens.get("think_end") or tokens.get("reasoning_end")
@@ -334,6 +374,7 @@ def build_thinking_prompt(
     user_query: str,
     use_redacted: bool = False,
     use_quadruple: bool = False,
+    thinking_tag_style: Optional[str] = None,
 ) -> str:
     """
     Thinking生成用のプロンプトを構築
@@ -349,7 +390,7 @@ def build_thinking_prompt(
     if use_quadruple:
         return build_quadruple_thinking_prompt(user_query)
     
-    tokens = get_thinking_tokens(use_redacted, use_quadruple)
+    tokens = get_thinking_tokens(use_redacted, use_quadruple, thinking_tag_style)
     think_start_tag = tokens.get("think_start") or tokens.get("reasoning_start")
     
     prompt = (
@@ -364,4 +405,3 @@ def build_thinking_prompt(
     )
     
     return prompt
-

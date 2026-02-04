@@ -4,14 +4,15 @@
 Build Quadrality <think> dataset from integrated JSONL.
 
 Outputs samples with:
-  output = <think>...</think><final>...</final>
+  output = <think>...</thinking><final>...</final> (switchable)
 """
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any, Optional
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -20,7 +21,14 @@ sys.path.insert(0, str(project_root / "so8t-mmllm" / "src"))
 from models.thinking_tokens import format_thinking_output
 
 
-def build_quadrality_think(instruction: str, user_input: str, answer: str, sample: Dict[str, Any]) -> str:
+def build_quadrality_think(
+    instruction: str,
+    user_input: str,
+    answer: str,
+    sample: Dict[str, Any],
+    use_quadruple: bool = False,
+    thinking_tag_style: Optional[str] = None,
+) -> str:
     """
     Advanced SO8T Quadrality Reasoning Framework.
     Vector (Observation) -> Spinor+ (Deduction) -> Spinor- (Abduction) -> Integration
@@ -41,10 +49,34 @@ def build_quadrality_think(instruction: str, user_input: str, answer: str, sampl
     integration = f"[Quadrality_Integration]\n- Synthesis: Merging logical deductions with critical alternatives.\n- Final Path: Confirming the solution roadmap."
     
     thinking = "\n".join([vector, spinor_plus, spinor_minus, integration])
-    return format_thinking_output(thinking=thinking, final=answer, use_redacted=True)
+    if use_quadruple:
+        # Map quadrality phases into task/safety/policy buckets for quadruple tags
+        task = "\n".join([vector, spinor_plus])
+        safety = spinor_minus
+        policy = integration
+        return format_thinking_output(
+            thinking=thinking,
+            final=answer,
+            use_quadruple=True,
+            task=task,
+            safety=safety,
+            policy=policy,
+            thinking_tag_style=thinking_tag_style,
+        )
+    return format_thinking_output(
+        thinking=thinking,
+        final=answer,
+        use_redacted=True,
+        thinking_tag_style=thinking_tag_style,
+    )
 
 
-def convert(input_path: Path, output_path: Path) -> int:
+def convert(
+    input_path: Path,
+    output_path: Path,
+    use_quadruple: bool = False,
+    thinking_tag_style: Optional[str] = None,
+) -> int:
     converted = 0
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(input_path, "r", encoding="utf-8") as f_in, open(output_path, "w", encoding="utf-8") as f_out:
@@ -65,7 +97,14 @@ def convert(input_path: Path, output_path: Path) -> int:
             if not answer:
                 continue
 
-            out_text = build_quadrality_think(instruction, user_input, answer, sample)
+            out_text = build_quadrality_think(
+                instruction,
+                user_input,
+                answer,
+                sample,
+                use_quadruple=use_quadruple,
+                thinking_tag_style=thinking_tag_style,
+            )
             new_sample: Dict[str, str] = {
                 "instruction": instruction,
                 "input": user_input,
@@ -84,9 +123,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Build quadrality <think> dataset")
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--quadruple", action="store_true", help="emit <think-task>/<think-safety>/<think-policy> tokens")
+    parser.add_argument("--think-tag-style", default=None, help="legacy|openai|thinking (default: env SO8T_THINK_TAG_STYLE)")
     args = parser.parse_args()
 
-    count = convert(args.input, args.output)
+    env_quad = os.environ.get("SO8T_QUADRUPLE_TOKENS", "").strip().lower() in {"1", "true", "yes"}
+    use_quadruple = args.quadruple or env_quad
+    thinking_tag_style = args.think_tag_style or os.environ.get("SO8T_THINK_TAG_STYLE")
+    count = convert(args.input, args.output, use_quadruple=use_quadruple, thinking_tag_style=thinking_tag_style)
     print(f"[OK] Converted {count} samples -> {args.output}")
     return 0
 

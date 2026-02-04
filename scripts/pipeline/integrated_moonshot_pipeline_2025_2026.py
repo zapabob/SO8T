@@ -373,6 +373,11 @@ class IntegratedMoonshotPipeline2025_2026:
             return None
         output_path.parent.mkdir(parents=True, exist_ok=True)
         cmd = ["py", "-3", str(script), "--input", str(input_path), "--output", str(output_path)]
+        if os.environ.get("SO8T_QUADRUPLE_TOKENS", "").strip().lower() in {"1", "true", "yes"}:
+            cmd.append("--quadruple")
+        tag_style = os.environ.get("SO8T_THINK_TAG_STYLE")
+        if tag_style:
+            cmd += ["--think-tag-style", tag_style]
         try:
             subprocess.run(cmd, check=True, cwd=self.project_root)
             logger.info("Quadrality <think> dataset created: %s", output_path)

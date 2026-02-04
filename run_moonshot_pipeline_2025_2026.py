@@ -159,41 +159,44 @@ def main() -> None:
                 print(f"  - {f}")
         return
 
-    # Register startup auto-resume
-    startup_args = ["--use-existing-datasets"]
-    if args.collect_new_data:
-        startup_args = ["--collect-new-data"]
-    if args.grape_variant:
-        startup_args.extend(["--grape-variant", args.grape_variant])
-    if args.use_unsloth:
-        startup_args.append("--use-unsloth")
-    if args.mcp_api_skill:
-        startup_args.append("--mcp-api-skill")
-    if args.recover:
-        startup_args.append("--recover")
-    if args.training_config:
-        startup_args.extend(["--training-config", args.training_config])
-    if args.subagent_strategy:
-        startup_args.extend(["--subagent-strategy", args.subagent_strategy])
-    if args.subagent_schedule:
-        startup_args.append("--subagent-schedule")
-    if args.enable_mhc:
-        startup_args.append("--enable-mhc")
-    if args.enable_so8:
-        startup_args.append("--enable-so8")
-    if args.so8_mode:
-        startup_args.extend(["--so8-mode", args.so8_mode])
-    if args.mhc_targets:
-        startup_args.extend(["--mhc-targets", args.mhc_targets])
-    if args.mhc_blend:
-        startup_args.extend(["--mhc-blend", str(args.mhc_blend)])
-    startup.register(extra_args=startup_args)
+    startup_enabled = os.getenv("SO8T_STARTUP_REGISTER", "1") == "1"
+    if startup_enabled:
+        # Register startup auto-resume
+        startup_args = ["--use-existing-datasets"]
+        if args.collect_new_data:
+            startup_args = ["--collect-new-data"]
+        if args.grape_variant:
+            startup_args.extend(["--grape-variant", args.grape_variant])
+        if args.use_unsloth:
+            startup_args.append("--use-unsloth")
+        if args.mcp_api_skill:
+            startup_args.append("--mcp-api-skill")
+        if args.recover:
+            startup_args.append("--recover")
+        if args.training_config:
+            startup_args.extend(["--training-config", args.training_config])
+        if args.subagent_strategy:
+            startup_args.extend(["--subagent-strategy", args.subagent_strategy])
+        if args.subagent_schedule:
+            startup_args.append("--subagent-schedule")
+        if args.enable_mhc:
+            startup_args.append("--enable-mhc")
+        if args.enable_so8:
+            startup_args.append("--enable-so8")
+        if args.so8_mode:
+            startup_args.extend(["--so8-mode", args.so8_mode])
+        if args.mhc_targets:
+            startup_args.extend(["--mhc-targets", args.mhc_targets])
+        if args.mhc_blend:
+            startup_args.extend(["--mhc-blend", str(args.mhc_blend)])
+        startup.register(extra_args=startup_args)
 
     use_existing = args.use_existing_datasets and not args.collect_new_data
     pipeline.execute_full_pipeline(use_existing_datasets=use_existing)
 
     # Unregister after successful completion
-    startup.unregister()
+    if startup_enabled:
+        startup.unregister()
 
 
 if __name__ == "__main__":
