@@ -1,0 +1,244 @@
+[
+  {
+    "id": "collect",
+    "description": "Collect and validate datasets (HF CLI, arxiv/biorxiv, exams, safety)",
+    "routing": {
+      "strategy": "parallel",
+      "reasoning": "Parallel execution across 2 subagents",
+      "assignments": [
+        {
+          "subagent_name": "data-pipeline-engineer",
+          "task_portion": 0.8421052631578947,
+          "capabilities": [
+            "dataset_ingestion",
+            "quality_assurance"
+          ],
+          "configuration": {
+            "max_papers": 50000,
+            "max_exam_questions": 10000,
+            "task_tags": [
+              "dataset",
+              "ingestion",
+              "quality"
+            ]
+          }
+        },
+        {
+          "subagent_name": "security-reviewer",
+          "task_portion": 0.15789473684210525,
+          "capabilities": [
+            "vulnerability_scanning",
+            "safety_evaluation"
+          ],
+          "configuration": {
+            "high_security": true,
+            "compliance_frameworks": [
+              "SOC2",
+              "GDPR"
+            ],
+            "task_tags": [
+              "dataset",
+              "ingestion",
+              "quality"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "sft",
+    "description": "Run SFT/RLPO training for AEGIS foundation model",
+    "routing": {
+      "strategy": "single",
+      "reasoning": "Selected performance-analyzer with score 2.00",
+      "assignments": [
+        {
+          "subagent_name": "performance-analyzer",
+          "task_portion": 1.0,
+          "capabilities": [
+            "profiling",
+            "optimization_planning"
+          ],
+          "configuration": {
+            "priority_metric": "throughput",
+            "target_gpu": "RTX 3060",
+            "task_tags": [
+              "training",
+              "sft",
+              "rlpo"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "grpo",
+    "description": "Execute GRPO training and reward validation",
+    "routing": {
+      "strategy": "single",
+      "reasoning": "Selected rl-trainer with score 6.00",
+      "assignments": [
+        {
+          "subagent_name": "rl-trainer",
+          "task_portion": 1.0,
+          "capabilities": [
+            "rl_training",
+            "reward_design"
+          ],
+          "configuration": {
+            "group_size": 8,
+            "kl_penalty": 0.1,
+            "task_tags": [
+              "grpo",
+              "rl",
+              "reward"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "architecture",
+    "description": "Integrate mHC, SO8T residual adapters, and GRAPE position encoding",
+    "routing": {
+      "strategy": "parallel",
+      "reasoning": "Parallel execution across 2 subagents",
+      "assignments": [
+        {
+          "subagent_name": "architecture-integrator",
+          "task_portion": 0.6666666666666666,
+          "capabilities": [
+            "architecture_integration",
+            "compatibility_review"
+          ],
+          "configuration": {
+            "integration_stage": "advanced",
+            "task_tags": [
+              "mhc",
+              "so8t",
+              "grape",
+              "integration"
+            ]
+          }
+        },
+        {
+          "subagent_name": "research-specialist",
+          "task_portion": 0.3333333333333333,
+          "capabilities": [
+            "paper_summarization",
+            "design_review"
+          ],
+          "configuration": {
+            "citation_required": true,
+            "task_tags": [
+              "mhc",
+              "so8t",
+              "grape",
+              "integration"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "quantization",
+    "description": "Run imatrix calibration and GGUF packaging",
+    "routing": {
+      "strategy": "single",
+      "reasoning": "Selected quantization-engineer with score 8.00",
+      "assignments": [
+        {
+          "subagent_name": "quantization-engineer",
+          "task_portion": 1.0,
+          "capabilities": [
+            "imatrix_calibration",
+            "gguf_packaging"
+          ],
+          "configuration": {
+            "quantization_type": "Q8_0",
+            "task_tags": [
+              "imatrix",
+              "gguf",
+              "quantization"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "evaluation",
+    "description": "Execute ABC benchmarks and statistical testing",
+    "routing": {
+      "strategy": "parallel",
+      "reasoning": "Parallel execution across 2 subagents",
+      "assignments": [
+        {
+          "subagent_name": "evaluation-analyst",
+          "task_portion": 0.8333333333333334,
+          "capabilities": [
+            "benchmark_execution",
+            "significance_testing"
+          ],
+          "configuration": {
+            "confidence_level": 0.95,
+            "effect_size_metric": "cohens_d",
+            "task_tags": [
+              "benchmark",
+              "statistics",
+              "abc"
+            ]
+          }
+        },
+        {
+          "subagent_name": "performance-analyzer",
+          "task_portion": 0.16666666666666666,
+          "capabilities": [
+            "profiling",
+            "optimization_planning"
+          ],
+          "configuration": {
+            "priority_metric": "throughput",
+            "target_gpu": "RTX 3060",
+            "task_tags": [
+              "benchmark",
+              "statistics",
+              "abc"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "deploy",
+    "description": "Publish model artifacts to Hugging Face and Ollama",
+    "routing": {
+      "strategy": "single",
+      "reasoning": "Selected deployment-manager with score 5.50",
+      "assignments": [
+        {
+          "subagent_name": "deployment-manager",
+          "task_portion": 1.0,
+          "capabilities": [
+            "artifact_packaging",
+            "deployment_publish"
+          ],
+          "configuration": {
+            "repo_id": "zapabobouj/AEGIS-phi3.5mini-jp-v3.0",
+            "license": "apache-2.0",
+            "task_tags": [
+              "deploy",
+              "huggingface",
+              "ollama"
+            ]
+          }
+        }
+      ]
+    }
+  }
+]
