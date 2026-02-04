@@ -33,10 +33,21 @@ class V3GRPOConfig:
         self.max_seq_length = 2048
 
         # Deepseek GLPO parameters
-        self.group_size = 4
+        self.group_size = 8
         self.reward_temperature = 0.1
         self.kl_coef = 0.04
         self.advantage_normalization = True
+
+        # Reward shaping (tool calling + quad CoT)
+        self.reward_tool_correct = 0.2
+        self.reward_tool_incorrect = -1.0
+        self.reward_no_tool_correct = 1.0
+        self.reward_no_tool_incorrect = -0.5
+        self.reward_quad_bonus = 0.3
+
+        # ShinkaEvolve + mHC integration
+        self.use_shinka_evolve = True
+        self.use_mhc = True
 
         # RTX3060 optimized
         self.per_device_train_batch_size = 1
@@ -175,14 +186,101 @@ class V3GRPOPipeline:
 
         return model, ref_model, tokenizer
 
-    def compute_rewards(self, prompts: List[str], responses: List[str]) -> List[float]:
-        """Compute reward for each response."""
+    def _detect_tool_usage(self, sample: Dict[str, Any], response: str) -> bool:
+        """Detect whether tool calling was used."""
+        for key in ("tool_calls", "tools_used", "used_tools", "tool_calling"):
+            if key in sample:
+                try:
+                    return bool(sample[key])
+                except Exception:
+                    pass
+        markers = ["<tool>", "tool_call", "tool:", "[tool]", "{tool}"]
+        return any(m in response.lower() for m in markers)
+
+    def _detect_quad_cot(self, sample: Dict[str, Any], response: str) -> bool:
+        """Detect SO8T quadruple reasoning."""
+        for key in ("quad_cot", "quadruple_reasoning", "so8t_cot"):
+            if key in sample:
+                return bool(sample[key])
+        markers = ["perspective", "viewpoint", "angle", "quad", "so8t"]
+        return any(m in response.lower() for m in markers)
+
+    def _resolve_correctness(self, sample: Dict[str, Any], response: str) -> bool:
+        """Resolve correctness from sample fields."""
+        for key in ("is_correct", "correct", "label"):
+            if key in sample:
+                return bool(sample[key])
+        if "expected" in sample:
+            return str(sample["expected"]).strip() == response.strip()
+        if "answer" in sample:
+            return str(sample["answer"]).strip() == response.strip()
+        if "chosen" in sample:
+            return response.strip() == str(sample["chosen"]).strip()
+        return False
+
+    def _apply_mhc_constraints(self, advantages: List[float], group_size: int) -> List[float]:
+        """Apply mHC/Birkhoff projection to advantages."""
+        if not self.config.use_mhc:
+            return advantages
+        try:
+            from kromhc.core.manifold_constraint import ManifoldConstraint
+            import torch
+
+            n = group_size
+            needed = n * n
+            data = advantages[:needed]
+            if len(data) < needed:
+                data = data + [0.0] * (needed - len(data))
+            matrix = torch.tensor(data, dtype=torch.float32).view(n, n)
+            projected = ManifoldConstraint().project(matrix)
+            flat = projected.view(-1).tolist()
+            return flat[: len(advantages)]
+        except Exception as e:
+            logger.warning("[mHC] Projection skipped: %s", e)
+            return advantages
+
+    def _evolve_responses(self, prompts: List[str], responses: List[str]) -> List[str]:
+        """Run ShinkaEvolve search for improved responses."""
+        if not self.config.use_shinka_evolve:
+            return responses
+        try:
+            from scripts.training.shinka_evolve import (
+                ShinkaEvolveConfig,
+                ShinkaEvolveEngine,
+            )
+
+            engine = ShinkaEvolveEngine(ShinkaEvolveConfig())
+            return engine.evolve(prompts, responses)
+        except Exception as e:
+            logger.warning("[ShinkaEvolve] Skipped: %s", e)
+            return responses
+
+    def compute_rewards(
+        self,
+        samples: List[Dict[str, Any]],
+        prompts: List[str],
+        responses: List[str],
+    ) -> List[float]:
+        """Compute rewards with tool-calling + quad CoT shaping."""
         rewards = []
-        for prompt, response in zip(prompts, responses):
-            # Simplified reward based on length and completeness
-            length_bonus = min(len(response) / 100, 1.0)
-            completeness = 1.0 if len(response) > 10 else 0.5
-            rewards.append(length_bonus * completeness)
+        for sample, prompt, response in zip(samples, prompts, responses):
+            used_tool = self._detect_tool_usage(sample, response)
+            quad_cot = self._detect_quad_cot(sample, response)
+            correct = self._resolve_correctness(sample, response)
+
+            if used_tool and correct:
+                reward = self.config.reward_tool_correct
+            elif used_tool and not correct:
+                reward = self.config.reward_tool_incorrect
+            elif not used_tool and correct:
+                reward = self.config.reward_no_tool_correct
+            else:
+                reward = self.config.reward_no_tool_incorrect
+
+            if quad_cot and correct:
+                reward += self.config.reward_quad_bonus
+
+            rewards.append(reward)
         return rewards
 
     def compute_advantages(self, rewards: List[float], group_size: int) -> List[float]:
@@ -246,12 +344,14 @@ class V3GRPOPipeline:
 
             # Generate responses (simulated)
             responses = chosen  # Simplified for demo
+            responses = self._evolve_responses(prompts, responses)
 
             # Compute rewards
-            rewards = self.compute_rewards(prompts, responses)
+            rewards = self.compute_rewards(group_data, prompts, responses)
 
             # Compute advantages
             advantages = self.compute_advantages(rewards, group_size)
+            advantages = self._apply_mhc_constraints(advantages, group_size)
 
             # Compute KL divergence (simplified)
             kl_loss = (

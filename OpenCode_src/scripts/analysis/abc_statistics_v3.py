@@ -21,6 +21,14 @@ from dataclasses import dataclass
 from scipy import stats
 import numpy as np
 
+try:
+    from statsmodels.stats.multicomp import pairwise_tukeyhsd
+    from statsmodels.stats.power import FTestAnovaPower
+
+    STATSMODELS_AVAILABLE = True
+except Exception:
+    STATSMODELS_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,6 +42,7 @@ class SummaryStats:
     ci_95_lower: float
     ci_95_upper: float
     sem: float
+    ci_95_bootstrap: Tuple[float, float]
 
 
 @dataclass
@@ -55,6 +64,7 @@ class ANOVAResult:
     f_statistic: float
     p_value: float
     effect_size_eta_squared: float
+    effect_size_omega_squared: float
     significant: bool
 
 
@@ -76,11 +86,26 @@ class ABCStatisticsV3:
         else:
             logger.warning(f"Results file not found: {self.results_path}")
 
+    def bootstrap_ci(
+        self, scores: List[float], alpha: float = 0.05, n_boot: int = 2000
+    ) -> Tuple[float, float]:
+        """Bootstrap confidence interval for mean."""
+        if len(scores) == 0:
+            return (0.0, 0.0)
+        rng = np.random.default_rng(42)
+        boot_means = []
+        for _ in range(n_boot):
+            sample = rng.choice(scores, size=len(scores), replace=True)
+            boot_means.append(np.mean(sample))
+        lower = np.percentile(boot_means, 100 * (alpha / 2))
+        upper = np.percentile(boot_means, 100 * (1 - alpha / 2))
+        return (float(lower), float(upper))
+
     def compute_summary_stats(self, scores: List[float]) -> SummaryStats:
         """Compute summary statistics with 95% CI."""
         n = len(scores)
         if n == 0:
-            return SummaryStats(0, 0, 0, 0, 0, 0)
+            return SummaryStats(0, 0, 0, 0, 0, 0, (0, 0))
 
         mean = np.mean(scores)
         std = np.std(scores, ddof=1)  # Sample standard deviation
@@ -91,6 +116,7 @@ class ABCStatisticsV3:
         t_critical = stats.t.ppf(0.975, df)  # Two-tailed 95%
         ci_margin = t_critical * sem
 
+        boot_ci = self.bootstrap_ci(scores)
         return SummaryStats(
             mean=mean,
             std=std,
@@ -98,6 +124,7 @@ class ABCStatisticsV3:
             ci_95_lower=mean - ci_margin,
             ci_95_upper=mean + ci_margin,
             sem=sem,
+            ci_95_bootstrap=boot_ci,
         )
 
     def get_benchmark_scores(self, model_key: str, benchmark: str) -> List[float]:
@@ -205,8 +232,15 @@ class ABCStatisticsV3:
         # p-value
         p_value = 1 - stats.f.cdf(f_stat, df_between, df_within)
 
-        # Effect size η²
+        # Effect sizes
         eta_squared = ss_between / ss_total if ss_total > 0 else 0
+        omega_squared = (
+            (ss_between - df_between * ms_within) / (ss_total + ms_within)
+            if ss_total > 0
+            else 0
+        )
+        omega_squared = max(0.0, omega_squared)
+
 
         # Significance
         significant = p_value < 0.05
@@ -215,8 +249,53 @@ class ABCStatisticsV3:
             f_statistic=f_stat,
             p_value=p_value,
             effect_size_eta_squared=eta_squared,
+            effect_size_omega_squared=omega_squared,
             significant=significant,
         )
+
+    def tukey_hsd(
+        self, groups: List[List[float]], labels: List[str]
+    ) -> List[Dict[str, Any]]:
+        """Run Tukey HSD for multiple comparisons."""
+        if not STATSMODELS_AVAILABLE:
+            return []
+        flat_scores = []
+        flat_labels = []
+        for label, group in zip(labels, groups):
+            flat_scores.extend(group)
+            flat_labels.extend([label] * len(group))
+        if not flat_scores:
+            return []
+        result = pairwise_tukeyhsd(flat_scores, flat_labels, alpha=0.05)
+        output = []
+        for row in result.summary().data[1:]:
+            output.append(
+                {
+                    "group1": row[0],
+                    "group2": row[1],
+                    "meandiff": float(row[2]),
+                    "p_adj": float(row[3]),
+                    "lower": float(row[4]),
+                    "upper": float(row[5]),
+                    "reject": bool(row[6]),
+                }
+            )
+        return output
+
+    def anova_power(
+        self, eta_squared: float, nobs: int, k_groups: int, alpha: float = 0.05
+    ) -> float:
+        """Compute post-hoc power for ANOVA using eta-squared."""
+        if not STATSMODELS_AVAILABLE or eta_squared <= 0 or eta_squared >= 1:
+            return 0.0
+        effect_size = np.sqrt(eta_squared / (1 - eta_squared))
+        try:
+            power = FTestAnovaPower().power(
+                effect_size=effect_size, nobs=nobs, alpha=alpha, k_groups=k_groups
+            )
+            return float(power)
+        except Exception:
+            return 0.0
 
     def run_full_analysis(self) -> Dict[str, Any]:
         """Run complete statistical analysis."""
@@ -233,6 +312,7 @@ class ABCStatisticsV3:
             "summary_statistics": {},
             "pairwise_ttests": {},
             "anova_results": {},
+            "tukey_results": {},
             "metadata": {
                 "alpha": 0.05,
                 "correction": "Holm-Bonferroni",
@@ -253,6 +333,7 @@ class ABCStatisticsV3:
                     "std": stats_obj.std,
                     "n": stats_obj.n,
                     "ci_95": [stats_obj.ci_95_lower, stats_obj.ci_95_upper],
+                    "ci_95_bootstrap": list(stats_obj.ci_95_bootstrap),
                     "sem": stats_obj.sem,
                 }
                 logger.info(
@@ -305,12 +386,23 @@ class ABCStatisticsV3:
 
             if len(groups) >= 2:
                 anova_result = self.one_way_anova(groups)
+                nobs = sum(len(g) for g in groups)
+                power = self.anova_power(
+                    anova_result.effect_size_eta_squared,
+                    nobs=nobs,
+                    k_groups=len(groups),
+                )
                 analysis["anova_results"][bench_key] = {
                     "f_statistic": anova_result.f_statistic,
                     "p_value": anova_result.p_value,
                     "eta_squared": anova_result.effect_size_eta_squared,
+                    "omega_squared": anova_result.effect_size_omega_squared,
+                    "power": power,
                     "significant": anova_result.significant,
                 }
+                analysis["tukey_results"][bench_key] = self.tukey_hsd(
+                    groups, labels=models
+                )
                 logger.info(
                     f"  {bench_key}: F={anova_result.f_statistic:.3f}, "
                     f"p={anova_result.p_value:.4f}, η²={anova_result.effect_size_eta_squared:.3f}"
@@ -332,8 +424,8 @@ class ABCStatisticsV3:
         benchmarks = self.results.get("metadata", {}).get("benchmarks", {})
         models = {"A": "Phi-3.5-instinct", "B": "Borea-phi3.5", "C": "AEGIS-v3.0"}
 
-        table = "| Benchmark | Model A | Model B | Model C | ANOVA p | Significant |\n"
-        table += "|-----------|---------|---------|---------|---------|-------------|\n"
+        table = "| Benchmark | Model A | Model B | Model C | ANOVA p | eta² | ω² | power |\n"
+        table += "|-----------|---------|---------|---------|---------|-----|-----|-------|\n"
 
         for bench_key, bench_name in benchmarks.items():
             row = f"| **{bench_name}** "
@@ -349,8 +441,10 @@ class ABCStatisticsV3:
             # Add ANOVA result
             anova = self.results.get("anova_results", {}).get(bench_key, {})
             p_val = anova.get("p_value", 1.0)
-            sig = "Yes" if anova.get("significant") else "No"
-            row += f"| {p_val:.4f} | {sig} |\n"
+            eta = anova.get("eta_squared", 0.0)
+            omega = anova.get("omega_squared", 0.0)
+            power = anova.get("power", 0.0)
+            row += f"| {p_val:.4f} | {eta:.3f} | {omega:.3f} | {power:.3f} |\n"
 
         return table
 

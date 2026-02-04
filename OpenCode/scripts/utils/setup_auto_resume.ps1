@@ -36,6 +36,7 @@ if ($PSScriptRoot) {
 }
 
 $STARTUP_SCRIPT = Join-Path $PROJECT_ROOT "scripts\utils\auto_resume_startup.bat"
+$WATCHDOG_SCRIPT = Join-Path $PROJECT_ROOT "scripts\utils\model_loading_watchdog.ps1"
 
 if (-not (Test-Path $STARTUP_SCRIPT)) {
     Write-Host "[ERROR] Startup script not found: $STARTUP_SCRIPT" -ForegroundColor Red
@@ -47,6 +48,7 @@ if (-not (Test-Path $STARTUP_SCRIPT)) {
 
 # タスク名
 $TASK_NAME = "SO8T-AutoResume"
+$WATCHDOG_TASK_NAME = "MoonshotPipelineV3_ModelLoadingWatchdog"
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "SO8T Auto Resume Setup" -ForegroundColor Cyan
@@ -102,6 +104,29 @@ Write-Host "[INFO] The task will run automatically when you log in." -Foreground
 Write-Host "[INFO] To view the task: schtasks /query /tn `"$TASK_NAME`"" -ForegroundColor Cyan
 Write-Host "[INFO] To delete the task: schtasks /delete /tn `"$TASK_NAME`" /f" -ForegroundColor Cyan
 Write-Host ""
+
+# Model-loading watchdog
+if (Test-Path $WATCHDOG_SCRIPT) {
+    Write-Host "[INFO] Setting up model_loading watchdog task..." -ForegroundColor Yellow
+    $existingWatchdog = schtasks /query /tn $WATCHDOG_TASK_NAME 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        schtasks /delete /tn $WATCHDOG_TASK_NAME /f | Out-Null
+    }
+
+    $WD_COMMAND = "powershell.exe -ExecutionPolicy Bypass -File `"$WATCHDOG_SCRIPT`" -StaleMinutes 15"
+    $WD_TASK_COMMAND = "schtasks /create /tn `"$WATCHDOG_TASK_NAME`" /tr `"$WD_COMMAND`" /sc minute /mo 5 /ru SYSTEM /rl highest /f"
+    Invoke-Expression $WD_TASK_COMMAND
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] Watchdog task created: $WATCHDOG_TASK_NAME" -ForegroundColor Green
+    } else {
+        Write-Host "[WARNING] Failed to create watchdog task" -ForegroundColor Yellow
+    }
+    Write-Host ""
+} else {
+    Write-Host "[WARNING] Watchdog script not found: $WATCHDOG_SCRIPT" -ForegroundColor Yellow
+    Write-Host ""
+}
 
 # タスクの詳細を表示
 Write-Host "[INFO] Task details:" -ForegroundColor Yellow

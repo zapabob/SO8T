@@ -5,16 +5,20 @@ Moonshot Pipeline v3.0 - Full Automatic Pipeline.
 End-to-end pipeline for building zapabobouj-AEGIS-phi3.5-jp-v3.0.
 
 Features:
-- Power failure protection with 5-min rolling checkpoints (3 kept)
-- Auto-start on system boot via Windows Task Scheduler
-- Sigmoid decay learning rate scheduler (Φ⁻² final value)
-- SFT + GRPO training with DeepseekGLPO
-- ABC benchmark with statistical analysis
-- HF release preparation (Safetensors + BF16 GGUF)
+- Power failure protection with 3-min rolling checkpoints (keep 5)
+- Auto-start on system boot via Windows Task Scheduler (reuse existing SO8T task)
+- Unsloth + FlashAttention prioritized (RTX 3060)
+- GRPO + mHC integration with ShinkaEvolve search
+- Tool-calling reward shaping (weak+ / strong+ / strong- / mid-)
+- ABC benchmark with lm-eval-harness / DeepEval / ELYZA-100 (industry standard)
+- Statistical analysis: ANOVA + Tukey + effect sizes + power + Bootstrap CI
+- HF release prep (Safetensors + BF16 GGUF + HF CLI upload)
+- Auto-disable power-on resume on completion or error (bug report logging)
 - tqdm-style progress display (simple English)
 - SQL-based progress tracking
 
 Usage:
+
     py -3 run_moonshot_full_pipeline.py           # Run full pipeline
     py -3 run_moonshot_full_pipeline.py --resume  # Resume from checkpoint
     py -3 run_moonshot_full_pipeline.py --skip-training  # Skip to benchmark
@@ -71,7 +75,7 @@ class PipelineConfig:
 
     # GRPO
     grpo_steps: int = 500
-    grpo_group_size: int = 4
+    grpo_group_size: int = 8
     grpo_batch_size: int = 1
 
     # Benchmark
@@ -79,11 +83,15 @@ class PipelineConfig:
     benchmark_samples: int = 100
 
     # Checkpoint
-    checkpoint_interval: int = 300  # 5 minutes
-    max_rolling_checkpoints: int = 3
+    checkpoint_interval: int = 180  # 3 minutes
+    max_rolling_checkpoints: int = 5
 
     # Output
     output_model_name: str = "zapabobouj-AEGIS-phi3.5-jp-v3.0"
+    hf_repo_id: str = "zapabobouj-AEGIS-phi3.5-jp-v3.0"
+
+    # Automation
+    auto_commit: bool = True
 
 
 class MoonshotFullPipeline:
@@ -105,6 +113,8 @@ class MoonshotFullPipeline:
         self.start_time = datetime.now()
         self.run_id = f"moonshot_v3_{self.start_time.strftime('%Y%m%d_%H%M%S')}"
         self.checkpoints: List[Dict] = []
+        self.last_error: Optional[Exception] = None
+        self.last_error_phase: Optional[str] = None
 
         self._setup_logging()
         self._setup_sql()
@@ -143,6 +153,128 @@ class MoonshotFullPipeline:
         except Exception as e:
             self.logger.warning("[SQL] Not available: %s", e)
             self.sql_available = False
+
+    def _record_error(self, phase: str, error: Exception):
+        """Record the last error for diagnostics."""
+        self.last_error = error
+        self.last_error_phase = phase
+
+    def _is_oom(self, error: Exception) -> bool:
+        """Detect OOM errors from exception text."""
+        message = str(error).lower()
+        return "out of memory" in message or "cuda oom" in message
+
+    def _get_worktree_name(self) -> str:
+        """Resolve worktree name (branch) for bug reports."""
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=PROJECT_ROOT,
+                capture_output=True,
+                text=True,
+            )
+            name = result.stdout.strip()
+            return name or "OpenCode"
+        except Exception:
+            return "OpenCode"
+
+    def _disable_auto_resume(self, reason: str):
+        """Disable power-on auto resume tasks."""
+        tasks = [
+            "MoonshotPipelineV3_AutoResume",
+            "MoonshotPipelineV3_ModelLoadingWatchdog",
+            "SO8T-AutoResume",
+        ]
+        for task in tasks:
+            try:
+                subprocess.run(
+                    [
+                        "powershell",
+                        "-Command",
+                        f"Get-ScheduledTask -TaskName '{task}' -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                self.logger.info("[AUTO-RESUME] Disabled task: %s (%s)", task, reason)
+            except Exception as e:
+                self.logger.warning("[AUTO-RESUME] Failed to disable %s: %s", task, e)
+
+    def _write_bug_report(self, phase: str, error: Exception):
+        """Write bug report to _docs on failure."""
+        docs_dir = PROJECT_ROOT.parent / "_docs"
+        docs_dir.mkdir(parents=True, exist_ok=True)
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        worktree = self._get_worktree_name()
+        report_name = f"{date_str}{{バグ報告}}{{{worktree}}}.md"
+        report_path = docs_dir / report_name
+
+        oom = self._is_oom(error)
+        content = "\n".join(
+            [
+                f"# バグ報告 ({date_str})",
+                "",
+                f"- Run ID: {self.run_id}",
+                f"- Phase: {phase}",
+                f"- OOM: {oom}",
+                f"- Timestamp: {datetime.now().isoformat()}",
+                f"- Error: {error}",
+                f"- Logs: {LOG_DIR}",
+                "",
+                "## Notes",
+                "- Auto-resume tasks were disabled due to failure.",
+                "- Please review logs and restart manually after fixing.",
+            ]
+        )
+        report_path.write_text(content, encoding="utf-8")
+        self.logger.info("[BUG] Report written: %s", report_path)
+
+    def _handle_failure(self, phase: str, error: Exception):
+        """Handle failure by disabling auto-resume and logging bug report."""
+        self._disable_auto_resume(reason=f"failure:{phase}")
+        self._write_bug_report(phase, error)
+
+    def _finalize_success(self):
+        """Finalize successful run by disabling auto-resume tasks."""
+        self._disable_auto_resume(reason="completed")
+
+    def _maybe_auto_commit(self, phase: str, message: str):
+        """Auto-commit/push using gh CLI if available."""
+        if not self.config.auto_commit:
+            return
+        try:
+            status = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=PROJECT_ROOT,
+                capture_output=True,
+                text=True,
+            )
+            if not status.stdout.strip():
+                self.logger.info("[GIT] No changes to commit after %s", phase)
+                return
+
+            # Prefer gh CLI for auth check
+            gh_available = subprocess.run(
+                ["gh", "--version"],
+                capture_output=True,
+                text=True,
+            ).returncode == 0
+            if gh_available:
+                subprocess.run(["gh", "auth", "status"], capture_output=True, text=True)
+
+            # Commit tracked changes only
+            subprocess.run(["git", "add", "-u"], cwd=PROJECT_ROOT)
+            subprocess.run(
+                ["git", "commit", "-m", message],
+                cwd=PROJECT_ROOT,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(["git", "push"], cwd=PROJECT_ROOT)
+            self.logger.info("[GIT] Auto-commit/push completed: %s", message)
+        except Exception as e:
+            self.logger.warning("[GIT] Auto-commit failed: %s", e)
 
     def _get_git_commit(self) -> str:
         """Get current git commit hash."""
@@ -266,6 +398,28 @@ class MoonshotFullPipeline:
             except Exception as e:
                 self._log_progress("SETUP", f"GPU check: {e}")
 
+            # Conda environment
+            conda_prefix = os.environ.get("CONDA_PREFIX")
+            self._log_progress(
+                "SETUP",
+                f"Conda: {conda_prefix if conda_prefix else 'not detected'}",
+            )
+
+            # Unsloth / FlashAttention availability
+            try:
+                import unsloth  # type: ignore
+
+                self._log_progress("SETUP", f"Unsloth: {unsloth.__version__}")
+            except Exception as e:
+                self._log_progress("SETUP", f"Unsloth not available: {e}")
+
+            try:
+                import flash_attn  # type: ignore
+
+                self._log_progress("SETUP", "FlashAttention: available")
+            except Exception as e:
+                self._log_progress("SETUP", f"FlashAttention not available: {e}")
+
             # Check directories
             self._log_progress("SETUP", f"Project root: {PROJECT_ROOT}")
             self._log_progress("SETUP", f"Checkpoints: {CHECKPOINT_DIR}")
@@ -358,6 +512,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self._record_error("SFT", e)
             self._log_progress("SFT", f"Error: {e}")
             return False
 
@@ -394,6 +549,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self._record_error("GRPO", e)
             self._log_progress("GRPO", f"Error: {e}")
             return False
 
@@ -415,6 +571,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self._record_error("BENCH", e)
             self._log_progress("BENCH", f"Error: {e}")
             return False
 
@@ -434,6 +591,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self._record_error("STATS", e)
             self._log_progress("STATS", f"Error: {e}")
             return False
 
@@ -453,6 +611,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self._record_error("VIZ", e)
             self._log_progress("VIZ", f"Error: {e}")
             return False
 
@@ -487,6 +646,7 @@ class MoonshotFullPipeline:
             return True
 
         except Exception as e:
+            self._record_error("RELEASE", e)
             self._log_progress("RELEASE", f"Error: {e}")
             return False
 
@@ -531,7 +691,12 @@ class MoonshotFullPipeline:
 
             if not success:
                 self._log_progress("ERROR", f"Phase {phase_name} failed")
+                error = self.last_error or RuntimeError("phase failure")
+                self._handle_failure(phase_name, error)
                 return False
+
+            # Auto-commit after successful phase
+            self._maybe_auto_commit(phase_name, f"Moonshot v3: {phase_name} complete")
 
         # Final summary
         elapsed = datetime.now() - self.start_time
@@ -556,6 +721,9 @@ class MoonshotFullPipeline:
         self.logger.info("=" * 70)
         self.logger.info("Pipeline completed successfully!")
         self.logger.info("=" * 70)
+
+        # Disable auto-resume on success (benchmarks complete)
+        self._finalize_success()
 
         return True
 

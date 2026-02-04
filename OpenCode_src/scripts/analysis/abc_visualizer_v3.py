@@ -12,7 +12,7 @@ import json
 import logging
 import argparse
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
 import matplotlib
 
 matplotlib.use("Agg")  # Non-interactive backend
@@ -72,7 +72,7 @@ class ABCVisualizerV3:
             for bench_key in benchmarks.keys():
                 stats_data = summary.get(model, {}).get(bench_key, {})
                 mean = stats_data.get("mean", 0)
-                ci = stats_data.get("ci_95", [mean, mean])
+                ci = stats_data.get("ci_95_bootstrap") or stats_data.get("ci_95", [mean, mean])
 
                 means.append(mean)
                 errors_lower.append(mean - ci[0])
@@ -239,19 +239,26 @@ class ABCVisualizerV3:
         md = "# ABC Benchmark Results v3.0\n\n"
 
         # Summary Table
-        md += "## Summary Statistics (Mean ± 95% CI)\n\n"
-        md += "| Benchmark | Model A | Model B | Model C | ANOVA p | η² |\n"
-        md += "|-----------|---------|---------|---------|---------|-----|\n"
+        md += "## Summary Statistics (Mean ± 95% Bootstrap CI)\n\n"
+        md += "| Benchmark | Model A | Model B | Model C | ANOVA p | eta² | omega² | power |\n"
+        md += "|-----------|---------|---------|---------|---------|------|--------|-------|\n"
 
         for bench_key, bench_name in benchmarks.items():
             row = f"| **{bench_name}** "
             for model in ["A", "B", "C"]:
                 stats_data = summary.get(model, {}).get(bench_key, {})
                 mean = stats_data.get("mean", 0)
-                ci = stats_data.get("ci_95", [0, 0])
-                row += f"| {mean:.3f} ± {((ci[1] - ci[0]) / 2):.3f} "
+                ci = stats_data.get("ci_95_bootstrap") or stats_data.get("ci_95", [0, 0])
+                half_width = (ci[1] - ci[0]) / 2
+                row += f"| {mean:.3f} ± {half_width:.3f} "
             anova_data = anova.get(bench_key, {})
-            md += f"| {anova_data.get('p_value', 1.0):.4f} | {anova_data.get('eta_squared', 0):.3f} |\n"
+            row += (
+                f"| {anova_data.get('p_value', 1.0):.4f} "
+                f"| {anova_data.get('eta_squared', 0):.3f} "
+                f"| {anova_data.get('omega_squared', 0):.3f} "
+                f"| {anova_data.get('power', 0):.3f} |\n"
+            )
+            md += row
 
         md += "\n## Pairwise Comparisons (Welch's t-test)\n\n"
 
@@ -266,10 +273,7 @@ class ABCVisualizerV3:
                 md += (
                     f"{data.get('p_value', 1.0):.4f} | {data.get('cohens_d', 0):.3f} | "
                 )
-                md += (
-                    "Yes | No"[not data.get("significant", False) :: _german] * 2
-                    + " |\n"
-                )
+                md += "Yes |\n" if data.get("significant", False) else "No |\n"
 
             md += "\n"
 

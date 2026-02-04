@@ -14,7 +14,13 @@
     Checkpoint capture interval in seconds (default: 180 = 3 minutes)
 
 .PARAMETER MaxCheckpoints
-    Maximum number of rolling checkpoints to keep (default: 3)
+    Maximum number of rolling checkpoints to keep (default: 5)
+
+.PARAMETER WatchdogIntervalMinutes
+    Watchdog execution interval in minutes (default: 5)
+
+.PARAMETER ModelLoadingStaleMinutes
+    Minutes before model_loading is considered stale (default: 15)
 
 .EXAMPLE
     .\setup_auto_poweron.ps1
@@ -24,7 +30,9 @@ param(
     [string]$PipelineScript = "run_moonshot_pipeline_2025_2026.py",
     [int]$CheckpointInterval = 180,
     [int]$MaxCheckpoints = 5,
-    [string]$TaskName = "MoonshotPipelineV3_AutoResume"
+    [string]$TaskName = "MoonshotPipelineV3_AutoResume",
+    [int]$WatchdogIntervalMinutes = 5,
+    [int]$ModelLoadingStaleMinutes = 15
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,6 +42,8 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = (Get-Item $ScriptDir).Parent.Parent
 $LogDir = "$ProjectRoot\logs"
 $CheckpointDir = "$ProjectRoot\checkpoints\rolling_snapshots"
+$WatchdogScript = "$ProjectRoot\scripts\utils\model_loading_watchdog.ps1"
+$WatchdogTaskName = "MoonshotPipelineV3_ModelLoadingWatchdog"
 
 # Ensure directories exist
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
@@ -85,6 +95,7 @@ Write-Host "  Pipeline:     $PipelineScript"
 Write-Host "  Checkpoint:   Every $CheckpointInterval seconds"
 Write-Host "  Max Snapshots: $MaxCheckpoints"
 Write-Host "  Python:       $PythonExe"
+Write-Host "  Watchdog:     Every $WatchdogIntervalMinutes min (stale $ModelLoadingStaleMinutes min)"
 
 # Check if task exists and remove
 $ExistingTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
@@ -109,6 +120,56 @@ try {
 } catch {
     Write-Host "[ERROR] Failed to register task: $_" -ForegroundColor Red
     exit 1
+}
+
+# Register watchdog task (model_loading stale recovery)
+if (Test-Path $WatchdogScript) {
+    Write-Host "`n[REGISTER] Creating watchdog task..." -ForegroundColor Yellow
+    try {
+        $wdAction = New-ScheduledTaskAction `
+            -Execute "powershell.exe" `
+            -Argument "-ExecutionPolicy Bypass -File `"$WatchdogScript`" -StaleMinutes $ModelLoadingStaleMinutes" `
+            -WorkingDirectory "$ProjectRoot"
+
+        $wdTrigger = New-ScheduledTaskTrigger -AtStartup
+        $wdTrigger.RepetitionInterval = (New-TimeSpan -Minutes $WatchdogIntervalMinutes)
+        $wdTrigger.RepetitionDuration = (New-TimeSpan -Days 3650)
+
+        $wdSettings = New-ScheduledTaskSettingsSet `
+            -AllowStartIfOnBatteries $true `
+            -DontStopIfGoingOnBatteries $true `
+            -StartWhenAvailable $true `
+            -RunOnlyIfNetworkAvailable $false `
+            -ExecutionTimeLimit "00:10:00" `
+            -RestartOnFailure $true `
+            -RestartCount 3 `
+            -RestartInterval "00:02:00"
+
+        $wdPrincipal = New-ScheduledTaskPrincipal `
+            -UserId "NT AUTHORITY\SYSTEM" `
+            -LogonType "ServiceAccount" `
+            -RunLevel "Highest"
+
+        $ExistingWatchdog = Get-ScheduledTask -TaskName $WatchdogTaskName -ErrorAction SilentlyContinue
+        if ($ExistingWatchdog) {
+            Unregister-ScheduledTask -TaskName $WatchdogTaskName -Confirm:$false
+            Start-Sleep -Seconds 2
+        }
+
+        Register-ScheduledTask `
+            -TaskName $WatchdogTaskName `
+            -Action $wdAction `
+            -Trigger $wdTrigger `
+            -Settings $wdSettings `
+            -Principal $wdPrincipal `
+            -Force | Out-Null
+
+        Write-Host "[OK] Watchdog task registered: $WatchdogTaskName" -ForegroundColor Green
+    } catch {
+        Write-Host "[ERROR] Watchdog registration failed: $_" -ForegroundColor Red
+    }
+} else {
+    Write-Host "[WARN] Watchdog script not found: $WatchdogScript" -ForegroundColor Yellow
 }
 
 # Create helper scripts
@@ -203,6 +264,7 @@ Run this script to configure automatic pipeline resume on power-on:
 
 - **Automatic Startup**: Pipeline resumes on system boot
 - **Rolling Checkpoints**: 5 snapshots every 3 minutes
+- **Model-Loading Watchdog**: Auto-restart when stuck > 15 min
 - **Progress Logging**: Tqdm-style progress in `logs/pipeline_progress.log`
 - **SQL Tracking**: All progress saved to `logs/pipeline_progress.sqlite`
 
@@ -217,6 +279,7 @@ py -3 scripts/utils/monitor_pipeline.py
 
 # Check scheduled tasks
 Get-ScheduledTask -TaskName "MoonshotPipelineV3*"
+Get-ScheduledTask -TaskName "MoonshotPipelineV3_ModelLoadingWatchdog"
 ```
 
 ## Checkpoint Locations

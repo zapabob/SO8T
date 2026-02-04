@@ -37,8 +37,8 @@ class V3SFTConfig:
     def __init__(self):
         self.model_name = "microsoft/Phi-3.5-mini-instruct"
         self.max_seq_length = 2048
-        self.lora_rank = 16
-        self.lora_alpha = 32
+        self.lora_rank = 64
+        self.lora_alpha = 16
         self.lora_dropout = 0.05
         self.target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
@@ -55,6 +55,10 @@ class V3SFTConfig:
         self.use_gradient_checkpointing = True
         self.offload_to_cpu = True
         self.use_qlora = True
+
+        # FlashAttention / Unsloth
+        self.use_flash_attention = True
+        self.attn_implementation = "flash_attention_2"
 
         # Dataset
         self.train_dataset_path = "data/so8t_thinking_large_train.jsonl"
@@ -129,12 +133,27 @@ class V3SFTPipeline:
         logger.info(f"Loaded {len(data)} training samples")
         return {"train": data, "val": data[:100]}
 
+    def _detect_flash_attention(self) -> bool:
+        """Detect FlashAttention availability."""
+        if not self.config.use_flash_attention:
+            return False
+        try:
+            import flash_attn  # noqa: F401
+
+            return True
+        except Exception:
+            return False
+
     def prepare_model(self):
         """Prepare model with QLoRA for RTX3060."""
         self.print_progress("Loading model with QLoRA")
 
         try:
             from unsloth import FastLanguageModel
+
+            flash_available = self._detect_flash_attention()
+            if flash_available:
+                os.environ.setdefault("UNSLOTH_USE_FLASH_ATTENTION", "1")
 
             model, tokenizer = FastLanguageModel.from_pretrained(
                 model_name=self.config.model_name,
@@ -152,7 +171,9 @@ class V3SFTPipeline:
                 use_gradient_checkpointing=self.config.use_gradient_checkpointing,
             )
 
-            self.print_progress("Model loaded successfully")
+            self.print_progress(
+                f"Model loaded successfully (flash_attn={flash_available})"
+            )
             return model, tokenizer
 
         except ImportError:
@@ -164,11 +185,24 @@ class V3SFTPipeline:
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
         tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
-        model = AutoModelForCausalLM.from_pretrained(
-            self.config.model_name,
-            torch_dtype=torch.float16,
-            device_map="auto" if not self.config.offload_to_cpu else None,
+        attn_impl = (
+            self.config.attn_implementation
+            if self._detect_flash_attention()
+            else "sdpa"
         )
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                self.config.model_name,
+                torch_dtype=torch.float16,
+                attn_implementation=attn_impl,
+                device_map="auto" if not self.config.offload_to_cpu else None,
+            )
+        except TypeError:
+            model = AutoModelForCausalLM.from_pretrained(
+                self.config.model_name,
+                torch_dtype=torch.float16,
+                device_map="auto" if not self.config.offload_to_cpu else None,
+            )
 
         if self.config.offload_to_cpu:
             model = model.cpu()
