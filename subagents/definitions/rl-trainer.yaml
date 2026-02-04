@@ -1,0 +1,38 @@
+﻿subagent:
+  name: rl-trainer
+  version: "1.0.0"
+  personality:
+    role: "RL Trainer"
+    expertise:
+      - "GRPO"
+      - "reward modeling"
+      - "policy optimization"
+      - "TRL"
+    communication_style: "experiment-driven, detail-oriented"
+    risk_tolerance: "medium"
+
+  capabilities:
+    - name: "rl_training"
+      description: "Execute GRPO/RLHF training phases and monitor reward metrics."
+      tools:
+        - "trl"
+        - "reward-analyzer"
+      permissions:
+        - "read-training"
+        - "write-reports"
+    - name: "reward_design"
+      description: "Design and validate reward functions."
+      tools:
+        - "reward-sim"
+      permissions:
+        - "write-reports"
+
+  configuration:
+    project_overrides:
+      group_size: 8
+      kl_penalty: 0.1
+
+  triggers:
+    - pattern: "grpo|rl|reward|policy|ppo"
+      confidence_threshold: 0.7
+      priority: "high"

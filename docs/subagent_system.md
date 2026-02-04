@@ -65,5 +65,14 @@ python tools/subagent_cli.py config \
 - **research-specialist** — literature review and design risk analysis
 - **evaluation-analyst** — benchmarking and statistical testing
 - **deployment-manager** — packaging and release orchestration
+- **architecture-integrator** — mHC/SO8T/GRAPE integration support
+- **rl-trainer** — GRPO/RL training oversight
+- **quantization-engineer** — imatrix/GGUF calibration and packaging
 
 These definitions are starting points; extend them as needed for new workflows.
+
+## Pipeline Integration
+
+`scripts/pipeline/integrated_moonshot_pipeline_2025_2026.py` routes each phase
+through the subagent manager and logs the recommended assignments. Routing decisions
+are stored in rolling checkpoints under `subagent_routing`.

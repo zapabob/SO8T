@@ -3,12 +3,15 @@ context: "AEGIS-phi3.5mini-jp-v3.0 development"
 worktree: "main"
 
 enable_subagents:
+  - "architecture-integrator"
   - "security-reviewer"
   - "performance-analyzer"
   - "data-pipeline-engineer"
   - "research-specialist"
   - "evaluation-analyst"
   - "deployment-manager"
+  - "rl-trainer"
+  - "quantization-engineer"
 
 quality_thresholds:
   security: "high"

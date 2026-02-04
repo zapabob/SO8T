@@ -46,6 +46,34 @@ class EnhancedMoonshotPipeline:
         self.model = None
         self.tokenizer = None
 
+    def _maybe_run_unsloth(self, phase: str) -> bool:
+        """Optionally run the Unsloth training script for a given phase."""
+        if os.getenv("SO8T_USE_UNSLOTH") != "1":
+            return False
+        if os.getenv("SO8T_DRYRUN") == "1":
+            logger.info("Dry-run mode: skipping Unsloth %s phase", phase)
+            return False
+        script = Path("scripts/training/train_unsloth_so8t.py")
+        if not script.exists():
+            logger.warning("Unsloth training script not found: %s", script)
+            return False
+
+        cmd = ["py", "-3", str(script), "--phase", phase]
+        if os.getenv("SO8T_MCP_API_SKILL") == "1":
+            cmd.append("--mcp-api-skill")
+        if os.getenv("SO8T_RECOVER") == "1":
+            cmd.append("--recover")
+        if os.getenv("SO8T_TRAINING_CONFIG"):
+            cmd.extend(["--config", os.getenv("SO8T_TRAINING_CONFIG")])
+
+        logger.info("Running Unsloth training: %s", " ".join(cmd))
+        try:
+            subprocess.run(cmd, check=True)
+            return True
+        except subprocess.CalledProcessError as exc:
+            logger.error("Unsloth phase %s failed: %s", phase, exc)
+            return False
+
     # ------------------------------------------------------------------
     # Model load / cleanup
     # ------------------------------------------------------------------
@@ -104,6 +132,10 @@ class EnhancedMoonshotPipeline:
     # ------------------------------------------------------------------
     def execute_sft_rlpo_integration(self, target_datasets: Optional[List[Path]] = None) -> None:
         logger.info("SFT/RLPO integration (stub) starting")
+        if self._maybe_run_unsloth("sft"):
+            self._touch_marker("sft_rlpo")
+            logger.info("SFT/RLPO integration completed via Unsloth")
+            return
         if target_datasets:
             logger.info("Using %d dataset files", len(target_datasets))
         out_dir = Path("models/aegis_v25_rlpo")
@@ -117,6 +149,10 @@ class EnhancedMoonshotPipeline:
 
     def execute_deepseek_grpo_integration(self) -> None:
         logger.info("DeepSeek GRPO integration (stub)")
+        if self._maybe_run_unsloth("grpo"):
+            self._touch_marker("grpo")
+            logger.info("DeepSeek GRPO integration completed via Unsloth")
+            return
         self._touch_marker("grpo")
 
     def execute_mhc_manifold_integration(self) -> None:
