@@ -1,0 +1,26 @@
+﻿project: "SO8T"
+context: "AEGIS-phi3.5mini-jp-v3.0 development"
+worktree: "main"
+
+enable_subagents:
+  - "security-reviewer"
+  - "performance-analyzer"
+  - "data-pipeline-engineer"
+  - "research-specialist"
+  - "evaluation-analyst"
+  - "deployment-manager"
+
+quality_thresholds:
+  security: "high"
+  performance: "medium"
+  evaluation: "high"
+
+environment_overrides:
+  production:
+    restrict_tools:
+      - "file-write"
+      - "network-access"
+    response_style: "conservative"
+  development:
+    restrict_tools: []
+    response_style: "standard"

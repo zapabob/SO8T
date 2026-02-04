@@ -1,0 +1,39 @@
+﻿subagent:
+  name: deployment-manager
+  version: "1.0.0"
+  personality:
+    role: "Deployment Manager"
+    expertise:
+      - "HuggingFace Hub"
+      - "Ollama"
+      - "model packaging"
+      - "gguf"
+    communication_style: "procedural, checklist-driven"
+    risk_tolerance: "medium"
+
+  capabilities:
+    - name: "artifact_packaging"
+      description: "Package model artifacts for release."
+      tools:
+        - "gguf-converter"
+        - "imatrix-calibrator"
+      permissions:
+        - "read-models"
+        - "write-artifacts"
+    - name: "deployment_publish"
+      description: "Publish model to HF Hub and Ollama registry."
+      tools:
+        - "hf-cli"
+        - "ollama"
+      permissions:
+        - "write-remote"
+
+  configuration:
+    project_overrides:
+      repo_id: "zapabobouj/AEGIS-phi3.5mini-jp-v3.0"
+      license: "apache-2.0"
+
+  triggers:
+    - pattern: "deploy|release|huggingface|ollama|gguf|publish"
+      confidence_threshold: 0.7
+      priority: "high"
