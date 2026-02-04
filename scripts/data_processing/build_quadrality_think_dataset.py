@@ -20,13 +20,27 @@ sys.path.insert(0, str(project_root / "so8t-mmllm" / "src"))
 from models.thinking_tokens import format_thinking_output
 
 
-def build_quadrality_think(instruction: str, user_input: str, answer: str) -> str:
-    # Simple deterministic quadrality template (placeholder)
-    algebraic = f"Algebraic: Identify symbols, definitions, and formal structure of: {instruction}"
-    geometric = f"Geometric: Consider spatial/structural intuition for: {user_input[:200]}"
-    analytic = "Analytic: Compute/estimate and check consistency; focus on quantitative aspects."
-    topological = "Topological: Focus on invariants, relations, and high-level structure."
-    thinking = "\n".join([algebraic, geometric, analytic, topological])
+def build_quadrality_think(instruction: str, user_input: str, answer: str, sample: Dict[str, Any]) -> str:
+    """
+    Advanced SO8T Quadrality Reasoning Framework.
+    Vector (Observation) -> Spinor+ (Deduction) -> Spinor- (Abduction) -> Integration
+    """
+    title = sample.get("title", instruction[:100])
+    source = sample.get("metadata", {}).get("source", "unknown")
+    
+    # Phase 1: Vector (Observation)
+    vector = f"[Vector_State]\n- Context: {title}\n- Source: {source}\n- Data: {user_input[:150]}..."
+    
+    # Phase 2: Spinor+ (Deduction) - Formal logic, standard path
+    spinor_plus = f"[Spinor_Plus_Logic]\n- Path: Extracting formal rules and logical implications from the input.\n- Goal: Standard solution for {instruction[:50]}."
+    
+    # Phase 3: Spinor- (Abduction) - Edge cases, alternatives, critical view
+    spinor_minus = f"[Spinor_Minus_Synthesis]\n- Critique: Exploring potential failure modes or non-standard interpretations.\n- Alternative: What if the standard assumptions are challenged?"
+    
+    # Phase 4: Quadrality Integration - Final synthesis
+    integration = f"[Quadrality_Integration]\n- Synthesis: Merging logical deductions with critical alternatives.\n- Final Path: Confirming the solution roadmap."
+    
+    thinking = "\n".join([vector, spinor_plus, spinor_minus, integration])
     return format_thinking_output(thinking=thinking, final=answer, use_redacted=True)
 
 
@@ -51,7 +65,7 @@ def convert(input_path: Path, output_path: Path) -> int:
             if not answer:
                 continue
 
-            out_text = build_quadrality_think(instruction, user_input, answer)
+            out_text = build_quadrality_think(instruction, user_input, answer, sample)
             new_sample: Dict[str, str] = {
                 "instruction": instruction,
                 "input": user_input,

@@ -64,6 +64,9 @@ class ArxivBioRxivProcessor:
             "cs.AI", "cs.LG", "cs.CL", "math", "physics", "q-bio", "stat"
         ]
         
+        # 50k規模の検索に対応するため、カテゴリごとの取得件数を調整
+        per_category = max_results // len(categories)
+        
         for category in categories:
             try:
                 logger.info(f"[SEARCH] Searching category: {category}")
@@ -75,7 +78,7 @@ class ArxivBioRxivProcessor:
                 
                 search = arxiv.Search(
                     query=search_query,
-                    max_results=min(max_results // len(categories), 10000),
+                    max_results=per_category,
                     sort_by=arxiv.SortCriterion.SubmittedDate,
                     sort_order=arxiv.SortOrder.Descending
                 )
@@ -91,7 +94,7 @@ class ArxivBioRxivProcessor:
                         'categories': result.categories,
                         'pdf_url': result.pdf_url,
                         'primary_category': result.primary_category,
-                        'citation_count': 0,  # 後でSemantic Scholarから取得
+                        'citation_count': 0,
                         'source': 'arxiv'
                     }
                     papers.append(paper)
@@ -99,14 +102,65 @@ class ArxivBioRxivProcessor:
                     if len(papers) >= max_results:
                         break
                 
-                logger.info(f"[SEARCH] Found {len(papers)} papers so far")
+                logger.info(f"[SEARCH] Arxiv papers so far: {len(papers)}")
                 time.sleep(1)  # レート制限対策
                 
             except Exception as e:
-                logger.error(f"[ERROR] Failed to search category {category}: {e}")
+                logger.error(f"[ERROR] Failed to search Arxiv category {category}: {e}")
                 continue
         
-        logger.info(f"[SEARCH] Total papers found: {len(papers)}")
+        return papers
+
+    def search_biorxiv_papers(self, max_results: int = 10000) -> List[Dict[str, Any]]:
+        """BioRxiv APIを使用して論文を検索"""
+        logger.info(f"[SEARCH] Searching BioRxiv papers for {self.start_year}-{self.end_year}...")
+        
+        papers = []
+        base_url = "https://api.biorxiv.org/details/biorxiv/"
+        
+        # BioRxiv APIは日付範囲で取得
+        start_date = f"{self.start_year}-01-01"
+        end_date = f"{self.end_year}-12-31"
+        
+        cursor = 0
+        while len(papers) < max_results:
+            try:
+                url = f"{base_url}{start_date}/{end_date}/{cursor}/json"
+                logger.info(f"[SEARCH] Querying BioRxiv API: {cursor}")
+                
+                response = requests.get(url, timeout=30)
+                if response.status_code != 200:
+                    break
+                
+                data = response.json()
+                if 'collection' not in data or not data['collection']:
+                    break
+                
+                for entry in data['collection']:
+                    paper = {
+                        'biorxiv_doi': entry.get('doi'),
+                        'title': entry.get('title'),
+                        'authors': [a.get('author_name') for a in entry.get('authors', []) if isinstance(a, dict)],
+                        'summary': entry.get('abstract'),
+                        'published': entry.get('date'),
+                        'categories': [entry.get('category')],
+                        'pdf_url': f"https://www.biorxiv.org/content/{entry.get('doi')}.full.pdf",
+                        'primary_category': entry.get('category'),
+                        'citation_count': 0,
+                        'source': 'biorxiv'
+                    }
+                    papers.append(paper)
+                    if len(papers) >= max_results:
+                        break
+                
+                cursor += len(data['collection'])
+                time.sleep(0.5)
+                
+            except Exception as e:
+                logger.error(f"[ERROR] BioRxiv API fetch failed at cursor {cursor}: {e}")
+                break
+                
+        logger.info(f"[SEARCH] BioRxiv papers found: {len(papers)}")
         return papers
     
     def get_citation_counts(self, papers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -562,36 +616,41 @@ class ArxivBioRxivProcessor:
         
         logger.info(f"[SAVE] Saved {len(data)} papers to {output_path}")
     
-    def process_top_cited_papers(self, max_papers: int = 100000) -> Path:
-        """引用上位論文を処理"""
+    def process_top_cited_papers(self, max_papers: int = 50000) -> Path:
+        """引用上位論文を処理（Arxiv + BioRxiv）"""
         logger.info(f"[PROCESS] Processing top {max_papers} cited papers from Arxiv/BioRxiv...")
         
-        # 1. 論文検索
-        papers = self.search_arxiv_papers(max_results=max_papers * 2)  # 余裕を持って検索
+        # 1. Arxiv検索
+        arxiv_papers = self.search_arxiv_papers(max_results=int(max_papers * 0.8))
         
-        # 2. 引用数取得
-        papers_with_citations = self.get_citation_counts(papers)
+        # 2. BioRxiv検索
+        biorxiv_papers = self.search_biorxiv_papers(max_results=int(max_papers * 0.2))
         
-        # 3. 上位N件を選択
+        all_papers = arxiv_papers + biorxiv_papers
+        logger.info(f"[PROCESS] Total papers to check for citations: {len(all_papers)}")
+        
+        # 3. 引用数取得
+        papers_with_citations = self.get_citation_counts(all_papers)
+        
+        # 4. 上位N件を選択
         top_papers = papers_with_citations[:max_papers]
         logger.info(f"[PROCESS] Selected top {len(top_papers)} papers by citation count")
         
-        # 4. PDFダウンロードとテキスト抽出
+        # 5. PDFダウンロードとテキスト抽出（上位5000件のみフルテキスト、残りはアブストラクト）
         structured_data = []
+        full_text_limit = 5000
         
         for i, paper in enumerate(top_papers):
             try:
-                # PDFダウンロード
-                pdf_path = self.download_pdf(paper)
+                text = paper.get('summary', '')
                 
-                if not pdf_path:
-                    # PDFがダウンロードできない場合は要約のみ使用
-                    text = paper.get('summary', '')
-                else:
-                    # テキスト抽出
-                    text = self.extract_text_from_pdf(pdf_path)
-                    if not text:
-                        text = paper.get('summary', '')
+                # 上位5000件のみフルテキスト抽出を試みる（リソース節約）
+                if i < full_text_limit:
+                    pdf_path = self.download_pdf(paper)
+                    if pdf_path:
+                        full_text = self.extract_text_from_pdf(pdf_path)
+                        if full_text:
+                            text = full_text
                 
                 # 構造化
                 structured = self.structure_paper_data(paper, text)
@@ -601,14 +660,14 @@ class ArxivBioRxivProcessor:
                     logger.info(f"[PROCESS] Processed {i + 1}/{len(top_papers)} papers")
                 
             except Exception as e:
-                logger.error(f"[ERROR] Failed to process paper {paper.get('arxiv_id')}: {e}")
+                logger.error(f"[ERROR] Failed to process paper {paper.get('arxiv_id', paper.get('biorxiv_doi'))}: {e}")
                 continue
         
-        # 5. クレンジング
+        # 6. クレンジング
         cleaned_data = self.clean_and_sanitize(structured_data)
         
-        # 6. 保存
-        output_path = self.cleaned_dir / f"arxiv_biorxiv_top_{len(cleaned_data)}_papers_{datetime.now().strftime('%Y%m%d')}.jsonl"
+        # 7. 保存
+        output_path = self.cleaned_dir / f"arxiv_biorxiv_top_{len(cleaned_data)}_papers_50k_{datetime.now().strftime('%Y%m%d')}.jsonl"
         self.save_structured_data(cleaned_data, output_path)
         
         return output_path

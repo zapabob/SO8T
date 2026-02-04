@@ -52,6 +52,9 @@ HF_DATASETS: List[Dict[str, str]] = [
     {"id": "fever/fever", "category": "fact_check"},
     {"id": "GioApc/promptoxicity", "category": "nsfw_toxicity"},
     {"id": "google/jigsaw_toxicity_pred", "category": "nsfw_toxicity"},
+    {"id": "ibm-research/Toucan", "category": "mcp_tool_calling"},
+    {"id": "AymanTarig/function-calling-v0.2-with-r1-cot", "category": "cot_tool_calling"},
+    {"id": "deepseek-ai/DeepSeek-V3", "category": "think_reference", "optional": True},
     {"id": "SidhiPanda/peS2o", "category": "science_large", "optional": True},
 ]
 

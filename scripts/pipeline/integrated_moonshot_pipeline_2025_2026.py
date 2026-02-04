@@ -16,13 +16,20 @@ Features:
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Add project root to sys.path to resolve experiments and other local modules
+project_root = Path(__file__).resolve().parents[2]
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 import json
 import logging
 import os
 import threading
 import time
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import subprocess
@@ -35,6 +42,10 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     SubagentManager = None
     Task = None
+
+from autonomous_research.autonomous_researcher import AutonomousResearcher
+from autonomous_research.evolutionary_optimizer import EvolutionaryOptimizer
+from documentation.generate_model_card import ModelCardGenerator
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -254,12 +265,9 @@ class IntegratedMoonshotPipeline2025_2026:
     # ------------------------------------------------------------------
     def discover_existing_datasets(self) -> Dict[str, List[Path]]:
         datasets: Dict[str, List[Path]] = {
-            "arxiv": [],
-            "biorxiv": [],
-            "nsfw_detection": [],
-            "drug_detection": [],
             "integrated": [],
             "so8t": [],
+            "tool_calling": [],
         }
 
         data_dir = self.project_root / "data"
@@ -267,6 +275,10 @@ class IntegratedMoonshotPipeline2025_2026:
             arxiv_dir = data_dir / "arxiv_biorxiv"
             if arxiv_dir.exists():
                 datasets["arxiv"].extend(list(arxiv_dir.glob("*.jsonl")))
+
+            tool_dir = data_dir / "tool_calling"
+            if tool_dir.exists():
+                datasets["tool_calling"].extend(list(tool_dir.glob("*.jsonl")))
 
             integrated_dir = data_dir / "integrated"
             if integrated_dir.exists():
@@ -401,6 +413,18 @@ class IntegratedMoonshotPipeline2025_2026:
         pipeline = EnhancedMoonshotPipeline(boreas_model_path="AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp")
         pipeline.execute_hf_upload_automation()
 
+    def execute_autonomous_research(self, topic: str) -> Dict[str, Any]:
+        """Execute autonomous research phase."""
+        logger.info("Phase: Autonomous Research")
+        researcher = AutonomousResearcher(self.project_root)
+        results = researcher.run_research_cycle(topic=topic)
+        
+        # Log to DB
+        self.db.log_event(self.run_id, event_type="autonomous_research", 
+                         details={"topic": topic, "iterations": len(results.get("iterations", []))})
+        
+        return results
+
     # ------------------------------------------------------------------
     # Pipeline runner
     # ------------------------------------------------------------------
@@ -411,7 +435,7 @@ class IntegratedMoonshotPipeline2025_2026:
         checkpoint = self._load_latest_checkpoint()
         resume_phase = checkpoint.get("phase") if checkpoint else None
 
-        phases = ["collect", "sft", "advanced", "upload"]
+        phases = ["collect", "research", "sft", "advanced", "upload"]
         start_idx = phases.index(resume_phase) if resume_phase in phases else 0
 
         datasets = self.discover_existing_datasets()
@@ -452,6 +476,16 @@ class IntegratedMoonshotPipeline2025_2026:
                     )
 
         if start_idx <= 1:
+            routing = self._route_phase(
+                "research",
+                "Execute autonomous research and program evolution (Sakana AI style)",
+                tags=["research", "evolution", "autonomous"],
+            )
+            research_topic = os.getenv("SO8T_RESEARCH_TOPIC", "Advanced Mathematical Reasoning for LLMs")
+            research_results = self.execute_autonomous_research(research_topic)
+            self._save_checkpoint("research", {"research_results": research_results, "subagent_routing": routing})
+
+        if start_idx <= 2:
             self._route_phase(
                 "sft",
                 "Run SFT/RLPO training for AEGIS model",
@@ -477,12 +511,18 @@ class IntegratedMoonshotPipeline2025_2026:
                 },
             )
 
-        if start_idx <= 3:
+        if start_idx <= 4:
             routing = self._route_phase(
                 "upload",
                 "Publish model artifacts to Hugging Face and Ollama",
                 tags=["deploy", "huggingface", "ollama"],
             )
+            # Generate Citation-Rich Model Card
+            from documentation.generate_model_card import ModelCardGenerator
+            gen = ModelCardGenerator(self.project_root)
+            card = gen.generate("SO8T-AEGIS-phi3.5-v3.0", "3.0.0")
+            gen.save(card, self.models_dir / "README.md")
+            
             self.execute_hf_upload_automation()
             self._save_checkpoint("upload", {"subagent_routing": routing})
 
