@@ -39,6 +39,12 @@ python tools/subagent_cli.py delegate "evaluate ABC benchmarks" \
   --tags "benchmark,statistics"
 ```
 
+Generate a schedule from `config/subagent_tasks.yaml`:
+
+```bash
+python tools/subagent_cli.py schedule
+```
+
 Create a new subagent:
 
 ```bash
@@ -76,3 +82,6 @@ These definitions are starting points; extend them as needed for new workflows.
 `scripts/pipeline/integrated_moonshot_pipeline_2025_2026.py` routes each phase
 through the subagent manager and logs the recommended assignments. Routing decisions
 are stored in rolling checkpoints under `subagent_routing`.
+
+The pipeline also auto-generates a schedule (`results/subagent_schedule.json`)
+from `config/subagent_tasks.yaml` when `SO8T_SUBAGENT_SCHEDULE=1` (default).

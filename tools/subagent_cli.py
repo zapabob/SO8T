@@ -21,6 +21,7 @@ from subagents.validator import SubagentValidator
 
 DEFAULT_DEFINITIONS_DIR = Path("subagents/definitions")
 DEFAULT_CONFIG_PATH = Path("config/subagents.yaml")
+DEFAULT_TASKS_PATH = Path("config/subagent_tasks.yaml")
 
 
 def _load_manager(definitions_dir: Path, config_path: Path) -> SubagentManager:
@@ -168,6 +169,51 @@ def cmd_delegate(args: argparse.Namespace) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
+def cmd_schedule(args: argparse.Namespace) -> None:
+    manager = _load_manager(args.definitions_dir, args.config_path)
+    tasks_path = args.tasks_path or DEFAULT_TASKS_PATH
+    if not tasks_path.exists():
+        raise SystemExit(f"Tasks file not found: {tasks_path}")
+
+    tasks_payload = yaml.safe_load(tasks_path.read_text(encoding="utf-8")) or {}
+    schedule = []
+    for task_entry in tasks_payload.get("tasks", []):
+        description = task_entry.get("description", "")
+        if not description:
+            continue
+        task = Task(
+            description=description,
+            routing_strategy=task_entry.get("routing_strategy", "single_best"),
+            required_capabilities=task_entry.get("required_capabilities", []) or [],
+            tags=task_entry.get("tags", []) or [],
+        )
+        decision = manager.route(task)
+        schedule.append(
+            {
+                "id": task_entry.get("id"),
+                "description": description,
+                "routing": {
+                    "strategy": decision.strategy,
+                    "reasoning": decision.reasoning,
+                    "assignments": [
+                        {
+                            "subagent_name": assignment.subagent_name,
+                            "task_portion": assignment.task_portion,
+                            "capabilities": assignment.capabilities,
+                            "configuration": assignment.configuration,
+                        }
+                        for assignment in decision.assignments
+                    ],
+                },
+            }
+        )
+
+    output_path = args.output or Path("results/subagent_schedule.json")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(schedule, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Schedule written: {output_path}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SO8T Subagent CLI")
     parser.add_argument("--definitions-dir", type=Path, default=DEFAULT_DEFINITIONS_DIR)
@@ -213,6 +259,11 @@ def build_parser() -> argparse.ArgumentParser:
     delegate_parser.add_argument("--required-capabilities")
     delegate_parser.add_argument("--tags")
     delegate_parser.set_defaults(func=cmd_delegate)
+
+    schedule_parser = subparsers.add_parser("schedule", help="Generate schedule from task file")
+    schedule_parser.add_argument("--tasks-path", type=Path, default=DEFAULT_TASKS_PATH)
+    schedule_parser.add_argument("--output", type=Path, help="Output JSON path")
+    schedule_parser.set_defaults(func=cmd_schedule)
 
     return parser
 

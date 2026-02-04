@@ -34,6 +34,23 @@ except Exception:
     enable_additive_grape = None
     patch_attention_with_additive_grape = None
 
+try:
+    from scripts.models.so8t_residual_adapter import inject_nkat_to_all_layers
+except Exception:
+    inject_nkat_to_all_layers = None
+
+try:
+    from scripts.models.mhc_manifold import apply_mhc_projection_to_model
+except Exception:
+    apply_mhc_projection_to_model = None
+
+try:
+    from scripts.utils.artifact_qa import collect_artifacts, summarize_artifacts, write_report
+except Exception:
+    collect_artifacts = None
+    summarize_artifacts = None
+    write_report = None
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -127,6 +144,27 @@ class EnhancedMoonshotPipeline:
         marker.write_text("ok", encoding="utf-8")
         return marker
 
+    def _run_artifact_qa(self, label: str, directory: Path, patterns: List[str]) -> Optional[Path]:
+        if collect_artifacts is None or summarize_artifacts is None or write_report is None:
+            logger.debug("Artifact QA utilities unavailable")
+            return None
+        if not directory.exists():
+            logger.warning("QA directory missing: %s", directory)
+            return None
+        artifacts = collect_artifacts(directory, patterns)
+        if not artifacts:
+            logger.warning("No artifacts found for QA in %s", directory)
+            return None
+        report = {
+            "label": label,
+            "directory": str(directory),
+            "artifacts": summarize_artifacts(artifacts),
+        }
+        report_path = Path("results") / "qa" / f"{label}_report.json"
+        write_report(report_path, report)
+        logger.info("Artifact QA report written: %s", report_path)
+        return report_path
+
     # ------------------------------------------------------------------
     # Training / integration stubs (safe for orchestration)
     # ------------------------------------------------------------------
@@ -145,6 +183,17 @@ class EnhancedMoonshotPipeline:
 
     def execute_so8_residual_adapter_retraining(self) -> None:
         logger.info("SO8 residual adapter retraining (stub)")
+        if os.getenv("SO8T_SO8_ENABLE") == "1" and inject_nkat_to_all_layers is not None:
+            if self.model is None:
+                logger.warning("SO8 adapter integration skipped (model not loaded)")
+            else:
+                mode = os.getenv("SO8T_SO8_MODE", "mlp_only")
+                target_layers = os.getenv("SO8T_SO8_LAYERS", "middle")
+                try:
+                    inject_nkat_to_all_layers(self.model, target_layers=target_layers, mode=mode)
+                    logger.info("SO8 residual adapters injected (mode=%s, layers=%s)", mode, target_layers)
+                except Exception as exc:
+                    logger.warning("SO8 residual adapter injection failed: %s", exc)
         self._touch_marker("so8_residual")
 
     def execute_deepseek_grpo_integration(self) -> None:
@@ -157,6 +206,36 @@ class EnhancedMoonshotPipeline:
 
     def execute_mhc_manifold_integration(self) -> None:
         logger.info("mHC manifold integration (stub)")
+        if os.getenv("SO8T_MHC_ENABLE") == "1" and apply_mhc_projection_to_model is not None:
+            if self.model is None:
+                logger.warning("mHC integration skipped (model not loaded)")
+            else:
+                targets_env = os.getenv("SO8T_MHC_TARGETS", "o_proj,down_proj,up_proj,gate_proj")
+                targets = [t.strip() for t in targets_env.split(",") if t.strip()]
+                blend = float(os.getenv("SO8T_MHC_BLEND", "0.1"))
+                max_iter = int(os.getenv("SO8T_MHC_MAX_ITER", "20"))
+                try:
+                    updated = apply_mhc_projection_to_model(
+                        self.model,
+                        target_modules=targets,
+                        max_iter=max_iter,
+                        blend=blend,
+                    )
+                    logger.info("mHC projection applied to %d modules", len(updated))
+                    report_path = Path("results") / "qa" / "mhc_projection_report.json"
+                    if write_report is not None:
+                        write_report(
+                            report_path,
+                            {
+                                "targets": targets,
+                                "blend": blend,
+                                "max_iter": max_iter,
+                                "updated_modules": updated,
+                            },
+                        )
+                        logger.info("mHC projection report: %s", report_path)
+                except Exception as exc:
+                    logger.warning("mHC projection failed: %s", exc)
         self._touch_marker("mhc")
 
     def execute_grape_position_encoding(self, variant: str = "multiplicative") -> None:
@@ -227,11 +306,15 @@ class EnhancedMoonshotPipeline:
         try:
             subprocess.run(cmd, check=True)
             self._touch_marker("imatrix")
+            self._run_artifact_qa("imatrix", output_dir, ["*.gguf", "*.bin", "*.json", "*.txt"])
         except subprocess.CalledProcessError as exc:
             logger.error("imatrix conversion failed: %s", exc)
 
     def execute_bf16_gguf_conversion(self) -> None:
         logger.info("BF16 GGUF conversion (stub)")
+        output_dir = Path(os.getenv("SO8T_BF16_GGUF_DIR", str(self.output_root / "bf16_gguf")))
+        if output_dir.exists():
+            self._run_artifact_qa("bf16_gguf", output_dir, ["*.gguf"])
         self._touch_marker("bf16_gguf")
 
     # ------------------------------------------------------------------

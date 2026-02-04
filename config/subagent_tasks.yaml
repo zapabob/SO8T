@@ -1,0 +1,73 @@
+﻿tasks:
+  - id: collect
+    description: "Collect and validate datasets (HF CLI, arxiv/biorxiv, exams, safety)"
+    routing_strategy: parallel
+    tags:
+      - dataset
+      - ingestion
+      - quality
+    required_capabilities:
+      - dataset_ingestion
+      - quality_assurance
+
+  - id: sft
+    description: "Run SFT/RLPO training for AEGIS foundation model"
+    routing_strategy: single_best
+    tags:
+      - training
+      - sft
+      - rlpo
+    required_capabilities:
+      - profiling
+
+  - id: grpo
+    description: "Execute GRPO training and reward validation"
+    routing_strategy: single_best
+    tags:
+      - grpo
+      - rl
+      - reward
+    required_capabilities:
+      - rl_training
+
+  - id: architecture
+    description: "Integrate mHC, SO8T residual adapters, and GRAPE position encoding"
+    routing_strategy: parallel
+    tags:
+      - mhc
+      - so8t
+      - grape
+      - integration
+    required_capabilities:
+      - architecture_integration
+
+  - id: quantization
+    description: "Run imatrix calibration and GGUF packaging"
+    routing_strategy: single_best
+    tags:
+      - imatrix
+      - gguf
+      - quantization
+    required_capabilities:
+      - imatrix_calibration
+
+  - id: evaluation
+    description: "Execute ABC benchmarks and statistical testing"
+    routing_strategy: parallel
+    tags:
+      - benchmark
+      - statistics
+      - abc
+    required_capabilities:
+      - benchmark_execution
+      - significance_testing
+
+  - id: deploy
+    description: "Publish model artifacts to Hugging Face and Ollama"
+    routing_strategy: single_best
+    tags:
+      - deploy
+      - huggingface
+      - ollama
+    required_capabilities:
+      - deployment_publish

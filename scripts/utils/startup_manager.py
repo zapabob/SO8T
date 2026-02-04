@@ -50,6 +50,12 @@ class StartupManager:
                 "SO8T_RECOVER",
                 "SO8T_TRAINING_CONFIG",
                 "SO8T_SUBAGENT_STRATEGY",
+                "SO8T_SUBAGENT_SCHEDULE",
+                "SO8T_MHC_ENABLE",
+                "SO8T_MHC_TARGETS",
+                "SO8T_MHC_BLEND",
+                "SO8T_SO8_ENABLE",
+                "SO8T_SO8_MODE",
             ]
             for key in optional_envs:
                 value = os.getenv(key)

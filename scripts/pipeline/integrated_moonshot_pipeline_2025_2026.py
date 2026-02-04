@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import subprocess
+import yaml
 
 from experiments.enhanced_moonshot_pipeline import EnhancedMoonshotPipeline
 from database.pipeline_db import PipelineDB, get_file_size_bytes
@@ -141,6 +142,45 @@ class IntegratedMoonshotPipeline2025_2026:
         for assignment in decision.assignments:
             logger.info("  - %s (%s)", assignment.subagent_name, ", ".join(assignment.capabilities))
         return self._serialize_routing(decision)
+
+    def _generate_subagent_schedule(self) -> Optional[Path]:
+        if self.subagent_manager is None or Task is None:
+            return None
+        tasks_file = self.project_root / "config" / "subagent_tasks.yaml"
+        if not tasks_file.exists():
+            return None
+
+        try:
+            tasks_payload = yaml.safe_load(tasks_file.read_text(encoding="utf-8")) or {}
+        except Exception as exc:
+            logger.warning("Failed to read subagent tasks: %s", exc)
+            return None
+
+        schedule = []
+        for task_entry in tasks_payload.get("tasks", []):
+            description = task_entry.get("description", "")
+            if not description:
+                continue
+            task = Task(
+                description=description,
+                routing_strategy=task_entry.get("routing_strategy", "single_best"),
+                required_capabilities=task_entry.get("required_capabilities", []) or [],
+                tags=task_entry.get("tags", []) or [],
+            )
+            decision = self.subagent_manager.route(task)
+            schedule.append(
+                {
+                    "id": task_entry.get("id"),
+                    "description": description,
+                    "routing": self._serialize_routing(decision),
+                }
+            )
+
+        output_path = self.results_dir / "subagent_schedule.json"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(schedule, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.info("Subagent schedule written: %s", output_path)
+        return output_path
 
     def _save_checkpoint(self, phase: str, data: Optional[Dict[str, Any]] = None) -> Path:
         if data is None:
@@ -366,6 +406,8 @@ class IntegratedMoonshotPipeline2025_2026:
     # ------------------------------------------------------------------
     def execute_full_pipeline(self, use_existing_datasets: bool = True) -> None:
         self._start_periodic_checkpoint()
+        if os.getenv("SO8T_SUBAGENT_SCHEDULE", "1") == "1":
+            self._generate_subagent_schedule()
         checkpoint = self._load_latest_checkpoint()
         resume_phase = checkpoint.get("phase") if checkpoint else None
 

@@ -83,6 +83,37 @@ def main() -> None:
         choices=["single_best", "parallel", "sequential"],
         help="Subagent routing strategy",
     )
+    parser.add_argument(
+        "--subagent-schedule",
+        action="store_true",
+        help="Generate subagent schedule at pipeline start",
+    )
+    parser.add_argument(
+        "--enable-mhc",
+        action="store_true",
+        help="Enable mHC manifold projection integration",
+    )
+    parser.add_argument(
+        "--enable-so8",
+        action="store_true",
+        help="Enable SO8 residual adapter injection",
+    )
+    parser.add_argument(
+        "--so8-mode",
+        default=os.getenv("SO8T_SO8_MODE", "mlp_only"),
+        choices=["mlp_only", "full_layer"],
+        help="SO8 adapter injection mode",
+    )
+    parser.add_argument(
+        "--mhc-targets",
+        default=os.getenv("SO8T_MHC_TARGETS", "o_proj,down_proj,up_proj,gate_proj"),
+        help="Comma-separated module name fragments for mHC projection",
+    )
+    parser.add_argument(
+        "--mhc-blend",
+        default=os.getenv("SO8T_MHC_BLEND", "0.1"),
+        help="Blend factor for mHC projection",
+    )
     args = parser.parse_args()
 
     logger.info("=" * 80)
@@ -103,6 +134,18 @@ def main() -> None:
         os.environ["SO8T_TRAINING_CONFIG"] = args.training_config
     if args.subagent_strategy:
         os.environ["SO8T_SUBAGENT_STRATEGY"] = args.subagent_strategy
+    if args.subagent_schedule:
+        os.environ["SO8T_SUBAGENT_SCHEDULE"] = "1"
+    if args.enable_mhc:
+        os.environ["SO8T_MHC_ENABLE"] = "1"
+    if args.enable_so8:
+        os.environ["SO8T_SO8_ENABLE"] = "1"
+    if args.so8_mode:
+        os.environ["SO8T_SO8_MODE"] = args.so8_mode
+    if args.mhc_targets:
+        os.environ["SO8T_MHC_TARGETS"] = args.mhc_targets
+    if args.mhc_blend:
+        os.environ["SO8T_MHC_BLEND"] = str(args.mhc_blend)
 
     pipeline = IntegratedMoonshotPipeline2025_2026()
     startup = StartupManager(Path(__file__))
@@ -132,6 +175,18 @@ def main() -> None:
         startup_args.extend(["--training-config", args.training_config])
     if args.subagent_strategy:
         startup_args.extend(["--subagent-strategy", args.subagent_strategy])
+    if args.subagent_schedule:
+        startup_args.append("--subagent-schedule")
+    if args.enable_mhc:
+        startup_args.append("--enable-mhc")
+    if args.enable_so8:
+        startup_args.append("--enable-so8")
+    if args.so8_mode:
+        startup_args.extend(["--so8-mode", args.so8_mode])
+    if args.mhc_targets:
+        startup_args.extend(["--mhc-targets", args.mhc_targets])
+    if args.mhc_blend:
+        startup_args.extend(["--mhc-blend", str(args.mhc_blend)])
     startup.register(extra_args=startup_args)
 
     use_existing = args.use_existing_datasets and not args.collect_new_data
