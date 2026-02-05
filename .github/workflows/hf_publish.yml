@@ -43,10 +43,11 @@ jobs:
         run: |
           huggingface-cli login --token "$HF_TOKEN"
 
-      - name: Upload to HF
+      - name: Upload to HF (HF CLI)
         env:
           HF_REPO: ${{ inputs.repo }}
           ARTIFACT_DIR: ${{ inputs.artifact_dir }}
           REPO_TYPE: ${{ inputs.repo_type }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          python -m src.infra.hf.publish_to_hf --repo "$HF_REPO" --artifact-dir "$ARTIFACT_DIR" --repo-type "$REPO_TYPE"
+          huggingface-cli upload "$HF_REPO" "$ARTIFACT_DIR" --repo-type "$REPO_TYPE" --commit-message "Automated upload" --token "$HF_TOKEN"
