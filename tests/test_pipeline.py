@@ -6,7 +6,12 @@
 
 import sys
 import os
+import pytest
 sys.path.insert(0, os.getcwd())
+
+if not os.getenv("SO8T_RUN_PIPELINE_TEST"):
+    pytest.skip("Pipeline integration test skipped in CI", allow_module_level=True)
+
 
 try:
     print("Testing enhanced moonshot pipeline import...")

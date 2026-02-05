@@ -17,7 +17,7 @@ import argparse
 import re
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from collections import Counter
 import numpy as np
 
