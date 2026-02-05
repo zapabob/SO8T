@@ -1,0 +1,1156 @@
+py : C:\Users\downl\AppData
+\Local\Programs\Python\Pyth
+on312\Lib\site-packages\tor
+ch\cuda\__init__.py:63: Fut
+ureWarning: The pynvml pack
+age is deprecated. Please i
+nstall nvidia-ml-py instead
+. If you did not install py
+nvml directly, please repor
+t this to the maintainers o
+f the package that installe
+d pynvml for you.
+発生場所 行:14 文字:5
++     py -3 scripts/pipelin
+e/auto_resume_aegis.py 2>&1
+ | Tee-Object -Fi ...
++     ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (C:\  
+  Users\downl\...pynvml    
+ for you.:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+  import pynvml  # type: ig
+nore[import]
+2026-02-06 04:57:03,034 - I
+NFO - [START] Starting new 
+pipeline run
+2026-02-06 04:57:03,049 - I
+NFO - 
+[PHASE START] collect: Coll
+ecting & Validating Dataset
+s
+2026-02-06 04:57:03,049 - I
+NFO - [Subagents:collect] N
+o matching subagents found 
+for task: Collect datasets
+2026-02-06 04:57:03,049 - I
+NFO - Phase HF: HF CLI down
+load
+2026-02-06 04:57:03,049 - I
+NFO - HF CLI command: py -3
+ C:\Users\downl\Desktop\SO8
+T\src\data\processing\hf_cl
+i_dataset_fetch.py --base-d
+ir H:\from_D\webdataset\hf_
+selected --manifest C:\User
+s\downl\Desktop\SO8T\data\c
+ollected_2025_2026\hf_cli_m
+anifest.json
+C:\Users\downl\Desktop\SO8T
+\src\data\processing\hf_cli
+_dataset_fetch.py:110: Depr
+ecationWarning: datetime.da
+tetime.utcnow() is deprecat
+ed and scheduled for remova
+l in a future version. Use 
+timezone-aware objects to r
+epresent datetimes in UTC: 
+datetime.datetime.now(datet
+ime.UTC).
+  "generated_at": datetime.
+utcnow().isoformat() + "Z",
+2026-02-06 04:57:03,267 - I
+NFO - [HF] Download: armanc
+/scientific_papers -> H:\fr
+om_D\webdataset\hf_selected
+\armanc__scientific_papers
+2026-02-06 04:57:03,502 - I
+NFO - [HF] Download: irds/c
+ord19 -> H:\from_D\webdatas
+et\hf_selected\irds__cord19
+2026-02-06 04:57:03,539 - I
+NFO - [HF] Download: pritam
+deka/cord-19-fulltext -> H:
+\from_D\webdataset\hf_selec
+ted\pritamdeka__cord-19-ful
+ltext
+2026-02-06 04:57:03,576 - I
+NFO - [HF] Download: ccdv/a
+rxiv-summarization -> H:\fr
+om_D\webdataset\hf_selected
+\ccdv__arxiv-summarization
+2026-02-06 04:57:03,613 - I
+NFO - [HF] Download: senten
+ce-transformers/s2orc -> H:
+\from_D\webdataset\hf_selec
+ted\sentence-transformers__
+s2orc
+2026-02-06 04:57:03,655 - I
+NFO - [HF] Download: ncbi/p
+ubmed -> H:\from_D\webdatas
+et\hf_selected\ncbi__pubmed
+2026-02-06 04:57:03,694 - I
+NFO - [HF] Download: WINGNU
+S/ACL-OCL -> H:\from_D\webd
+ataset\hf_selected\WINGNUS_
+_ACL-OCL
+2026-02-06 04:57:03,732 - I
+NFO - [HF] Download: dwb202
+3/gdelt-event-2025-v3 -> H:
+\from_D\webdataset\hf_selec
+ted\dwb2023__gdelt-event-20
+25-v3
+2026-02-06 04:57:03,771 - I
+NFO - [HF] Download: wikime
+dia/wikipedia -> H:\from_D\
+webdataset\hf_selected\wiki
+media__wikipedia
+2026-02-06 04:57:03,811 - I
+NFO - [HF] Download: Alphon
+se7/Wikidata5M-KG -> H:\fro
+m_D\webdataset\hf_selected\
+Alphonse7__Wikidata5M-KG
+2026-02-06 04:57:03,851 - I
+NFO - [HF] Download: andrea
+s-helgesson/gdelt-big -> H:
+\from_D\webdataset\hf_selec
+ted\andreas-helgesson__gdel
+t-big
+2026-02-06 04:57:03,889 - I
+NFO - [HF] Download: togeth
+ercomputer/RedPajama-Data-1
+T -> H:\from_D\webdataset\h
+f_selected\togethercomputer
+__RedPajama-Data-1T
+2026-02-06 04:57:03,928 - I
+NFO - [HF] Download: togeth
+ercomputer/RedPajama-Data-1
+T-Sample -> H:\from_D\webda
+taset\hf_selected\togetherc
+omputer__RedPajama-Data-1T-
+Sample
+2026-02-06 04:57:03,966 - I
+NFO - [HF] Download: Geralt
+-Targaryen/openwebtext2 -> 
+H:\from_D\webdataset\hf_sel
+ected\Geralt-Targaryen__ope
+nwebtext2
+2026-02-06 04:57:04,003 - I
+NFO - [HF] Download: oscar-
+corpus/OSCAR-2201 -> H:\fro
+m_D\webdataset\hf_selected\
+oscar-corpus__OSCAR-2201
+2026-02-06 04:57:04,040 - I
+NFO - [HF] Download: openai
+/gsm8k -> H:\from_D\webdata
+set\hf_selected\openai__gsm
+8k
+2026-02-06 04:57:04,083 - I
+NFO - [HF] Download: nvidia
+/OpenMath-GSM8K-masked -> H
+:\from_D\webdataset\hf_sele
+cted\nvidia__OpenMath-GSM8K
+-masked
+2026-02-06 04:57:04,129 - I
+NFO - [HF] Download: fever/
+fever -> H:\from_D\webdatas
+et\hf_selected\fever__fever
+2026-02-06 04:57:04,171 - I
+NFO - [HF] Download: GioApc
+/promptoxicity -> H:\from_D
+\webdataset\hf_selected\Gio
+Apc__promptoxicity
+2026-02-06 04:57:04,211 - I
+NFO - [HF] Download: google
+/jigsaw_toxicity_pred -> H:
+\from_D\webdataset\hf_selec
+ted\google__jigsaw_toxicity
+_pred
+2026-02-06 04:57:04,249 - I
+NFO - [HF] Download: ibm-re
+search/Toucan -> H:\from_D\
+webdataset\hf_selected\ibm-
+research__Toucan
+2026-02-06 04:57:04,286 - I
+NFO - [HF] Download: AymanT
+arig/function-calling-v0.2-
+with-r1-cot -> H:\from_D\we
+bdataset\hf_selected\AymanT
+arig__function-calling-v0.2
+-with-r1-cot
+2026-02-06 04:57:04,333 - I
+NFO - [HF] Manifest saved: 
+C:\Users\downl\Desktop\SO8T
+\data\collected_2025_2026\h
+f_cli_manifest.json
+2026-02-06 04:57:04,479 - I
+NFO - Phase: New Dataset Co
+llection (AEGIS v3.0 Spec)
+2026-02-06 04:57:04,480 - I
+NFO - Collecting Arxiv/BioR
+xiv papers (VSSI structure)
+...
+Traceback (most recent call
+ last):
+  File "C:\Users\downl\Desk
+top\SO8T\src\data\processin
+g\process_arxiv_biorxiv.py"
+, line 15, in <module>
+    from src.utils.vssi_tem
+plate import render_thinkin
+g
+ModuleNotFoundError: No mod
+ule named 'src.utils'
+2026-02-06 04:57:04,744 - I
+NFO - Collecting OSINT sour
+ces (all domains)...
+2026-02-06 04:57:05,192 - W
+ARNING - OSINT config not f
+ound: config\osint_sources.
+yaml
+2026-02-06 04:57:05,192 - W
+ARNING - No OSINT config fo
+r domain: pop_culture
+2026-02-06 04:57:05,193 - W
+ARNING - No sources collect
+ed for domain: pop_culture
+2026-02-06 04:57:05,193 - W
+ARNING - No OSINT config fo
+r domain: world_affairs
+2026-02-06 04:57:05,193 - W
+ARNING - No sources collect
+ed for domain: world_affair
+s
+2026-02-06 04:57:05,251 - I
+NFO - [NEW_DATASETS] Collec
+ted 0 new dataset types
+2026-02-06 04:57:05,251 - W
+ARNING - Quadrality builder
+ script not found: C:\Users
+\downl\Desktop\SO8T\scripts
+\data_processing\build_quad
+rality_think_dataset.py
+2026-02-06 04:57:05,259 - I
+NFO - [CHECKPOINT] Phase: c
+ollect saved to generation 
+1
+2026-02-06 04:57:05,259 - I
+NFO - 
+[PHASE START] enrich: Multi
+-domain Data Enrichment
+2026-02-06 04:57:05,259 - I
+NFO - [Subagents:enrich] No
+ matching subagents found f
+or task: Multi-domain enric
+hment
+2026-02-06 04:57:05,259 - W
+ARNING - Enrichment script 
+not found: C:\Users\downl\D
+esktop\SO8T\scripts\data_pr
+ocessing\multi_domain_enric
+hment.py
+2026-02-06 04:57:05,265 - I
+NFO - [CHECKPOINT] Phase: e
+nrich saved to generation 2
+2026-02-06 04:57:05,265 - I
+NFO - 
+[PHASE START] reward: Apply
+ing Quadrality Reward Strat
+egy
+2026-02-06 04:57:05,265 - I
+NFO - [Subagents:reward] No
+ matching subagents found f
+or task: Apply reward strat
+egy
+2026-02-06 04:57:05,265 - W
+ARNING - Reward strategy sc
+ript not found: C:\Users\do
+wnl\Desktop\SO8T\scripts\rl
+\quadrality_reward_strategy
+.py
+2026-02-06 04:57:05,270 - I
+NFO - [CHECKPOINT] Phase: r
+eward saved to generation 3
+2026-02-06 04:57:05,270 - I
+NFO - 
+[PHASE START] research: Sak
+ana AI Autonomous Research
+2026-02-06 04:57:05,270 - I
+NFO - [Subagents:research] 
+No matching subagents found
+ for task: Autonomous resea
+rch
+2026-02-06 04:57:05,270 - I
+NFO - Phase: Autonomous Res
+earch (Sakana AI Style)
+2026-02-06 04:57:05,270 - I
+NFO - OllamaBackend initial
+ized with model: aegis-phi3
+.5-v3:latest
+2026-02-06 04:57:05,270 - I
+NFO - ShinkaEvolveEngine in
+itialized.
+2026-02-06 04:57:05,271 - I
+NFO - AIScientistAgent init
+ialized.
+2026-02-06 04:57:05,272 - I
+NFO - OSINTAIAgent initiali
+zed.
+2026-02-06 04:57:05,284 - I
+NFO - SakanaAIIntegratedAge
+nt initialized with all com
+ponents.
+2026-02-06 04:57:05,284 - I
+NFO - [HYBRID] Starting hyb
+rid analysis for: Advanced 
+Mathematical Reasoning, Pha
+rmacology, and Defense Inte
+lligence
+2026-02-06 04:57:05,284 - I
+NFO - [OSINT CYCLE] Startin
+g for: Advanced Mathematica
+l Reasoning, Pharmacology, 
+and Defense Intelligence
+2026-02-06 04:57:05,284 - I
+NFO - [OSINT] Collecting in
+telligence on: Advanced Mat
+hematical Reasoning, Pharma
+cology, and Defense Intelli
+gence
+2026-02-06 04:57:05,313 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,314 - W
+ARNING - Failed to parse LL
+M intelligence collection r
+esponse: Expecting value: l
+ine 1 column 1 (char 0), fa
+lling back to simulated col
+lection.
+2026-02-06 04:57:05,334 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,334 - W
+ARNING - Failed to parse LL
+M claims extraction respons
+e: Expecting value: line 1 
+column 1 (char 0), falling 
+back to simulated claims.
+2026-02-06 04:57:05,334 - I
+NFO - [OSINT] Cross-verifyi
+ng claims...
+2026-02-06 04:57:05,352 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,353 - W
+ARNING - Failed to parse LL
+M cross-verification respon
+se: Expecting value: line 1
+ column 1 (char 0), falling
+ back to simulated verifica
+tion.
+2026-02-06 04:57:05,353 - I
+NFO - [OSINT] Generating qu
+adrality analysis for: Adva
+nced Mathematical Reasoning
+, Pharmacology, and Defense
+ Intelligence
+2026-02-06 04:57:05,370 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,388 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,407 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,425 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,444 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,460 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,476 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,494 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,512 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,528 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,544 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,561 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,580 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,599 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,617 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,632 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,648 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,663 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,680 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,696 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,712 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,729 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,747 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,770 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,798 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,819 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,844 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,868 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,893 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,921 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,944 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,966 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:05,985 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,001 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,019 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,036 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,051 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,068 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,084 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,105 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,121 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,139 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,156 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,176 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,194 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,215 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,235 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,272 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,303 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,326 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,381 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,451 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,524 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,577 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,618 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,651 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,677 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,721 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,745 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,794 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,818 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,842 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,870 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,889 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,909 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,934 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,952 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,972 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:06,994 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,013 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,033 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,050 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,079 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,106 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,134 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,153 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,156 - I
+NFO - [SAVE] OSINT log save
+d to C:\Users\downl\Desktop
+\SO8T\data\osint_intelligen
+ce\osint_analysis_20260206_
+045707.json
+2026-02-06 04:57:07,156 - I
+NFO - [RESEARCH CYCLE] Star
+ting for topic: Verificatio
+n of Advanced Mathematical 
+Reasoning, Pharmacology, an
+d Defense Intelligence
+2026-02-06 04:57:07,156 - I
+NFO - [IDEATION] Generating
+ 5 ideas for: Verification 
+of Advanced Mathematical Re
+asoning, Pharmacology, and 
+Defense Intelligence
+2026-02-06 04:57:07,156 - I
+NFO - [IDEATION] Generated 
+5 research ideas.
+2026-02-06 04:57:07,156 - I
+NFO - [ITERATION 1] Process
+ing...
+2026-02-06 04:57:07,156 - I
+NFO - [EXPERIMENTATION] Con
+ducting experiment for: Ver
+ification of Advanced Mathe
+matical Reasoning, Pharmaco
+logy, and Defense Intellige
+nce: 理論的基盤アプローチ
+2026-02-06 04:57:07,156 - I
+NFO - [WRITING] Generating 
+paper for: Verification of 
+Advanced Mathematical Reaso
+ning, Pharmacology, and Def
+ense Intelligence: 理論的基盤アプロ
+ーチ
+2026-02-06 04:57:07,174 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,190 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,206 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,224 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,246 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,262 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,283 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,302 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,320 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,338 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,354 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,370 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,406 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,443 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,463 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,485 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,503 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,523 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,541 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,558 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,575 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,592 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,611 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,628 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,648 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,665 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,680 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,697 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,715 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,732 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,747 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,764 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,802 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,818 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,833 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,850 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,867 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,885 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,903 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,921 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,941 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,957 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,973 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:07,990 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,008 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,025 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,042 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,058 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,074 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,093 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,110 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,127 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,145 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,162 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,178 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,194 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,208 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,225 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,251 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,269 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,286 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,306 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,324 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,344 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,364 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,384 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,406 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,425 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,446 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,463 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,480 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,497 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,517 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate
+2026-02-06 04:57:08,535 - E
+RROR - Ollama generation fa
+iled: 404 Client Error: Not
+ Found for url: http://loca
+lhost:11434/api/generate

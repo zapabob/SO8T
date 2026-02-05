@@ -90,9 +90,16 @@ while ($RetryCount -lt $MaxRetries) {
     $host.ui.RawUI.WindowTitle = "AEGIS-v3.0 Pipeline [RUNNING] - Attempt $($RetryCount + 1)"
 
     try {
+        # Suppress non-critical Python warnings (like FutureWarnings from torch/pynvml)
+        # and prevent PowerShell from treating stderr as a fatal exception.
+        $env:PYTHONWARNINGS = "ignore"
+        $oldEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+
         # Run with Tee-Object to show output AND log it
         & py -3 "$ProjectRoot\scripts\pipeline\auto_resume_aegis.py" 2>&1 | Tee-Object -FilePath $LogFile
         
+        $ErrorActionPreference = $oldEAP
         $exitCode = $LASTEXITCODE
         if ($exitCode -eq 0) {
             Write-Host ""

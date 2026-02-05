@@ -849,103 +849,202 @@ class IntegratedMoonshotPipeline2025_2026:
         
         # Power-on Auto-Resume logic
         checkpoint = self._load_latest_checkpoint()
-        resume_phase = checkpoint.get("phase") if checkpoint else None
- 
-        phases = ["collect", "enrich", "reward", "research", "sft", "advanced", "benchmark", "upload"]
-        start_idx = phases.index(resume_phase) if resume_phase in phases else 0
+        last_completed_phase = checkpoint.get("phase") if checkpoint else None
         
-        if resume_phase:
-            logger.info("[RECOVERY] Resuming pipeline from phase: %s", resume_phase)
+        phases_order = ["collect", "enrich", "reward", "research", "sft", "advanced", "benchmark", "upload"]
+        
+        # Determine start index (start from the phase AFTER the last completed one)
+        start_idx = 0
+        if last_completed_phase in phases_order:
+            start_idx = phases_order.index(last_completed_phase) + 1
+            if start_idx < len(phases_order):
+                logger.info(f"[RECOVERY] Phase '{last_completed_phase}' completed. Resuming from '{phases_order[start_idx]}'.")
+            else:
+                logger.info(f"[RECOVERY] All phases completed (last: {last_completed_phase}).")
         else:
             logger.info("[START] Starting new pipeline run")
- 
+
         datasets = self.discover_existing_datasets()
         dataset_paths: List[Path] = []
         for items in datasets.values():
             dataset_paths.extend(items)
- 
-        # tqdm progress bar for phases
-        pbar = tqdm(phases[start_idx:], desc="Pipeline Progress", unit="phase")
-        
-        # Fase definition map for tqdm description update
-        phase_descriptions = {
-            "collect": "Collecting & Validating Datasets",
-            "enrich": "Multi-domain Data Enrichment",
-            "reward": "Applying Quadrality Reward Strategy",
-            "research": "Sakana AI Autonomous Research",
-            "sft": "Unsloth SFT/RLPO Training",
-            "advanced": "mHC/GRPO/GGUF/imatrix Integration",
-            "benchmark": "Statistical Benchmark (ANOVA/Cohen's d)",
-            "upload": "HF CLI Advanced Upload"
-        }
- 
-        for phase in pbar:
-            print(f"\n[PHASE START] {phase}: {phase_descriptions.get(phase, phase)}")
-            pbar.set_description(f"Phase: {phase_descriptions.get(phase, phase)}")
+
+        # ----------------------------------------------------------------
+        # Phase 1: Collect
+        # ----------------------------------------------------------------
+        current_idx = 0
+        if start_idx <= current_idx:
+            phase = "collect"
             self._current_phase = phase
- 
-            if phase == "collect":
-                routing = self._route_phase("collect", "Collect datasets", tags=["dataset"])
-                if not use_existing_datasets:
-                    self.collect_hf_cli_datasets()
-                # 新規データセット収集 (設計書準拠)
+            logger.info(f"\n[PHASE START] {phase}: Collecting & Validating Datasets")
+            
+            routing = self._route_phase("collect", "Collect datasets", tags=["dataset"])
+            if not use_existing_datasets:
+                self.collect_hf_cli_datasets()
+            
+            # 新規データセット収集 (設計書準拠)
+            try:
                 new_datasets = self.collect_new_datasets()
                 for name, path in new_datasets.items():
                     if path not in dataset_paths:
                         dataset_paths.append(path)
-                if datasets["integrated"]:
+            except Exception as e:
+                logger.error(f"Phase collect failed: {e}")
+                # Continue if possible or raise
+            
+            if datasets["integrated"]:
+                try:
                     quad_output = self.project_root / "data" / "integrated" / "quadrality_think.jsonl"
                     created = self.build_quadrality_think_dataset(datasets["integrated"][0], quad_output)
                     if created: dataset_paths.append(created)
-                self._save_checkpoint("collect", {"datasets": [str(p) for p in dataset_paths], "new_datasets": list(new_datasets.keys()), "subagent_routing": routing})
- 
-            elif phase == "enrich":
-                routing = self._route_phase("enrich", "Multi-domain enrichment", tags=["enrichment"])
+                except Exception as e:
+                    logger.warning(f"Quadrality dataset build failed: {e}")
+
+            self._save_checkpoint("collect", {"datasets": [str(p) for p in dataset_paths], "new_datasets": [], "subagent_routing": routing})
+        
+        # ----------------------------------------------------------------
+        # Phase 2: Enrich
+        # ----------------------------------------------------------------
+        current_idx = 1
+        if start_idx <= current_idx:
+            phase = "enrich"
+            self._current_phase = phase
+            logger.info(f"\n[PHASE START] {phase}: Multi-domain Data Enrichment")
+            
+            routing = self._route_phase("enrich", "Multi-domain enrichment", tags=["enrichment"])
+            try:
                 enriched_paths = self.run_multi_domain_enrichment()
                 for p in enriched_paths:
                     if p not in dataset_paths: dataset_paths.append(p)
-                self._save_checkpoint("enrich", {"enriched_paths": [str(p) for p in enriched_paths], "subagent_routing": routing})
- 
-            elif phase == "reward":
-                routing = self._route_phase("reward", "Apply reward strategy", tags=["reward"])
+            except Exception as e:
+                logger.error(f"Enrichment failed: {e}")
+                enriched_paths = []
+
+            self._save_checkpoint("enrich", {"enriched_paths": [str(p) for p in enriched_paths], "subagent_routing": routing})
+
+        # ----------------------------------------------------------------
+        # Phase 3: Reward
+        # ----------------------------------------------------------------
+        current_idx = 2
+        if start_idx <= current_idx:
+            phase = "reward"
+            self._current_phase = phase
+            logger.info(f"\n[PHASE START] {phase}: Applying Quadrality Reward Strategy")
+            
+            routing = self._route_phase("reward", "Apply reward strategy", tags=["reward"])
+            try:
                 reward_path = self.apply_reward_strategy()
                 if reward_path and reward_path not in dataset_paths: dataset_paths.append(reward_path)
-                self._save_checkpoint("reward", {"reward_path": str(reward_path) if reward_path else None, "subagent_routing": routing})
- 
-            elif phase == "research":
-                routing = self._route_phase("research", "Autonomous research", tags=["research"])
-                research_topic = os.getenv("SO8T_RESEARCH_TOPIC", "Advanced Mathematical Reasoning for LLMs")
+            except Exception as e:
+                logger.error(f"Reward strategy failed: {e}")
+                reward_path = None
+
+            self._save_checkpoint("reward", {"reward_path": str(reward_path) if reward_path else None, "subagent_routing": routing})
+
+        # ----------------------------------------------------------------
+        # Phase 4: Research
+        # ----------------------------------------------------------------
+        current_idx = 3
+        if start_idx <= current_idx:
+            phase = "research"
+            self._current_phase = phase
+            logger.info(f"\n[PHASE START] {phase}: Sakana AI Autonomous Research")
+            
+            routing = self._route_phase("research", "Autonomous research", tags=["research"])
+            research_topic = os.getenv("SO8T_RESEARCH_TOPIC", "Advanced Mathematical Reasoning for LLMs")
+            try:
                 research_results = self.execute_autonomous_research(research_topic)
-                self._save_checkpoint("research", {"research_results": research_results, "subagent_routing": routing})
- 
-            elif phase == "sft":
-                self._route_phase("sft", "Run SFT training", tags=["sft"])
+            except Exception as e:
+                logger.error(f"Research failed: {e}")
+                research_results = {}
+
+            self._save_checkpoint("research", {"research_results": research_results, "subagent_routing": routing})
+
+        # ----------------------------------------------------------------
+        # Phase 5: SFT (GPU Training)
+        # ----------------------------------------------------------------
+        current_idx = 4
+        if start_idx <= current_idx:
+            phase = "sft"
+            self._current_phase = phase
+            logger.info(f"\n[PHASE START] {phase}: Unsloth SFT/RLPO Training")
+            
+            self._route_phase("sft", "Run SFT training", tags=["sft"])
+            try:
+                # Ensure we have datasets
+                if not dataset_paths:
+                    logger.warning("No datasets found for SFT! Using default discovery.")
+                    d = self.discover_existing_datasets()
+                    for v in d.values(): dataset_paths.extend(v)
+                
                 sft_path = self.execute_sft(dataset_paths)
                 self._save_checkpoint("sft", {"sft_model_path": str(sft_path)})
- 
-            elif phase == "advanced":
-                routing = self._route_phase("advanced", "Advanced integration", tags=["advanced"])
-                # SFT path recovery
-                current_ckpt = self._load_latest_checkpoint()
-                sft_path_str = current_ckpt.get("data", {}).get("sft_model_path", "models/aegis_v25_rlpo")
+            except Exception as e:
+                logger.critical(f"SFT Training failed: {e}")
+                raise e
+
+        # ----------------------------------------------------------------
+        # Phase 6: Advanced (Integration)
+        # ----------------------------------------------------------------
+        current_idx = 5
+        if start_idx <= current_idx:
+            phase = "advanced"
+            self._current_phase = phase
+            logger.info(f"\n[PHASE START] {phase}: mHC/GRPO/GGUF/imatrix Integration")
+            
+            routing = self._route_phase("advanced", "Advanced integration", tags=["advanced"])
+            
+            # SFT path recovery from checkpoint if needed
+            current_ckpt = self._load_latest_checkpoint()
+            sft_path_str = current_ckpt.get("data", {}).get("sft_model_path")
+            if not sft_path_str:
+                # Fallback to expected path
+                sft_path_str = str(self.project_root / "models" / "aegis_v3_borea_sft")
+            
+            try:
                 final_path = self.execute_advanced_techniques_integration(Path(sft_path_str))
                 self._save_checkpoint("advanced", {"final_model_path": str(final_path), "subagent_routing": routing})
- 
-            elif phase == "upload":
-                routing = self._route_phase("upload", "Advanced HF Upload", tags=["upload"])
+            except Exception as e:
+                logger.error(f"Advanced integration failed: {e}")
+
+        # ----------------------------------------------------------------
+        # Phase 7: Benchmark
+        # ----------------------------------------------------------------
+        current_idx = 6
+        if start_idx <= current_idx:
+            phase = "benchmark"
+            self._current_phase = phase
+            logger.info(f"\n[PHASE START] {phase}: Statistical Benchmark (ANOVA/Cohen's d)")
+            
+            routing = self._route_phase("benchmark", "Statistical benchmark", tags=["evaluation"])
+            try:
+                benchmark_results = self.execute_statistical_benchmark()
+                self._save_checkpoint("benchmark", {"benchmark_results": benchmark_results, "subagent_routing": routing})
+            except Exception as e:
+                logger.error(f"Benchmark failed: {e}")
+
+        # ----------------------------------------------------------------
+        # Phase 8: Upload
+        # ----------------------------------------------------------------
+        current_idx = 7
+        if start_idx <= current_idx:
+            phase = "upload"
+            self._current_phase = phase
+            logger.info(f"\n[PHASE START] {phase}: HF CLI Advanced Upload")
+            
+            routing = self._route_phase("upload", "Advanced HF Upload", tags=["upload"])
+            try:
                 # Generate final Model Card
                 gen = ModelCardGenerator(self.project_root)
                 card = gen.generate("SO8T-AEGIS-phi3.5-v3.0", "3.0.0")
                 gen.save(card, self.models_dir / "README.md")
+                
                 # Unified Advanced Upload
                 self.execute_hf_upload_automation()
                 self._save_checkpoint("upload", {"subagent_routing": routing})
+            except Exception as e:
+                logger.error(f"Upload failed: {e}")
 
-            elif phase == "benchmark":
-                routing = self._route_phase("benchmark", "Statistical benchmark", tags=["evaluation"])
-                benchmark_results = self.execute_statistical_benchmark()
-                self._save_checkpoint("benchmark", {"benchmark_results": benchmark_results, "subagent_routing": routing})
- 
         self._stop_periodic_checkpoint()
         self.db.end_run(self.run_id, status="completed")
         logger.info("Pipeline completed successfully.")
