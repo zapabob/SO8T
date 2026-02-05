@@ -94,7 +94,8 @@ class BayesianAlphaOptimizer:
         self.best_alpha = None
         self.best_score = float('-inf')
 
-        logger.info("Bayesian Alpha Optimizer initialized:"        logger.info(f"  Alpha bounds: {alpha_bounds}")
+        logger.info("Bayesian Alpha Optimizer initialized:")
+        logger.info(f"  Alpha bounds: {alpha_bounds}")
         logger.info(f"  Initial points: {n_initial_points}")
         logger.info(f"  Iterations: {n_iterations}")
 
@@ -149,7 +150,8 @@ class BayesianAlphaOptimizer:
             'convergence_analysis': self._analyze_convergence()
         }
 
-        logger.info("Bayesian optimization completed!"        logger.info(f"Best α: {self.best_alpha:.4f} (score: {self.best_score:.4f})")
+        logger.info("Bayesian optimization completed!")
+        logger.info(f"Best alpha: {self.best_alpha:.4f} (score: {self.best_score:.4f})")
 
         return result
 

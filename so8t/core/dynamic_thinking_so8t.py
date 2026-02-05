@@ -581,7 +581,8 @@ class DynamicThinkingSO8TModel(SafetyAwareSO8TModel):
         self.so8_trinality_enabled = so8_trinality
         self.temperature_control_enabled = temperature_control
 
-        logger.info("Thinking features updated:"        logger.info(f"  Dynamic Thinking: {'✓' if dynamic else '✗'}")
+        logger.info("Thinking features updated:")
+        logger.info(f"  Dynamic Thinking: {'?' if dynamic else '?'}")
         logger.info(f"  Multimodal Integration: {'✓' if multimodal else '✗'}")
         logger.info(f"  Meta Reasoning: {'✓' if meta_reasoning else '✗'}")
         logger.info(f"  SO8 Trinality Inference: {'✓' if so8_trinality else '✗'}")

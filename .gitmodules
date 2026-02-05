@@ -1,0 +1,12 @@
+[submodule "computer-use-preview"]
+	path = computer-use-preview
+	url = https://github.com/google-gemini/computer-use-preview.git
+[submodule "datasets/nsfw_base_model"]
+	path = datasets/nsfw_base_model
+	url = https://huggingface.co/melt-adzuki/Llama-3-JPRP-NSFW-8B
+[submodule "datasets/nsfw_dataset"]
+	path = datasets/nsfw_dataset
+	url = https://huggingface.co/melt-adzuki/Llama-3-JPRP-NSFW-8B
+[submodule "datasets/nsfw_training_data"]
+	path = datasets/nsfw_training_data
+	url = https://huggingface.co/melt-adzuki/Llama-3-JPRP-NSFW-8B

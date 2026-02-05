@@ -69,10 +69,7 @@ class SecureRAG:
         logger.debug(f"[RAG] Added document: {doc_id}")
     
     def build_index(self):
-        """
-        """
-        ベクトルインデックスを構築（本番実装: 埋め込み生成+FAISSによるインデックス作成）
-        """
+        """Build FAISS index from stored documents."""
         import numpy as np
         try:
             import faiss
@@ -136,7 +133,7 @@ class SecureRAG:
         return results
     
     def save_index(self, path: Path):
-        """インデックスを保存"""
+        """Save FAISS index to disk."""
         logger.info(f"[RAG] Saving index to {path}...")
         # TODO: インデックス保存実装
         logger.info("[RAG] Index saved (placeholder implementation)")
