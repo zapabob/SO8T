@@ -1,0 +1,65 @@
+{
+  "model": {
+    "base_model": "models/Borea-Phi-3.5-mini-Instruct-Jp",
+    "use_unsloth": true,
+    "lora_rank": 64,
+    "lora_alpha": 128,
+    "lora_dropout": 0.05,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "unfreeze_last_layers": 0
+  },
+  "training": {
+    "batch_size": 1,
+    "gradient_accumulation_steps": 16,
+    "learning_rate": 0.0002,
+    "sft_epochs": 2,
+    "grpo_epochs": 1,
+    "grpo_learning_rate": 0.000005,
+    "grpo_batch_size": 1,
+    "grpo_grad_accum": 1,
+    "grpo_max_prompt": 256,
+    "grpo_max_completion": 512,
+    "logging_steps": 10,
+    "save_steps": 500,
+    "rolling_save_sec": 300,
+    "reward_scale": 1.0
+  },
+  "optimization": {
+    "bf16": true,
+    "load_in_8bit": false,
+    "load_in_4bit": true,
+    "max_seq_length": 2048
+  },
+  "advanced": {
+    "mhc": {
+      "enabled": true,
+      "targets": ["o_proj", "down_proj", "up_proj", "gate_proj"],
+      "blend": 0.1,
+      "max_iter": 20
+    },
+    "grpo": {
+      "enabled": true,
+      "reward_strategy": "so8t_quadrality_v3",
+      "group_size": 6
+    },
+    "grape": {
+      "enabled": true,
+      "variant": "multiplicative"
+    },
+    "imatrix": {
+      "enabled": true,
+      "calib_dataset": "data/calibration_data.jsonl"
+    }
+  },
+  "dataset_path": "data/aegis_v3_integrated_sft.jsonl",
+  "grpo_dataset_path": "data/aegis_v3_integrated_grpo.jsonl",
+  "output_dir": "models/aegis_v3_borea_final"
+}

@@ -14,4 +14,4 @@ Workflow: `.github/workflows/hf_publish.yml`
 
 ## Notes
 - The workflow attempts to generate a model card before upload.
-- If you prefer to skip model card generation, remove that step.
+- If you prefer to skip model card generation, remove that step.

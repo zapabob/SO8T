@@ -22,4 +22,4 @@ py -m src.eval.stat_report --input results/abc_testing/combined_scores.csv --out
 - `score_boxplot.png`
 - `score_violin.png`
 - `score_mean_sd.png`
-- `score_report.html` (when --html)
+- `score_report.html` (when --html)

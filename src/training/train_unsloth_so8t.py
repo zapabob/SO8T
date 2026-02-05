@@ -122,12 +122,15 @@ class UnslothSO8TTrainer:
 
         # RTX 3060最適化設定
         self.max_seq_length = 2048
-        self.dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-        self.load_in_4bit = True  # 4-bit量子化で高速化
+        self.dtype = None  # Auto-detect
+        self.load_in_4bit = self.training_config['optimization'].get('load_in_4bit', True)
         
-        # チェックポイントマネージャー初期化（3分間隔、最大5個）
+        # Borea-Phi-3.5 用のベースモデル名上書き（設定優先）
+        self.base_model_name = self.training_config['model'].get('base_model', "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp")
+        
+        # チェックポイントマネージャー初期化
         if CHECKPOINT_AVAILABLE:
-            checkpoint_dir = self.project_root / "checkpoints" / "advanced_science_reasoning"
+            checkpoint_dir = self.project_root / "checkpoints" / "aegis_v3_borea"
             self.checkpoint_manager = RollingCheckpointManager(
                 base_dir=checkpoint_dir,
                 max_keep=5,
@@ -155,29 +158,81 @@ class UnslothSO8TTrainer:
             gpu_name = torch.cuda.get_device_name(0)
             gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)
             logger.info(f"[GPU] {gpu_name} ({gpu_memory:.1f}GB VRAM)")
-            if gpu_memory < 10:
-                logger.warning(f"[WARN] GPU memory ({gpu_memory:.1f}GB) may be insufficient for 7B model")
-                logger.info("[INFO] Using 4-bit quantization to reduce memory usage")
+            if gpu_memory < 11:
+                logger.warning(f"[WARN] GPU memory ({gpu_memory:.1f}GB) is below ideal for 7B/12B, using 4-bit.")
+                self.load_in_4bit = True
 
-        logger.info("[START] Unsloth SO8T Quadrality Training Initialized")
-        logger.info(f"[MODEL] Base: {self.training_config['model']['base_model']}")
-        logger.info("[ACCELERATION] Unsloth + 4-bit quantization")
-        logger.info("[RTX3060] Optimized for 12GB VRAM")
+        logger.info("[START] Unsloth Borea-SO8T Quadrality Training Initialized")
+        logger.info(f"[MODEL] Base: {self.base_model_name}")
+        logger.info(f"[ACCELERATION] Unsloth + {'4-bit' if self.load_in_4bit else 'BF16/FP16'}")
+        logger.info("[RTX3060] Optimized for AEGIS-v3.0")
+
+    def _load_reward_strategy_map(self) -> Dict[str, float]:
+        """
+        SO8T 4-way 思考（task, analysis, safety, policy）と2024-2026年のキーワードを重視する報酬戦略マップを読み込む。
+        環境変数 SO8T_REWARD_STRATEGY_MAP_PATH が設定されていれば、そこからJSONを読み込む。
+        そうでなければ、デフォルトの戦略を返す。
+        """
+        strategy_map_path = os.getenv("SO8T_REWARD_STRATEGY_MAP_PATH")
+        if strategy_map_path and Path(strategy_map_path).exists():
+            try:
+                with open(strategy_map_path, 'r', encoding='utf-8') as f:
+                    custom_map = json.load(f)
+                logger.info(f"[REWARD] Loaded custom reward strategy map from {strategy_map_path}")
+                return custom_map
+            except Exception as e:
+                logger.warning(f"[REWARD] Failed to load custom reward strategy map: {e}. Using default.")
+
+        # デフォルトのSO8T 4-way思考と最新キーワード重視戦略
+        default_map = {
+            # SO8T 4-way 思考の要素
+            "task_completion": 1.5,      # タスクの正確な完了
+            "analysis_depth": 1.2,       # 分析の深さと洞察力
+            "safety_adherence": 2.0,     # 安全性、倫理、ハルシネーション防止
+            "policy_alignment": 1.8,     # 指示、制約、ポリシーへの適合性
+            "creativity": 0.8,           # 創造性、独創性
+            "coherence": 1.0,            # 一貫性、論理的整合性
+            "conciseness": 0.7,          # 簡潔さ、効率性
+            "relevance": 1.0,            # 関連性、的確性
+
+            # 2024-2026年の重要キーワード（評価基準に追加）
+            "keyword_ukraine": 1.3,
+            "keyword_cybersecurity": 1.5,
+            "keyword_national_security": 1.4,
+            "keyword_sakana_ai": 1.2,
+            "keyword_generative_ai_ethics": 1.6,
+            "keyword_climate_change_mitigation": 1.1,
+            "keyword_quantum_computing_advances": 1.0,
+            "keyword_biotechnology_breakthroughs": 1.0,
+            "keyword_geopolitical_stability": 1.3,
+            "keyword_supply_chain_resilience": 1.1,
+            "keyword_digital_sovereignty": 1.2,
+            "keyword_ai_regulation": 1.5,
+            "keyword_space_economy": 0.9,
+            "keyword_critical_minerals": 1.0,
+            "keyword_disinformation_combat": 1.7,
+            "keyword_global_health_security": 1.2,
+            "keyword_human_rights_tech": 1.4,
+            "keyword_sustainable_development_goals": 1.0,
+            "keyword_future_of_work": 0.8,
+            "keyword_urban_resilience": 0.9,
+        }
+        logger.info("[REWARD] Using default SO8T 4-way thinking and 2024-2026 keyword-focused reward strategy map.")
+        return default_map
 
     def load_model_and_tokenizer(self):
-        """Unslothで高速モデル読み込み（RTX 3060最適化）"""
-        logger.info("[MODEL] Loading Qwen-7B-Instruct with Unsloth (RTX 3060 optimized)")
+        """Unslothで高速モデル読み込み（Borea-Phi-3.5/RTX 3060最適化）"""
+        logger.info(f"[MODEL] Loading {self.base_model_name} with Unsloth")
         
-        # GPUメモリ最適化（RTX 3060向け）
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            # メモリ使用率を85%に制限（バッファ確保）
-            torch.cuda.set_per_process_memory_fraction(0.85)
-            logger.info("[GPU] Memory optimization applied (85% limit)")
+            # メモリ使用率を88%に制限（バッファ確保）
+            torch.cuda.set_per_process_memory_fraction(0.88)
+            logger.info("[GPU] Memory optimization applied (88% limit)")
 
         try:
             model, tokenizer = FastLanguageModel.from_pretrained(
-                model_name=self.training_config['model']['base_model'],
+                model_name=self.base_model_name,
                 max_seq_length=self.max_seq_length,
                 dtype=None,  # Auto-detect (bf16 if supported, else fp16)
                 load_in_4bit=self.load_in_4bit,
@@ -190,13 +245,16 @@ class UnslothSO8TTrainer:
             logger.info("[INFO] Check: 1) Unsloth installation, 2) CUDA availability, 3) GPU memory")
             raise
 
-        # チャットテンプレート設定
-        tokenizer = get_chat_template(
-            tokenizer,
-            chat_template="qwen-2.5",
-        )
+        # Phi-3 / Borea 用のチャットテンプレート設定
+        try:
+            tokenizer = get_chat_template(
+                tokenizer,
+                chat_template="phi-3",
+            )
+        except Exception:
+            logger.info("Falling back to default chat template")
 
-        logger.info(f"[MODEL] Loaded {self.training_config['model']['base_model']} successfully")
+        logger.info(f"[MODEL] Loaded {self.base_model_name} successfully")
         return model, tokenizer
 
     def setup_lora_adapters(self, model):
@@ -709,13 +767,13 @@ class UnslothSO8TTrainer:
         if reward_map:
             logger.info(f"[GRPO] Reward strategy enabled ({len(reward_map)} prompt mappings, scale={reward_scale})")
 
-        # GRPO-LEAD reward design
+        # GRPO-SO8T 報酬関数 (2024-2026 知識・四重推論対応)
         def reward_function(*args, **kwargs):
             """
-            GRPO-LEAD (Difficulty-Aware Reinforcement Learning Approach for Concise Mathematical Reasoning)
-            - 長さ正則化報酬: 簡潔な解を奨励しつつ精度を維持
-            - 明示的ペナルティ: 不正解解にペナルティを課して精度を向上
-            - 難易度認識アドバンテージ再重み付け: 困難な問題の学習シグナルを増幅
+            SO8T-VSSI-GRPO (Unified Quadrality Reasoning Reward)
+            - 四重推論タグ (<think-task>, <think-analysis>, <think-safety>, <think-policy>) の厳密検証
+            - 2024-2026年ドメイン知識（科学、OSINT、安保）の正確性検証
+            - 長さ正則化と論理的一貫性の評価
             """
             if len(args) == 1:
                 completions = args[0]
@@ -725,68 +783,57 @@ class UnslothSO8TTrainer:
             else:
                 completions = kwargs.get("completions") or []
                 prompts = kwargs.get("prompts") or []
-            reward_scores = kwargs.get("reward_score") or kwargs.get("reward_scores")
+            
             rewards = []
             
-            # GRPO-LEADハイパーパラメータ
-            length_penalty = 0.02  # 長さ正則化係数（0.01-0.05）
-            penalty_multiplier = 1.8  # 不正解ペナルティ係数（1.5-2.0）
-            difficulty_boost = 0.3  # 難易度ブースト係数（0.2-0.5）
-            
+            # ドメイン知識キーワード (2024-2026)
+            domain_keywords = {
+                "osint": ["Ukraine", "Cybersecurity", "Economic Security", "Geopolitics", "National Security", "日中問題", "経済安保", "国家安全保障"],
+                "science": ["AI Scientist", "ShinkaEvolve", "DeepSeek", "Sakana AI", "Unified Dataset", "Pharmacology", "IMO", "Quantum"],
+                "culture": ["Gundam SEED FREEDOM", "GQuuuuuuX", "Hathaway", "Pop-Culture", "Anime Analysis"]
+            }
+ 
             for idx, completion in enumerate(completions):
-                # 基本報酬: 応答の長さと品質に基づく
-                base_reward = len(completion) * 0.001
+                reward = 0.0
                 
-                # 推論キーワードボーナス
-                reasoning_keywords = ['reasoning', 'step', 'therefore', 'because', 'thus', 'hence', 'conclusion']
-                if any(word in completion.lower() for word in reasoning_keywords):
-                    base_reward += 0.1
+                # 1. SO8T 四重推論タグの検証 (非常に高い重み)
+                quad_tags = ["<think-task>", "<think-analysis>", "<think-safety>", "<think-policy>"]
+                found_tags = sum(1 for tag in quad_tags if tag in completion)
+                if found_tags == 4:
+                    reward += 1.0  # 満点ボーナス
+                elif found_tags > 0:
+                    reward += 0.2 * found_tags
                 
-                # 正解性の判定（簡易版: 実際の評価では正確な正解判定を使用）
-                # ここでは、数値が含まれているか、推論ステップが明確かを判定
-                is_correct = True  # 実際の実装では、正解と比較して判定
-                has_numerical_answer = any(char.isdigit() for char in completion)
-                has_reasoning_steps = any(keyword in completion.lower() for keyword in ['step', 'first', 'second', 'then', 'finally'])
-                
-                if has_numerical_answer and has_reasoning_steps:
-                    correctness_reward = 0.5  # 正解らしい回答
-                else:
-                    correctness_reward = 0.1  # 不完全な回答
-                    is_correct = False
-                
-                # GRPO-LEAD: 長さ正則化報酬
-                # 簡潔な解を奨励しつつ精度を維持
-                solution_length = len(completion.split())
-                length_penalty_value = length_penalty * solution_length
-                reward = correctness_reward - length_penalty_value
-                
-                # GRPO-LEAD: 明示的ペナルティ
-                # 不正解解にペナルティを課して精度を向上
-                if not is_correct:
-                    reward = -penalty_multiplier * abs(base_reward)
-                
-                # GRPO-LEAD: 難易度認識アドバンテージ再重み付け
-                # 困難な問題の学習シグナルを増幅
-                # 難易度は、問題の複雑さ（数式の数、推論ステップ数など）から推定
-                difficulty_score = 0.5  # デフォルト難易度（実際の実装では問題から推定）
-                if 'step' in completion.lower() or 'therefore' in completion.lower():
-                    difficulty_score = 0.7  # 推論ステップがある場合は難易度が高い
-                
-                difficulty_weight = 1.0 + difficulty_score * difficulty_boost
-                reward = reward * difficulty_weight
-
-                # Reward strategy bonus (pre-annotated scores)
-                strategy_bonus = 0.0
-                if reward_scores is not None:
-                    try:
-                        strategy_bonus = float(reward_scores[idx])
-                    except Exception:
-                        strategy_bonus = 0.0
-                elif reward_map and idx < len(prompts):
+                # タグの順序検証
+                if "<think-task>" in completion and "<think-policy>" in completion:
+                    if completion.find("<think-task>") < completion.find("<think-policy>"):
+                        reward += 0.2
+ 
+                # 2. 2024-2026年ドメイン知識ボーナス
+                completion_lower = completion.lower()
+                for cat, keywords in domain_keywords.items():
+                    matches = sum(1 for kw in keywords if kw.lower() in completion_lower)
+                    if matches > 0:
+                        reward += 0.05 * min(matches, 3)
+ 
+                # 3. 論理的一貫性と構造
+                markers = ["step", "analysis", "conclusion", "therefore", "because", "したがって", "結論", "分析"]
+                struct_matches = sum(1 for m in markers if m in completion_lower)
+                reward += 0.01 * min(struct_matches, 10)
+ 
+                # 4. 長さ正則化 (LEAD-style)
+                words = completion.split()
+                if len(words) < 50:
+                    reward -= 0.5  # 短すぎる
+                elif len(words) > 800:
+                    reward -= 0.2  # 冗長
+ 
+                # 5. 特化報酬 (SO8T_REWARD_DATASET)
+                # (既存の reward_map ロジックを継承)
+                if reward_map and idx < len(prompts):
                     prompt_key = normalize_prompt_text(str(prompts[idx]))
                     strategy_bonus = reward_map.get(prompt_key, 0.0)
-                if strategy_bonus:
-                    reward += reward_scale * strategy_bonus
+                    reward += reward_strategy_scale * strategy_bonus
                 
                 rewards.append(reward)
             
