@@ -53,6 +53,13 @@ from agents.sakana_ai_integrated_agent import SakanaAIIntegratedAgent
 from data.research.evolutionary_optimizer import EvolutionaryOptimizer
 from infrastructure.documentation.generate_model_card import ModelCardGenerator
 
+# Statistical Benchmark integration
+try:
+    from evaluation.phase6_statistical_benchmark import IndustryStandardBenchmark
+    BENCHMARK_AVAILABLE = True
+except ImportError:
+    BENCHMARK_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -60,7 +67,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 class IntegratedMoonshotPipeline2025_2026:
     def __init__(self) -> None:
-        self.project_root = Path(__file__).resolve().parents[2]
+        self.project_root = Path(__file__).resolve().parents[3]
         self.data_dir = self.project_root / "data" / "collected_2025_2026"
         self.results_dir = self.project_root / "results" / "moonshot_2025_2026"
         self.models_dir = self.project_root / "models" / "moonshot_2025_2026"
@@ -340,7 +347,7 @@ class IntegratedMoonshotPipeline2025_2026:
         cmd = [
             "py",
             "-3",
-            str(self.project_root / "scripts" / "data_processing" / "hf_cli_dataset_fetch.py"),
+            str(self.project_root / "src" / "data" / "processing" / "hf_cli_dataset_fetch.py"),
             "--base-dir",
             str(base_dir),
             "--manifest",
@@ -371,6 +378,109 @@ class IntegratedMoonshotPipeline2025_2026:
             logger.warning("Manifest parse failed: %s", exc)
 
         return manifest_path
+
+    def collect_new_datasets(self) -> Dict[str, Path]:
+        """新規データセット収集 (設計書準拠)
+        
+        収集対象:
+        - Arxiv/BioRxiv 論文 (2024-2026 高引用)
+        - OSINT ソース (ポップカルチャー、世界情勢)
+        - MCP/スキルデータセット
+        - WebResearch/DeepResearch データ
+        """
+        logger.info("Phase: New Dataset Collection (AEGIS v3.0 Spec)")
+        
+        collected = {}
+        output_dir = self.data_dir / "new_collected"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        if os.getenv("SO8T_DRYRUN") == "1":
+            logger.info("Dry-run mode: skipping new dataset collection")
+            return collected
+        
+        # 1. Arxiv/BioRxiv 論文収集 (設計書準拠)
+        if os.getenv("SO8T_COLLECT_ARXIV", "1") == "1":
+            try:
+                arxiv_output = output_dir / "arxiv_biorxiv_vssi.jsonl"
+                cmd = [
+                    "py", "-3",
+                    str(self.project_root / "src" / "data" / "processing" / "process_arxiv_biorxiv.py"),
+                    "--max-papers", os.getenv("SO8T_ARXIV_MAX", "1000"),
+                    "--export-vssi",
+                    "--vssi-output", str(arxiv_output),
+                ]
+                logger.info("Collecting Arxiv/BioRxiv papers (VSSI structure)...")
+                subprocess.run(cmd, check=False, cwd=self.project_root, 
+                               env={**os.environ, "PYTHONPATH": str(self.project_root)})
+                if arxiv_output.exists():
+                    collected["arxiv_biorxiv"] = arxiv_output
+                    logger.info(f"[ARXIV] Collected to {arxiv_output}")
+            except Exception as e:
+                logger.warning(f"Arxiv collection failed: {e}")
+        
+        # 2. OSINT ソース収集 (Pop-culture & World Affairs)
+        if os.getenv("SO8T_COLLECT_OSINT", "1") == "1":
+            try:
+                osint_base = output_dir / "osint"
+                cmd = [
+                    "py", "-3",
+                    str(self.project_root / "src" / "data" / "processing" / "osint_source_collector.py"),
+                    "--domain", "all",
+                    "--output-dir", str(osint_base),
+                ]
+                logger.info("Collecting OSINT sources (all domains)...")
+                subprocess.run(cmd, check=False, cwd=self.project_root,
+                               env={**os.environ, "PYTHONPATH": str(self.project_root)})
+                
+                # 集約されたファイルを代表として登録
+                osint_output = osint_base / "world_affairs" / "sources.jsonl"
+                if osint_output.exists():
+                    collected["osint"] = osint_output
+                    logger.info(f"[OSINT] Collected world_affairs to {osint_output}")
+            except Exception as e:
+                logger.warning(f"OSINT collection failed: {e}")
+        
+        # 3. 日本大学入試問題 (ローカルデータ統合)
+        japan_exam_dir = self.project_root / "data" / "japan_entrance_exams"
+        if japan_exam_dir.exists():
+            exam_files = list(japan_exam_dir.glob("*.jsonl"))
+            if exam_files:
+                collected["japan_exams"] = exam_files[0]
+                logger.info(f"[JAPAN_EXAMS] Found {len(exam_files)} exam datasets")
+        
+        # 4. MCP/スキルデータセット統合
+        mcp_skill_dir = self.project_root / "data" / "mcp_skills"
+        if mcp_skill_dir.exists():
+            mcp_files = list(mcp_skill_dir.glob("*.jsonl"))
+            if mcp_files:
+                collected["mcp_skills"] = mcp_files[0]
+                logger.info(f"[MCP_SKILLS] Found {len(mcp_files)} skill datasets")
+        
+        # 5. WebResearch/DeepResearch データ
+        research_dir = self.project_root / "data" / "research_datasets"
+        if research_dir.exists():
+            research_files = list(research_dir.glob("*.jsonl"))
+            if research_files:
+                collected["research"] = research_files[0]
+                logger.info(f"[RESEARCH] Found {len(research_files)} research datasets")
+        
+        # DB logging
+        for name, path in collected.items():
+            try:
+                self.db.log_dataset(
+                    run_id=self.run_id,
+                    dataset_id=f"new_{name}",
+                    source_type=name,
+                    category="new_collection",
+                    local_path=str(path),
+                    file_size_bytes=get_file_size_bytes(path) if path.exists() else 0,
+                    acquired_via="collect_new_datasets",
+                )
+            except Exception:
+                pass
+        
+        logger.info(f"[NEW_DATASETS] Collected {len(collected)} new dataset types")
+        return collected
 
     def run_multi_domain_enrichment(self) -> List[Path]:
         """Phase 4: Multi-domain data enrichment."""
@@ -529,13 +639,101 @@ class IntegratedMoonshotPipeline2025_2026:
     # Phases
     # ------------------------------------------------------------------
     def execute_sft(self, dataset_paths: List[Path]) -> Path:
-        logger.info("Phase SFT/RLPO")
-        pipeline = EnhancedMoonshotPipeline(boreas_model_path="AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp")
-        pipeline.load_boreas_model()
-        pipeline.execute_sft_rlpo_integration(target_datasets=dataset_paths)
-        pipeline._cleanup_resources()
-        out_dir = Path("models/aegis_v25_rlpo")
-        return out_dir
+        """Phase SFT: Unsloth直接呼び出しによる実GPU学習
+        
+        Features:
+        - 5分ローリングチェックポイント (3世代)
+        - 電源投入時自動再開
+        - リアルタイム進捗監視
+        """
+        logger.info("=" * 60)
+        logger.info("Phase SFT: Starting Unsloth GPU Training")
+        logger.info("=" * 60)
+        
+        output_dir = self.project_root / "models" / "aegis_v3_borea_sft"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # チェックポイントからの再開確認
+        resume_checkpoint = None
+        checkpoint_dir = self.project_root / "checkpoints" / "aegis_v3_sft"
+        if checkpoint_dir.exists():
+            checkpoints = sorted(checkpoint_dir.glob("checkpoint-*"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if checkpoints:
+                resume_checkpoint = checkpoints[0]
+                logger.info(f"[RESUME] Found checkpoint: {resume_checkpoint}")
+        
+        # Unsloth トレーナースクリプトを呼び出し
+        trainer_script = self.project_root / "src" / "training" / "train_unsloth_so8t.py"
+        config_path = self.project_root / "src" / "infrastructure" / "config" / "borea_training.json"
+        
+        # データセットパスを結合
+        dataset_args = []
+        for dp in dataset_paths:
+            if dp and dp.exists():
+                dataset_args.extend(["--dataset", str(dp)])
+        
+        cmd = [
+            "py", "-3", str(trainer_script),
+            "--config", str(config_path),
+            "--output-dir", str(output_dir),
+            "--checkpoint-interval", str(int(os.getenv("SO8T_CHECKPOINT_INTERVAL", "300"))),
+            "--rolling-checkpoints", str(int(os.getenv("SO8T_CHECKPOINT_ROLLING", "3"))),
+        ]
+        if resume_checkpoint:
+            cmd.extend(["--resume-from", str(resume_checkpoint)])
+        cmd.extend(dataset_args)
+        
+        logger.info(f"[SFT] Command: {' '.join(cmd[:8])}...")
+        logger.info(f"[SFT] Output dir: {output_dir}")
+        logger.info(f"[SFT] Checkpoint interval: 5 minutes, rolling: 3 generations")
+        
+        # 進捗ログファイル
+        progress_log = self.project_root / "logs" / "sft_progress.log"
+        progress_log.parent.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            with open(progress_log, "w", encoding="utf-8") as log_file:
+                log_file.write(f"[{datetime.now().isoformat()}] SFT Training Started\n")
+                log_file.write(f"Output: {output_dir}\n")
+                log_file.write(f"Datasets: {len(dataset_args)//2}\n")
+                log_file.flush()
+                
+                process = subprocess.Popen(
+                    cmd,
+                    cwd=self.project_root,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                )
+                
+                # リアルタイムログ出力
+                for line in process.stdout:
+                    logger.info(f"[SFT] {line.rstrip()}")
+                    log_file.write(line)
+                    log_file.flush()
+                    # tqdm進捗の抽出（PowerShell可視化用）
+                    if "loss" in line.lower() or "step" in line.lower() or "%" in line:
+                        print(line.rstrip())  # PowerShell用に標準出力
+                
+                process.wait()
+                
+                if process.returncode != 0:
+                    logger.error(f"[SFT] Training failed with code {process.returncode}")
+                    log_file.write(f"[ERROR] Exit code: {process.returncode}\n")
+                else:
+                    logger.info("[SFT] Training completed successfully")
+                    log_file.write(f"[{datetime.now().isoformat()}] Training Completed\n")
+                    # 完了フラグ
+                    (self.project_root / "models" / "sft_v3.done").touch()
+                    
+        except Exception as e:
+            logger.error(f"[SFT] Exception: {e}")
+            with open(progress_log, "a", encoding="utf-8") as f:
+                f.write(f"[CRITICAL ERROR] {e}\n")
+            raise
+        
+        return output_dir
 
     def execute_advanced_techniques_integration(self, sft_model_path: Path) -> Path:
         logger.info("Phase Advanced Techniques")
@@ -562,24 +760,24 @@ class IntegratedMoonshotPipeline2025_2026:
         model_dir = "models/aegis_v3_borea_final"
         if os.path.exists(model_dir):
             logger.info("Uploading Safetensors weights...")
-            subprocess.run(["huggingface-cli", "upload", repo_id, model_dir, ".", "--repo-type", "model"], check=False)
+            subprocess.run(["py", "-m", "huggingface_hub.commands.huggingface_cli", "upload", repo_id, model_dir, ".", "--repo-type", "model"], check=False)
             
         # 2. BF16 GGUF
         gguf_path = "models/aegis_v3_borea_final/zapabobouj-AEGIS-phi3.5-jp-v3.0.gguf"
         if os.path.exists(gguf_path):
             logger.info("Uploading BF16 GGUF model...")
-            subprocess.run(["huggingface-cli", "upload", repo_id, gguf_path, "zapabobouj-AEGIS-phi3.5-jp-v3.0.gguf"], check=False)
+            subprocess.run(["py", "-m", "huggingface_hub.commands.huggingface_cli", "upload", repo_id, gguf_path, "zapabobouj-AEGIS-phi3.5-jp-v3.0.gguf"], check=False)
             
         # 3. Plots and Benchmark Stats
         stats_dir = "src/evaluation/results/phase6_industry"
         if os.path.exists(stats_dir):
             logger.info("Uploading Error Bar graphs and Summary Statistics...")
-            subprocess.run(["huggingface-cli", "upload", repo_id, stats_dir, "evaluation_results"], check=False)
+            subprocess.run(["py", "-m", "huggingface_hub.commands.huggingface_cli", "upload", repo_id, stats_dir, "evaluation_results"], check=False)
             
         # 4. Model Card
         readme_path = self.models_dir / "README.md"
         if readme_path.exists():
-            subprocess.run(["huggingface-cli", "upload", repo_id, str(readme_path), "README.md"], check=False)
+            subprocess.run(["py", "-m", "huggingface_hub.commands.huggingface_cli", "upload", repo_id, str(readme_path), "README.md"], check=False)
             
         logger.info("HF CLI Upload process finished.")
 
@@ -597,6 +795,52 @@ class IntegratedMoonshotPipeline2025_2026:
         
         return results
 
+    def execute_statistical_benchmark(self) -> Dict[str, Any]:
+        """Execute statistical benchmark phase using IndustryStandardBenchmark.
+        
+        Runs lm-eval-harness benchmarks, computes ANOVA/Cohen's d statistics,
+        and generates error bar plots.
+        """
+        logger.info("Phase: Statistical Benchmark (ANOVA/Cohen's d)")
+        
+        if not BENCHMARK_AVAILABLE:
+            logger.warning("IndustryStandardBenchmark not available. Skipping benchmark phase.")
+            return {"status": "skipped", "reason": "benchmark module not available"}
+        
+        if os.getenv("SO8T_SKIP_BENCHMARK") == "1":
+            logger.info("Benchmark skipped via SO8T_SKIP_BENCHMARK=1")
+            return {"status": "skipped", "reason": "SO8T_SKIP_BENCHMARK=1"}
+        
+        try:
+            output_dir = self.project_root / "src" / "evaluation" / "results" / "phase6_industry"
+            benchmark = IndustryStandardBenchmark(
+                output_dir=output_dir,
+                use_vllm=os.getenv("SO8T_USE_VLLM", "0") == "1",
+                batch_size=int(os.getenv("SO8T_BENCHMARK_BATCH_SIZE", "8")),
+            )
+            
+            # Run full benchmark pipeline
+            benchmark.run()
+            
+            # Collect results
+            results = {
+                "status": "completed",
+                "output_dir": str(output_dir),
+                "summary_stats": str(output_dir / "summary_statistics.json") if (output_dir / "summary_statistics.json").exists() else None,
+                "error_bar_plot": str(output_dir / "error_bar_plot.png") if (output_dir / "error_bar_plot.png").exists() else None,
+            }
+            
+            # DB logging
+            self.db.log_event(self.run_id, event_type="statistical_benchmark",
+                             details=results)
+            
+            logger.info("Statistical benchmark completed: %s", output_dir)
+            return results
+            
+        except Exception as exc:
+            logger.error("Statistical benchmark failed: %s", exc)
+            return {"status": "failed", "error": str(exc)}
+
     # ------------------------------------------------------------------
     # Pipeline runner
     # ------------------------------------------------------------------
@@ -607,7 +851,7 @@ class IntegratedMoonshotPipeline2025_2026:
         checkpoint = self._load_latest_checkpoint()
         resume_phase = checkpoint.get("phase") if checkpoint else None
  
-        phases = ["collect", "enrich", "reward", "research", "sft", "advanced", "upload"]
+        phases = ["collect", "enrich", "reward", "research", "sft", "advanced", "benchmark", "upload"]
         start_idx = phases.index(resume_phase) if resume_phase in phases else 0
         
         if resume_phase:
@@ -631,10 +875,12 @@ class IntegratedMoonshotPipeline2025_2026:
             "research": "Sakana AI Autonomous Research",
             "sft": "Unsloth SFT/RLPO Training",
             "advanced": "mHC/GRPO/GGUF/imatrix Integration",
+            "benchmark": "Statistical Benchmark (ANOVA/Cohen's d)",
             "upload": "HF CLI Advanced Upload"
         }
  
         for phase in pbar:
+            print(f"\n[PHASE START] {phase}: {phase_descriptions.get(phase, phase)}")
             pbar.set_description(f"Phase: {phase_descriptions.get(phase, phase)}")
             self._current_phase = phase
  
@@ -642,11 +888,16 @@ class IntegratedMoonshotPipeline2025_2026:
                 routing = self._route_phase("collect", "Collect datasets", tags=["dataset"])
                 if not use_existing_datasets:
                     self.collect_hf_cli_datasets()
+                # 新規データセット収集 (設計書準拠)
+                new_datasets = self.collect_new_datasets()
+                for name, path in new_datasets.items():
+                    if path not in dataset_paths:
+                        dataset_paths.append(path)
                 if datasets["integrated"]:
                     quad_output = self.project_root / "data" / "integrated" / "quadrality_think.jsonl"
                     created = self.build_quadrality_think_dataset(datasets["integrated"][0], quad_output)
                     if created: dataset_paths.append(created)
-                self._save_checkpoint("collect", {"datasets": [str(p) for p in dataset_paths], "subagent_routing": routing})
+                self._save_checkpoint("collect", {"datasets": [str(p) for p in dataset_paths], "new_datasets": list(new_datasets.keys()), "subagent_routing": routing})
  
             elif phase == "enrich":
                 routing = self._route_phase("enrich", "Multi-domain enrichment", tags=["enrichment"])
@@ -689,6 +940,11 @@ class IntegratedMoonshotPipeline2025_2026:
                 # Unified Advanced Upload
                 self.execute_hf_upload_automation()
                 self._save_checkpoint("upload", {"subagent_routing": routing})
+
+            elif phase == "benchmark":
+                routing = self._route_phase("benchmark", "Statistical benchmark", tags=["evaluation"])
+                benchmark_results = self.execute_statistical_benchmark()
+                self._save_checkpoint("benchmark", {"benchmark_results": benchmark_results, "subagent_routing": routing})
  
         self._stop_periodic_checkpoint()
         self.db.end_run(self.run_id, status="completed")

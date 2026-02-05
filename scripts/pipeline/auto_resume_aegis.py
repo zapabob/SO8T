@@ -27,7 +27,7 @@ def main():
     
     # The execute_full_pipeline method already contains auto-resume logic
     try:
-        pipeline.execute_full_pipeline(use_existing_datasets=True)
+        pipeline.execute_full_pipeline(use_existing_datasets=False)
     except KeyboardInterrupt:
         print("\n[STOP] Pipeline paused by user. Process state saved.")
     except Exception as e:

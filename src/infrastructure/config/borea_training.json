@@ -14,7 +14,9 @@
       "up_proj",
       "down_proj"
     ],
-    "unfreeze_last_layers": 0
+    "unfreeze_last_layers": 0,
+    "freeze_base_model": true,
+    "freeze_preserve_soul_weights": true
   },
   "training": {
     "batch_size": 1,

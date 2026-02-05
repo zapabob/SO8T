@@ -277,6 +277,77 @@ class UnslothSO8TTrainer:
         logger.info("[LoRA] LoRA adapters configured with Unsloth optimization")
         return model
 
+    def freeze_base_model_weights(self, model):
+        """ベースモデルの重みを凍結（Adapter/LoRA/Soul以外）
+        
+        Model B (Borea) の既存能力を保護しつつ、
+        Adapter/LoRA で新規知識を学習可能にする。
+        """
+        freeze_base = self.training_config.get('model', {}).get('freeze_base_model', False)
+        if not freeze_base:
+            logger.info("[FREEZE] Base model weight freezing is disabled")
+            return model
+        
+        preserve_soul = self.training_config.get('model', {}).get('freeze_preserve_soul_weights', True)
+        
+        logger.info("[FREEZE] Starting base model weight freezing...")
+        logger.info(f"[FREEZE] Preserve soul weights: {preserve_soul}")
+        
+        frozen_count = 0
+        trainable_count = 0
+        soul_count = 0
+        
+        # 学習可能にするキーワードリスト
+        trainable_keywords = [
+            'lora',           # QLoRAアダプター
+            'so8',            # SO(8)ゲート
+            'rotation',       # 回転行列
+            'alpha_gate',     # Alpha Gate
+            'so8t',           # SO8T関連
+        ]
+        
+        # 魂の重みを保持する場合は追加
+        if preserve_soul:
+            trainable_keywords.extend([
+                'alpha',          # Alphaパラメータ
+                'r_safe',         # 安全側の回転行列
+                'r_cmd',          # コマンド側の回転行列
+                'soul',           # 魂のパラメータ
+                'safety_head',    # 安全ヘッド
+                'task_head',      # タスクヘッド
+                'dual_heads',     # 二重政策系
+                'pet',            # PET正則化
+            ])
+        
+        for name, param in model.named_parameters():
+            should_freeze = True
+            
+            for keyword in trainable_keywords:
+                if keyword in name.lower():
+                    should_freeze = False
+                    if keyword in ['r_safe', 'r_cmd', 'alpha', 'soul']:
+                        soul_count += 1
+                    break
+            
+            if should_freeze:
+                param.requires_grad = False
+                frozen_count += 1
+            else:
+                param.requires_grad = True
+                trainable_count += 1
+        
+        # 統計情報
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        total_params = sum(p.numel() for p in model.parameters())
+        
+        logger.info(f"[FREEZE] Frozen {frozen_count} parameter groups")
+        logger.info(f"[FREEZE] Trainable parameter groups: {trainable_count}")
+        logger.info(f"[FREEZE] Trainable parameters: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)")
+        if soul_count > 0:
+            logger.info(f"[SOUL] Soul weight parameter groups: {soul_count}")
+        
+        return model
+
     def load_and_prepare_datasets(self, tokenizer, prioritize_mcp_api_skill=False):
         """統合データセット読み込みと準備（MCP/API/Skill優先オプション付き）"""
         logger.info("[DATASET] Loading and preparing integrated datasets")
@@ -666,6 +737,9 @@ class UnslothSO8TTrainer:
 
         # LoRA設定
         model = self.setup_lora_adapters(model)
+        
+        # ベースモデルの重み凍結（Model B の能力を保護）
+        model = self.freeze_base_model_weights(model)
 
         # 緊急チェックポイントにモデルを登録
         if self.emergency_checkpoint:
@@ -1067,6 +1141,17 @@ def main():
                        help="Prioritize MCP/API/Skill datasets for General AI Agent Foundation training")
     parser.add_argument("--recover", action="store_true",
                        help="Recover from latest checkpoint")
+    # Pipeline integration arguments
+    parser.add_argument("--output-dir", type=str, default=None,
+                       help="Output directory for trained model")
+    parser.add_argument("--checkpoint-interval", type=int, default=300,
+                       help="Checkpoint save interval in seconds (default: 300 = 5 minutes)")
+    parser.add_argument("--rolling-checkpoints", type=int, default=3,
+                       help="Number of rolling checkpoints to keep (default: 3)")
+    parser.add_argument("--resume-from", type=str, default=None,
+                       help="Resume training from checkpoint path")
+    parser.add_argument("--dataset", type=str, action="append", default=[],
+                       help="Additional dataset paths (can be specified multiple times)")
 
     args = parser.parse_args()
 
