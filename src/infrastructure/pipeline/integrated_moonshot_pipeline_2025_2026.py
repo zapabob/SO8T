@@ -32,23 +32,26 @@ import subprocess
 import yaml
 from tqdm import tqdm
 
-# Add project root to sys.path
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+# Add project root and source subdirectories to sys.path
+# Since this file is in src/infrastructure/pipeline/, parents[3] is the root.
+project_root = Path(__file__).resolve().parents[3]
+src_root = project_root / "src"
+for p in [project_root, src_root]:
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
 
-from experiments.enhanced_moonshot_pipeline import EnhancedMoonshotPipeline
-from database.pipeline_db import PipelineDB, get_file_size_bytes
+from core.experiments.enhanced_moonshot_pipeline import EnhancedMoonshotPipeline
+from infrastructure.database.pipeline_db import PipelineDB, get_file_size_bytes
 
 try:
-    from subagents import SubagentManager, Task
+    from agents.manager import SubagentManager, Task
 except Exception:
     SubagentManager = None
     Task = None
 
-from src.agents.sakana_ai_integrated_agent import SakanaAIIntegratedAgent
-from autonomous_research.evolutionary_optimizer import EvolutionaryOptimizer
-from src.infrastructure.documentation.generate_model_card import ModelCardGenerator
+from agents.sakana_ai_integrated_agent import SakanaAIIntegratedAgent
+from data.research.evolutionary_optimizer import EvolutionaryOptimizer
+from infrastructure.documentation.generate_model_card import ModelCardGenerator
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

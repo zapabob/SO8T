@@ -131,6 +131,30 @@ class PipelineDB:
         except Exception as exc:
             logger.error(f"[DB] Failed to log checkpoint: {exc}")
 
+    def log_event(
+        self,
+        run_id: Optional[str],
+        event_type: str,
+        status: str = "completed",
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if not self._db_available():
+            return
+        try:
+            with self._connect() as conn:
+                import json
+                conn.execute(
+                    """
+                    INSERT INTO event_log
+                    (run_id, event_type, status, details)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (run_id, event_type, status, json.dumps(details or {}, ensure_ascii=False)),
+                )
+                conn.commit()
+        except Exception as exc:
+            logger.error(f"[DB] Failed to log event: {exc}")
+
     def log_metric(
         self,
         session_id: Optional[str],
