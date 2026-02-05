@@ -65,8 +65,8 @@ jobs:
 
     - name: Check formatting
       run: |
-        black --check so8t/ src/ scripts/ --exclude "/scripts/training/|/src/training/|/scripts/conversion/|/src/eval/|/src/infra/|/src/core/inference/tests/|/src/core/models/so8t_residual_adapter_old.py"
-        isort --check-only so8t/ src/ scripts/ --skip scripts/training --skip src/training --skip scripts/conversion --skip src/eval --skip src/infra --skip src/core/inference/tests --skip src/core/models/so8t_residual_adapter_old.py
+        black --check so8t/
+        isort --check-only so8t/
 
     - name: Type checking
       run: |

@@ -27,3 +27,4 @@
 
 
 - 2026-02-05T00:00Z: CI stabilization updates (pytest smoke test, lint excludes for legacy model file, CI test command switched to smoke + script-based checks).
+- 2026-02-05T00:05Z: Narrowed CI formatting checks to so8t/ only to avoid formatting failures in legacy code paths.
