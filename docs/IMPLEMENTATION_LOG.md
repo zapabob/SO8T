@@ -26,3 +26,4 @@
 - 2025-10-27T10:45Z: Finalized initial code drop; pending step is installing deps and running pytest/train loops on RTX 3060 target.
 
 
+- 2026-02-05T00:00Z: CI stabilization updates (pytest smoke test, lint excludes for legacy model file, CI test command switched to smoke + script-based checks).
