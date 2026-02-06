@@ -379,7 +379,13 @@ class RTX3060ABCComparativeTesting:
     def _evaluate_elyza_abc(self, model, tokenizer, num_samples):
         """ABCテスト用ELYZA評価"""
         try:
-            dataset = load_dataset('elyza/ELYZA-tasks-100', split='test')
+            try:
+                dataset = load_dataset('elyza/ELYZA-tasks-100', split='test')
+            except Exception:
+                logger.warning("[ABC] ELYZA 'test' split failed, trying without split spec...")
+                ds = load_dataset('elyza/ELYZA-tasks-100')
+                split_name = list(ds.keys())[0] if ds else 'test'
+                dataset = ds[split_name]
             dataset = dataset.select(range(min(num_samples, len(dataset))))
 
             correct = 0

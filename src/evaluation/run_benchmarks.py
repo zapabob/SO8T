@@ -502,7 +502,13 @@ class RTX3060BenchmarkEvaluator:
 
         try:
             # ELYZA Tasks 100データセット読み込み
-            dataset = load_dataset('elyza/ELYZA-tasks-100', split='test')
+            try:
+                dataset = load_dataset('elyza/ELYZA-tasks-100', split='test')
+            except Exception:
+                logger.warning("[ELYZA] 'test' split failed, trying without split spec...")
+                ds = load_dataset('elyza/ELYZA-tasks-100')
+                split_name = list(ds.keys())[0] if ds else 'test'
+                dataset = ds[split_name]
             if num_samples:
                 dataset = dataset.select(range(min(num_samples, len(dataset))))
 

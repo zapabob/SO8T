@@ -41,7 +41,12 @@ class LMEvalSetup:
 
             # ELYZA-100データセットをダウンロード
             print("Downloading ELYZA-100 from Hugging Face...")
-            dataset = load_dataset("elyza/ELYZA-tasks-100")
+            try:
+                dataset = load_dataset("elyza/ELYZA-tasks-100")
+            except Exception as e:
+                print(f"[WARN] ELYZA dataset load failed: {e}")
+                print("[WARN] Skipping ELYZA setup")
+                return False
 
             # データセットをJSONL形式で保存
             output_file = self.eval_data_dir / "elyza_100.jsonl"
