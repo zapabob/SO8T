@@ -35,29 +35,48 @@ import logging
 import numpy as np
 from pathlib import Path
 from tqdm import tqdm
-import numpy as np
 import time
 import sys
+import os
 from typing import Dict
 
+# Add project root to path for src imports
+try:
+    from src.utils.path_resolver import PathResolver
+    from src.utils.config_loader import ConfigLoader
+    PROJECT_ROOT = PathResolver.get_project_root()
+except ImportError:
+    # Fallback for direct execution
+    PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    sys.path.insert(0, str(PROJECT_ROOT))
+    from src.utils.path_resolver import PathResolver
+    from src.utils.config_loader import ConfigLoader
+
+# Import local modules
+# Import local modules
 from src.utils.vssi_template import normalize_prompt_text
+from src.utils.execution_guards import ExecutionGuards
 
 # ログ設定
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ログ設定
+try:
+    from src.utils.safe_logger import SafeLogger
+    logger = SafeLogger.setup_logger(__name__)
+except ImportError:
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
 # チェックポイントマネージャーのインポート
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-    from utils.checkpoint_manager import RollingCheckpointManager, EmergencyCheckpointManager
+    from src.utils.checkpoint_manager import RollingCheckpointManager, EmergencyCheckpointManager, RollingCheckpointCallback
     CHECKPOINT_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     CHECKPOINT_AVAILABLE = False
-    logger.warning("[CHECKPOINT] Checkpoint manager not available")
+    logger.warning(f"[CHECKPOINT] Checkpoint manager not available: {e}")
 
 
 class RollingCheckpointCallback(TrainerCallback):
-    """3分間隔でローリングチェックポイントを保存するコールバック"""
+    """ローリングチェックポイントを保存するコールバック"""
     
     def __init__(self, checkpoint_manager, model, tokenizer):
         self.checkpoint_manager = checkpoint_manager
@@ -100,21 +119,17 @@ class RollingCheckpointCallback(TrainerCallback):
 
 class UnslothSO8TTrainer:
     def __init__(self, config_path=None):
-        self.project_root = Path(__file__).parent.parent.parent
+        self.project_root = PathResolver.get_project_root()
 
         # 設定ファイル読み込み
         if config_path:
-            self.config_path = Path(config_path)
+            with open(config_path, 'r', encoding='utf-8') as f:
+                self.training_config = json.load(f)
         else:
-            self.config_path = self.project_root / "config" / "training.json"
-
-        with open(self.config_path, 'r', encoding='utf-8') as f:
-            self.training_config = json.load(f)
+            self.training_config = ConfigLoader.load_json('training.json', required=True)
 
         # データセット設定読み込み
-        dataset_config_path = self.project_root / "config" / "dataset.json"
-        with open(dataset_config_path, 'r', encoding='utf-8') as f:
-            self.dataset_config = json.load(f)
+        self.dataset_config = ConfigLoader.load_json('dataset.json', required=True)
 
         self.reward_strategy_enabled = os.getenv("SO8T_REWARD_STRATEGY", "1") == "1"
         self.reward_strategy_scale = float(os.getenv("SO8T_REWARD_STRATEGY_SCALE", "1.0"))
@@ -126,19 +141,30 @@ class UnslothSO8TTrainer:
         self.load_in_4bit = self.training_config['optimization'].get('load_in_4bit', True)
         
         # Borea-Phi-3.5 用のベースモデル名上書き（設定優先）
-        self.base_model_name = self.training_config['model'].get('base_model', "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp")
+        # Priority: Env Var > Config > Default
+        env_model = os.getenv("SO8T_BASE_MODEL")
+        if env_model:
+            self.base_model_name = env_model
+            logger.info(f"[MODEL] Overriding base model from env: {self.base_model_name}")
+        else:
+            self.base_model_name = self.training_config['model'].get('base_model', "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp")
         
         # チェックポイントマネージャー初期化
         if CHECKPOINT_AVAILABLE:
             checkpoint_dir = self.project_root / "checkpoints" / "aegis_v3_borea"
+            
+            # 環境変数から設定を取得（デフォルト5分・3世代）
+            interval = int(os.getenv("SO8T_CHECKPOINT_INTERVAL", "300"))
+            rolling = int(os.getenv("SO8T_CHECKPOINT_ROLLING", "3"))
+            
             self.checkpoint_manager = RollingCheckpointManager(
                 base_dir=checkpoint_dir,
-                max_keep=5,
-                save_interval_sec=180,  # 3分間隔
+                max_keep=rolling,
+                save_interval_sec=interval,
                 enable_logging=True
             )
             self.emergency_checkpoint = EmergencyCheckpointManager(self.checkpoint_manager)
-            logger.info("[CHECKPOINT] Rolling checkpoint manager initialized (3min interval, max 5)")
+            logger.info(f"[CHECKPOINT] Rolling checkpoint manager initialized ({interval}s interval, max {rolling})")
         else:
             self.checkpoint_manager = None
             self.emergency_checkpoint = None
@@ -770,16 +796,19 @@ class UnslothSO8TTrainer:
         if self.checkpoint_manager:
             checkpoint_callback = RollingCheckpointCallback(self.checkpoint_manager, model, tokenizer)
             callbacks.append(checkpoint_callback)
-            logger.info("[SFT] Rolling checkpoint callback enabled (3min interval)")
+            logger.info("[SFT] Rolling checkpoint callback enabled")
 
         # Unsloth SFT Trainer
+        # Windows multiprocessing issue fix: use ExecutionGuards
+        dataset_num_proc = ExecutionGuards.get_safe_num_proc()
+        
         trainer = SFTTrainer(
             model=model,
             tokenizer=tokenizer,
             train_dataset=dataset,
             dataset_text_field="text",
             max_seq_length=self.max_seq_length,
-            dataset_num_proc=2,
+            dataset_num_proc=dataset_num_proc,
             packing=False,
             args=training_args,
             callbacks=callbacks if callbacks else None,
@@ -958,6 +987,8 @@ class UnslothSO8TTrainer:
             return gradient_mask, rewards
 
         # GRPO Trainer
+        dataset_num_proc = ExecutionGuards.get_safe_num_proc()
+        
         trainer = GRPOTrainer(
             model=model,
             processing_class=tokenizer,

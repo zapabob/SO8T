@@ -73,11 +73,12 @@ class IntegratedMoonshotPipeline2025_2026:
         self.models_dir = self.project_root / "models" / "moonshot_2025_2026"
 
         # DB logger
+        self.pipeline_name = os.getenv("SO8T_PIPELINE_NAME", "Moonshot")
         self.db = PipelineDB(self.project_root / "so8t_memory.db")
         self.run_id = self.db.start_run(
-            pipeline_name="moonshot_v3.0",
-            model_name="zapabobouj-AEGIS-phi3.5-jp-v3.0",
-            base_model="AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp",
+            pipeline_name=f"{self.pipeline_name.lower()}_v3.0",
+            model_name=f"zapabobouj-AEGIS-{self.pipeline_name.lower()}-v3.0",
+            base_model=os.getenv("SO8T_BASE_MODEL", "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp"),
             notes="Integrated pipeline (cleaned) with HF CLI + checkpoints",
         )
 
@@ -89,9 +90,9 @@ class IntegratedMoonshotPipeline2025_2026:
         # checkpoint config
         self.checkpoint_interval = 300  # 5 minutes
         self.rolling_count = 3          # 3 generations as requested
-        self.checkpoint_index_file = self.data_dir / "checkpoint_index.ptr"
+        self.checkpoint_index_file = self.data_dir / f"{self.pipeline_name.lower()}_checkpoint_index.ptr"
         self.rolling_checkpoints = [
-            self.data_dir / f"pipeline_checkpoint_{i+1}.json" for i in range(self.rolling_count)
+            self.data_dir / f"{self.pipeline_name.lower()}_checkpoint_{i+1}.json" for i in range(self.rolling_count)
         ]
 
         self._stop_checkpoint_thread = threading.Event()
@@ -157,16 +158,20 @@ class IntegratedMoonshotPipeline2025_2026:
     def _route_phase(self, phase: str, description: str, tags: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
         if self.subagent_manager is None or Task is None:
             return None
-        task = Task(
-            description=description,
-            routing_strategy=os.getenv("SO8T_SUBAGENT_STRATEGY", "single_best"),
-            tags=tags or [],
-        )
-        decision = self.subagent_manager.route(task)
-        logger.info("[Subagents:%s] %s", phase, decision.reasoning)
-        for assignment in decision.assignments:
-            logger.info("  - %s (%s)", assignment.subagent_name, ", ".join(assignment.capabilities))
-        return self._serialize_routing(decision)
+        try:
+            task = Task(
+                description=description,
+                routing_strategy=os.getenv("SO8T_SUBAGENT_STRATEGY", "single_best"),
+                tags=tags or [],
+            )
+            decision = self.subagent_manager.route(task)
+            logger.info("[Subagents:%s] %s", phase, decision.reasoning)
+            for assignment in decision.assignments:
+                logger.info("  - %s (%s)", assignment.subagent_name, ", ".join(assignment.capabilities))
+            return self._serialize_routing(decision)
+        except Exception as e:
+            logger.warning(f"[Subagents] Routing failed for {phase}: {e}")
+            return None
 
     def _generate_subagent_schedule(self) -> Optional[Path]:
         if self.subagent_manager is None or Task is None:
@@ -398,37 +403,47 @@ class IntegratedMoonshotPipeline2025_2026:
             logger.info("Dry-run mode: skipping new dataset collection")
             return collected
         
-        # 1. Arxiv/BioRxiv 論文収集 (設計書準拠)
+        # 1. Arxiv/BioRxiv 論文収集 (設計書準拠: 100k papers)
+        # Force strict 50k + 50k count
         if os.getenv("SO8T_COLLECT_ARXIV", "1") == "1":
             try:
                 arxiv_output = output_dir / "arxiv_biorxiv_vssi.jsonl"
+                
+                # Strict enforcement of 50k targets per spec
+                arxiv_count = os.getenv("SO8T_ARXIV_COUNT", "50000")
+                biorxiv_count = os.getenv("SO8T_BIORXIV_COUNT", "50000")
+                
+                logger.info(f"[ARXIV] Enforcing VSSI Quadruple Reasoning collection: Arxiv={arxiv_count}, BioRxiv={biorxiv_count}")
+
                 cmd = [
                     "py", "-3",
                     str(self.project_root / "src" / "data" / "processing" / "process_arxiv_biorxiv.py"),
-                    "--max-papers", os.getenv("SO8T_ARXIV_MAX", "1000"),
+                    "--arxiv-count", arxiv_count,
+                    "--biorxiv-count", biorxiv_count,
                     "--export-vssi",
                     "--vssi-output", str(arxiv_output),
                 ]
-                logger.info("Collecting Arxiv/BioRxiv papers (VSSI structure)...")
+                
                 subprocess.run(cmd, check=False, cwd=self.project_root, 
                                env={**os.environ, "PYTHONPATH": str(self.project_root)})
                 if arxiv_output.exists():
                     collected["arxiv_biorxiv"] = arxiv_output
-                    logger.info(f"[ARXIV] Collected to {arxiv_output}")
+                    logger.info(f"[ARXIV] Collected VSSI dataset to {arxiv_output}")
             except Exception as e:
                 logger.warning(f"Arxiv collection failed: {e}")
         
-        # 2. OSINT ソース収集 (Pop-culture & World Affairs)
+        # 2. OSINT ソース収集 (Pop-culture & World Affairs via Script, NO OLLAMA)
         if os.getenv("SO8T_COLLECT_OSINT", "1") == "1":
             try:
                 osint_base = output_dir / "osint"
+                # Ensure no Ollama flags are passed implicitly
                 cmd = [
                     "py", "-3",
                     str(self.project_root / "src" / "data" / "processing" / "osint_source_collector.py"),
                     "--domain", "all",
                     "--output-dir", str(osint_base),
                 ]
-                logger.info("Collecting OSINT sources (all domains)...")
+                logger.info("Collecting OSINT sources (Script-based)...")
                 subprocess.run(cmd, check=False, cwd=self.project_root,
                                env={**os.environ, "PYTHONPATH": str(self.project_root)})
                 
@@ -650,7 +665,7 @@ class IntegratedMoonshotPipeline2025_2026:
         logger.info("Phase SFT: Starting Unsloth GPU Training")
         logger.info("=" * 60)
         
-        output_dir = self.project_root / "models" / "aegis_v3_borea_sft"
+        output_dir = self.project_root / "models" / f"aegis_v3_{self.pipeline_name.lower()}_sft"
         output_dir.mkdir(parents=True, exist_ok=True)
         
         # チェックポイントからの再開確認
@@ -724,8 +739,8 @@ class IntegratedMoonshotPipeline2025_2026:
                 else:
                     logger.info("[SFT] Training completed successfully")
                     log_file.write(f"[{datetime.now().isoformat()}] Training Completed\n")
-                    # 完了フラグ
-                    (self.project_root / "models" / "sft_v3.done").touch()
+                    # 完了フラグ (Pipeline specific)
+                    (self.project_root / "models" / f"sft_{self.pipeline_name.lower()}_v3.done").touch()
                     
         except Exception as e:
             logger.error(f"[SFT] Exception: {e}")
@@ -879,8 +894,10 @@ class IntegratedMoonshotPipeline2025_2026:
             logger.info(f"\n[PHASE START] {phase}: Collecting & Validating Datasets")
             
             routing = self._route_phase("collect", "Collect datasets", tags=["dataset"])
-            if not use_existing_datasets:
+            if not use_existing_datasets and os.getenv("SO8T_SKIP_HF_FETCH", "0") != "1":
                 self.collect_hf_cli_datasets()
+            elif os.getenv("SO8T_SKIP_HF_FETCH", "0") == "1":
+                logger.info("[SKIP] HF CLI dataset fetch skipped via SO8T_SKIP_HF_FETCH")
             
             # 新規データセット収集 (設計書準拠)
             try:
@@ -996,7 +1013,10 @@ class IntegratedMoonshotPipeline2025_2026:
             
             # SFT path recovery from checkpoint if needed
             current_ckpt = self._load_latest_checkpoint()
-            sft_path_str = current_ckpt.get("data", {}).get("sft_model_path")
+            sft_path_str = None
+            if current_ckpt:
+                sft_path_str = current_ckpt.get("data", {}).get("sft_model_path")
+            
             if not sft_path_str:
                 # Fallback to expected path
                 sft_path_str = str(self.project_root / "models" / "aegis_v3_borea_sft")
@@ -1052,3 +1072,11 @@ class IntegratedMoonshotPipeline2025_2026:
         self._stop_periodic_checkpoint()
         self.db.end_run(self.run_id, status="completed")
         logger.info("Pipeline completed.")
+
+if __name__ == "__main__":
+    try:
+        pipeline = IntegratedMoonshotPipeline2025_2026()
+        pipeline.execute_full_pipeline()
+    except Exception as e:
+        logger.critical(f"Pipeline execution failed: {e}")
+        sys.exit(1)

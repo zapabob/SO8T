@@ -16,17 +16,17 @@ os.environ.setdefault("UNSLOTH_COMPILE_DISABLE", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 os.environ.setdefault("LC_ALL", "C")
 
-from src.pipeline.integrated_moonshot_pipeline_2025_2026 import (
+from src.infrastructure.pipeline.integrated_moonshot_pipeline_2025_2026 import (
     IntegratedMoonshotPipeline2025_2026,
 )
 from src.utils.startup_manager import StartupManager
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("moonshot_pipeline_2025_2026.log", encoding="utf-8"), logging.StreamHandler()],
+from src.utils.safe_logger import SafeLogger
+
+logger = SafeLogger.setup_logger(
+    "moonshot_pipeline",
+    log_file=Path("moonshot_pipeline_2025_2026.log")
 )
-logger = logging.getLogger(__name__)
 
 
 def main() -> None:
@@ -41,6 +41,12 @@ def main() -> None:
         "--collect-new-data",
         action="store_true",
         help="Collect new datasets via HF CLI (overrides --use-existing-datasets)",
+    )
+    parser.add_argument(
+        "--pipeline-name",
+        type=str,
+        default="Moonshot",
+        help="Name of the pipeline run (e.g., 'Moonshot', 'Sunset')",
     )
     parser.add_argument(
         "--list-datasets",
@@ -76,6 +82,12 @@ def main() -> None:
         "--training-config",
         type=str,
         help="Override training config path for Unsloth",
+    )
+    parser.add_argument(
+        "--base-model",
+        type=str,
+        default=os.getenv("SO8T_BASE_MODEL"),
+        help="Override base model (e.g., 'unsloth/Qwen2.5-7B-Instruct')",
     )
     parser.add_argument(
         "--subagent-strategy",
@@ -132,9 +144,12 @@ def main() -> None:
     args = parser.parse_args()
 
     logger.info("=" * 80)
-    logger.info("Moonshot Pipeline 2025 E026")
+    logger.info(f"{args.pipeline_name} Pipeline 2025–2026")
     logger.info("Start time: %s", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     logger.info("=" * 80)
+
+    # Export pipeline name to env
+    os.environ["SO8T_PIPELINE_NAME"] = args.pipeline_name
 
     os.environ["SO8T_GRAPE_VARIANT"] = args.grape_variant
     if args.dry_run:
@@ -147,6 +162,8 @@ def main() -> None:
         os.environ["SO8T_RECOVER"] = "1"
     if args.training_config:
         os.environ["SO8T_TRAINING_CONFIG"] = args.training_config
+    if args.base_model:
+        os.environ["SO8T_BASE_MODEL"] = args.base_model
     if args.subagent_strategy:
         os.environ["SO8T_SUBAGENT_STRATEGY"] = args.subagent_strategy
     if args.subagent_schedule:

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -20,6 +21,12 @@ from pathlib import Path
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# Set default environment variables for robustness
+if "SO8T_CHECKPOINT_INTERVAL" not in os.environ:
+    os.environ["SO8T_CHECKPOINT_INTERVAL"] = "300"
+if "SO8T_CHECKPOINT_ROLLING" not in os.environ:
+    os.environ["SO8T_CHECKPOINT_ROLLING"] = "3"
 
 # Logging setup
 logging.basicConfig(
