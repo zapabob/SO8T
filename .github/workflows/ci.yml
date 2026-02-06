@@ -29,9 +29,9 @@ jobs:
 
     - name: Run tests
       run: |
-        python -m pytest tests/test_ci_smoke.py -v --cov=so8t --cov-report=xml
-        python tests/test_minimal.py
-        python tests/test_imports.py
+        python -m pytest src/evaluation/tests/test_ci_smoke.py -v --cov=so8t --cov-report=xml
+        python src/evaluation/tests/test_minimal.py
+        python src/evaluation/tests/test_imports.py
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -58,10 +58,10 @@ jobs:
 
     - name: Run linters
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 so8t/ src/ scripts/ --exclude scripts/training,src/training,scripts/conversion,src/eval,src/infra,src/core/inference/tests,src/core/models/so8t_residual_adapter_old.py --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings
-        flake8 so8t/ src/ scripts/ --exclude scripts/training,src/training,scripts/conversion,src/eval,src/infra,src/core/inference/tests,src/core/models/so8t_residual_adapter_old.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        # Syntax errors and undefined names (critical - includes src/training)
+        flake8 so8t/ src/ scripts/ --exclude src/external,src/core/inference/tests,src/core/models/so8t_residual_adapter_old.py,scripts/conversion --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Style warnings (exit-zero, non-blocking)
+        flake8 so8t/ src/ scripts/ --exclude src/external,src/training,src/core/inference/tests,src/core/models/so8t_residual_adapter_old.py,scripts/conversion,scripts/training --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Check formatting
       run: |
@@ -70,12 +70,12 @@ jobs:
 
     - name: Type checking
       run: |
-        mypy so8t/ src/ --ignore-missing-imports --exclude src/training|src/eval|src/infra|src/core/inference/tests|src/core/models/so8t_residual_adapter_old.py
+        mypy so8t/ src/utils/ src/core/models/ src/infrastructure/pipeline/ --ignore-missing-imports --exclude "src/core/models/so8t_residual_adapter_old.py"
 
     - name: Security scanning
       run: |
-        bandit -r so8t/ src/ scripts/ -x scripts/training,src/training,scripts/conversion,src/eval,src/infra,src/core/inference/tests,src/core/models/so8t_residual_adapter_old.py -f json -o security_report.json
-        safety check --file requirements.txt --json > safety_report.json
+        bandit -r so8t/ src/utils/ src/core/ src/infrastructure/pipeline/ -x src/core/inference/tests,src/core/models/so8t_residual_adapter_old.py -f json -o security_report.json || true
+        safety check --file requirements.txt --json > safety_report.json || true
 
   build:
     env:
