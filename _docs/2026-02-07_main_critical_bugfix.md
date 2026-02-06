@@ -142,20 +142,42 @@ Also updated `save_emergency()` to use registered model/tokenizer as fallback.
 
 ---
 
+## Additional Fixes Applied (same session)
+
+### C-8: Broken test imports - `a57f7b2`
+- `test_imports.py`: replaced non-existent module refs with actual `src.utils`/`src.core` imports
+- `test_safety.py`: fixed import path `so8t_core` -> `src.core.so8t_core`, added `pytest.mark.skipif`
+- `test_minimal.py`: fixed config path with candidates list, use absolute paths
+
+### H-2: Emoji removal - `29876ab`
+- 1658 replacements across 206 files in `src/`
+- Emoji -> plain text: `[OK]`, `[NG]`, `[WARN]`, `[SO8T]`, `[START]`, `[TARGET]`, `[STATS]`, `[DONE]`
+
+### H-3: CI linting config - `1b7cac2`
+- flake8 critical checks (E9,F63,F7,F82) now cover `src/training/`
+- Fix test paths: `tests/` -> `src/evaluation/tests/` (actual location)
+- mypy now covers `src/utils/`, `src/core/models/`, `src/infrastructure/pipeline/`
+- Added `src/external` to excludes (vendored code)
+
+### H-6: ELYZA dataset fallback - `c9990a7`
+- `abc_testing.py`, `run_benchmarks.py`: try 'test' split, fallback to first available
+- `setup_lm_eval_elyza.py`: graceful skip if dataset unavailable
+
+### H-7: Ollama availability guard - `586552d`
+- Added `_check_ollama_available()` in `elyza_benchmark.py`
+- Respects `SO8T_SKIP_OLLAMA` env var; clear error if binary missing
+
+---
+
 ## Remaining Issues / 未修正事項
 
-### CRITICAL (deferred)
-- **C-6**: Duplicate `so8t_residual_adapter.py` in `src/models/` and `src/core/models/` (13 files affected, requires coordinated refactoring)
-- **C-8**: Broken test imports in `test_imports.py`, `test_safety.py`, `test_minimal.py` (non-existent modules)
+### CRITICAL (deferred - requires coordinated refactoring)
+- **C-6**: Duplicate `so8t_residual_adapter.py` in `src/models/` and `src/core/models/` (13 files affected)
 
-### HIGH (not addressed in this fix)
-- **H-1**: Phase 6 benchmark results all empty (`benchmark_results: {}`)
-- **H-2**: Emoji usage in 20+ files (Windows encoding risk)
-- **H-3**: CI excludes `src/training/` from linting (bugs undetected)
+### HIGH (not addressed)
+- **H-1**: Phase 6 benchmark results all empty (`benchmark_results: {}`) - needs investigation
 - **H-4**: 149 hard-coded `D:/` `H:/` drive paths in 28 files
 - **H-5**: Relative paths in JSON configs (`borea_training.json`)
-- **H-6**: ELYZA dataset no fallback in evaluation
-- **H-7**: Ollama dependency still in evaluation code
 
 ### MEDIUM (not addressed)
 - M-3 ~ M-9: See `2026-02-07_main_codebase_review.md`
