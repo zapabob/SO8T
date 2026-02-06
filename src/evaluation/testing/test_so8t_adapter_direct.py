@@ -24,7 +24,7 @@ def test_adapter_basic():
 
     # アダプタ作成
     adapter = SO8TAdapter(hidden_size=64, so8_dim=8, init_strength=0.1, use_matrix_exp=True)
-    print("✓ Adapter created successfully")
+    print("[OK] Adapter created successfully")
 
     # パラメータ確認
     print(f"Projection weight shape: {adapter.proj.weight.shape}")
@@ -40,12 +40,12 @@ def test_adapter_basic():
     h_out = adapter(h, alpha)
     print(f"Input shape: {h.shape}")
     print(f"Output shape: {h_out.shape}")
-    print("✓ Forward pass successful")
+    print("[OK] Forward pass successful")
 
     # 出力差分確認
     diff = (h_out - h).abs().mean().item()
     print(f"Mean output difference: {diff:.6f}")
-    print("✓ Output difference is reasonable")
+    print("[OK] Output difference is reasonable")
 
 def test_skew_symmetric():
     """skew-symmetric行列構築テスト"""
@@ -63,9 +63,9 @@ def test_skew_symmetric():
     print(f"Skew-symmetric check (should be ~0): {diff:.2e}")
 
     if diff < 1e-6:
-        print("✓ Matrix is skew-symmetric")
+        print("[OK] Matrix is skew-symmetric")
     else:
-        print("✗ Matrix is not skew-symmetric")
+        print("[NG] Matrix is not skew-symmetric")
 
 def test_rotation_matrix():
     """回転行列テスト"""
@@ -90,11 +90,11 @@ def test_rotation_matrix():
         print(f"  Determinant error: {det_error:.2e}")
 
         if orth_error < 1e-5 and det_error < 1e-5:
-            print("  ✓ Good rotation matrix")
+            print("  [OK] Good rotation matrix")
         elif alpha == 0.0 and orth_error < 1e-10:
-            print("  ✓ Identity matrix (alpha=0)")
+            print("  [OK] Identity matrix (alpha=0)")
         else:
-            print("  ⚠ Suboptimal rotation matrix")
+            print("  [WARN] Suboptimal rotation matrix")
 
 def test_gradient_flow():
     """勾配フロー検証"""
@@ -127,9 +127,9 @@ def test_gradient_flow():
     if (strength_grad is not None and abs(strength_grad.item()) > 0 and
         proj_grad is not None and proj_grad.norm().item() > 0 and
         A_grad is not None and A_grad.norm().item() > 0):
-        print("✓ All gradients flow correctly")
+        print("[OK] All gradients flow correctly")
     else:
-        print("✗ Some gradients are missing or zero")
+        print("[NG] Some gradients are missing or zero")
 
 def test_zero_strength():
     """λ=0での恒等性テスト"""
@@ -149,9 +149,9 @@ def test_zero_strength():
     print(f"Max difference with λ=0: {diff:.2e}")
 
     if diff < 1e-6:
-        print("✓ λ=0 gives identity transformation")
+        print("[OK] λ=0 gives identity transformation")
     else:
-        print("✗ λ=0 does not give identity transformation")
+        print("[NG] λ=0 does not give identity transformation")
 
 def main():
     """メイン実行関数"""

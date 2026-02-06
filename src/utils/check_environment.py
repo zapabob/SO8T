@@ -15,10 +15,10 @@ def check_python_version():
     print(f"Python version: {sys.version}")
     version = sys.version_info
     if version.major >= 3 and version.minor >= 8:
-        print("✓ Python version OK")
+        print("[OK] Python version OK")
         return True
     else:
-        print("✗ Python version too old (need 3.8+)")
+        print("[NG] Python version too old (need 3.8+)")
         return False
 
 def check_libraries():
@@ -38,18 +38,18 @@ def check_libraries():
     for lib in required_libs:
         try:
             importlib.import_module(lib)
-            print(f"✓ {lib}")
+            print(f"[OK] {lib}")
         except ImportError:
-            print(f"✗ {lib} (MISSING)")
+            print(f"[NG] {lib} (MISSING)")
             missing_required.append(lib)
 
     print("\nChecking optional libraries...")
     for lib in optional_libs:
         try:
             importlib.import_module(lib)
-            print(f"✓ {lib}")
+            print(f"[OK] {lib}")
         except ImportError:
-            print(f"⚠ {lib} (not available)")
+            print(f"[WARN] {lib} (not available)")
 
     return len(missing_required) == 0
 
@@ -71,9 +71,9 @@ def check_directories():
     for dir_path in required_dirs:
         path = Path(dir_path)
         if path.exists():
-            print(f"✓ {dir_path}")
+            print(f"[OK] {dir_path}")
         else:
-            print(f"✗ {dir_path} (MISSING)")
+            print(f"[NG] {dir_path} (MISSING)")
             all_exist = False
 
     return all_exist
@@ -86,13 +86,13 @@ def check_cuda():
         if torch.cuda.is_available():
             device_count = torch.cuda.device_count()
             device_name = torch.cuda.get_device_name(0) if device_count > 0 else "Unknown"
-            print(f"✓ CUDA available: {device_count} device(s), {device_name}")
+            print(f"[OK] CUDA available: {device_count} device(s), {device_name}")
             return True
         else:
-            print("⚠ CUDA not available")
+            print("[WARN] CUDA not available")
             return False
     except ImportError:
-        print("✗ PyTorch not available")
+        print("[NG] PyTorch not available")
         return False
 
 def main():
@@ -122,19 +122,19 @@ def main():
 
     all_passed = True
     for check_name, passed in checks:
-        status = "✓ PASS" if passed else "✗ FAIL"
+        status = "[OK] PASS" if passed else "[NG] FAIL"
         print(f"{check_name}: {status}")
         if not passed:
             all_passed = False
 
     print("\n" + "=" * 60)
     if all_passed:
-        print("🎉 Environment check PASSED! Ready to run pipeline.")
+        print("[DONE] Environment check PASSED! Ready to run pipeline.")
         print("\nNext steps:")
         print("1. Run: scripts/setup/run_complete_pipeline_with_setup.bat")
         print("2. Or run individual phases as needed")
     else:
-        print("❌ Environment check FAILED! Please fix issues above.")
+        print("[NG] Environment check FAILED! Please fix issues above.")
         print("\nTo fix:")
         print("1. Install missing Python libraries: pip install <library_name>")
         print("2. Create missing directories")

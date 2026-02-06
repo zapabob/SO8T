@@ -578,7 +578,7 @@ def create_ppo_config() -> Dict[str, Any]:
 
 def main():
     """メイン関数"""
-    print("🚀 SO(8)T PPO Training Pipeline")
+    print("[START] SO(8)T PPO Training Pipeline")
     print("=" * 50)
 
     # 設定
@@ -590,8 +590,8 @@ def main():
     # トレーニング実行
     final_path = trainer.train()
 
-    print("✅ PPOトレーニング完了!")
-    print(f"📊 トレーニング済みモデル: {final_path}")
+    print("[OK] PPOトレーニング完了!")
+    print(f"[STATS] トレーニング済みモデル: {final_path}")
 
     # 音声通知
     try:

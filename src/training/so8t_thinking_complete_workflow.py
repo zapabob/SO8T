@@ -31,13 +31,13 @@ def wait_for_training_completion(checkpoint_dir: str, max_wait_minutes: int = 60
 
     while time.time() - start_time < max_wait_minutes * 60:
         if os.path.exists(checkpoint_dir) and os.listdir(checkpoint_dir):
-            logger.info("✅ Training completed! Checkpoints found.")
+            logger.info("[OK] Training completed! Checkpoints found.")
             return True
 
         logger.info(f"Waiting... ({int((time.time() - start_time) / 60)}min elapsed)")
         time.sleep(wait_seconds)
 
-    logger.warning("⚠️ Training wait timeout reached. Proceeding with available checkpoints.")
+    logger.warning("[WARN] Training wait timeout reached. Proceeding with available checkpoints.")
     return False
 
 
@@ -111,11 +111,11 @@ def evaluate_model():
             json.dump(eval_results, f, indent=2, ensure_ascii=False)
 
         logger.info(f"Evaluation completed. Avg Loss: {{avg_loss:.4f}}, Avg Perplexity: {{avg_perplexity:.2f}}")
-        print(f"✅ Model evaluation completed successfully")
+        print(f"[OK] Model evaluation completed successfully")
 
     except Exception as e:
         logger.error(f"Evaluation failed: {{e}}")
-        print(f"❌ Model evaluation failed: {{e}}")
+        print(f"[NG] Model evaluation failed: {{e}}")
 
 if __name__ == "__main__":
     evaluate_model()
@@ -130,14 +130,14 @@ if __name__ == "__main__":
                               capture_output=True, text=True, timeout=600)
 
         if result.returncode == 0:
-            logger.info("✅ Model evaluation completed successfully")
+            logger.info("[OK] Model evaluation completed successfully")
             return True
         else:
-            logger.error(f"❌ Model evaluation failed: {result.stderr}")
+            logger.error(f"[NG] Model evaluation failed: {result.stderr}")
             return False
 
     except subprocess.TimeoutExpired:
-        logger.error("❌ Model evaluation timed out")
+        logger.error("[NG] Model evaluation timed out")
         return False
     finally:
         # テンポラリスクリプトを削除
@@ -156,7 +156,7 @@ def run_gguf_conversion(model_path: str, output_dir: str):
     convert_script = llama_cpp_dir / "convert_hf_to_gguf.py"
 
     if not convert_script.exists():
-        logger.error(f"❌ llama.cpp convert script not found: {convert_script}")
+        logger.error(f"[NG] llama.cpp convert script not found: {convert_script}")
         return False
 
     conversions = [
@@ -181,13 +181,13 @@ def run_gguf_conversion(model_path: str, output_dir: str):
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
 
             if result.returncode == 0:
-                logger.info(f"✅ GGUF conversion ({quant_type}) completed")
+                logger.info(f"[OK] GGUF conversion ({quant_type}) completed")
                 success_count += 1
             else:
-                logger.error(f"❌ GGUF conversion ({quant_type}) failed: {result.stderr}")
+                logger.error(f"[NG] GGUF conversion ({quant_type}) failed: {result.stderr}")
 
         except subprocess.TimeoutExpired:
-            logger.error(f"❌ GGUF conversion ({quant_type}) timed out")
+            logger.error(f"[NG] GGUF conversion ({quant_type}) timed out")
 
     return success_count > 0
 
@@ -221,20 +221,20 @@ def run_ollama_import(modelfile_path: str, model_name: str):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
 
         if result.returncode == 0:
-            logger.info(f"✅ Ollama import completed: {model_name}")
+            logger.info(f"[OK] Ollama import completed: {model_name}")
             return True
         else:
-            logger.error(f"❌ Ollama import failed: {result.stderr}")
+            logger.error(f"[NG] Ollama import failed: {result.stderr}")
             return False
 
     except subprocess.TimeoutExpired:
-        logger.error("❌ Ollama import timed out")
+        logger.error("[NG] Ollama import timed out")
         return False
 
 
 def run_japanese_performance_tests(model_name: str):
     """日本語性能テストを実行"""
-    logger.info("🧪 Starting Japanese Performance Tests...")
+    logger.info("[TEST] Starting Japanese Performance Tests...")
 
     test_cases = [
         {
@@ -271,8 +271,8 @@ def run_japanese_performance_tests(model_name: str):
 
             if result.returncode == 0:
                 response = result.stdout.strip()
-                logger.info(f"✅ Test {i+1} completed")
-                print(f"\n🧪 {test_case['name']}")
+                logger.info(f"[OK] Test {i+1} completed")
+                print(f"\n[TEST] {test_case['name']}")
                 print(f"Response: {response[:200]}..." if len(response) > 200 else f"Response: {response}")
                 results.append({
                     "test_id": i+1,
@@ -281,7 +281,7 @@ def run_japanese_performance_tests(model_name: str):
                     "response_length": len(response)
                 })
             else:
-                logger.error(f"❌ Test {i+1} failed: {result.stderr}")
+                logger.error(f"[NG] Test {i+1} failed: {result.stderr}")
                 results.append({
                     "test_id": i+1,
                     "name": test_case['name'],
@@ -290,7 +290,7 @@ def run_japanese_performance_tests(model_name: str):
                 })
 
         except subprocess.TimeoutExpired:
-            logger.error(f"❌ Test {i+1} timed out")
+            logger.error(f"[NG] Test {i+1} timed out")
             results.append({
                 "test_id": i+1,
                 "name": test_case['name'],
@@ -353,7 +353,7 @@ def main():
 
     args = parser.parse_args()
 
-    logger.info("🚀 Starting SO8T/thinking Complete Workflow")
+    logger.info("[START] Starting SO8T/thinking Complete Workflow")
     logger.info("=" * 60)
 
     # 結果ディレクトリを作成
@@ -362,16 +362,16 @@ def main():
 
     # 1. トレーニング完了を待機
     if os.path.exists(args.checkpoint_dir) and os.listdir(args.checkpoint_dir):
-        logger.info("✅ Training checkpoints found, proceeding with workflow")
+        logger.info("[OK] Training checkpoints found, proceeding with workflow")
     elif args.skip_wait:
         logger.info("⏭️ Skipping training wait, proceeding with workflow")
     elif args.force_run:
-        logger.warning("⚠️ Force run enabled, proceeding without checkpoints")
+        logger.warning("[WARN] Force run enabled, proceeding without checkpoints")
     else:
         logger.info("⏳ Waiting for training completion...")
         training_completed = wait_for_training_completion(args.checkpoint_dir, args.max_wait_minutes)
         if not training_completed and not args.force_run:
-            logger.error("❌ Training wait timeout and no checkpoints found")
+            logger.error("[NG] Training wait timeout and no checkpoints found")
             return
 
     # 2. モデル評価
@@ -430,7 +430,7 @@ def main():
     with open(summary_file, 'w', encoding='utf-8') as f:
         json.dump(workflow_results, f, indent=2, ensure_ascii=False)
 
-    logger.info("🎉 SO8T/thinking Complete Workflow Finished!")
+    logger.info("[DONE] SO8T/thinking Complete Workflow Finished!")
     logger.info(f"Results saved to: {summary_file}")
 
     # 完了音声を再生
@@ -440,13 +440,13 @@ def main():
     success_steps = sum(1 for step in workflow_results["steps"].values() if step)
     total_steps = len(workflow_results["steps"])
 
-    print(f"\n🎯 Workflow Completion Status: {success_steps}/{total_steps} steps successful")
+    print(f"\n[TARGET] Workflow Completion Status: {success_steps}/{total_steps} steps successful")
 
     if success_steps == total_steps:
-        print("✅ All steps completed successfully!")
-        print("🚀 SO8T/thinking model is ready for inference")
+        print("[OK] All steps completed successfully!")
+        print("[START] SO8T/thinking model is ready for inference")
     else:
-        print("⚠️ Some steps failed. Check logs for details.")
+        print("[WARN] Some steps failed. Check logs for details.")
 
 
 if __name__ == "__main__":

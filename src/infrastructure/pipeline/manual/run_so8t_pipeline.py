@@ -442,10 +442,10 @@ def main():
     success = pipeline.run_pipeline()
     
     if success:
-        print("✅ SO8T pipeline completed successfully!")
-        print(f"📁 Results saved to: {config['output_dir']}")
+        print("[OK] SO8T pipeline completed successfully!")
+        print(f"[DIR] Results saved to: {config['output_dir']}")
     else:
-        print("❌ SO8T pipeline failed!")
+        print("[NG] SO8T pipeline failed!")
         exit(1)
 
 

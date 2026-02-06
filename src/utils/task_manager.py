@@ -28,7 +28,7 @@ def run_with_checkpointing(task_func: Callable, task_name: str, output_dir: str 
 
     def signal_handler(signum, frame):
         """シグナルハンドラー（Ctrl+Cなどで中断された場合）"""
-        print(f"\n⚠️  Task {task_name} interrupted! Saving checkpoint...")
+        print(f"\n[WARN]  Task {task_name} interrupted! Saving checkpoint...")
         manager.save_checkpoint(step_info="interrupted")
         sys.exit(1)
 
@@ -46,7 +46,7 @@ def run_with_checkpointing(task_func: Callable, task_name: str, output_dir: str 
             return
 
         # タスク実行
-        print(f"🚀 Starting task: {task_name}")
+        print(f"[START] Starting task: {task_name}")
         start_time = time.time()
 
         result = task_func(manager=manager, **kwargs)
@@ -61,11 +61,11 @@ def run_with_checkpointing(task_func: Callable, task_name: str, output_dir: str 
         return result
 
     except KeyboardInterrupt:
-        print(f"\n⚠️  Task {task_name} interrupted by user")
+        print(f"\n[WARN]  Task {task_name} interrupted by user")
         manager.save_checkpoint(step_info="user_interrupt")
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ Task {task_name} failed: {e}")
+        print(f"\n[NG] Task {task_name} failed: {e}")
         manager.save_checkpoint(step_info="error")
         raise
 
@@ -247,7 +247,7 @@ def main():
         )
     elif args.task == "gguf":
         if not args.model_path:
-            print("❌ --model_path required for GGUF conversion")
+            print("[NG] --model_path required for GGUF conversion")
             sys.exit(1)
 
         run_with_checkpointing(
@@ -274,7 +274,7 @@ def main():
             output_file=args.output_file
         )
     else:
-        print(f"❌ Unknown task: {args.task}")
+        print(f"[NG] Unknown task: {args.task}")
         print("Available tasks: rlpo, dataset/data, evaluation, benchmark, gguf, sunshine, report")
         sys.exit(1)
 

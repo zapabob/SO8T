@@ -190,9 +190,9 @@ def generate_report(python_cmd: str, success: bool, report_path: Path = None):
         
         f.write(f"## 調整結果\n\n")
         if success:
-            f.write(f"✅ **成功**: Unsloth互換バージョンに調整完了\n\n")
+            f.write(f"[OK] **成功**: Unsloth互換バージョンに調整完了\n\n")
         else:
-            f.write(f"❌ **失敗**: 互換性の問題が残っています\n\n")
+            f.write(f"[NG] **失敗**: 互換性の問題が残っています\n\n")
         
         f.write(f"## 実行コマンド\n\n")
         f.write(f"```bash\n")

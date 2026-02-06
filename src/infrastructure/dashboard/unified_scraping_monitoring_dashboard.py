@@ -208,14 +208,14 @@ class UnifiedScrapingMonitoringDashboard:
                             from src.utils.keyword_coordinator import KeywordCoordinator
                             coordinator = KeywordCoordinator()
                             added_count = coordinator.add_keywords(keywords, source="streamlit", priority=priority)
-                            st.success(f"✅ {added_count}個のキーワードを追加しました（優先度: {priority}）: {', '.join(keywords[:5])}{'...' if len(keywords) > 5 else ''}")
+                            st.success(f"[OK] {added_count}個のキーワードを追加しました（優先度: {priority}）: {', '.join(keywords[:5])}{'...' if len(keywords) > 5 else ''}")
                             st.session_state.last_update = datetime.now()
                         except Exception as e:
-                            st.error(f"❌ キーワード追加に失敗しました: {e}")
+                            st.error(f"[NG] キーワード追加に失敗しました: {e}")
                     else:
-                        st.warning("⚠️ 有効なキーワードが入力されていません")
+                        st.warning("[WARN] 有効なキーワードが入力されていません")
                 else:
-                    st.warning("⚠️ キーワードを入力してください")
+                    st.warning("[WARN] キーワードを入力してください")
         
         # キーワード状態表示
         try:
@@ -278,7 +278,7 @@ class UnifiedScrapingMonitoringDashboard:
             
             # 詳細統計セクション
             st.markdown("---")
-            st.subheader("📊 キーワード詳細統計")
+            st.subheader("[STATS] キーワード詳細統計")
             
             progress_stats = stats.get('progress_stats', {})
             if progress_stats:
@@ -349,7 +349,7 @@ class UnifiedScrapingMonitoringDashboard:
                             mime="text/csv"
                         )
                     except Exception as e:
-                        st.error(f"❌ エクスポートに失敗しました: {e}")
+                        st.error(f"[NG] エクスポートに失敗しました: {e}")
             
             with col_exp2:
                 if st.button("📥 JSON形式でエクスポート"):
@@ -363,9 +363,9 @@ class UnifiedScrapingMonitoringDashboard:
                             mime="application/json"
                         )
                     except Exception as e:
-                        st.error(f"❌ エクスポートに失敗しました: {e}")
+                        st.error(f"[NG] エクスポートに失敗しました: {e}")
         except Exception as e:
-            st.warning(f"⚠️ キーワード状態の読み込みに失敗しました: {e}")
+            st.warning(f"[WARN] キーワード状態の読み込みに失敗しました: {e}")
         
         st.markdown("---")
         
@@ -388,7 +388,7 @@ class UnifiedScrapingMonitoringDashboard:
             screenshots = self.load_screenshots()
         
         # 全体統計
-        st.subheader("📊 全体統計")
+        st.subheader("[STATS] 全体統計")
         col1, col2, col3, col4 = st.columns(4)
         
         total_samples = len(latest_samples)
@@ -487,11 +487,11 @@ class UnifiedScrapingMonitoringDashboard:
                 
                 # 判断結果に応じた色
                 if decision_result == 'allow':
-                    st.success(f"✅ [{decision_type}] {keyword} - {decision_result}")
+                    st.success(f"[OK] [{decision_type}] {keyword} - {decision_result}")
                 elif decision_result == 'deny':
-                    st.error(f"❌ [{decision_type}] {keyword} - {decision_result}")
+                    st.error(f"[NG] [{decision_type}] {keyword} - {decision_result}")
                 elif decision_result == 'modify':
-                    st.warning(f"⚠️ [{decision_type}] {keyword} - {decision_result}")
+                    st.warning(f"[WARN] [{decision_type}] {keyword} - {decision_result}")
                 else:
                     st.info(f"ℹ️ [{decision_type}] {keyword} - {decision_result}")
                 
@@ -526,7 +526,7 @@ class UnifiedScrapingMonitoringDashboard:
         st.markdown("---")
         
         # 最新サンプル表示
-        st.subheader("📝 最新サンプル")
+        st.subheader("[NOTE] 最新サンプル")
         
         if latest_samples:
             # 最新10件を表示

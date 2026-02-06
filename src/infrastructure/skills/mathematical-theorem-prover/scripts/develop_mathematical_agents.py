@@ -607,15 +607,15 @@ def main():
 
     try:
         results = orchestrator.develop_mathematical_agents(args.agent_types)
-        print("🎉 Mathematical agent development completed!")
-        print(f"📊 Results saved to: {args.output_dir}/agent_development_results.json")
+        print("[DONE] Mathematical agent development completed!")
+        print(f"[STATS] Results saved to: {args.output_dir}/agent_development_results.json")
 
         for agent_type, agent_info in results["agents"].items():
             print(f"🤖 {agent_type}: {agent_info['path']}")
 
     except Exception as e:
         logger.error(f"Agent development failed: {e}")
-        print(f"❌ Agent development failed: {e}")
+        print(f"[NG] Agent development failed: {e}")
         exit(1)
 
 

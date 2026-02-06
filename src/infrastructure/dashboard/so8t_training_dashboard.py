@@ -488,8 +488,8 @@ def main() -> None:
                     log_file_size = 0
                 st.sidebar.markdown(f"""
                 <div style="font-family: 'Orbitron', monospace; color: #00ff00; font-size: 12px; margin-top: 20px;">
-                    📝 ログ最終更新: {elapsed_str}<br>
-                    📊 ログサイズ: {log_file_size / 1024 / 1024:.2f} MB
+                    [NOTE] ログ最終更新: {elapsed_str}<br>
+                    [STATS] ログサイズ: {log_file_size / 1024 / 1024:.2f} MB
                 </div>
                 """, unsafe_allow_html=True)
         except Exception as e:
@@ -523,7 +523,7 @@ def main() -> None:
             status_icon = {
                 'not_started': '⏸️',
                 'loading': '🔄',
-                'completed': '✅'
+                'completed': '[OK]'
             }.get(status, '❓')
             st.metric("ステータス", f"{status_icon} {status}")
         
@@ -564,8 +564,8 @@ def main() -> None:
             status = session_info.get('status', 'unknown') if session_info else 'unknown'
             status_color = {
                 'running': '🟢',
-                'completed': '✅',
-                'interrupted': '⚠️',
+                'completed': '[OK]',
+                'interrupted': '[WARN]',
                 'unknown': '❓'
             }.get(status, '❓')
             st.metric("ステータス", f"{status_color} {status}")
@@ -673,7 +673,7 @@ def main() -> None:
             status_icon = {
                 'not_started': '⏸️',
                 'running': '🔄',
-                'completed': '✅'
+                'completed': '[OK]'
             }.get(training_status, '❓')
             st.info(f"{status_icon} 学習ステータス: {training_status}")
         else:
@@ -782,7 +782,7 @@ def main() -> None:
         st.markdown("""
     <div style="border: 2px solid #00ffff; border-radius: 10px; padding: 15px; background: rgba(0, 0, 0, 0.5); margin: 20px 0;">
         <h2 style="font-family: 'Orbitron', monospace; color: #00ffff; text-shadow: 0 0 10px #00ffff; margin: 0;">
-            📊 TRAINING CURVES
+            [STATS] TRAINING CURVES
         </h2>
     </div>
     """, unsafe_allow_html=True)

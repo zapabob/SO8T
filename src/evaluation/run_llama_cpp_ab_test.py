@@ -56,10 +56,10 @@ class LlamaCppABTester:
                 sys.executable, "-m", "pip", "install", "llama-cpp-python",
                 "--extra-index-url", "https://abetlen.github.io/llama-cpp-python/whl/cpu"
             ])
-            print("✅ llama.cpp.python installed")
+            print("[OK] llama.cpp.python installed")
             return True
         except subprocess.CalledProcessError as e:
-            print(f"❌ Failed to install llama.cpp.python: {e}")
+            print(f"[NG] Failed to install llama.cpp.python: {e}")
             return False
 
     def load_model(self, model_config: Dict[str, Any]):
@@ -81,15 +81,15 @@ class LlamaCppABTester:
                 verbose=False
             )
 
-            print("✅ Model loaded successfully"            return llm
+            print("[OK] Model loaded successfully"            return llm
 
         except ImportError:
-            print("❌ llama-cpp-python not available")
+            print("[NG] llama-cpp-python not available")
             if self.install_llama_cpp_python():
                 return self.load_model(model_config)
             return None
         except Exception as e:
-            print(f"❌ Failed to load model: {e}")
+            print(f"[NG] Failed to load model: {e}")
             return None
 
     def load_evaluation_data(self, task_name: str) -> List[Dict[str, Any]]:
@@ -98,11 +98,11 @@ class LlamaCppABTester:
             data_file = Path("data/evaluation/elyza_100.jsonl")
         else:
             # 他のタスクはlm-eval-harnessから取得
-            print(f"⚠️ Task {task_name} not directly supported, skipping")
+            print(f"[WARN] Task {task_name} not directly supported, skipping")
             return []
 
         if not data_file.exists():
-            print(f"❌ Evaluation data not found: {data_file}")
+            print(f"[NG] Evaluation data not found: {data_file}")
             return []
 
         samples = []
@@ -148,7 +148,7 @@ class LlamaCppABTester:
             }
 
         except Exception as e:
-            print(f"❌ Error evaluating sample: {e}")
+            print(f"[NG] Error evaluating sample: {e}")
             return {
                 "task_id": sample.get("task_id", ""),
                 "input": input_text,
@@ -161,7 +161,7 @@ class LlamaCppABTester:
 
     def evaluate_model(self, model_config: Dict[str, Any], task_name: str, num_fewshot: int = 0) -> Dict[str, Any]:
         """モデルの評価実行"""
-        print(f"🔬 Evaluating {model_config['name']} on {task_name} (fewshot={num_fewshot})")
+        print(f"[RESEARCH] Evaluating {model_config['name']} on {task_name} (fewshot={num_fewshot})")
 
         # モデル読み込み
         llm = self.load_model(model_config)
@@ -224,14 +224,14 @@ class LlamaCppABTester:
 
             # 各モデル・各タスク・各fewshot設定で評価
             for model_config, model_key in [(baseline_config, "baseline"), (aegis_config, "aegis")]:
-                print(f"\n🔬 Evaluating {model_key.upper()} model...")
+                print(f"\n[RESEARCH] Evaluating {model_key.upper()} model...")
                 results[model_key] = {}
 
                 for task in tasks:
                     results[model_key][task] = {}
 
                     for fewshot in fewshot_settings:
-                        print(f"  📊 {task} (fewshot={fewshot})")
+                        print(f"  [STATS] {task} (fewshot={fewshot})")
 
                         eval_result = self.evaluate_model(model_config, task, fewshot)
                         results[model_key][task][str(fewshot)] = eval_result
@@ -246,14 +246,14 @@ class LlamaCppABTester:
             self.save_results(results, "final")
 
             print("
-🎉 A/B Test completed!"            print(f"📊 Results saved to {self.results_dir}")
+[DONE] A/B Test completed!"            print(f"[STATS] Results saved to {self.results_dir}")
 
             # チェックポイント完了
             if checkpoint_available:
                 self.checkpoint_manager.mark_completed()
 
         except Exception as e:
-            print(f"❌ A/B test failed: {e}")
+            print(f"[NG] A/B test failed: {e}")
             if checkpoint_available:
                 self.checkpoint_manager.save_checkpoint()
             raise
@@ -313,10 +313,10 @@ def main():
     results = tester.run_ab_test()
 
     if results:
-        print("\n✅ A/B test completed successfully!")
-        print("📊 Next: Run statistical analysis with scripts/evaluation/analyze_ab_test_stats.py")
+        print("\n[OK] A/B test completed successfully!")
+        print("[STATS] Next: Run statistical analysis with scripts/evaluation/analyze_ab_test_stats.py")
     else:
-        print("\n❌ A/B test failed")
+        print("\n[NG] A/B test failed")
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -665,19 +665,19 @@ class SunsetPipelineRTX3060:
         # モデル確認
         models_dir = self.project_root / "models"
         if (models_dir / "unsloth_so8t_qwen_7b_final").exists():
-            self.logger.success("✓ Unsloth SO8T trained model: Available")
+            self.logger.success("[OK] Unsloth SO8T trained model: Available")
         else:
-            self.logger.warning("⚠ Unsloth SO8T trained model: Not found")
+            self.logger.warning("[WARN] Unsloth SO8T trained model: Not found")
 
         # 評価結果確認
         results_dir = self.project_root / "results"
         if (results_dir / "benchmarks").exists():
             benchmark_files = list((results_dir / "benchmarks").glob("*.json"))
-            self.logger.success(f"✓ Benchmark results: {len(benchmark_files)} files")
+            self.logger.success(f"[OK] Benchmark results: {len(benchmark_files)} files")
 
         if (results_dir / "abc_testing").exists():
             abc_files = list((results_dir / "abc_testing").glob("*.json"))
-            self.logger.success(f"✓ ABC testing results: {len(abc_files)} files")
+            self.logger.success(f"[OK] ABC testing results: {len(abc_files)} files")
 
         self.logger.info("\n[USAGE EXAMPLES]")
         self.logger.info("python scripts/training/train_unsloth_so8t.py --phase sft    # SFT Training")

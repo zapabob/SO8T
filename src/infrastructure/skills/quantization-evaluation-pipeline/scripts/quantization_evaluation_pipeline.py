@@ -49,7 +49,7 @@ class QuantizationEvaluationPipeline:
 
     def execute_full_pipeline(self) -> Dict[str, Any]:
         """完全な量子化評価パイプライン実行"""
-        logger.info("🚀 Starting GGUF Quantization Evaluation Pipeline")
+        logger.info("[START] Starting GGUF Quantization Evaluation Pipeline")
         logger.info(f"Model: {self.model_path}")
         logger.info(f"Quantizations: {self.quantizations}")
         logger.info(f"Benchmarks: {self.benchmarks}")
@@ -64,7 +64,7 @@ class QuantizationEvaluationPipeline:
 
         try:
             # Phase 1: imatrixデータ収集
-            logger.info("📊 Phase 1: Collecting imatrix data")
+            logger.info("[STATS] Phase 1: Collecting imatrix data")
             imatrix_path = self._collect_imatrix_data()
             pipeline_results["imatrix_path"] = str(imatrix_path)
 
@@ -79,12 +79,12 @@ class QuantizationEvaluationPipeline:
             pipeline_results["evaluation_results"] = evaluation_results
 
             # Phase 4: 結果可視化
-            logger.info("📊 Phase 4: Generating visualization and reports")
+            logger.info("[STATS] Phase 4: Generating visualization and reports")
             visualization_results = self._generate_visualizations(evaluation_results)
             pipeline_results["visualization_results"] = visualization_results
 
             # Phase 5: 学術文献形式ドキュメント生成
-            logger.info("📝 Phase 5: Generating academic documentation")
+            logger.info("[NOTE] Phase 5: Generating academic documentation")
             documentation_results = self._generate_academic_documentation(evaluation_results)
             pipeline_results["documentation_results"] = documentation_results
 
@@ -846,14 +846,14 @@ def main():
 
     try:
         results = pipeline.execute_full_pipeline()
-        print("🎉 Quantization Evaluation Pipeline Completed!")
-        print(f"📊 Results saved to: {pipeline.output_dir}")
+        print("[DONE] Quantization Evaluation Pipeline Completed!")
+        print(f"[STATS] Results saved to: {pipeline.output_dir}")
         print("📈 Charts generated in: charts/")
-        print("📝 Reports generated in: reports/")
+        print("[NOTE] Reports generated in: reports/")
 
     except Exception as e:
         logger.error(f"Pipeline execution failed: {e}")
-        print(f"❌ Pipeline failed: {e}")
+        print(f"[NG] Pipeline failed: {e}")
         exit(1)
 
 

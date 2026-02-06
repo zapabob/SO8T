@@ -492,11 +492,11 @@ def main():
     implementer = AEGISv25Implementation(args.base_model)
     results = implementer.execute_full_v25_pipeline(args.arxiv_data, args.output)
 
-    print("🎉 AEGIS v2.5 Implementation Completed!")
-    print(f"📊 ABC Test Results: AEGIS v2.5 achieved superior performance")
-    print(f"🔬 Advanced Capabilities: GRPO-MA, Scaf-GRPO, SeRL, Group Representations integrated")
-    print(f"🛠️ Tool Calling: MCP/RALCog compatibility enhanced")
-    print(f"📁 Results saved to: {args.output}")
+    print("[DONE] AEGIS v2.5 Implementation Completed!")
+    print(f"[STATS] ABC Test Results: AEGIS v2.5 achieved superior performance")
+    print(f"[RESEARCH] Advanced Capabilities: GRPO-MA, Scaf-GRPO, SeRL, Group Representations integrated")
+    print(f"[TOOL]️ Tool Calling: MCP/RALCog compatibility enhanced")
+    print(f"[DIR] Results saved to: {args.output}")
 
 if __name__ == "__main__":
     main()

@@ -65,9 +65,9 @@ Answer:"""
         is_correct = (answer_extracted == task['answer'])
         if is_correct:
             correct += 1
-            print(f"✓ ({answer_extracted})", end="")
+            print(f"[OK] ({answer_extracted})", end="")
         else:
-            print(f"✗ ({answer_extracted} vs {task['answer']})", end="")
+            print(f"[NG] ({answer_extracted} vs {task['answer']})", end="")
         
         print(f" [{duration:.1f}s]")
         
@@ -145,7 +145,7 @@ def main():
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(all_results, f, ensure_ascii=False, indent=2)
     
-    print(f"\n✅ MMLU benchmark complete! Results saved to {output_file}")
+    print(f"\n[OK] MMLU benchmark complete! Results saved to {output_file}")
 
 if __name__ == "__main__":
     main()

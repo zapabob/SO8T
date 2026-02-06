@@ -602,7 +602,7 @@ def main():
         st.markdown("---")
         
         # セッション情報
-        st.markdown('<h3>📊 SESSION INFO</h3>', unsafe_allow_html=True)
+        st.markdown('<h3>[STATS] SESSION INFO</h3>', unsafe_allow_html=True)
         checkpoint = load_checkpoint(checkpoint_dir)
         if checkpoint:
             st.write(f"**Session ID**: `{checkpoint.get('session_id', 'N/A')}`")
@@ -617,7 +617,7 @@ def main():
     
     # メインコンテンツ
     if checkpoint is None:
-        st.error("⚠️ No checkpoint found. Pipeline may not be running.")
+        st.error("[WARN] No checkpoint found. Pipeline may not be running.")
         return
     
     # パイプライン状態セクション
@@ -674,17 +674,17 @@ def main():
     
     # タブでセクションを分ける
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📊 Overview",
+        "[STATS] Overview",
         "📈 Timeline",
         "💻 Resources",
-        "❌ Errors",
-        "📝 Logs",
+        "[NG] Errors",
+        "[NOTE] Logs",
         "🤖 PPO Training"
     ])
     
     with tab1:
         # 進捗統計
-        st.markdown('<h2>📊 PROGRESS STATISTICS</h2>', unsafe_allow_html=True)
+        st.markdown('<h2>[STATS] PROGRESS STATISTICS</h2>', unsafe_allow_html=True)
         
         completed_phases = sum(1 for p in phase_results.values() if p.get('status') == 'completed')
         running_phases = sum(1 for p in phase_results.values() if p.get('status') == 'running')
@@ -804,7 +804,7 @@ def main():
     
     with tab4:
         # エラー詳細表示
-        st.markdown('<h2>❌ ERROR DETAILS</h2>', unsafe_allow_html=True)
+        st.markdown('<h2>[NG] ERROR DETAILS</h2>', unsafe_allow_html=True)
         
         failed_phases = {k: v for k, v in phase_results.items() if v.get('status') == 'failed'}
         
@@ -829,7 +829,7 @@ def main():
     
     with tab5:
         # ログのリアルタイムストリーミング
-        st.markdown('<h2>📝 PIPELINE LOGS</h2>', unsafe_allow_html=True)
+        st.markdown('<h2>[NOTE] PIPELINE LOGS</h2>', unsafe_allow_html=True)
         
         log_lines = load_pipeline_log(pipeline_log_file, max_lines=200)
         
@@ -968,7 +968,7 @@ def main():
                 st.caption(".1f")
 
         # トレーニングメトリクス表示
-        st.markdown('<h3>📊 Training Metrics</h3>', unsafe_allow_html=True)
+        st.markdown('<h3>[STATS] Training Metrics</h3>', unsafe_allow_html=True)
 
         col1, col2, col3, col4 = st.columns(4)
 
@@ -1068,7 +1068,7 @@ def main():
             st.plotly_chart(fig2, use_container_width=True)
 
         # 最新ログ表示
-        st.markdown('<h3>📝 Recent Logs</h3>', unsafe_allow_html=True)
+        st.markdown('<h3>[NOTE] Recent Logs</h3>', unsafe_allow_html=True)
 
         try:
             if ppo_log_file.exists():

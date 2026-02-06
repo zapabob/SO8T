@@ -337,7 +337,7 @@ def main():
 
     if args.ab_compare:
         # A/B比較実行
-        print("🚀 SO(8)T A/B比較ベンチマーク実行")
+        print("[START] SO(8)T A/B比較ベンチマーク実行")
         print("=" * 60)
 
         comparison = evaluator.run_ab_comparison(
@@ -346,12 +346,12 @@ def main():
             config['tasks']
         )
 
-        print("✅ A/B比較ベンチマーク完了!")
-        print(f"📊 結果保存先: {config['results_dir']}/comparison_results.json")
+        print("[OK] A/B比較ベンチマーク完了!")
+        print(f"[STATS] 結果保存先: {config['results_dir']}/comparison_results.json")
 
         # サマリー表示
         summary = comparison['summary']
-        print(f"\n🎯 比較サマリー:")
+        print(f"\n[TARGET] 比較サマリー:")
         print(f"Model A: {summary['model_a_name']}")
         print(f"Model B: {summary['model_b_name']}")
         print(f"評価タスク: {', '.join(summary['tasks_evaluated'])}")
@@ -362,24 +362,24 @@ def main():
                 print(f"  Model A スコア: {result['model_a_score']:.4f}")
                 print(f"  Model B スコア: {result['model_b_score']:.4f}")
                 print(f"  差分: {result['difference']:.4f}")
-                print(f"  改善: {'✅' if result.get('improvement', False) else '❌'}")
+                print(f"  改善: {'[OK]' if result.get('improvement', False) else '[NG]'}")
             else:
                 print("  データなし")
 
     elif args.model_a_only:
         # model Aのみ実行
-        print("🚀 Model A ベンチマーク実行")
+        print("[START] Model A ベンチマーク実行")
         result = evaluator.run_hf_benchmark(
             config['model_a']['path'],
             config['model_a']['name'],
             config['tasks'],
             config['model_a'].get('dtype', 'bfloat16')
         )
-        print(f"✅ Model A ベンチマーク完了: {result.get('success', False)}")
+        print(f"[OK] Model A ベンチマーク完了: {result.get('success', False)}")
 
     elif args.model_b_only:
         # model Bのみ実行
-        print("🚀 Model B ベンチマーク実行")
+        print("[START] Model B ベンチマーク実行")
         result = evaluator.run_gguf_benchmark(
             config['model_b']['gguf_dir'],
             config['model_b']['gguf_filename'],
@@ -387,17 +387,17 @@ def main():
             config['model_b']['name'],
             config['tasks']
         )
-        print(f"✅ Model B ベンチマーク完了: {result.get('success', False)}")
+        print(f"[OK] Model B ベンチマーク完了: {result.get('success', False)}")
 
     else:
         # デフォルト: A/B比較
-        print("🚀 SO(8)T A/B比較ベンチマーク実行（デフォルト）")
+        print("[START] SO(8)T A/B比較ベンチマーク実行（デフォルト）")
         comparison = evaluator.run_ab_comparison(
             config['model_a'],
             config['model_b'],
             config['tasks']
         )
-        print("✅ A/B比較ベンチマーク完了!")
+        print("[OK] A/B比較ベンチマーク完了!")
 
     # 音声通知
     try:

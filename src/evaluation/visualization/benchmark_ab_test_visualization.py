@@ -353,13 +353,13 @@ def save_all_charts():
     </head>
     <body>
         <div class="header">
-            <h1>🔬 AEGIS vs Model A</h1>
+            <h1>[RESEARCH] AEGIS vs Model A</h1>
             <h2>A/B Benchmark Test Results</h2>
             <p>Advanced Ethical Guardian Intelligence System Performance Analysis</p>
         </div>
 
         <div class="summary">
-            <h2>📊 Executive Summary</h2>
+            <h2>[STATS] Executive Summary</h2>
             <div class="metric-grid">
                 <div class="metric-card">
                     <div class="metric-value">+12.2%</div>
@@ -387,7 +387,7 @@ def save_all_charts():
         </div>
 
         <div class="chart-container">
-            <div class="chart-title">🎯 Capability Radar Analysis</div>
+            <div class="chart-title">[TARGET] Capability Radar Analysis</div>
             <div class="chart-description">Multi-dimensional capability assessment using radar visualization</div>
             <img src="charts/{os.path.basename(saved_files[1])}" alt="Radar Chart">
         </div>
@@ -420,7 +420,7 @@ def save_all_charts():
                 <li><strong>Continuous learning capability</strong> shows promising long-term improvement potential</li>
             </ul>
 
-            <h3>💡 Recommendations</h3>
+            <h3>[TIP] Recommendations</h3>
             <ul>
                 <li>Deploy AEGIS for high-stakes applications (finance, healthcare, legal)</li>
                 <li>Use Model A for creative content generation and general assistance</li>

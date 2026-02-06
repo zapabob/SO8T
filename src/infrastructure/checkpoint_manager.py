@@ -123,10 +123,10 @@ class RollingCheckpointManager:
             self.save_count += 1
 
             if self.enable_logging:
-                print(f"✅ Checkpoint saved successfully: {save_path}")
+                print(f"[OK] Checkpoint saved successfully: {save_path}")
 
         except Exception as e:
-            print(f"❌ Error saving checkpoint: {e}")
+            print(f"[NG] Error saving checkpoint: {e}")
             raise
 
         # ローリングクリーンアップ
@@ -154,7 +154,7 @@ class RollingCheckpointManager:
             try:
                 shutil.rmtree(ckpt)
             except Exception as e:
-                print(f"⚠️ Error deleting {ckpt}: {e}")
+                print(f"[WARN] Error deleting {ckpt}: {e}")
 
     def get_latest_checkpoint(self) -> Optional[str]:
         """
@@ -252,11 +252,11 @@ class EmergencyCheckpointManager:
                         self.model, self.tokenizer,
                         step_info=f"emergency_sig{signum}"
                     )
-                    print("✅ Emergency save completed")
+                    print("[OK] Emergency save completed")
                 except Exception as e:
-                    print(f"❌ Emergency save failed: {e}")
+                    print(f"[NG] Emergency save failed: {e}")
             else:
-                print("⚠️ No model/tokenizer available for emergency save")
+                print("[WARN] No model/tokenizer available for emergency save")
 
         # Windows対応のシグナル
         try:
@@ -266,7 +266,7 @@ class EmergencyCheckpointManager:
             if hasattr(signal, 'SIGBREAK'):
                 signal.signal(signal.SIGBREAK, emergency_save)
         except (OSError, ValueError) as e:
-            print(f"⚠️ Signal handler setup failed: {e}")
+            print(f"[WARN] Signal handler setup failed: {e}")
 
     def register_model(self, model: Any, tokenizer: Any):
         """
@@ -326,7 +326,7 @@ def test_checkpoint_manager():
         latest = manager.get_latest_checkpoint()
         print(f"Latest: {latest}")
 
-        print("✅ Test completed successfully!")
+        print("[OK] Test completed successfully!")
 
 
 if __name__ == '__main__':

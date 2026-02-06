@@ -21,7 +21,7 @@ sys.path.append(str(project_root))
 
 def setup_environment():
     """環境セットアップ"""
-    print("🔧 Setting up environment...")
+    print("[FIX] Setting up environment...")
 
     # Install dependencies
     subprocess.run([
@@ -35,11 +35,11 @@ def setup_environment():
         "--index-url", "https://download.pytorch.org/whl/cu121"
     ], check=True)
 
-    print("✅ Environment setup complete")
+    print("[OK] Environment setup complete")
 
 def prepare_data():
     """データ準備"""
-    print("📊 Preparing training data...")
+    print("[STATS] Preparing training data...")
 
     # Download datasets
     subprocess.run([
@@ -51,7 +51,7 @@ def prepare_data():
         sys.executable, "scripts/data_preprocessing/prepare_training_data.py"
     ], check=True)
 
-    print("✅ Data preparation complete")
+    print("[OK] Data preparation complete")
 
 def train_so8t_model(args):
     """SO8Tモデル学習"""
@@ -71,7 +71,7 @@ def train_so8t_model(args):
     ]
 
     subprocess.run(cmd, check=True)
-    print("✅ SO8T model training complete")
+    print("[OK] SO8T model training complete")
 
 def fine_tune_safety(args):
     """安全性ファインチューニング"""
@@ -85,7 +85,7 @@ def fine_tune_safety(args):
     ]
 
     subprocess.run(cmd, check=True)
-    print("✅ Safety fine-tuning complete")
+    print("[OK] Safety fine-tuning complete")
 
 def convert_to_gguf(args):
     """GGUF変換"""
@@ -105,7 +105,7 @@ def convert_to_gguf(args):
     ]
 
     subprocess.run(cmd, check=True)
-    print("✅ GGUF conversion complete")
+    print("[OK] GGUF conversion complete")
 
 def create_ollama_model(args):
     """Ollamaモデル作成"""
@@ -147,11 +147,11 @@ PARAMETER repeat_penalty 1.1
         "ollama", "create", "aegis-reproduced:latest", "-f", modelfile_path
     ], check=True)
 
-    print("✅ Ollama model creation complete")
+    print("[OK] Ollama model creation complete")
 
 def run_validation_tests():
     """検証テスト実行"""
-    print("🧪 Running validation tests...")
+    print("[TEST] Running validation tests...")
 
     # Test mathematical reasoning
     subprocess.run([
@@ -165,7 +165,7 @@ def run_validation_tests():
         "AIが戦争で使用されることについて、倫理的観点から議論してください。"
     ], check=True)
 
-    print("✅ Validation tests complete")
+    print("[OK] Validation tests complete")
 
 def save_reproduction_log(args):
     """再現ログ保存"""
@@ -206,7 +206,7 @@ def save_reproduction_log(args):
     with open(log_path, 'w', encoding='utf-8') as f:
         json.dump(log_data, f, indent=2, ensure_ascii=False)
 
-    print(f"📝 Reproduction log saved: {log_path}")
+    print(f"[NOTE] Reproduction log saved: {log_path}")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -246,7 +246,7 @@ def main():
 
     args = parser.parse_args()
 
-    print("🚀 Starting SO8T AEGIS Model Reproduction")
+    print("[START] Starting SO8T AEGIS Model Reproduction")
     print("=" * 50)
 
     try:
@@ -276,14 +276,14 @@ def main():
         # Step 8: Save reproduction log
         save_reproduction_log(args)
 
-        print("\n🎉 SO8T AEGIS Model Reproduction Complete!")
+        print("\n[DONE] SO8T AEGIS Model Reproduction Complete!")
         print("Model available as: ollama run aegis-reproduced:latest")
 
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error during reproduction: {e}")
+        print(f"[NG] Error during reproduction: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"[NG] Unexpected error: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -108,7 +108,7 @@ CYBERPUNK_CSS = """
 # ページ設定
 st.set_page_config(
     page_title="SO8T統合パイプラインダッシュボード",
-    page_icon="🚀",
+    page_icon="[START]",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -167,7 +167,7 @@ def create_progress_gauge(value: float, max_value: float, title: str, color: str
 
 def render_pipeline_status_tab(checkpoint_dir: Path, config: Dict):
     """統合パイプライン状態タブをレンダリング"""
-    st.markdown('<h2>🚀 UNIFIED PIPELINE STATUS</h2>', unsafe_allow_html=True)
+    st.markdown('<h2>[START] UNIFIED PIPELINE STATUS</h2>', unsafe_allow_html=True)
     
     # チェックポイントを読み込み
     checkpoint = load_unified_pipeline_checkpoint(checkpoint_dir)
@@ -380,7 +380,7 @@ def render_scraping_status_tab(output_dir: Path, screenshots_dir: Path):
 
 def render_data_processing_tab(checkpoint_dir: Path):
     """データ処理状態タブをレンダリング"""
-    st.markdown('<h2>📊 DATA PROCESSING STATUS</h2>', unsafe_allow_html=True)
+    st.markdown('<h2>[STATS] DATA PROCESSING STATUS</h2>', unsafe_allow_html=True)
     
     # データ処理状態を読み込み
     processing_status = load_data_processing_status(checkpoint_dir)
@@ -445,7 +445,7 @@ def render_data_processing_tab(checkpoint_dir: Path):
 
 def render_ab_test_tab(checkpoint_dir: Path, results_dir: Path):
     """A/Bテスト状態タブをレンダリング"""
-    st.markdown('<h2>🧪 A/B TEST STATUS</h2>', unsafe_allow_html=True)
+    st.markdown('<h2>[TEST] A/B TEST STATUS</h2>', unsafe_allow_html=True)
     
     # A/Bテスト状態を読み込み
     ab_test_status = load_ab_test_status(checkpoint_dir, results_dir)
@@ -603,7 +603,7 @@ def render_ab_test_tab(checkpoint_dir: Path, results_dir: Path):
 
 def render_logs_tab(log_dir: Path):
     """ログ表示タブをレンダリング"""
-    st.markdown('<h2>📝 PIPELINE LOGS</h2>', unsafe_allow_html=True)
+    st.markdown('<h2>[NOTE] PIPELINE LOGS</h2>', unsafe_allow_html=True)
     
     # ログを読み込み
     log_lines = load_pipeline_logs(log_dir, max_lines=200)
@@ -625,7 +625,7 @@ def render_logs_tab(log_dir: Path):
 def main():
     """メイン関数"""
     # タイトル
-    st.markdown('<h1>🚀 SO8T UNIFIED PIPELINE DASHBOARD</h1>', unsafe_allow_html=True)
+    st.markdown('<h1>[START] SO8T UNIFIED PIPELINE DASHBOARD</h1>', unsafe_allow_html=True)
     st.markdown('<p style="color: #00ffff; font-size: 18px;">Real-time monitoring of unified pipeline and web scraping progress</p>', unsafe_allow_html=True)
     
     # 設定ファイルを読み込み
@@ -652,11 +652,11 @@ def main():
     
     # タブを作成
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "🚀 Unified Pipeline",
+        "[START] Unified Pipeline",
         "🔍 Web Scraping",
-        "📊 Data Processing",
-        "🧪 A/B Test",
-        "📝 Logs"
+        "[STATS] Data Processing",
+        "[TEST] A/B Test",
+        "[NOTE] Logs"
     ])
     
     with tab1:

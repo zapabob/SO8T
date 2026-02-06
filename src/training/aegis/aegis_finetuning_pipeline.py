@@ -128,7 +128,7 @@ class AEGISFineTuningPipeline:
             log_message(f"[OK] CUDA available: {torch.cuda.get_device_name(0)}")
             log_message(f"[OK] CUDA version: {torch.version.cuda}")
         else:
-            log_message("⚠ CUDA not available, using CPU")
+            log_message("[WARN] CUDA not available, using CPU")
 
         return True
 
@@ -569,7 +569,7 @@ def main():
             pipeline.run_benchmark_tests()
 
     if success:
-        log_message("🎯 AEGIS Fine-tuning Pipeline completed successfully!")
+        log_message("[TARGET] AEGIS Fine-tuning Pipeline completed successfully!")
         # Play success sound
         try:
             import subprocess

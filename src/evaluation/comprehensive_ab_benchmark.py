@@ -201,7 +201,7 @@ class ComprehensiveABBenchmark:
 
         # 各モデルで全ベンチマーク実行
         for model_name, model_path in [("model_a", self.model_a_path), ("model_b", self.model_b_path)]:
-            print(f"\n🔬 Testing {model_name.upper()}...")
+            print(f"\n[RESEARCH] Testing {model_name.upper()}...")
             model_results = {}
 
             for benchmark in self.benchmarks:
@@ -219,12 +219,12 @@ class ComprehensiveABBenchmark:
         # グラフ生成
         self.generate_visualizations()
 
-        print("\n✅ AB Benchmark completed successfully!")
-        print(f"📁 Results saved to: {self.output_dir}")
+        print("\n[OK] AB Benchmark completed successfully!")
+        print(f"[DIR] Results saved to: {self.output_dir}")
 
     def perform_statistical_analysis(self):
         """統計分析実行"""
-        print("\n📊 Performing statistical analysis...")
+        print("\n[STATS] Performing statistical analysis...")
 
         comparison_results = {}
 
@@ -435,10 +435,10 @@ def main():
 
         benchmark.run_ab_benchmark()
 
-        print(f"🎉 Benchmark completed! Results saved to: {benchmark.output_dir}")
+        print(f"[DONE] Benchmark completed! Results saved to: {benchmark.output_dir}")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"[NG] Error: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

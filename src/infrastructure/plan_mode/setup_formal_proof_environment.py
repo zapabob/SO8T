@@ -629,11 +629,11 @@ def main():
 
     results = setup.execute_complete_environment_setup(args.lean4_version, args.isabelle_version)
 
-    print("🎉 Formal Proof Environment Setup Completed!")
-    print(f"📁 Lean4 Environment: {results['lean4_environment']['installation_path']}")
-    print(f"📁 Isabelle Environment: {results['isabelle_environment']['installation_path']}")
+    print("[DONE] Formal Proof Environment Setup Completed!")
+    print(f"[DIR] Lean4 Environment: {results['lean4_environment']['installation_path']}")
+    print(f"[DIR] Isabelle Environment: {results['isabelle_environment']['installation_path']}")
     print(f"🔗 Integrated Pipeline: {args.output_path}/integrated_proof_pipeline.json")
-    print(f"✅ Overall Status: {results['status']}")
+    print(f"[OK] Overall Status: {results['status']}")
 
     if results['test_results']['overall_success']:
         print("🟢 Environment tests passed!")

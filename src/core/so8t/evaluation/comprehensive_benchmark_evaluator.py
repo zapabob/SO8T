@@ -266,10 +266,10 @@ class BenchmarkEvaluator:
                 with open(result_file, 'w', encoding='utf-8') as f:
                     json.dump(benchmark_result, f, indent=2, default=str)
 
-                logger.info(f"✓ {benchmark_config['name']} completed")
+                logger.info(f"[OK] {benchmark_config['name']} completed")
 
             except Exception as e:
-                logger.error(f"✗ {benchmark_config['name']} failed: {e}")
+                logger.error(f"[NG] {benchmark_config['name']} failed: {e}")
                 results[benchmark_key] = {'error': str(e)}
 
         # 統合分析
@@ -701,7 +701,7 @@ class BenchmarkEvaluator:
             for benchmark_key, result in report['individual_results'].items():
                 if 'error' in result:
                     f.write(f"### {benchmark_key.upper()}\n")
-                    f.write(f"❌ Error: {result['error']}\n\n")
+                    f.write(f"[NG] Error: {result['error']}\n\n")
                     continue
 
                 benchmark = self.benchmarks[benchmark_key]

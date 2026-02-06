@@ -74,7 +74,7 @@ except ImportError:
 try:
     from modeling_nkat import attach_nkat_adapters, SO8ResidualAdapter
     NKAT_AVAILABLE = True
-    print("🧬 NKAT SO(8) adapter available")
+    print("[SO8T] NKAT SO(8) adapter available")
 except ImportError as e:
     print(f"Failed to import NKAT adapter: {e}")
     NKAT_AVAILABLE = False

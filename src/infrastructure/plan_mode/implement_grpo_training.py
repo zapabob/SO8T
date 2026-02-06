@@ -592,12 +592,12 @@ def main():
     # GRPO訓練実行
     results = pipeline.implement_grpo_training(training_data, args.output_path)
 
-    print("🎉 GRPO Training Pipeline Implementation Completed!")
-    print(f"📊 Reward Functions: {', '.join(args.reward_functions)}")
+    print("[DONE] GRPO Training Pipeline Implementation Completed!")
+    print(f"[STATS] Reward Functions: {', '.join(args.reward_functions)}")
     print(f"📚 Training Samples: {len(training_data)}")
     print(f"🤖 Model Saved: {results['model_save_path']}")
     print("🧠 Mathematical Proof Generation Capabilities Enhanced!")
-    print("🔬 Spectral Regularization Applied for Stability!")
+    print("[RESEARCH] Spectral Regularization Applied for Stability!")
 
 if __name__ == "__main__":
     main()

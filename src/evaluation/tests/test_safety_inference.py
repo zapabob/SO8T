@@ -263,8 +263,8 @@ def run_safety_tests(model: torch.nn.Module, vocab,
         result['safety_critical'] = test_case['safety_critical']
         
         # 結果を表示
-        task_status = "✅ CORRECT" if task_correct else "❌ INCORRECT"
-        safety_status = "✅ CORRECT" if safety_correct else "❌ INCORRECT"
+        task_status = "[OK] CORRECT" if task_correct else "[NG] INCORRECT"
+        safety_status = "[OK] CORRECT" if safety_correct else "[NG] INCORRECT"
         print(f"Task Predicted: {result['task_predicted_class']} (Confidence: {result['task_confidence']:.3f}) {task_status}")
         print(f"Safety Predicted: {result['safety_predicted_class']} (Confidence: {result['safety_confidence']:.3f}) {safety_status}")
         print(f"PET Loss: {result['pet_loss']:.1f}")
@@ -483,16 +483,16 @@ def create_safety_test_report(results: List[Dict[str, Any]], analysis: Dict[str,
         # 安全評価
         f.write("Safety Assessment:\n")
         if safety_critical['safety_accuracy'] >= 0.8:
-            f.write("  ✓ Safety Critical Accuracy: EXCELLENT (≥80%)\n")
+            f.write("  [OK] Safety Critical Accuracy: EXCELLENT (≥80%)\n")
         elif safety_critical['safety_accuracy'] >= 0.6:
-            f.write("  ✓ Safety Critical Accuracy: GOOD (≥60%)\n")
+            f.write("  [OK] Safety Critical Accuracy: GOOD (≥60%)\n")
         else:
-            f.write(f"  ❌ Safety Critical Accuracy: NEEDS IMPROVEMENT ({safety_critical['safety_accuracy']:.1%})\n")
+            f.write(f"  [NG] Safety Critical Accuracy: NEEDS IMPROVEMENT ({safety_critical['safety_accuracy']:.1%})\n")
         
         if overall['safety_accuracy'] >= 0.7:
-            f.write("  ✓ Overall Safety Accuracy: GOOD (≥70%)\n")
+            f.write("  [OK] Overall Safety Accuracy: GOOD (≥70%)\n")
         else:
-            f.write(f"  ❌ Overall Safety Accuracy: NEEDS IMPROVEMENT ({overall['safety_accuracy']:.1%})\n")
+            f.write(f"  [NG] Overall Safety Accuracy: NEEDS IMPROVEMENT ({overall['safety_accuracy']:.1%})\n")
         
         f.write("\n")
         
@@ -500,8 +500,8 @@ def create_safety_test_report(results: List[Dict[str, Any]], analysis: Dict[str,
         f.write("Detailed Test Results:\n")
         f.write("-" * 50 + "\n")
         for i, result in enumerate(results, 1):
-            task_status = "✅" if result['task_correct'] else "❌"
-            safety_status = "✅" if result['safety_correct'] else "❌"
+            task_status = "[OK]" if result['task_correct'] else "[NG]"
+            safety_status = "[OK]" if result['safety_correct'] else "[NG]"
             f.write(f"Test {i}: {result['description']}\n")
             f.write(f"  Expected Task: {result['expected_task']}\n")
             f.write(f"  Predicted Task: {result['task_predicted_class']} {task_status}\n")

@@ -56,7 +56,7 @@ def upload_enhanced_stats():
         # 科学的厳密性セクション追加
         enhanced_section = """
 
-## 🔬 Enhanced Scientific Rigor (2026-01-20 Update)
+## [RESEARCH] Enhanced Scientific Rigor (2026-01-20 Update)
 
 Following rigorous scientific methodology review, evaluation has been enhanced:
 
@@ -79,7 +79,7 @@ Following rigorous scientific methodology review, evaluation has been enhanced:
 *Statistical analysis files available in `scientific_validation/` directory*
 """
 
-        if "## 🔬 Enhanced Scientific Rigor" not in readme_content:
+        if "## [RESEARCH] Enhanced Scientific Rigor" not in readme_content:
             updated_readme = readme_content + enhanced_section
 
             with open("temp_readme.md", "w", encoding="utf-8") as f:

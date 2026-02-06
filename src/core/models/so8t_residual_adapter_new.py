@@ -142,7 +142,7 @@ def attach_nkat_adapters(model, target_layers: Optional[Union[List[int], str]] =
     """
     Unsloth/HFモデルにSO(8)アダプターをHookとして注入する関数
     """
-    print("🧬 Injecting NKAT SO(8) Adapters (Hook Mode)...")
+    print("[SO8T] Injecting NKAT SO(8) Adapters (Hook Mode)...")
 
     # モデル構造の解析
     if hasattr(model, "base_model") and hasattr(model.base_model, "model") and hasattr(model.base_model.model, "base_model") and hasattr(model.base_model.model.base_model, "layers"):
@@ -221,7 +221,7 @@ def attach_nkat_adapters(model, target_layers: Optional[Union[List[int], str]] =
         layer.register_forward_hook(nkat_hook)
         injected_count += 1
 
-    print(f"✅ Successfully injected NKAT adapters into {injected_count} layers.")
+    print(f"[OK] Successfully injected NKAT adapters into {injected_count} layers.")
 
     # 勾配有効化 (重要！)
     for name, param in model.named_parameters():

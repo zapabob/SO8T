@@ -901,11 +901,11 @@ class CUDABenchmark:
                 f.write("|---------|---------|---------|--------|--------|-------------|---------|-------------|\n")
 
                 for _, row in test_df.iterrows():
-                    sig = "✓" if row['significant'] else "✗"
+                    sig = "[OK]" if row['significant'] else "[NG]"
                     f.write(f"| {row['dataset']} | {row['model1']} | {row['model2']} | {row['model1_mean']:.3f} | {row['model2_mean']:.3f} | {row['t_statistic']:.3f} | {row['p_value']:.4f} | {sig} |\n")
 
                 f.write("\n")
-                f.write("**Note**: Significant differences (p < 0.05) are marked with ✓\n\n")
+                f.write("**Note**: Significant differences (p < 0.05) are marked with [OK]\n\n")
 
             f.write("## CUDA Performance Analysis\n\n")
 

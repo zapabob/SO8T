@@ -45,7 +45,7 @@ class BaselineBenchmarkRunner:
                 device_map="auto",
                 trust_remote_code=True
             )
-            logger.info("✅ Model loaded successfully")
+            logger.info("[OK] Model loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load model: {e}")
             raise
@@ -384,7 +384,7 @@ class BaselineBenchmarkRunner:
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
 
-        logger.info(f"✅ Results saved to {output_file}")
+        logger.info(f"[OK] Results saved to {output_file}")
 
         # 比較レポート生成
         self.generate_comparison_report(results)
@@ -439,7 +439,7 @@ class BaselineBenchmarkRunner:
         with open("aegis_vs_boreas_identical_comparison.json", 'w', encoding='utf-8') as f:
             json.dump(comparison_report, f, indent=2, ensure_ascii=False)
 
-        logger.info("✅ Comparison report saved to 'aegis_vs_boreas_identical_comparison.json'")
+        logger.info("[OK] Comparison report saved to 'aegis_vs_boreas_identical_comparison.json'")
 
 if __name__ == "__main__":
     runner = BaselineBenchmarkRunner()
@@ -447,6 +447,6 @@ if __name__ == "__main__":
     results = runner.run_identical_benchmarks()
     runner.save_results(results)
 
-    print("🎯 Boreas baseline benchmarking completed!")
-    print("📊 Results saved to 'boreas_baseline_benchmark_results.json'")
+    print("[TARGET] Boreas baseline benchmarking completed!")
+    print("[STATS] Results saved to 'boreas_baseline_benchmark_results.json'")
     print("📈 Comparison saved to 'aegis_vs_boreas_identical_comparison.json'")

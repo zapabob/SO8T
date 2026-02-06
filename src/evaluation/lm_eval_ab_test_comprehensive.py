@@ -77,7 +77,7 @@ class LMEvalABTester:
         model = self.models[model_key]
         results = []
 
-        print(f"\n🧪 Running {benchmark} on {model['name']} ({model_key})")
+        print(f"\n[TEST] Running {benchmark} on {model['name']} ({model_key})")
 
         for run in range(num_runs):
             print(f"  Run {run + 1}/{num_runs}...")
@@ -109,7 +109,7 @@ class LMEvalABTester:
                         '--log_samples'
                     ]
                 else:
-                    print(f"    ❌ Unknown model type: {model['type']}")
+                    print(f"    [NG] Unknown model type: {model['type']}")
                     results.append(None)
                     continue
 
@@ -127,19 +127,19 @@ class LMEvalABTester:
                             data = json.load(f)
                             score = self._extract_score(data, benchmark)
                             results.append(score)
-                            print(f"    ✅ Score: {score:.3f}")
+                            print(f"    [OK] Score: {score:.3f}")
                     else:
-                        print(f"    ❌ No results file found for run {run + 1}")
+                        print(f"    [NG] No results file found for run {run + 1}")
                         results.append(None)
                 else:
-                    print(f"    ❌ Run {run + 1} failed: {result.stderr[:200]}...")
+                    print(f"    [NG] Run {run + 1} failed: {result.stderr[:200]}...")
                     results.append(None)
 
             except subprocess.TimeoutExpired:
                 print(f"    ⏰ Run {run + 1} timed out")
                 results.append(None)
             except Exception as e:
-                print(f"    ❌ Run {run + 1} error: {e}")
+                print(f"    [NG] Run {run + 1} error: {e}")
                 results.append(None)
 
         # 統計処理
@@ -215,7 +215,7 @@ class LMEvalABTester:
 
     def analyze_results(self, results: Dict) -> Dict:
         """統計分析を実行"""
-        print("\n📊 Performing statistical analysis...")
+        print("\n[STATS] Performing statistical analysis...")
 
         analysis = {
             'summary': {},
@@ -315,7 +315,7 @@ class LMEvalABTester:
         # 全体比較グラフ
         self._create_overall_comparison_plot(analysis)
 
-        print(f"✅ Visualizations saved to {self.output_dir}")
+        print(f"[OK] Visualizations saved to {self.output_dir}")
 
     def _create_benchmark_comparison_plot(self, results: Dict, analysis: Dict):
         """ベンチマークごとの比較グラフ"""
@@ -538,7 +538,7 @@ class LMEvalABTester:
         # Markdownレポート生成
         self._generate_markdown_report(results, analysis)
 
-        print(f"✅ Results saved to {self.output_dir}")
+        print(f"[OK] Results saved to {self.output_dir}")
 
     def _generate_markdown_report(self, results: Dict, analysis: Dict):
         """Markdownレポート生成"""
@@ -584,7 +584,7 @@ class LMEvalABTester:
                     # 有意差チェック
                     if benchmark in analysis.get('comparisons', {}):
                         comp = analysis['comparisons'][benchmark]
-                        sig = "✅" if comp.get('significant', False) else "❌"
+                        sig = "[OK]" if comp.get('significant', False) else "[NG]"
                     else:
                         sig = "N/A"
 
@@ -605,9 +605,9 @@ class LMEvalABTester:
             if 'overall' in analysis and 'overall_improvement' in analysis['overall']:
                 improvement = analysis['overall']['overall_improvement']
                 if improvement > 0:
-                    f.write("🎉 **SO(8)学習により全体的な性能向上が確認されました！**\n\n")
+                    f.write("[DONE] **SO(8)学習により全体的な性能向上が確認されました！**\n\n")
                 elif improvement < 0:
-                    f.write("📊 **SO(8)学習による性能改善は確認されませんでした。**\n\n")
+                    f.write("[STATS] **SO(8)学習による性能改善は確認されませんでした。**\n\n")
                 else:
                     f.write("⚖️ **SO(8)学習による顕著な性能変化は確認されませんでした。**\n\n")
             else:
@@ -636,7 +636,7 @@ def main():
         tester.all_benchmarks = args.benchmarks
 
     print(f"🐾 Starting SO(8) A/B test with {len(tester.all_benchmarks)} benchmarks")
-    print(f"📁 Output directory: {tester.output_dir}")
+    print(f"[DIR] Output directory: {tester.output_dir}")
     print(f"🔄 Runs per benchmark: {args.num_runs}")
 
     # 全ベンチマーク実行
@@ -651,8 +651,8 @@ def main():
     # 結果保存
     tester.save_results(results, analysis)
 
-    print("\n🎯 A/Bテスト完了！")
-    print(f"📊 結果は {tester.output_dir} に保存されました")
+    print("\n[TARGET] A/Bテスト完了！")
+    print(f"[STATS] 結果は {tester.output_dir} に保存されました")
 
     # 全体結果表示
     if 'overall' in analysis:

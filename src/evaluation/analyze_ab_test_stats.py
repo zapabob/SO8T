@@ -123,7 +123,7 @@ class ABTestStatisticalAnalyzer:
 
     def perform_statistical_tests(self, df: pd.DataFrame) -> Dict[str, Any]:
         """統計検定実行（ANOVA、t-test、効果量）"""
-        print("🔬 Performing statistical analysis...")
+        print("[RESEARCH] Performing statistical analysis...")
 
         stats_results = {
             "overall_comparison": {},
@@ -214,7 +214,7 @@ class ABTestStatisticalAnalyzer:
                     "significant": p_anova < 0.05
                 }
         except Exception as e:
-            print(f"⚠️ ANOVA analysis failed: {e}")
+            print(f"[WARN] ANOVA analysis failed: {e}")
 
         return stats_results
 
@@ -232,7 +232,7 @@ class ABTestStatisticalAnalyzer:
 
     def create_comparison_plots(self, df: pd.DataFrame, stats_results: Dict[str, Any]):
         """比較グラフ作成（エラーバー付き）"""
-        print("📊 Creating comparison plots...")
+        print("[STATS] Creating comparison plots...")
 
         # タスク別比較グラフ
         plt.figure(figsize=(15, 10))
@@ -320,7 +320,7 @@ class ABTestStatisticalAnalyzer:
         plt.savefig(plot_file, dpi=300, bbox_inches='tight')
         plt.close()
 
-        print(f"📊 Plots saved to {plot_file}")
+        print(f"[STATS] Plots saved to {plot_file}")
 
     def generate_statistical_report(self, stats_results: Dict[str, Any]) -> str:
         """統計レポート生成"""
@@ -437,10 +437,10 @@ def main():
     results = analyzer.run_analysis()
 
     if results:
-        print("\n✅ Statistical analysis completed!")
-        print("📊 Next: Prepare for HF upload with scripts/evaluation/prepare_hf_upload.py")
+        print("\n[OK] Statistical analysis completed!")
+        print("[STATS] Next: Prepare for HF upload with scripts/evaluation/prepare_hf_upload.py")
     else:
-        print("\n❌ Statistical analysis failed")
+        print("\n[NG] Statistical analysis failed")
         sys.exit(1)
 
 if __name__ == "__main__":

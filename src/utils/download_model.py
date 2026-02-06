@@ -295,21 +295,21 @@ def main():
             force_download=args.force
         )
         
-        print(f"✅ Model downloaded successfully!")
-        print(f"📁 Location: {model_info['model_dir']}")
-        print(f"📊 Size: {model_info['total_size_gb']:.2f} GB")
+        print(f"[OK] Model downloaded successfully!")
+        print(f"[DIR] Location: {model_info['model_dir']}")
+        print(f"[STATS] Size: {model_info['total_size_gb']:.2f} GB")
         
         # Verify model if requested
         if args.verify:
             print("\n🔍 Verifying model...")
             if downloader.verify_model(args.model):
-                print("✅ Model verification passed!")
+                print("[OK] Model verification passed!")
             else:
-                print("❌ Model verification failed!")
+                print("[NG] Model verification failed!")
                 return 1
         
     except Exception as e:
-        print(f"❌ Error downloading model: {e}")
+        print(f"[NG] Error downloading model: {e}")
         return 1
     
     return 0

@@ -37,13 +37,13 @@ def run_ollama(model, prompt):
 
 def main():
     results = []
-    print("🚀 Starting Comprehensive A/B/C Benchmark...")
+    print("[START] Starting Comprehensive A/B/C Benchmark...")
 
     # Ensure output directory exists
     os.makedirs("_docs/benchmark_results", exist_ok=True)
 
     for model_name, model_id in MODELS.items():
-        print(f"\n🧪 Testing Model: {model_name} ({model_id})")
+        print(f"\n[TEST] Testing Model: {model_name} ({model_id})")
         
         for task in TASKS:
             print(f"   - Running {task['id']}...", end="", flush=True)
@@ -68,7 +68,7 @@ def main():
         writer.writeheader()
         writer.writerows(results)
     
-    print(f"\n✅ Benchmark Complete! Results saved to {csv_file}")
+    print(f"\n[OK] Benchmark Complete! Results saved to {csv_file}")
 
 if __name__ == "__main__":
     main()

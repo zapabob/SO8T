@@ -148,7 +148,7 @@ class SO8ResidualAdapter(nn.Module):
         }
 
 def monkey_patch_unsloth_layers(model, target_layers="middle"):
-    print("🧬 Injecting NKAT SO(8) Adapters (Robust Mixed-Precision Mode)...")
+    print("[SO8T] Injecting NKAT SO(8) Adapters (Robust Mixed-Precision Mode)...")
 
     if hasattr(model, "base_model") and hasattr(model.base_model, "model"):
         base_entity = model.base_model.model
@@ -162,7 +162,7 @@ def monkey_patch_unsloth_layers(model, target_layers="middle"):
         layers = model.layers
     else:
         # 最後の手段：名前で検索
-        print("⚠️ Layer attribute not found standardly. Searching by name...")
+        print("[WARN] Layer attribute not found standardly. Searching by name...")
         layers = None
         for name, module in model.named_modules():
             if name.endswith("layers"):
@@ -219,7 +219,7 @@ def monkey_patch_unsloth_layers(model, target_layers="middle"):
         target_module.forward = types.MethodType(new_mlp_forward, target_module)
         injected_count += 1
 
-    print(f"✅ Monkey Patched {injected_count} MLPs.")
+    print(f"[OK] Monkey Patched {injected_count} MLPs.")
 
     # 勾配有効化
     enabled_count = 0
@@ -228,7 +228,7 @@ def monkey_patch_unsloth_layers(model, target_layers="middle"):
             param.requires_grad = True
             enabled_count += 1
 
-    print(f"🔥 Force-enabled gradients for {enabled_count} SO(8) parameters")
+    print(f"[HOT] Force-enabled gradients for {enabled_count} SO(8) parameters")
 
     return model
 
@@ -345,7 +345,7 @@ class NKATLayerWrapper(nn.Module):
 
 def replace_mlp_with_nkat(model, target_layers="middle"):
     """後方互換性のための関数 - MLPのみ適用"""
-    print("🧬 Injecting NKAT SO(8) Adapters (MLP Only Mode - Legacy)...")
+    print("[SO8T] Injecting NKAT SO(8) Adapters (MLP Only Mode - Legacy)...")
     return inject_nkat_to_all_layers(model, target_layers, mode="mlp_only")
 
 
@@ -354,7 +354,7 @@ def inject_nkat_to_all_layers(model, target_layers="all", mode="full_layer"):
     Transformerのすべての層にNKATアダプターを注入
     mode: "mlp_only" - MLPのみ, "full_layer" - すべてのコンポーネント
     """
-    print(f"🧬 Injecting NKAT SO(8) Adapters (Mode: {mode})...")
+    print(f"[SO8T] Injecting NKAT SO(8) Adapters (Mode: {mode})...")
 
     # モデル構造の探索
     if hasattr(model, "base_model") and hasattr(model.base_model, "model"):
@@ -369,7 +369,7 @@ def inject_nkat_to_all_layers(model, target_layers="all", mode="full_layer"):
         layers = model.layers
     else:
         # 最後の手段：名前で検索
-        print("⚠️ Layer attribute not found standardly. Searching by name...")
+        print("[WARN] Layer attribute not found standardly. Searching by name...")
         layers = None
         for name, module in model.named_modules():
             if name.endswith("layers"):
@@ -452,7 +452,7 @@ def inject_nkat_to_all_layers(model, target_layers="all", mode="full_layer"):
             layers[i] = wrapper
             injected_count += 1
 
-    print(f"✅ Injected NKAT adapters to {injected_count} layers ({adapter_count} total adapters)")
+    print(f"[OK] Injected NKAT adapters to {injected_count} layers ({adapter_count} total adapters)")
 
     # 勾配有効化
     trainable_count = 0
@@ -461,7 +461,7 @@ def inject_nkat_to_all_layers(model, target_layers="all", mode="full_layer"):
             param.requires_grad = True
             trainable_count += 1
 
-    print(f"🔥 Force-enabled gradients for {trainable_count} SO(8) parameters")
-    print(f"🎯 Mode: {mode} - {'MLP only' if mode == 'mlp_only' else 'Full layer coverage'}")
+    print(f"[HOT] Force-enabled gradients for {trainable_count} SO(8) parameters")
+    print(f"[TARGET] Mode: {mode} - {'MLP only' if mode == 'mlp_only' else 'Full layer coverage'}")
 
     return model

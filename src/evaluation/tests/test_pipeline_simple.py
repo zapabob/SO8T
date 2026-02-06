@@ -74,7 +74,7 @@ def test_pipeline():
         return True
 
     except Exception as e:
-        print(f"❌ Error during testing: {e}")
+        print(f"[NG] Error during testing: {e}")
         import traceback
         print("\nFull traceback:")
         traceback.print_exc()

@@ -320,17 +320,17 @@ def create_detailed_report(data, analysis, output_path: str):
             f.write(f"**Question:** {b_res['question']}\n\n")
 
             f.write("#### Model A (Baseline)\n")
-            f.write(f"- **Correct:** {'✅' if b_eval['correct'] else '❌'}\n")
+            f.write(f"- **Correct:** {'[OK]' if b_eval['correct'] else '[NG]'}\n")
             f.write(".2f")
             f.write(f"- **Reasoning Quality:** {b_eval['reasoning_quality']}\n")
-            f.write(f"- **Hallucination:** {'⚠️' if b_eval['hallucination_detected'] else '✅'}\n")
+            f.write(f"- **Hallucination:** {'[WARN]' if b_eval['hallucination_detected'] else '[OK]'}\n")
             f.write(f"- **Response:** {b_res['response'][:300]}{'...' if len(b_res['response']) > 300 else ''}\n\n")
 
             f.write("#### AEGIS (Improved)\n")
-            f.write(f"- **Correct:** {'✅' if i_eval['correct'] else '❌'}\n")
+            f.write(f"- **Correct:** {'[OK]' if i_eval['correct'] else '[NG]'}\n")
             f.write(".2f")
             f.write(f"- **Reasoning Quality:** {i_eval['reasoning_quality']}\n")
-            f.write(f"- **Hallucination:** {'⚠️' if i_eval['hallucination_detected'] else '✅'}\n")
+            f.write(f"- **Hallucination:** {'[WARN]' if i_eval['hallucination_detected'] else '[OK]'}\n")
             f.write(f"- **Response:** {i_res['response'][:300]}{'...' if len(i_res['response']) > 300 else ''}\n\n")
 
         # Descriptive Statistics
@@ -351,7 +351,7 @@ def create_detailed_report(data, analysis, output_path: str):
         f.write("## Recommendations\n\n")
 
         if acc_improvement > 0.1:
-            f.write("### 🎯 **Strong Positive Results**\n")
+            f.write("### [TARGET] **Strong Positive Results**\n")
             f.write("- Current improvements are significant and promising\n")
             f.write("- Consider deploying AEGIS for production testing\n")
             f.write("- Further optimization may yield additional gains\n\n")

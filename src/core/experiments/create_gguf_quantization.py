@@ -102,13 +102,13 @@ def create_gguf_quantization():
         )
 
         if result.returncode == 0:
-            logger.info("✅ GGUF quantization completed successfully!")
+            logger.info("[OK] GGUF quantization completed successfully!")
             logger.info(f"📄 Output: {output_path}")
 
             # ファイルサイズ確認
             if os.path.exists(output_path):
                 file_size = os.path.getsize(output_path) / (1024**3)  # GB
-                logger.info(f"📊 File size: {file_size:.2f} GB")
+                logger.info(f"[STATS] File size: {file_size:.2f} GB")
             else:
                 logger.error("Output file not found")
 
@@ -143,7 +143,7 @@ def upload_gguf_to_hf(gguf_path):
             commit_message="Upload AEGIS v2.5 SO8T GGUF quantized model"
         )
 
-        logger.info("✅ GGUF upload completed!")
+        logger.info("[OK] GGUF upload completed!")
         logger.info(f"📍 GGUF URL: https://huggingface.co/{repo_id}/resolve/main/aegis_v25_so8t_gguf.gguf")
 
         return True
@@ -161,9 +161,9 @@ if __name__ == "__main__":
         upload_success = upload_gguf_to_hf(gguf_path)
 
         if upload_success:
-            print("🎉 AEGIS v2.5 GGUF model uploaded successfully!")
+            print("[DONE] AEGIS v2.5 GGUF model uploaded successfully!")
             print(f"📍 URL: https://huggingface.co/zapabobouj/AEGIS-v2.5-SO8T-Quadrality-imatrix")
         else:
-            print("❌ GGUF upload failed")
+            print("[NG] GGUF upload failed")
     else:
-        print("❌ GGUF quantization failed")
+        print("[NG] GGUF quantization failed")

@@ -377,7 +377,7 @@ def run_aegis_sft_training():
         logger.info(f"[GROKKING] Final val loss: {grokking_report['final_val_loss']:.6f}")
 
         if grokking_report['total_events'] > 0:
-            logger.info("[GROKKING] 🎉 Grokking phenomenon observed!")
+            logger.info("[GROKKING] [DONE] Grokking phenomenon observed!")
             for event in grokking_report['events'][-3:]:  # 最新3イベント表示
                 logger.info(f"[GROKKING] Event at step {event['step']}: "
                            f"Improvement ratio {event['improvement_ratio']:.2f}")

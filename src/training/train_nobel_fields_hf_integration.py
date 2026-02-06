@@ -531,7 +531,7 @@ def main():
     # モデルカード作成
     trainer.create_model_card()
 
-    print("\n🎉 AEGIS-phi3.5-v2.0 HF統合トレーニング完了！")
+    print("\n[DONE] AEGIS-phi3.5-v2.0 HF統合トレーニング完了！")
     print("HFモデルにノーベル賞・フィールズ賞級の推論機能が統合されました。")
     print("AEGISシステム: 高度知能AIによる数学・科学の自動推理が可能になりました。")
 

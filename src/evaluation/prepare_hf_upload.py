@@ -50,38 +50,38 @@ class HFUploadPreparer:
         if baseline_src.exists():
             baseline_dst = self.models_dir / "baseline_phi35_bf16"
             shutil.copytree(baseline_src, baseline_dst, dirs_exist_ok=True)
-            print(f"✅ Copied baseline model to {baseline_dst}")
+            print(f"[OK] Copied baseline model to {baseline_dst}")
 
         # AEGISモデル
         aegis_src = Path("D:/webdataset/gguf_models/aegis_phi35_so8t")
         if aegis_src.exists():
             aegis_dst = self.models_dir / "aegis_phi35_so8t"
             shutil.copytree(aegis_src, aegis_dst, dirs_exist_ok=True)
-            print(f"✅ Copied AEGIS model to {aegis_dst}")
+            print(f"[OK] Copied AEGIS model to {aegis_dst}")
 
     def copy_evaluation_results(self):
         """評価結果をコピー"""
-        print("📊 Copying evaluation results...")
+        print("[STATS] Copying evaluation results...")
 
         # A/Bテスト結果
         ab_results = list(self.results_dir.glob("ab_test_results_final_*.json"))
         if ab_results:
             latest_result = max(ab_results, key=lambda x: x.stat().st_mtime)
             shutil.copy2(latest_result, self.results_dir_upload / "ab_test_results.json")
-            print(f"✅ Copied A/B test results: {latest_result.name}")
+            print(f"[OK] Copied A/B test results: {latest_result.name}")
 
         # 統計分析結果
         stats_dir = self.results_dir / "statistics"
         if stats_dir.exists():
             shutil.copytree(stats_dir, self.stats_dir, dirs_exist_ok=True)
-            print("✅ Copied statistical analysis results")
+            print("[OK] Copied statistical analysis results")
 
         # プロット
         plots_dir = self.results_dir / "plots"
         if plots_dir.exists():
             plots_dst = self.results_dir_upload / "plots"
             shutil.copytree(plots_dir, plots_dst, dirs_exist_ok=True)
-            print("✅ Copied evaluation plots")
+            print("[OK] Copied evaluation plots")
 
     def copy_datasets(self):
         """使用したデータセットをコピー"""
@@ -91,23 +91,23 @@ class HFUploadPreparer:
         aegis_dataset = Path("data/aegis_high_quality_dataset.jsonl")
         if aegis_dataset.exists():
             shutil.copy2(aegis_dataset, self.dataset_dir / "aegis_training_dataset.jsonl")
-            print("✅ Copied AEGIS training dataset")
+            print("[OK] Copied AEGIS training dataset")
 
         # 統計情報
         stats_file = Path("data/aegis_high_quality/dataset_statistics.json")
         if stats_file.exists():
             shutil.copy2(stats_file, self.dataset_dir / "dataset_statistics.json")
-            print("✅ Copied dataset statistics")
+            print("[OK] Copied dataset statistics")
 
         # ELYZA-100
         elyza_dataset = Path("data/evaluation/elyza_100.jsonl")
         if elyza_dataset.exists():
             shutil.copy2(elyza_dataset, self.dataset_dir / "elyza_100_evaluation.jsonl")
-            print("✅ Copied ELYZA-100 evaluation dataset")
+            print("[OK] Copied ELYZA-100 evaluation dataset")
 
     def create_readme_and_metadata(self):
         """READMEとメタデータファイル作成"""
-        print("📝 Creating README and metadata files...")
+        print("[NOTE] Creating README and metadata files...")
 
         # 統計結果読み込み
         stats_file = self.stats_dir / "statistical_analysis_results.json"
@@ -279,7 +279,7 @@ This evaluation results package is released under the MIT License. The models an
         with open(metadata_file, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-        print("✅ Created README.md and metadata.json")
+        print("[OK] Created README.md and metadata.json")
 
     def get_dataset_stats(self, category: str, default: int = 0) -> int:
         """データセット統計取得"""
@@ -308,7 +308,7 @@ This evaluation results package is released under the MIT License. The models an
                     arcname = file_path.relative_to(self.upload_dir.parent)
                     zipf.write(file_path, arcname)
 
-        print(f"✅ Created upload archive: {archive_path}")
+        print(f"[OK] Created upload archive: {archive_path}")
         print(f"📏 Archive size: {archive_path.stat().st_size / (1024*1024):.2f} MB")
 
         return archive_path
@@ -328,7 +328,7 @@ This evaluation results package is released under the MIT License. The models an
             # アーカイブ作成
             archive_path = self.create_upload_archive()
 
-            print("\n🎉 HF upload preparation completed!")
+            print("\n[DONE] HF upload preparation completed!")
             print(f"📦 Upload package: {self.upload_dir}")
             print(f"📦 Archive: {archive_path}")
             print("")
@@ -340,9 +340,9 @@ This evaluation results package is released under the MIT License. The models an
         except Exception as e:
             # Avoid encoding issues (e.g., cp932) by encoding errors if needed
             try:
-                print(f"❌ Preparation failed: {e}")
+                print(f"[NG] Preparation failed: {e}")
             except UnicodeEncodeError:
-                print("❌ Preparation failed: <UnicodeEncodeError (cp932等)>")
+                print("[NG] Preparation failed: <UnicodeEncodeError (cp932等)>")
             return False
 
 def main():
@@ -360,13 +360,13 @@ def main():
     success = preparer.run_preparation()
 
     if success:
-        print("\n✅ HF upload preparation completed!")
-        print("🎯 Next steps:")
+        print("\n[OK] HF upload preparation completed!")
+        print("[TARGET] Next steps:")
         print("   1. Review the upload package in hf_upload_package/")
         print("   2. Create HF repository: huggingface-cli repo create aegis-ab-test-results")
         print("   3. Upload: huggingface-cli upload <username>/aegis-ab-test-results hf_upload_package/")
     else:
-        print("\n❌ HF upload preparation failed")
+        print("\n[NG] HF upload preparation failed")
         sys.exit(1)
 
 if __name__ == "__main__":

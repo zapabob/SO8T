@@ -303,10 +303,10 @@ def plot_model_behavior_summary(report: Dict[str, Any], output_dir: Path):
     
     # 総合評価
     ax4.text(0.1, 0.5, f"Overall Assessment:", fontsize=14, fontweight='bold', transform=ax4.transAxes)
-    ax4.text(0.1, 0.4, f"  ✓ Model is NOT overconfident", fontsize=12, color="green", transform=ax4.transAxes)
-    ax4.text(0.1, 0.3, f"  ✓ Model is actively learning", fontsize=12, color="green", transform=ax4.transAxes)
-    ax4.text(0.1, 0.2, f"  ✓ Model shows healthy uncertainty", fontsize=12, color="green", transform=ax4.transAxes)
-    ax4.text(0.1, 0.1, f"  ✓ Anti-local-minimum success!", fontsize=12, color="green", fontweight='bold', transform=ax4.transAxes)
+    ax4.text(0.1, 0.4, f"  [OK] Model is NOT overconfident", fontsize=12, color="green", transform=ax4.transAxes)
+    ax4.text(0.1, 0.3, f"  [OK] Model is actively learning", fontsize=12, color="green", transform=ax4.transAxes)
+    ax4.text(0.1, 0.2, f"  [OK] Model shows healthy uncertainty", fontsize=12, color="green", transform=ax4.transAxes)
+    ax4.text(0.1, 0.1, f"  [OK] Anti-local-minimum success!", fontsize=12, color="green", fontweight='bold', transform=ax4.transAxes)
     
     ax4.set_xlim(0, 1)
     ax4.set_ylim(0, 1)
@@ -357,11 +357,11 @@ def create_inference_summary_report(report: Dict[str, Any], output_dir: Path):
         
         # 解釈
         f.write("Interpretation:\n")
-        f.write("  ✓ Model shows healthy uncertainty (not overconfident)\n")
-        f.write("  ✓ High PET Loss indicates active learning\n")
-        f.write("  ✓ Model is NOT stuck in local minimum\n")
-        f.write("  ✓ Anti-local-minimum interventions are working\n")
-        f.write("  ✓ Model demonstrates 'world-questioning' behavior\n\n")
+        f.write("  [OK] Model shows healthy uncertainty (not overconfident)\n")
+        f.write("  [OK] High PET Loss indicates active learning\n")
+        f.write("  [OK] Model is NOT stuck in local minimum\n")
+        f.write("  [OK] Anti-local-minimum interventions are working\n")
+        f.write("  [OK] Model demonstrates 'world-questioning' behavior\n\n")
         
         # 推奨事項
         f.write("Recommendations:\n")

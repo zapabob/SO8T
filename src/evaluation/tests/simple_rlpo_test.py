@@ -21,27 +21,27 @@ def test_imports():
     try:
         from src.models.so8t_residual_adapter import SO8ResidualAdapter
         from src.utils.checkpoint_manager import RollingCheckpointManager
-        print("✅ All imports successful")
+        print("[OK] All imports successful")
         return True
     except ImportError as e:
-        print(f"❌ Import failed: {e}")
+        print(f"[NG] Import failed: {e}")
         return False
 
 def test_datasets():
-    print("📊 Testing Datasets...")
+    print("[STATS] Testing Datasets...")
     science_path = Path("data/science_reasoning_dataset_final.jsonl")
     nsfw_path = Path("data/nsfw_drug_detection/nsfw_drug_mixed_dataset.jsonl")
 
     science_exists = science_path.exists()
     nsfw_exists = nsfw_path.exists()
 
-    print(f"Science dataset: {'✅' if science_exists else '❌'}")
-    print(f"NSFW dataset: {'✅' if nsfw_exists else '❌'}")
+    print(f"Science dataset: {'[OK]' if science_exists else '[NG]'}")
+    print(f"NSFW dataset: {'[OK]' if nsfw_exists else '[NG]'}")
 
     return science_exists and nsfw_exists
 
 def test_nkat_adapter():
-    print("🧬 Testing NKAT Adapter...")
+    print("[SO8T] Testing NKAT Adapter...")
     try:
         from src.models.so8t_residual_adapter import SO8ResidualAdapter, inject_nkat_to_all_layers
         from transformers import AutoModelForCausalLM
@@ -49,7 +49,7 @@ def test_nkat_adapter():
         # アダプター単体テスト
         adapter = SO8ResidualAdapter(hidden_size=512)
         stats = adapter.get_adapter_stats()
-        print(f"✅ Adapter created - Alpha: {stats['alpha']:.4f}")
+        print(f"[OK] Adapter created - Alpha: {stats['alpha']:.4f}")
 
         # 完全層適用テスト
         print("Testing full layer injection...")
@@ -64,10 +64,10 @@ def test_nkat_adapter():
         # すべての層に適用
         model = inject_nkat_to_all_layers(model, target_layers=[0, 1], mode="full_layer")
 
-        print(f"✅ Full layer injection successful")
+        print(f"[OK] Full layer injection successful")
         return True
     except Exception as e:
-        print(f"❌ Adapter test failed: {e}")
+        print(f"[NG] Adapter test failed: {e}")
         return False
 
 def test_checkpoint_manager():
@@ -76,14 +76,14 @@ def test_checkpoint_manager():
         from src.utils.checkpoint_manager import create_task_manager
         manager = create_task_manager("test_task", "test_checkpoints")
         status = manager.get_status()
-        print(f"✅ Checkpoint manager created - Task: {status['task_name']}")
+        print(f"[OK] Checkpoint manager created - Task: {status['task_name']}")
         return True
     except Exception as e:
-        print(f"❌ Checkpoint manager failed: {e}")
+        print(f"[NG] Checkpoint manager failed: {e}")
         return False
 
 def test_full_layer_adapters():
-    print("🧬 Testing Full Layer NKAT Adapters...")
+    print("[SO8T] Testing Full Layer NKAT Adapters...")
     try:
         from src.models.so8t_residual_adapter import inject_nkat_to_all_layers
         from transformers import AutoModelForCausalLM
@@ -101,10 +101,10 @@ def test_full_layer_adapters():
 
         # アダプター数の確認
         adapter_count = sum(1 for name, _ in model.named_modules() if 'nkat_adapter' in name)
-        print(f"✅ Full layer adapters injected - Total adapters: {adapter_count}")
+        print(f"[OK] Full layer adapters injected - Total adapters: {adapter_count}")
         return True
     except Exception as e:
-        print(f"❌ Full layer adapter test failed: {e}")
+        print(f"[NG] Full layer adapter test failed: {e}")
         return False
 
 def main():
@@ -127,7 +127,7 @@ def main():
             results.append((name, result))
             print()
         except Exception as e:
-            print(f"❌ {name} crashed: {e}")
+            print(f"[NG] {name} crashed: {e}")
             results.append((name, False))
             print()
 
@@ -136,14 +136,14 @@ def main():
 
     all_passed = True
     for name, passed in results:
-        status = "✅ PASSED" if passed else "❌ FAILED"
+        status = "[OK] PASSED" if passed else "[NG] FAILED"
         print(f"  {name}: {status}")
         if not passed:
             all_passed = False
 
     print()
     if all_passed:
-        print("🎉 ALL TESTS PASSED!")
+        print("[DONE] ALL TESTS PASSED!")
         print("[START] AEGIS Complete Autonomous System Ready!")
         print()
         print("Available Commands:")
@@ -161,13 +161,13 @@ def main():
         print("     Windows will automatically restart training on next boot")
         print()
         print("Features:")
-        print("  ✅ 3-minute rolling checkpoints (5 stock)")
-        print("  ✅ All Transformer layers get NKAT adapters")
-        print("  ✅ Science + NSFW drug RLPO training")
-        print("  ✅ Power interruption auto-recovery")
-        print("  ✅ Complete autonomous operation")
+        print("  [OK] 3-minute rolling checkpoints (5 stock)")
+        print("  [OK] All Transformer layers get NKAT adapters")
+        print("  [OK] Science + NSFW drug RLPO training")
+        print("  [OK] Power interruption auto-recovery")
+        print("  [OK] Complete autonomous operation")
     else:
-        print("❌ Some tests failed. Check the errors above.")
+        print("[NG] Some tests failed. Check the errors above.")
 
     return all_passed
 

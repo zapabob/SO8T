@@ -93,7 +93,7 @@ def plot_error_bars(mmlu_stats: pd.DataFrame, elyza_stats: pd.DataFrame, output_
     
     plt.tight_layout()
     plt.savefig(output_dir / 'benchmark_comparison.png', dpi=300, bbox_inches='tight')
-    print(f"✓ Saved error-bar graph: {output_dir / 'benchmark_comparison.png'}")
+    print(f"[OK] Saved error-bar graph: {output_dir / 'benchmark_comparison.png'}")
 
 def plot_combined_performance(mmlu_stats: pd.DataFrame, elyza_stats: pd.DataFrame, output_dir: Path):
     """Generate combined performance graph"""
@@ -133,7 +133,7 @@ def plot_combined_performance(mmlu_stats: pd.DataFrame, elyza_stats: pd.DataFram
     
     plt.tight_layout()
     plt.savefig(output_dir / 'combined_benchmark.png', dpi=300, bbox_inches='tight')
-    print(f"✓ Saved combined graph: {output_dir / 'combined_benchmark.png'}")
+    print(f"[OK] Saved combined graph: {output_dir / 'combined_benchmark.png'}")
 
 def generate_summary_tables(mmlu_stats: pd.DataFrame, elyza_stats: pd.DataFrame, 
                             mmlu_results: List[Dict], elyza_results: List[Dict],
@@ -142,8 +142,8 @@ def generate_summary_tables(mmlu_stats: pd.DataFrame, elyza_stats: pd.DataFrame,
     # Overall statistics
     mmlu_stats.to_csv(output_dir / 'mmlu_summary_statistics.csv', index=False)
     elyza_stats.to_csv(output_dir / 'elyza_summary_statistics.csv', index=False)
-    print(f"✓ Saved MMLU statistics: {output_dir / 'mmlu_summary_statistics.csv'}")
-    print(f"✓ Saved ELYZA statistics: {output_dir / 'elyza_summary_statistics.csv'}")
+    print(f"[OK] Saved MMLU statistics: {output_dir / 'mmlu_summary_statistics.csv'}")
+    print(f"[OK] Saved ELYZA statistics: {output_dir / 'elyza_summary_statistics.csv'}")
     
     # Domain/Category breakdown
     mmlu_domain_data = []
@@ -156,7 +156,7 @@ def generate_summary_tables(mmlu_stats: pd.DataFrame, elyza_stats: pd.DataFrame,
                 'Accuracy': stats['accuracy']
             })
     pd.DataFrame(mmlu_domain_data).to_csv(output_dir / 'mmlu_domain_breakdown.csv', index=False)
-    print(f"✓ Saved MMLU domain breakdown: {output_dir / 'mmlu_domain_breakdown.csv'}")
+    print(f"[OK] Saved MMLU domain breakdown: {output_dir / 'mmlu_domain_breakdown.csv'}")
     
     elyza_category_data = []
     for result in elyza_results:
@@ -168,7 +168,7 @@ def generate_summary_tables(mmlu_stats: pd.DataFrame, elyza_stats: pd.DataFrame,
                 'Accuracy': stats['accuracy']
             })
     pd.DataFrame(elyza_category_data).to_csv(output_dir / 'elyza_category_breakdown.csv', index=False)
-    print(f"✓ Saved ELYZA category breakdown: {output_dir / 'elyza_category_breakdown.csv'}")
+    print(f"[OK] Saved ELYZA category breakdown: {output_dir / 'elyza_category_breakdown.csv'}")
 
 def perform_significance_tests(mmlu_results: List[Dict], elyza_results: List[Dict], output_dir: Path):
     """Perform t-tests between models"""
@@ -226,7 +226,7 @@ def perform_significance_tests(mmlu_results: List[Dict], elyza_results: List[Dic
             })
     
     pd.DataFrame(significance_data).to_csv(output_dir / 'significance_tests.csv', index=False)
-    print(f"\n✓ Saved significance tests: {output_dir / 'significance_tests.csv'}")
+    print(f"\n[OK] Saved significance tests: {output_dir / 'significance_tests.csv'}")
     print("\nKey: *** p<0.001, ** p<0.01, * p<0.05, ns = not significant")
 
 def main():
@@ -238,11 +238,11 @@ def main():
     results_dir = Path("_docs/benchmark_results")
     
     # Load results
-    print("\n📊 Loading benchmark results...")
+    print("\n[STATS] Loading benchmark results...")
     mmlu_results = load_results(results_dir / "mmlu_results.json")
     elyza_results = load_results(results_dir / "elyza_results.json")
-    print(f"  ✓ Loaded {len(mmlu_results)} MMLU results")
-    print(f"  ✓ Loaded {len(elyza_results)} ELYZA results")
+    print(f"  [OK] Loaded {len(mmlu_results)} MMLU results")
+    print(f"  [OK] Loaded {len(elyza_results)} ELYZA results")
     
     # Calculate statistics
     print("\n📈 Calculating statistics...")
@@ -268,7 +268,7 @@ def main():
     perform_significance_tests(mmlu_results, elyza_results, results_dir)
     
     print("\n" + "="*60)
-    print("✅ ANALYSIS COMPLETE!")
+    print("[OK] ANALYSIS COMPLETE!")
     print("="*60)
 
 if __name__ == "__main__":

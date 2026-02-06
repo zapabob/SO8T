@@ -340,9 +340,9 @@ def main():
             mean_improvement = valid_results['improvement'].mean()
             print(f"Mean improvement: {mean_improvement:.4f}")
             if mean_improvement > 0:
-                print(f"✅ {args.model_b_name} shows improvement over {args.model_a_name}!")
+                print(f"[OK] {args.model_b_name} shows improvement over {args.model_a_name}!")
             else:
-                print(f"❌ {args.model_b_name} did not show improvement over {args.model_a_name}.")
+                print(f"[NG] {args.model_b_name} did not show improvement over {args.model_a_name}.")
 
     print("\nA/B test completed successfully!")
 

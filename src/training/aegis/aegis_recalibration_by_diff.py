@@ -76,7 +76,7 @@ def recalibrate_by_diff():
     print(f"   💾 Saving Adjusted AEGIS to {args.output_dir}...")
     base_model.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
-    print("   ✅ Recalibration Complete.")
+    print("   [OK] Recalibration Complete.")
     
     # Cleanup
     del source_model

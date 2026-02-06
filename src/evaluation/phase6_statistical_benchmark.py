@@ -699,8 +699,8 @@ class IndustryStandardBenchmark:
             if isinstance(data, dict):
                 t_stat = data.get("t_statistic", 0)
                 p_val = data.get("p_value", 1)
-                sig_05 = "✓" if data.get("significant_005", False) else "✗"
-                sig_01 = "✓" if data.get("significant_001", False) else "✗"
+                sig_05 = "[OK]" if data.get("significant_005", False) else "[NG]"
+                sig_01 = "[OK]" if data.get("significant_001", False) else "[NG]"
                 
                 display_name = comparison.replace("model_", "M").replace("_vs_", " vs ")
                 rows.append(f"| {display_name} | {t_stat:.4f} | {p_val:.6f} | {sig_05} | {sig_01} |")

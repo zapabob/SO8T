@@ -115,9 +115,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -239,9 +239,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -363,9 +363,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -487,9 +487,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -611,9 +611,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -735,9 +735,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -859,9 +859,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -983,9 +983,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -1107,9 +1107,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -1231,9 +1231,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 
@@ -1355,9 +1355,9 @@ def test_training():
     print("Starting training test...")
     try:
         trainer.train()
-        print("✅ Training test successful!")
+        print("[OK] Training test successful!")
     except Exception as e:
-        print(f"❌ Training test failed: {e}")
+        print(f"[NG] Training test failed: {e}")
         import traceback
         traceback.print_exc()
 

@@ -11,8 +11,8 @@ for mid in model_ids:
     print(f"Checking {mid}...")
     try:
         tokenizer = AutoTokenizer.from_pretrained(mid, trust_remote_code=True)
-        print(f"✅ Found tokenizer: {mid}")
+        print(f"[OK] Found tokenizer: {mid}")
         print(f"   Vocab size: {len(tokenizer)}")
         break
     except Exception as e:
-        print(f"❌ Failed: {e}")
+        print(f"[NG] Failed: {e}")

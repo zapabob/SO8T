@@ -248,10 +248,10 @@ class ThinkingSFTTrainer:
 
     def train(self):
         """Thinking SFTトレーニングの実行"""
-        logger.info("🚀 Starting Thinking SFT Training")
-        logger.info(f"📊 Training examples: {len(self.train_dataset)}")
-        logger.info(f"📊 Validation examples: {len(self.val_dataset)}")
-        logger.info(f"🎯 Max steps: {self.training_args.num_train_epochs * len(self.train_dataset) // (self.config.batch_size * self.config.gradient_accumulation_steps)}")
+        logger.info("[START] Starting Thinking SFT Training")
+        logger.info(f"[STATS] Training examples: {len(self.train_dataset)}")
+        logger.info(f"[STATS] Validation examples: {len(self.val_dataset)}")
+        logger.info(f"[TARGET] Max steps: {self.training_args.num_train_epochs * len(self.train_dataset) // (self.config.batch_size * self.config.gradient_accumulation_steps)}")
 
         start_time = time.time()
 
@@ -279,7 +279,7 @@ class ThinkingSFTTrainer:
         self.tokenizer.save_pretrained(final_model_path)
 
         total_time = time.time() - start_time
-        logger.info("✅ Thinking SFT Training completed!"        logger.info(".2f"        logger.info(".2f"
+        logger.info("[OK] Thinking SFT Training completed!"        logger.info(".2f"        logger.info(".2f"
         # 音声通知
         try:
             import subprocess
@@ -330,8 +330,8 @@ def main():
     trainer = ThinkingSFTTrainer(config)
     final_model_path = trainer.train()
 
-    print(f"\n🎉 Thinking SFT completed!")
-    print(f"📁 Final model saved to: {final_model_path}")
+    print(f"\n[DONE] Thinking SFT completed!")
+    print(f"[DIR] Final model saved to: {final_model_path}")
     print(f"🧠 Model is now capable of /thinking functionality")
 
 if __name__ == "__main__":

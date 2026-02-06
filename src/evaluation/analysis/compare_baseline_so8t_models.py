@@ -165,7 +165,7 @@ class SO8TBaselineComparator:
 
     def generate_comparison_report(self) -> str:
         """比較レポートの生成"""
-        print("📊 Generating comprehensive comparison report...")
+        print("[STATS] Generating comprehensive comparison report...")
 
         try:
             # データ収集
@@ -273,19 +273,19 @@ SO(8)幾何学的アダプターの導入は理論的に有望だが、実装段
             with open(report_path, 'w', encoding='utf-8') as f:
                 f.write(report_content)
 
-            print(f"✅ Comparison report saved to: {report_path}")
+            print(f"[OK] Comparison report saved to: {report_path}")
 
             return report_content
 
         except Exception as e:
-            print(f"❌ Error generating report: {e}")
+            print(f"[NG] Error generating report: {e}")
             import traceback
             traceback.print_exc()
             return ""
 
 def main():
     """メイン実行関数"""
-    print("🚀 Starting SO8T vs Baseline Model Comparison Analysis")
+    print("[START] Starting SO8T vs Baseline Model Comparison Analysis")
     print("=" * 60)
 
     comparator = SO8TBaselineComparator()
@@ -294,11 +294,11 @@ def main():
         # 比較レポート生成
         report = comparator.generate_comparison_report()
 
-        print("\n✅ Analysis completed successfully!")
-        print("📊 Generated comparison report and visualizations")
+        print("\n[OK] Analysis completed successfully!")
+        print("[STATS] Generated comparison report and visualizations")
 
     except Exception as e:
-        print(f"❌ Analysis failed: {e}")
+        print(f"[NG] Analysis failed: {e}")
         import traceback
         traceback.print_exc()
 

@@ -20,7 +20,7 @@ try:
     from transformers import AutoTokenizer, AutoModelForCausalLM, DataCollatorForLanguageModeling
     from torch.utils.data import DataLoader
 except ImportError:
-    print("❌ Missing required libraries: `datasets` or `transformers`.")
+    print("[NG] Missing required libraries: `datasets` or `transformers`.")
     sys.exit(1)
 
 def linear_annealing(step, warmup_steps, annealing_steps, start_alpha, target_alpha):
@@ -98,7 +98,7 @@ def train():
 
     # --- 1. Setup ---
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🚀 Device: {device}")
+    print(f"[START] Device: {device}")
 
     # --- 2. Data Loading (Borea-Phi3.5 Knowledge) ---
     print("📚 Loading Knowledge: TFMC/imatrix-dataset-for-japanese-llm...")
@@ -138,7 +138,7 @@ def train():
     optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
 
     # --- 4. Training Loop (Phase Transition) ---
-    print(f"🔥 Ignition! Starting AEGIS Upgrade Sequence...")
+    print(f"[HOT] Ignition! Starting AEGIS Upgrade Sequence...")
     print(f"   Target Alpha: {1.6180339887} (Golden Ratio)")
     
     PHI = 1.6180339887
@@ -211,7 +211,7 @@ def train():
         if step >= args.max_steps:
             break
 
-    print("\n✅ AEGIS Upgrade complete. Model is ready for GGUF conversion.")
+    print("\n[OK] AEGIS Upgrade complete. Model is ready for GGUF conversion.")
     
     # Final Save
     final_save_dir = os.path.join(project_root, "agiasi_phi3_final")

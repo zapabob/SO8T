@@ -281,9 +281,9 @@ class SO8TOllama32EnhancedTester:
         for i, result in enumerate(self.test_results, 1):
             evaluation = result['evaluation']
             logger.info(f"\nテスト {i}: {result['test_name']}")
-            logger.info(f"  全体成功: {'✓' if evaluation['overall_success'] else '✗'}")
+            logger.info(f"  全体成功: {'[OK]' if evaluation['overall_success'] else '[NG]'}")
             logger.info(f"  ソリューション品質: {evaluation['solution_quality']:.3f}")
-            logger.info(f"  安全性: {'✓' if evaluation['safety_compliance'] else '✗'}")
+            logger.info(f"  安全性: {'[OK]' if evaluation['safety_compliance'] else '[NG]'}")
             logger.info(f"  一貫性: {evaluation['consistency_score']:.3f}")
             logger.info(f"  完全性: {evaluation['completeness_score']:.3f}")
             logger.info(f"  精度: {evaluation['accuracy_score']:.3f}")
@@ -387,9 +387,9 @@ class SO8TOllama32EnhancedTester:
 **問題**: {result['problem'][:100]}...
 
 **結果**:
-- 全体成功: {'✓' if evaluation['overall_success'] else '✗'}
+- 全体成功: {'[OK]' if evaluation['overall_success'] else '[NG]'}
 - ソリューション品質: {evaluation['solution_quality']:.3f}
-- 安全性: {'✓' if evaluation['safety_compliance'] else '✗'}
+- 安全性: {'[OK]' if evaluation['safety_compliance'] else '[NG]'}
 - 一貫性: {evaluation['consistency_score']:.3f}
 - 完全性: {evaluation['completeness_score']:.3f}
 - 精度: {evaluation['accuracy_score']:.3f}

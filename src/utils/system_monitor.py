@@ -263,7 +263,7 @@ def main():
     elif args.restart_services:
         print("🔄 Restarting failed services...")
         monitor.restart_failed_services()
-        print("✅ Service restart completed")
+        print("[OK] Service restart completed")
 
     elif args.daemon:
         print("🤖 Starting AEGIS system monitor daemon...")
@@ -272,7 +272,7 @@ def main():
         except KeyboardInterrupt:
             print("\n🛑 Monitor stopped by user")
         except Exception as e:
-            print(f"\n❌ Monitor crashed: {e}")
+            print(f"\n[NG] Monitor crashed: {e}")
 
     else:
         print("AEGIS System Monitor")

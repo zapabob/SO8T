@@ -13,7 +13,7 @@ from datetime import datetime
 
 def setup_llamacpp_environment(llamacpp_path):
     """llama.cpp環境をセットアップ"""
-    print("🔧 llama.cpp環境をセットアップ中...")
+    print("[FIX] llama.cpp環境をセットアップ中...")
     
     # llama.cppディレクトリの存在確認
     if not os.path.exists(llamacpp_path):
@@ -24,7 +24,7 @@ def setup_llamacpp_environment(llamacpp_path):
     if not os.path.exists(convert_script):
         raise FileNotFoundError(f"convert_hf_to_gguf.pyが見つかりません: {convert_script}")
     
-    print(f"✅ llama.cpp環境確認完了: {llamacpp_path}")
+    print(f"[OK] llama.cpp環境確認完了: {llamacpp_path}")
     return convert_script
 
 def convert_model_to_gguf(
@@ -55,7 +55,7 @@ def convert_model_to_gguf(
         "--verbose"
     ]
     
-    print(f"🚀 変換コマンド実行: {' '.join(cmd)}")
+    print(f"[START] 変換コマンド実行: {' '.join(cmd)}")
     
     try:
         # 変換を実行
@@ -68,16 +68,16 @@ def convert_model_to_gguf(
         )
         
         if result.returncode == 0:
-            print("✅ モデル変換成功！")
+            print("[OK] モデル変換成功！")
             
             # ファイルサイズを確認
             if os.path.exists(output_file):
                 file_size = os.path.getsize(output_file) / (1024**3)  # GB
-                print(f"📊 ファイルサイズ: {file_size:.2f} GB")
+                print(f"[STATS] ファイルサイズ: {file_size:.2f} GB")
             
             return output_file, result.stdout, result.stderr
         else:
-            print(f"❌ モデル変換失敗 (終了コード: {result.returncode})")
+            print(f"[NG] モデル変換失敗 (終了コード: {result.returncode})")
             print(f"エラー出力: {result.stderr}")
             return None, result.stdout, result.stderr
             
@@ -85,12 +85,12 @@ def convert_model_to_gguf(
         print("⏰ 変換タイムアウト (30分)")
         return None, "", "Timeout"
     except Exception as e:
-        print(f"❌ 変換中にエラーが発生: {str(e)}")
+        print(f"[NG] 変換中にエラーが発生: {str(e)}")
         return None, "", str(e)
 
 def create_modelfile(output_file, model_name, output_dir):
     """Modelfileを作成"""
-    print("📝 Modelfileを作成中...")
+    print("[NOTE] Modelfileを作成中...")
     
     modelfile_content = f'''FROM {output_file}
 
@@ -140,7 +140,7 @@ PARAMETER num_predict 2048
     with open(modelfile_path, 'w', encoding='utf-8') as f:
         f.write(modelfile_content)
     
-    print(f"✅ Modelfile作成完了: {modelfile_path}")
+    print(f"[OK] Modelfile作成完了: {modelfile_path}")
     return modelfile_path
 
 def create_ollama_commands(model_name, modelfile_path, output_dir):
@@ -165,7 +165,7 @@ def create_ollama_commands(model_name, modelfile_path, output_dir):
             f.write(f"# {name}\n")
             f.write(f"{command}\n\n")
     
-    print(f"✅ Ollamaコマンドファイル作成完了: {commands_file}")
+    print(f"[OK] Ollamaコマンドファイル作成完了: {commands_file}")
     return commands_file
 
 def main():
@@ -183,8 +183,8 @@ def main():
     args = parser.parse_args()
     
     print("🔄 SO8T×マルチモーダルLLM llama.cpp変換開始...")
-    print(f"📁 入力モデル: {args.model_path}")
-    print(f"📁 出力ディレクトリ: {args.output_dir}")
+    print(f"[DIR] 入力モデル: {args.model_path}")
+    print(f"[DIR] 出力ディレクトリ: {args.output_dir}")
     print(f"🏷️ モデル名: {args.model_name}")
     print(f"⚙️ 量子化: {args.quantization}")
     
@@ -205,7 +205,7 @@ def main():
         commands_file = create_ollama_commands(args.model_name, modelfile_path, args.output_dir)
         
         # 結果サマリー
-        print("\n📊 変換結果サマリー")
+        print("\n[STATS] 変換結果サマリー")
         print("=" * 50)
         print(f"モデル名: {args.model_name}")
         print(f"量子化: {args.quantization}")
@@ -221,10 +221,10 @@ def main():
         print(f"1. ollama create {args.model_name} -f \"{modelfile_path}\"")
         print(f"2. ollama run {args.model_name}")
         
-        print("\n✅ llama.cpp変換完了！")
+        print("\n[OK] llama.cpp変換完了！")
         
     else:
-        print("\n❌ 変換に失敗しました")
+        print("\n[NG] 変換に失敗しました")
         if stderr:
             print(f"エラー詳細: {stderr}")
         sys.exit(1)

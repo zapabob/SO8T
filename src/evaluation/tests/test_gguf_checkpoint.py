@@ -14,7 +14,7 @@ sys.path.append(str(Path(__file__).parent))
 
 def test_gguf_checkpoint():
     """GGUF変換チェックポイント機能をテスト"""
-    print("🧪 Testing GGUF Conversion Checkpoint System")
+    print("[TEST] Testing GGUF Conversion Checkpoint System")
     print("=" * 50)
 
     try:
@@ -45,7 +45,7 @@ def test_gguf_checkpoint():
 
             def mark_completed(self):
                 self.state["stage"] = "completed"
-                print("✅ GGUF conversion completed")
+                print("[OK] GGUF conversion completed")
 
             def get_status(self):
                 return self.state
@@ -55,29 +55,29 @@ def test_gguf_checkpoint():
             model_name="test_model"
         )
 
-        print("✅ Checkpoint manager created")
+        print("[OK] Checkpoint manager created")
 
         # 進捗更新テスト
         checkpoint.update_progress("loading_model", 0.1)
-        print("✅ Progress update: loading_model")
+        print("[OK] Progress update: loading_model")
 
         checkpoint.update_progress("converting_tensors", 0.5)
-        print("✅ Progress update: converting_tensors")
+        print("[OK] Progress update: converting_tensors")
 
         checkpoint.update_progress("saving_vocab", 0.9)
-        print("✅ Progress update: saving_vocab")
+        print("[OK] Progress update: saving_vocab")
 
         # チェックポイント保存テスト
         checkpoint.save_checkpoint("test_checkpoint")
-        print("✅ Checkpoint saved")
+        print("[OK] Checkpoint saved")
 
         # 状態取得テスト
         status = checkpoint.get_status()
-        print(f"✅ Status retrieved: {status['stage']} ({status['progress']:.1%})")
+        print(f"[OK] Status retrieved: {status['stage']} ({status['progress']:.1%})")
 
         # 完了マークテスト
         checkpoint.mark_completed()
-        print("✅ Task marked as completed")
+        print("[OK] Task marked as completed")
 
         # クリーンアップ
         if test_dir.exists():
@@ -86,21 +86,21 @@ def test_gguf_checkpoint():
         return True
 
     except Exception as e:
-        print(f"❌ GGUF checkpoint test failed: {e}")
+        print(f"[NG] GGUF checkpoint test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def test_task_manager_gguf():
     """タスクマネージャーのGGUF変換機能をテスト"""
-    print("\n🧪 Testing Task Manager GGUF Integration")
+    print("\n[TEST] Testing Task Manager GGUF Integration")
     print("=" * 50)
 
     try:
         from src.utils.task_manager import run_gguf_conversion
 
         # 簡単なテスト（実際のモデル変換は行わない）
-        print("✅ GGUF conversion function imported")
+        print("[OK] GGUF conversion function imported")
 
         # 引数検証テスト
         test_kwargs = {
@@ -108,11 +108,11 @@ def test_task_manager_gguf():
             'output_file': 'test_output.gguf'
         }
 
-        print(f"✅ Test kwargs: {test_kwargs}")
+        print(f"[OK] Test kwargs: {test_kwargs}")
         return True
 
     except Exception as e:
-        print(f"❌ Task manager GGUF test failed: {e}")
+        print(f"[NG] Task manager GGUF test failed: {e}")
         return False
 
 def main():
@@ -131,25 +131,25 @@ def main():
         try:
             result = test_func()
             results.append(result)
-            print(f"📋 {test_name}: {'✅ PASSED' if result else '❌ FAILED'}")
+            print(f"📋 {test_name}: {'[OK] PASSED' if result else '[NG] FAILED'}")
         except Exception as e:
-            print(f"📋 {test_name}: ❌ FAILED - {e}")
+            print(f"📋 {test_name}: [NG] FAILED - {e}")
             results.append(False)
 
     print("\n" + "=" * 60)
-    print("📊 TEST RESULTS:")
+    print("[STATS] TEST RESULTS:")
 
     passed = sum(results)
     total = len(results)
 
     for i, (test_name, _) in enumerate(tests):
-        status = "✅ PASSED" if results[i] else "❌ FAILED"
+        status = "[OK] PASSED" if results[i] else "[NG] FAILED"
         print(f"  {test_name}: {status}")
 
-    print(f"\n🎯 Overall: {passed}/{total} tests passed")
+    print(f"\n[TARGET] Overall: {passed}/{total} tests passed")
 
     if all(results):
-        print("\n🎉 ALL TESTS PASSED!")
+        print("\n[DONE] ALL TESTS PASSED!")
         print("[START] GGUF conversion with checkpointing is ready!")
         print("\nUsage:")
         print("  # Direct GGUF conversion with checkpointing:")
@@ -157,7 +157,7 @@ def main():
         print("\n  # Full autonomous pipeline (includes GGUF conversion):")
         print("  .\\auto_aegis_pipeline.bat")
     else:
-        print("\n❌ Some tests failed. Check the errors above.")
+        print("\n[NG] Some tests failed. Check the errors above.")
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ import pandas as pd
 from pathlib import Path
 
 def main():
-    print('📊 SUNSHINE EXPERIMENT RESULTS')
+    print('[STATS] SUNSHINE EXPERIMENT RESULTS')
     print('=' * 50)
 
     baseline_metrics = Path('logs/sunshine/sunshine_run_baseline_metrics.json')

@@ -477,7 +477,7 @@ class ComplexProblemTester:
 **プロンプト**: {result['prompt'][:150]}...
 
 **結果**:
-- 成功: {'✓' if evaluation['success'] else '✗'}
+- 成功: {'[OK]' if evaluation['success'] else '[NG]'}
 - キーワードマッチ数: {evaluation['keyword_matches']}
 - キーワードマッチ率: {evaluation['keyword_match_rate']:.3f}
 - レスポンス品質: {evaluation['response_quality']:.3f}

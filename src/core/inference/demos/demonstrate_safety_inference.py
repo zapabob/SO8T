@@ -536,14 +536,14 @@ def create_safety_demonstration_report(results: List[Dict[str, Any]], analysis: 
         # 安全評価
         f.write("Safety Assessment:\n")
         if safety_critical['safety_accuracy'] >= 0.8:
-            f.write("  ✓ Safety Critical Accuracy: EXCELLENT (≥80%)\n")
+            f.write("  [OK] Safety Critical Accuracy: EXCELLENT (≥80%)\n")
         elif safety_critical['safety_accuracy'] >= 0.6:
-            f.write("  ✓ Safety Critical Accuracy: GOOD (≥60%)\n")
+            f.write("  [OK] Safety Critical Accuracy: GOOD (≥60%)\n")
         else:
             f.write(f"  [NG] Safety Critical Accuracy: NEEDS IMPROVEMENT ({safety_critical['safety_accuracy']:.1%})\n")
         
         if overall['safety_accuracy'] >= 0.7:
-            f.write("  ✓ Overall Safety Accuracy: GOOD (≥70%)\n")
+            f.write("  [OK] Overall Safety Accuracy: GOOD (≥70%)\n")
         else:
             f.write(f"  [NG] Overall Safety Accuracy: NEEDS IMPROVEMENT ({overall['safety_accuracy']:.1%})\n")
         

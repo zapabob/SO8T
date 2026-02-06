@@ -82,7 +82,7 @@ def upload_abc_charts():
         # ABCテストチャートセクション追加
         chart_section = """
 
-## 📊 ABC Test Visualizations / ABCテスト可視化
+## [STATS] ABC Test Visualizations / ABCテスト可視化
 
 ### Performance Comparison Charts / 性能比較チャート
 
@@ -141,7 +141,7 @@ All visualization data and generation scripts are available in the `abc_test_cha
 """
 
         # セクションが既に存在しない場合のみ追加
-        if "## 📊 ABC Test Visualizations" not in current_content:
+        if "## [STATS] ABC Test Visualizations" not in current_content:
             updated_content = current_content + "\n" + chart_section
 
             with open("temp_readme.md", "w", encoding="utf-8") as f:

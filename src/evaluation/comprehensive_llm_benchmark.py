@@ -675,17 +675,17 @@ class ComprehensiveBenchmarkEvaluator:
                     significant_differences.append(f"{comparison_name} on {metric}")
 
         if significant_differences:
-            recommendations.append(f"📊 Significant differences found: {', '.join(significant_differences[:3])}")
+            recommendations.append(f"[STATS] Significant differences found: {', '.join(significant_differences[:3])}")
 
         # 使用推奨
         if abc_results and 'winner' in abc_results:
             winner = abc_results['winner']['model']
             if winner == 'modela':
-                recommendations.append("💡 Model A (Borea-Phi3.5-instruct-jp GGUF) recommended for general use")
+                recommendations.append("[TIP] Model A (Borea-Phi3.5-instruct-jp GGUF) recommended for general use")
             elif winner == 'modelb':
-                recommendations.append("💡 Model B recommended for specialized tasks")
+                recommendations.append("[TIP] Model B recommended for specialized tasks")
             elif winner == 'modelc':
-                recommendations.append("💡 Model C recommended for high-performance applications")
+                recommendations.append("[TIP] Model C recommended for high-performance applications")
 
         return recommendations
 
@@ -755,7 +755,7 @@ def run_abc_test_evaluation():
     abc_results = results.get('comparison', {}).get('abc_test', {})
     if 'winner' in abc_results:
         winner = abc_results['winner']
-        logger.info("🎯 ABC Test Winner:"        logger.info(f"   Model: {winner['model']}")
+        logger.info("[TARGET] ABC Test Winner:"        logger.info(f"   Model: {winner['model']}")
         logger.info(f"   Score: {winner['score']:.4f}")
         logger.info(f"   Metric: {winner['metric']}")
 

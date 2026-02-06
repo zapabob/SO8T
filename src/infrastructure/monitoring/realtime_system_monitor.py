@@ -382,7 +382,7 @@ def main():
         st.markdown("---")
         
         # ログファイル設定
-        st.markdown('<h3>📝 LOG FILES</h3>', unsafe_allow_html=True)
+        st.markdown('<h3>[NOTE] LOG FILES</h3>', unsafe_allow_html=True)
         
         # デフォルトログファイルパス
         default_logs = [
@@ -403,7 +403,7 @@ def main():
         st.markdown("---")
         
         # セッション情報
-        st.markdown('<h3>📊 SESSION INFO</h3>', unsafe_allow_html=True)
+        st.markdown('<h3>[STATS] SESSION INFO</h3>', unsafe_allow_html=True)
         st.markdown(f"**更新回数**: {st.session_state.update_count}")
         st.markdown(f"**最終更新**: {datetime.now().strftime('%H:%M:%S')}")
         
@@ -443,9 +443,9 @@ def main():
     # メインコンテンツ
     # タブでセクションを分ける
     tab1, tab2, tab3 = st.tabs([
-        "📊 System Metrics",
+        "[STATS] System Metrics",
         "📈 Charts",
-        "📝 Logs"
+        "[NOTE] Logs"
     ])
     
     with tab1:
@@ -491,7 +491,7 @@ def main():
                 st.plotly_chart(fig_gpu_mem, use_container_width=True)
                 st.metric("GPU Memory", f"{gpu_mem:.1f}%")
         else:
-            st.warning("⚠️ GPU情報が取得できません。GPUが利用できないか、ドライバーが正しくインストールされていません。")
+            st.warning("[WARN] GPU情報が取得できません。GPUが利用できないか、ドライバーが正しくインストールされていません。")
         
         # CPU/メモリ情報
         st.markdown('<h3>🖥️ CPU & MEMORY</h3>', unsafe_allow_html=True)
@@ -520,7 +520,7 @@ def main():
             st.metric("Memory Usage", f"{mem_usage:.1f}%")
         
         # 最新メトリクスサマリー
-        st.markdown('<h3>📊 METRICS SUMMARY</h3>', unsafe_allow_html=True)
+        st.markdown('<h3>[STATS] METRICS SUMMARY</h3>', unsafe_allow_html=True)
         col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
@@ -595,7 +595,7 @@ def main():
     
     with tab3:
         # ログストリーミング
-        st.markdown('<h2>📝 LOG STREAMING</h2>', unsafe_allow_html=True)
+        st.markdown('<h2>[NOTE] LOG STREAMING</h2>', unsafe_allow_html=True)
         
         if log_paths:
             for log_path in log_paths:
@@ -620,7 +620,7 @@ def main():
                     else:
                         st.info(f"No log entries found in {log_path.name}")
                 else:
-                    st.warning(f"⚠️ Log file not found: {log_path}")
+                    st.warning(f"[WARN] Log file not found: {log_path}")
         else:
             st.info("ログファイルが設定されていません。サイドバーでログファイルパスを設定してください。")
     

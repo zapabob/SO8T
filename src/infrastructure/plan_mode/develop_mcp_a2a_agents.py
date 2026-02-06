@@ -732,12 +732,12 @@ def main():
     with open(system_file, 'w', encoding='utf-8') as f:
         json.dump(system_config, f, indent=2, ensure_ascii=False)
 
-    print("🎉 MCP/A2A Agent Development Completed!")
+    print("[DONE] MCP/A2A Agent Development Completed!")
     print(f"🤖 Developed Agents: {', '.join(developed_agents.keys())}")
-    print(f"🛠️ Total MCP Tools: {system_status['total_tools']}")
-    print(f"📁 Agent Configs Saved: {args.output_path}")
+    print(f"[TOOL]️ Total MCP Tools: {system_status['total_tools']}")
+    print(f"[DIR] Agent Configs Saved: {args.output_path}")
     print("🌐 Agent-to-Agent Collaboration Enabled!")
-    print("🚀 Ready for Multi-Agent Task Execution!")
+    print("[START] Ready for Multi-Agent Task Execution!")
 
 if __name__ == "__main__":
     main()

@@ -20,19 +20,19 @@ def load_config():
 
 def run_command(cmd, description):
     """Run shell command with logging."""
-    print(f"🔧 {description}")
+    print(f"[FIX] {description}")
     try:
         result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
-        print(f"✅ {description} completed")
+        print(f"[OK] {description} completed")
         return result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"❌ {description} failed: {e}")
+        print(f"[NG] {description} failed: {e}")
         raise
 
 def main():
     """Main deployment function with linear pipeline."""
 
-    print("🚀 SO8T Deployment Pipeline")
+    print("[START] SO8T Deployment Pipeline")
     print("=" * 50)
 
     # Load configuration
@@ -43,7 +43,7 @@ def main():
     print("\n🔐 Step 1: Initializing deployment audit...")
     audit_logger = EnhancedAuditLogger(config["storage"]["logs_dir"])
     audit_logger.log_event("deployment_started", {"config": config})
-    print("✅ Audit logging initialized")
+    print("[OK] Audit logging initialized")
 
     # Step 2: GGUF conversion
     print("\n🔄 Step 2: Converting to GGUF format...")
@@ -60,7 +60,7 @@ def main():
     run_command(cmd, "Ollama model creation")
 
     # Step 4: Test deployment
-    print("\n🧪 Step 4: Testing deployed model...")
+    print("\n[TEST] Step 4: Testing deployed model...")
     cmd = 'ollama run so8t:latest "Hello, SO8T! Are you ready for safe AI deployment?"'
     result = run_command(cmd, "Deployment test")
     print(f"Response: {result.strip()}")
@@ -69,13 +69,13 @@ def main():
     print("\n📈 Step 5: Running performance benchmark...")
     # Benchmark logic here
     benchmark_results = {"tokens_per_sec": 45.2, "memory_usage": "2.1GB"}
-    print(f"✅ Benchmark completed: {benchmark_results}")
+    print(f"[OK] Benchmark completed: {benchmark_results}")
 
     # Step 6: Final validation
-    print("\n✅ Step 6: Running final safety validation...")
+    print("\n[OK] Step 6: Running final safety validation...")
     # Safety validation logic here
     safety_check = True
-    print("✅ Safety validation passed" if safety_check else "❌ Safety validation failed")
+    print("[OK] Safety validation passed" if safety_check else "[NG] Safety validation failed")
 
     # Log completion
     deployment_info = {
@@ -87,7 +87,7 @@ def main():
     audit_logger.log_event("deployment_completed", deployment_info)
 
     print("
-🎉 Deployment pipeline complete!"    print(f"Model deployed as: so8t:latest")
+[DONE] Deployment pipeline complete!"    print(f"Model deployed as: so8t:latest")
     print(f"GGUF file: {gguf_path}")
 
 if __name__ == "__main__":

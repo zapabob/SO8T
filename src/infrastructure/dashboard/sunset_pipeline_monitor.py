@@ -171,7 +171,7 @@ class SunsetPipelineMonitor:
 
 def render_pipeline_status(monitor: SunsetPipelineMonitor):
     """パイプライン状態を表示"""
-    st.markdown('<h2>📊 Pipeline Status</h2>', unsafe_allow_html=True)
+    st.markdown('<h2>[STATS] Pipeline Status</h2>', unsafe_allow_html=True)
     
     monitor.update_state_from_checkpoint()
     state = monitor.pipeline_state
@@ -200,13 +200,13 @@ def render_pipeline_status(monitor: SunsetPipelineMonitor):
         
         # ステータスに応じた色
         if phase_status == 'completed':
-            status_icon = '✅'
+            status_icon = '[OK]'
             status_color = 'green'
         elif phase_status == 'running':
             status_icon = '🔄'
             status_color = 'blue'
         elif phase_status == 'failed':
-            status_icon = '❌'
+            status_icon = '[NG]'
             status_color = 'red'
         else:
             status_icon = '⏳'
@@ -228,7 +228,7 @@ def render_pipeline_status(monitor: SunsetPipelineMonitor):
 
 def render_logs_view(monitor: SunsetPipelineMonitor):
     """ログ表示"""
-    st.markdown('<h2>📝 Logs</h2>', unsafe_allow_html=True)
+    st.markdown('<h2>[NOTE] Logs</h2>', unsafe_allow_html=True)
     
     # ログファイルから最新のログを取得
     log_lines = monitor.get_log_tail(200)
@@ -293,7 +293,7 @@ def render_progress_bars(monitor: SunsetPipelineMonitor):
 
 def render_statistics(monitor: SunsetPipelineMonitor):
     """統計情報表示"""
-    st.markdown('<h2>📊 Statistics</h2>', unsafe_allow_html=True)
+    st.markdown('<h2>[STATS] Statistics</h2>', unsafe_allow_html=True)
     
     monitor.update_state_from_checkpoint()
     state = monitor.pipeline_state
@@ -373,7 +373,7 @@ def main():
         st.markdown("---")
         
         # パイプライン制御
-        st.markdown('<h3>🚀 Pipeline Control</h3>', unsafe_allow_html=True)
+        st.markdown('<h3>[START] Pipeline Control</h3>', unsafe_allow_html=True)
         
         if st.button("▶️ Start Pipeline", use_container_width=True):
             # パイプライン実行スクリプトを起動
@@ -395,7 +395,7 @@ def main():
         st.markdown("---")
         
         # セッション情報
-        st.markdown('<h3>📊 Session Info</h3>', unsafe_allow_html=True)
+        st.markdown('<h3>[STATS] Session Info</h3>', unsafe_allow_html=True)
         checkpoint = monitor.load_checkpoint()
         if checkpoint:
             st.write(f"**Status**: `{checkpoint.get('status', 'N/A')}`")
@@ -410,10 +410,10 @@ def main():
     
     # タブ作成
     tab1, tab2, tab3, tab4 = st.tabs([
-        "📊 Pipeline Status",
+        "[STATS] Pipeline Status",
         "📈 Progress Bars",
-        "📝 Logs",
-        "📊 Statistics"
+        "[NOTE] Logs",
+        "[STATS] Statistics"
     ])
     
     with tab1:

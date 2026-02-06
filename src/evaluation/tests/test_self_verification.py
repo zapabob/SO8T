@@ -328,10 +328,10 @@ class SO8TSelfVerificationTester:
         logger.info(f"\n詳細なテスト結果:")
         for i, result in enumerate(self.test_results, 1):
             logger.info(f"\nテスト {i}: {result['test_name']}")
-            logger.info(f"  全体成功: {'✓' if result['overall_success'] else '✗'}")
-            logger.info(f"  基本検証: {'✓' if result['basic_verification']['success'] else '✗'}")
-            logger.info(f"  一貫性検証: {'✓' if result['consistency_verification']['success'] else '✗'}")
-            logger.info(f"  自己リトライ: {'✓' if result['self_retry']['success'] else '✗'}")
+            logger.info(f"  全体成功: {'[OK]' if result['overall_success'] else '[NG]'}")
+            logger.info(f"  基本検証: {'[OK]' if result['basic_verification']['success'] else '[NG]'}")
+            logger.info(f"  一貫性検証: {'[OK]' if result['consistency_verification']['success'] else '[NG]'}")
+            logger.info(f"  自己リトライ: {'[OK]' if result['self_retry']['success'] else '[NG]'}")
         
         # 結果をファイルに保存
         await self._save_results_to_file()
@@ -378,10 +378,10 @@ class SO8TSelfVerificationTester:
 **問題**: {result['problem'][:100]}...
 
 **結果**:
-- 全体成功: {'✓' if result['overall_success'] else '✗'}
-- 基本検証: {'✓' if result['basic_verification']['success'] else '✗'}
-- 一貫性検証: {'✓' if result['consistency_verification']['success'] else '✗'}
-- 自己リトライ: {'✓' if result['self_retry']['success'] else '✗'}
+- 全体成功: {'[OK]' if result['overall_success'] else '[NG]'}
+- 基本検証: {'[OK]' if result['basic_verification']['success'] else '[NG]'}
+- 一貫性検証: {'[OK]' if result['consistency_verification']['success'] else '[NG]'}
+- 自己リトライ: {'[OK]' if result['self_retry']['success'] else '[NG]'}
 
 **スコア**:
 - 基本検証スコア: {result['basic_verification'].get('overall_score', 0):.3f}

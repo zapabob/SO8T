@@ -131,7 +131,7 @@ Answer:"""
             if predicted == q['correct']:
                 correct += 1
 
-            print(f"Q{i+1}: {'✓' if predicted == q['correct'] else '✗'} (Predicted: {chr(65+predicted) if predicted >= 0 else '?'}, Correct: {chr(65+q['correct'])})")
+            print(f"Q{i+1}: {'[OK]' if predicted == q['correct'] else '[NG]'} (Predicted: {chr(65+predicted) if predicted >= 0 else '?'}, Correct: {chr(65+q['correct'])})")
 
         accuracy = correct / total
         return {
@@ -193,7 +193,7 @@ Answer:"""
             if predicted == q['answer']:
                 correct += 1
 
-            print(f"Q{i+1}: {'✓' if predicted == q['answer'] else '✗'} (Predicted: {predicted}, Correct: {q['answer']})")
+            print(f"Q{i+1}: {'[OK]' if predicted == q['answer'] else '[NG]'} (Predicted: {predicted}, Correct: {q['answer']})")
 
         accuracy = correct / total
         return {

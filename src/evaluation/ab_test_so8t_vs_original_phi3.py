@@ -438,7 +438,7 @@ class ABTestRunner:
             f.write(summary)
 
         self.logger.info(f"Results saved to {self.output_dir}")
-        print(f"\n📊 A/Bテスト結果保存完了: {self.output_dir}")
+        print(f"\n[STATS] A/Bテスト結果保存完了: {self.output_dir}")
 
 def main():
     parser = argparse.ArgumentParser(description="SO(8) PPO学習済みPhi3 vs 元Phi3 A/Bテスト")
@@ -456,7 +456,7 @@ def main():
     # ABテスト実行
     runner = ABTestRunner(Path(args.output_dir))
 
-    print("🧬 SO(8) PPO学習済みPhi3 vs 元Phi3 A/Bテスト開始")
+    print("[SO8T] SO(8) PPO学習済みPhi3 vs 元Phi3 A/Bテスト開始")
     print(f"Model A: {args.model_a}")
     print(f"Model B: {args.model_b}")
     print("=" * 60)
@@ -481,7 +481,7 @@ def main():
 
     # コンソール出力
     print("\n" + "="*60)
-    print("🎯 A/Bテスト完了結果")
+    print("[TARGET] A/Bテスト完了結果")
     print("="*60)
     print(f"総テスト数: {len(all_results)}")
     print(".2f")
@@ -492,9 +492,9 @@ def main():
     print(f"品質改善: {analysis['improvements']['quality_improvement']:+.3f} ({analysis['improvements']['quality_improvement']*100:+.1f}%)")
 
     if analysis['improvements']['quality_improvement'] > 0:
-        print("🎉 SO(8)学習により品質が改善されました！")
+        print("[DONE] SO(8)学習により品質が改善されました！")
     else:
-        print("📊 SO(8)学習による品質改善は確認されませんでした。")
+        print("[STATS] SO(8)学習による品質改善は確認されませんでした。")
 
 if __name__ == "__main__":
     main()

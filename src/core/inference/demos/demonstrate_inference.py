@@ -225,7 +225,7 @@ def run_demonstration_tests(model: torch.nn.Module, vocab,
         result['difficulty'] = test_case['difficulty']
         
         # 結果を表示
-        status = "✅ CORRECT" if is_correct else "❌ INCORRECT"
+        status = "[OK] CORRECT" if is_correct else "[NG] INCORRECT"
         print(f"Predicted: {result['predicted_class']} (Confidence: {result['confidence']:.3f})")
         print(f"PET Loss: {result['pet_loss']:.1f}")
         print(f"Result: {status}")
@@ -429,7 +429,7 @@ def create_demonstration_report(results: List[Dict[str, Any]], analysis: Dict[st
         f.write("Detailed Test Results:\n")
         f.write("-" * 50 + "\n")
         for i, result in enumerate(results, 1):
-            status = "✅ CORRECT" if result['is_correct'] else "❌ INCORRECT"
+            status = "[OK] CORRECT" if result['is_correct'] else "[NG] INCORRECT"
             f.write(f"Test {i}: {result['description']}\n")
             f.write(f"  Expected: {result['expected']}\n")
             f.write(f"  Predicted: {result['predicted_class']}\n")
@@ -441,11 +441,11 @@ def create_demonstration_report(results: List[Dict[str, Any]], analysis: Dict[st
         
         # 解釈
         f.write("Interpretation:\n")
-        f.write("  ✓ Model demonstrates reasoning capability\n")
-        f.write("  ✓ Shows appropriate safety-conscious behavior\n")
-        f.write("  ✓ Handles complex ethical dilemmas\n")
-        f.write("  ✓ Maintains healthy uncertainty levels\n")
-        f.write("  ✓ Ready for real-world deployment\n\n")
+        f.write("  [OK] Model demonstrates reasoning capability\n")
+        f.write("  [OK] Shows appropriate safety-conscious behavior\n")
+        f.write("  [OK] Handles complex ethical dilemmas\n")
+        f.write("  [OK] Maintains healthy uncertainty levels\n")
+        f.write("  [OK] Ready for real-world deployment\n\n")
         
         f.write("=" * 50 + "\n")
         f.write("Demonstration completed successfully!\n")

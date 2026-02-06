@@ -140,11 +140,11 @@ class EnvironmentSetup:
             if not minimal:
                 self._verify_installation()
             
-            logger.info("✅ Environment setup completed successfully!")
+            logger.info("[OK] Environment setup completed successfully!")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Environment setup failed: {e}")
+            logger.error(f"[NG] Environment setup failed: {e}")
             return False
     
     def _check_python_version(self) -> bool:
@@ -154,7 +154,7 @@ class EnvironmentSetup:
             logger.error(f"Python {min_version[0]}.{min_version[1]}+ required, got {self.python_version.major}.{self.python_version.minor}")
             return False
         
-        logger.info(f"✅ Python version: {self.python_version.major}.{self.python_version.minor}.{self.python_version.micro}")
+        logger.info(f"[OK] Python version: {self.python_version.major}.{self.python_version.minor}.{self.python_version.micro}")
         return True
     
     def _create_directories(self) -> None:
@@ -508,23 +508,23 @@ if __name__ == "__main__":
             import peft
             import bitsandbytes
             
-            logger.info("✅ Core dependencies imported successfully")
+            logger.info("[OK] Core dependencies imported successfully")
             
             # Test CUDA availability
             if torch.cuda.is_available():
-                logger.info(f"✅ CUDA available: {torch.cuda.get_device_name(0)}")
+                logger.info(f"[OK] CUDA available: {torch.cuda.get_device_name(0)}")
             else:
                 logger.info("ℹ️  CUDA not available (CPU-only mode)")
             
             # Test model loading
             from models.so8t_model import create_so8t_model
-            logger.info("✅ SO8T model classes imported successfully")
+            logger.info("[OK] SO8T model classes imported successfully")
             
         except ImportError as e:
-            logger.error(f"❌ Import error: {e}")
+            logger.error(f"[NG] Import error: {e}")
             raise
         except Exception as e:
-            logger.error(f"❌ Verification error: {e}")
+            logger.error(f"[NG] Verification error: {e}")
             raise
     
     def _run_command(self, cmd: List[str]) -> None:
@@ -536,9 +536,9 @@ if __name__ == "__main__":
                 text=True,
                 check=True
             )
-            logger.info(f"✅ Command succeeded: {' '.join(cmd)}")
+            logger.info(f"[OK] Command succeeded: {' '.join(cmd)}")
         except subprocess.CalledProcessError as e:
-            logger.error(f"❌ Command failed: {' '.join(cmd)}")
+            logger.error(f"[NG] Command failed: {' '.join(cmd)}")
             logger.error(f"Error: {e.stderr}")
             raise
 
@@ -564,14 +564,14 @@ def main():
     )
     
     if success:
-        print("🎉 SO8T environment setup completed successfully!")
+        print("[DONE] SO8T environment setup completed successfully!")
         print("\nNext steps:")
         print("1. Download base models: python scripts/download_model.py --model Qwen/Qwen2.5-7B-Instruct")
         print("2. Prepare training data: python scripts/prepare_data.py")
         print("3. Start training: python -m training.train_qlora --config configs/training_config.yaml")
         print("4. Run inference: python examples/basic_usage.py")
     else:
-        print("❌ SO8T environment setup failed!")
+        print("[NG] SO8T environment setup failed!")
         return 1
     
     return 0

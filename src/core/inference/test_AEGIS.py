@@ -13,7 +13,7 @@ def test_inference():
     print("🤖 AEGIS Inference Test Sequence Initiated...")
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🚀 Device: {device}")
+    print(f"[START] Device: {device}")
     
     # 1. Initialize Model
     # Vocab size for Phi-3.5 is 32011 (or check tokenizer len)
@@ -41,21 +41,21 @@ def test_inference():
         state_dict = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(state_dict)
     else:
-        print(f"⚠️ No checkpoints found in {checkpoint_dir}. Using random weights.")
+        print(f"[WARN] No checkpoints found in {checkpoint_dir}. Using random weights.")
 
     model.eval()
 
     # 3. Check Alpha Gate
     current_alpha = model.alpha.item()
-    print(f"✨ Current Alpha Gate: {current_alpha:.6f}")
+    print(f"[NEW] Current Alpha Gate: {current_alpha:.6f}")
     
     phi = 1.6180339887
     diff = abs(current_alpha - phi)
     
     if diff < 0.01:
-        print("✅ Alpha is at the Golden Ratio. The Mass Gap is active.")
+        print("[OK] Alpha is at the Golden Ratio. The Mass Gap is active.")
     else:
-        print("⚠️ Alpha is drifting. Did you load the right checkpoint?")
+        print("[WARN] Alpha is drifting. Did you load the right checkpoint?")
 
     # 4. Inference Test (Japanese Input)
     prompt = "こんにちは、調子はどうですか？"
@@ -77,7 +77,7 @@ def test_inference():
     print(f"🤖 Predicted Next Token: '{predicted_token}' (ID: {predicted_token_id})")
     
     # Simple Generation Loop
-    print("📝 Generating continuation...")
+    print("[NOTE] Generating continuation...")
     generated_ids = input_ids[0].tolist()
     
     for _ in range(20):
@@ -95,7 +95,7 @@ def test_inference():
             
     generated_text = tokenizer.decode(generated_ids)
     print(f"📜 Full Generated Text: {generated_text}")
-    print("🎉 System is responsive. Physical Intelligence is online.")
+    print("[DONE] System is responsive. Physical Intelligence is online.")
 
 if __name__ == "__main__":
     test_inference()

@@ -58,7 +58,7 @@ Please reason step by step and give your final answer."""
         response_lower = response.lower()
 
         is_correct = correct_answer in response_lower
-        print(f"[RESULT] {'✓ Correct' if is_correct else '✗ Incorrect'}")
+        print(f"[RESULT] {'[OK] Correct' if is_correct else '[NG] Incorrect'}")
         print(f"Expected: {correct_answer}")
 
     except Exception as e:
@@ -128,7 +128,7 @@ Answer:"""
         correct_answer = gpqa_problem['correct']
         is_correct = predicted == correct_answer
 
-        print(f"[RESULT] {'✓ Correct' if is_correct else '✗ Incorrect'}")
+        print(f"[RESULT] {'[OK] Correct' if is_correct else '[NG] Incorrect'}")
         print(f"Predicted: {chr(65+predicted) if predicted >= 0 else '?'} ({gpqa_problem['options'][predicted] if predicted >= 0 else 'Unknown'})")
         print(f"Expected: {chr(65+correct_answer)} ({gpqa_problem['options'][correct_answer]})")
 

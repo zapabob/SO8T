@@ -83,9 +83,9 @@ def evaluate_elyza(model_name: str, model_id: str, trial: int = 1) -> Dict:
         
         if is_correct:
             correct += 1
-            print(f"✓", end="")
+            print(f"[OK]", end="")
         else:
-            print(f"✗", end="")
+            print(f"[NG]", end="")
         
         print(f" [{duration:.1f}s]")
         
@@ -162,7 +162,7 @@ def main():
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(all_results, f, ensure_ascii=False, indent=2)
     
-    print(f"\n✅ ELYZA-100 benchmark complete! Results saved to {output_file}")
+    print(f"\n[OK] ELYZA-100 benchmark complete! Results saved to {output_file}")
 
 if __name__ == "__main__":
     main()

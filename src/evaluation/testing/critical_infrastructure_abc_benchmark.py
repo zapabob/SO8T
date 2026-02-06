@@ -681,7 +681,7 @@ def main():
     except:
         pass
 
-    print("\n✅ Critical Infrastructure ABC Benchmark completed successfully!")
+    print("\n[OK] Critical Infrastructure ABC Benchmark completed successfully!")
 
 if __name__ == "__main__":
     main()

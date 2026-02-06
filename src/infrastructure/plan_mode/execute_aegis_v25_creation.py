@@ -41,7 +41,7 @@ class AEGISv25Creator:
         Args:
             config: 設定辞書
         """
-        logger.info("🚀 Starting AEGIS v2.5 Complete Creation")
+        logger.info("[START] Starting AEGIS v2.5 Complete Creation")
 
         # ステップ1: 数学的訓練実行
         if config.get("mathematical_training", True):
@@ -70,15 +70,15 @@ class AEGISv25Creator:
 
         # ステップ6: 最終統合と検証
         if config.get("final_integration", True):
-            logger.info("🎯 Step 6: Final Integration and Validation")
+            logger.info("[TARGET] Step 6: Final Integration and Validation")
             self.final_integration_and_validation(config)
 
         # ステップ7: ABCテスト実行
         if config.get("abc_testing", True):
-            logger.info("📊 Step 7: ABC Testing")
+            logger.info("[STATS] Step 7: ABC Testing")
             self.execute_abc_testing(config)
 
-        logger.info("🎉 AEGIS v2.5 Complete Creation Finished!")
+        logger.info("[DONE] AEGIS v2.5 Complete Creation Finished!")
         return self.create_completion_report(config)
 
     def execute_mathematical_training(self, config: Dict[str, Any]):
@@ -427,10 +427,10 @@ def main():
     creator = AEGISv25Creator(args.base_model)
     results = creator.execute_complete_aegis_v25_creation(config)
 
-    print("🎉 AEGIS v2.5 Complete Creation Finished!")
-    print(f"📊 Completion Report: aegis_v25_completion_report.json")
+    print("[DONE] AEGIS v2.5 Complete Creation Finished!")
+    print(f"[STATS] Completion Report: aegis_v25_completion_report.json")
     print(f"🤖 Final Model: {results.get('model_save_path', 'N/A')}")
-    print("🚀 Boreas-phi3.5-instinct-jp superiority achieved in all aspects!")
+    print("[START] Boreas-phi3.5-instinct-jp superiority achieved in all aspects!")
     print("🧠 MCP/A2A capabilities fully integrated!")
     print("🛡️ Imatrix quantization protection configured!")
 

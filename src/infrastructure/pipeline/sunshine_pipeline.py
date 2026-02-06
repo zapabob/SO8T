@@ -307,7 +307,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -319,17 +319,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -424,7 +424,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -436,7 +436,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -446,8 +446,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -458,7 +458,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -480,15 +480,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -829,7 +829,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -841,17 +841,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -946,7 +946,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -958,7 +958,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -968,8 +968,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -980,7 +980,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -1002,15 +1002,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -1351,7 +1351,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -1363,17 +1363,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -1468,7 +1468,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -1480,7 +1480,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -1490,8 +1490,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -1502,7 +1502,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -1524,15 +1524,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -1873,7 +1873,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -1885,17 +1885,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -1990,7 +1990,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -2002,7 +2002,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -2012,8 +2012,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -2024,7 +2024,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -2046,15 +2046,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -2395,7 +2395,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -2407,17 +2407,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -2512,7 +2512,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -2524,7 +2524,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -2534,8 +2534,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -2546,7 +2546,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -2568,15 +2568,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -2917,7 +2917,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -2929,17 +2929,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -3034,7 +3034,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -3046,7 +3046,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -3056,8 +3056,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -3068,7 +3068,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -3090,15 +3090,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -3439,7 +3439,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -3451,17 +3451,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -3556,7 +3556,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -3568,7 +3568,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -3578,8 +3578,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -3590,7 +3590,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -3612,15 +3612,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -3961,7 +3961,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -3973,17 +3973,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -4078,7 +4078,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -4090,7 +4090,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -4100,8 +4100,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -4112,7 +4112,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -4134,15 +4134,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -4483,7 +4483,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -4495,17 +4495,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -4600,7 +4600,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -4612,7 +4612,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -4622,8 +4622,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -4634,7 +4634,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -4656,15 +4656,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -5005,7 +5005,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -5017,17 +5017,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -5122,7 +5122,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -5134,7 +5134,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -5144,8 +5144,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -5156,7 +5156,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -5178,15 +5178,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 
@@ -5527,7 +5527,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         print("[4/5] Checking trainable parameters...")
         model.print_trainable_parameters()
 
-        # 🔥 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
+        # [HOT] 緊急バイパス手術：Optimizerへの手動登録（SO8Tの場合のみ）
         if config.so8_config:
             print("[4.5/5] Manual optimizer registration for SO8T...")
             # 1. 学習対象パラメータの抽出 (LoRA と NKATアダプタ だけ)
@@ -5539,17 +5539,17 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 else:
                     param.requires_grad = False
 
-            print(f"🔥 Total Trainable Params: {len(trainable_params)} tensors")
+            print(f"[HOT] Total Trainable Params: {len(trainable_params)} tensors")
 
             # 2. Optimizerの手動作成 (Unsloth推奨の8bit AdamWを使う場合)
             try:
                 from unsloth.optim import AdamW8bit
                 optimizer = AdamW8bit(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Unsloth AdamW8bit")
+                print("[OK] Using Unsloth AdamW8bit")
             except ImportError:
                 from torch.optim import AdamW
                 optimizer = AdamW(trainable_params, lr=config.training_config.get('learning_rate', 2e-5))
-                print("✅ Using Standard AdamW")
+                print("[OK] Using Standard AdamW")
 
             # 3. 後でTrainerに渡すための保存
             manual_optimizer = optimizer
@@ -5644,7 +5644,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
                 callbacks=[callback, NKATDebugCallback(model)],
                 optimizers=(manual_optimizer, None)  # (optimizer, scheduler)
             )
-            print("🔧 Using manual optimizer for SO8T training")
+            print("[FIX] Using manual optimizer for SO8T training")
         else:
             # Baselineの場合：通常のTrainer
             trainer = Trainer(
@@ -5656,7 +5656,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         )
 
         # トレーニング実行
-        print(f"🚀 Starting {run_type.upper()} training...")
+        print(f"[START] Starting {run_type.upper()} training...")
         trainer.train()
 
         # 最終メトリクス
@@ -5666,8 +5666,8 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
 
         logger.finalize(final_metrics)
 
-        print(f"✅ {run_type.upper()} training completed!")
-        print(f"📊 Results saved to: {logger.log_dir}")
+        print(f"[OK] {run_type.upper()} training completed!")
+        print(f"[STATS] Results saved to: {logger.log_dir}")
 
         return {
             'success': True,
@@ -5678,7 +5678,7 @@ def run_sunshine_experiment(run_type: str = "baseline") -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ {run_type.upper()} training failed: {e}")
+        print(f"[NG] {run_type.upper()} training failed: {e}")
         logger.finalize({'error': str(e)})
         return {
             'success': False,
@@ -5700,15 +5700,15 @@ def run_sunshine_pipeline():
     results['baseline'] = run_sunshine_experiment("baseline")
 
     # Run B: SO8T
-    print("\n🧬 Run B: SO8T (LoRA + SO(8) Adapter)")
+    print("\n[SO8T] Run B: SO8T (LoRA + SO(8) Adapter)")
     results['so8t'] = run_sunshine_experiment("so8t")
 
     # 結果比較
-    print("\n📊 EXPERIMENT RESULTS SUMMARY")
+    print("\n[STATS] EXPERIMENT RESULTS SUMMARY")
     print("=" * 60)
 
     for run_type, result in results.items():
-        status = "✅ SUCCESS" if result['success'] else "❌ FAILED"
+        status = "[OK] SUCCESS" if result['success'] else "[NG] FAILED"
         loss = f"Final Loss: {result.get('final_loss', 'N/A')}"
         print(f"{run_type.upper()}: {status} | {loss}")
 

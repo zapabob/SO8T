@@ -161,7 +161,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -424,7 +424,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -524,7 +524,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -687,7 +687,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -787,7 +787,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -950,7 +950,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -1050,7 +1050,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -1213,7 +1213,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -1313,7 +1313,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -1476,7 +1476,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -1576,7 +1576,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -1739,7 +1739,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -1839,7 +1839,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -2002,7 +2002,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -2102,7 +2102,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -2265,7 +2265,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -2365,7 +2365,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -2528,7 +2528,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -2628,7 +2628,7 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")
 # -*- coding: utf-8 -*-
 """
 Quadruple Reasoning Head - Phase 2.5 準備
@@ -2791,7 +2791,7 @@ def attach_quad_reasoning_head(model, target_layers: Optional[list] = None):
             layer.add_module('quad_reasoning_head', quad_head)
             injected_count += 1
 
-    print(f"✅ Injected Quad Reasoning Heads into {injected_count} layers")
+    print(f"[OK] Injected Quad Reasoning Heads into {injected_count} layers")
 
     # 推論専用なので勾配は切っておく（Phase 2.5 統合まで）
     for name, param in model.named_parameters():
@@ -2891,4 +2891,4 @@ if __name__ == "__main__":
     similarities = quad_head.get_quad_similarity()
     print(f"Role similarities: {similarities}")
 
-    print("✅ Quad Reasoning Head test passed!")
+    print("[OK] Quad Reasoning Head test passed!")

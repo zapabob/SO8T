@@ -302,11 +302,11 @@ def create_table1_quantitative_results(logs: List[Dict[str, Any]], output_dir: P
             f.write(f"  Generalization Gap (Accuracy): {generalization_analysis['generalization_gap_accuracy']:.4f}\n\n")
         
         f.write("Anti-Local-Minimum Measures:\n")
-        f.write("  ✓ Gradient Noise Injection (σ=0.025)\n")
-        f.write("  ✓ Label Smoothing (eps=0.3)\n")
-        f.write("  ✓ PET Schedule (0.01→0.1→1.0)\n")
-        f.write("  ✓ SWA (70%+)\n")
-        f.write("  ✓ Input Noise (20%)\n\n")
+        f.write("  [OK] Gradient Noise Injection (σ=0.025)\n")
+        f.write("  [OK] Label Smoothing (eps=0.3)\n")
+        f.write("  [OK] PET Schedule (0.01→0.1→1.0)\n")
+        f.write("  [OK] SWA (70%+)\n")
+        f.write("  [OK] Input Noise (20%)\n\n")
         
         f.write("Recovery Status: SUCCESS\n")
         f.write("  - Model escaped from local minimum\n")

@@ -24,7 +24,7 @@ try:
         print(f'  Avg Grad Norm: {so8t.get("avg_grad_norm", "N/A")}')
         print(f'  Total Steps: {so8t.get("total_steps", 0)}')
 
-    print('\n✅ Sunshine Pipeline Completed Successfully!')
+    print('\n[OK] Sunshine Pipeline Completed Successfully!')
 
 except Exception as e:
     print(f'Error reading results: {e}')

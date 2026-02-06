@@ -120,7 +120,7 @@ class SO8TKnowledgeDistillation:
             # 仮の教師モデル（実際の実装ではGGUFから読み込み）
             teacher_model = self._create_teacher_model()
             
-            logger.info("   ✓ 教師モデル読み込み完了")
+            logger.info("   [OK] 教師モデル読み込み完了")
             return teacher_model
             
         except Exception as e:
@@ -235,7 +235,7 @@ class SO8TKnowledgeDistillation:
                 'created_at': datetime.now().isoformat()
             })
         
-        logger.info(f"   ✓ データセット作成完了: {len(dataset)}サンプル")
+        logger.info(f"   [OK] データセット作成完了: {len(dataset)}サンプル")
         return dataset
     
     def distill_knowledge(self, 

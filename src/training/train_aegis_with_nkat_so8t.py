@@ -332,7 +332,7 @@ def create_so8t_sft_training_script():
     trainer.save_model(sft_model_path)
     tokenizer.save_pretrained(sft_model_path)
 
-    print(f"\n✅ SFT training completed!")
+    print(f"\n[OK] SFT training completed!")
     print(f"Model saved to: {sft_model_path}")
 
     return trainer, model, tokenizer
@@ -431,7 +431,7 @@ def create_so8t_ppo_training_script():
     model.save_pretrained(hf_model_path)
     tokenizer.save_pretrained(hf_model_path)
 
-    print(f"\n✅ PPO training completed!")
+    print(f"\n[OK] PPO training completed!")
     print(f"Model saved to: {ppo_model_path}")
     print(f"HF model saved to: {hf_model_path}")
 
@@ -561,7 +561,7 @@ def create_so8t_sft_training_script():
     trainer.save_model(sft_model_path)
     tokenizer.save_pretrained(sft_model_path)
 
-    print(f"\n✅ SFT training completed!")
+    print(f"\n[OK] SFT training completed!")
     print(f"Model saved to: {sft_model_path}")
 
     return trainer, model, tokenizer
@@ -679,7 +679,7 @@ def create_so8t_ppo_training_script():
     model.save_pretrained(hf_model_path)
     tokenizer.save_pretrained(hf_model_path)
 
-    print(f"\n✅ PPO training completed!")
+    print(f"\n[OK] PPO training completed!")
     print(f"Model saved to: {ppo_model_path}")
     print(f"HF model saved to: {hf_model_path}")
 
@@ -801,7 +801,7 @@ def create_so8t_training_script():
     trainer.save_model(final_model_path)
     tokenizer.save_pretrained(final_model_path)
 
-    print(f"\n✅ Phase 2 training completed!")
+    print(f"\n[OK] Phase 2 training completed!")
     print(f"Model saved to: {final_model_path}")
 
     return trainer, model, tokenizer

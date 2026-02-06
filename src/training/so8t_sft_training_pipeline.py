@@ -348,7 +348,7 @@ def create_sft_config() -> Dict[str, Any]:
 
 def main():
     """メイン関数"""
-    print("🚀 SO(8)T SFT Training Pipeline")
+    print("[START] SO(8)T SFT Training Pipeline")
     print("=" * 50)
 
     # 設定
@@ -360,8 +360,8 @@ def main():
     # トレーニング実行
     trained_trainer, training_time = trainer.train()
 
-    print("✅ SFTトレーニング完了!")
-    print(f"📊 トレーニング済みモデル: {config['output_dir']}/final_model")
+    print("[OK] SFTトレーニング完了!")
+    print(f"[STATS] トレーニング済みモデル: {config['output_dir']}/final_model")
     print(f"トレーニング時間: {training_time:.2f}秒")
     # 音声通知
     try:

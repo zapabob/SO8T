@@ -745,12 +745,12 @@ def main():
     trainer = MathematicalTrainingPlan(args.base_model)
     results = trainer.execute_full_training_pipeline(args.data_paths, args.output_dir)
 
-    print("🎉 Mathematical Training Pipeline Completed!")
-    print(f"📊 SFT Model: {results['sft_model_path']}")
-    print(f"🎯 GRPO Model: {results['grpo_model_path']}")
+    print("[DONE] Mathematical Training Pipeline Completed!")
+    print(f"[STATS] SFT Model: {results['sft_model_path']}")
+    print(f"[TARGET] GRPO Model: {results['grpo_model_path']}")
     print(f"🛡️ Imatrix Protection: {results['imatrix_protection_data']}")
     print(f"📚 Training Samples: {results['total_training_samples']}")
-    print("🚀 Boreas-phi3.5-instinct-jp superiority achieved!")
+    print("[START] Boreas-phi3.5-instinct-jp superiority achieved!")
 
 if __name__ == "__main__":
     main()

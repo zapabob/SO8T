@@ -52,9 +52,9 @@ def simple_test():
             print(f"生成テキスト長: {len(generated_text)}")
             
             if len(generated_text) > 0:
-                print("✅ テキスト生成成功！")
+                print("[OK] テキスト生成成功！")
             else:
-                print("❌ テキスト生成失敗（空のレスポンス）")
+                print("[NG] テキスト生成失敗（空のレスポンス）")
         else:
             print(f"APIエラー: {response.status_code}")
             print(f"エラー内容: {response.text}")
@@ -81,9 +81,9 @@ def simple_test():
             print(f"生成テキスト長: {len(generated_text)}")
             
             if len(generated_text) > 0:
-                print("✅ SO8Tテキスト生成成功！")
+                print("[OK] SO8Tテキスト生成成功！")
             else:
-                print("❌ SO8Tテキスト生成失敗（空のレスポンス）")
+                print("[NG] SO8Tテキスト生成失敗（空のレスポンス）")
                 print("詳細情報:")
                 print(f"  done: {result.get('done', False)}")
                 print(f"  done_reason: {result.get('done_reason', 'N/A')}")

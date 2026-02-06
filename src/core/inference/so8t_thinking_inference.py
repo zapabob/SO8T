@@ -107,7 +107,7 @@ class SO8TThinkingInference:
                     # thinking後の部分を最終回答として表示
                     final_answer = parts[-1].strip()
                     if final_answer:
-                        response = f"🤔 Thinking complete.\n\n💡 {final_answer}"
+                        response = f"🤔 Thinking complete.\n\n[TIP] {final_answer}"
                     else:
                         response = "🤔 Thinking complete. (No final answer provided)"
 

@@ -238,7 +238,7 @@ class NKATPPOTrainer:
             logger.info(f"🔄 Resuming from checkpoint: {latest_ckpt}")
             self.model, self.tokenizer, self.peft_config = self._setup_model_from_checkpoint(latest_ckpt)
         else:
-            logger.info("✨ Starting new training session")
+            logger.info("[NEW] Starting new training session")
         self.model, self.tokenizer, self.peft_config = self._setup_model()
 
         # データセット初期化

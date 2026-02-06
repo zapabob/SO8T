@@ -151,14 +151,14 @@ def main():
 
     if success:
         print("\n" + "="*60)
-        print("🎉 UPLOAD COMPLETED SUCCESSFULLY! 🎉")
+        print("[DONE] UPLOAD COMPLETED SUCCESSFULLY! [DONE]")
         print("="*60)
         print("Your model is now available on Hugging Face Hub!")
         print("Share the link with the research community.")
         print("="*60)
     else:
         print("\n" + "="*60)
-        print("❌ UPLOAD FAILED ❌")
+        print("[NG] UPLOAD FAILED [NG]")
         print("="*60)
         print("Check the error messages above and try again.")
         create_repo_manually()

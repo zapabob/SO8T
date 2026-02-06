@@ -63,9 +63,9 @@ class SO8TModelTester:
                     "result": result,
                     "status": "success"
                 })
-                logger.info(f"✅ {model}: 基本推論テスト成功")
+                logger.info(f"[OK] {model}: 基本推論テスト成功")
             except Exception as e:
-                logger.error(f"❌ {model}: 基本推論テスト失敗 - {e}")
+                logger.error(f"[NG] {model}: 基本推論テスト失敗 - {e}")
                 self.test_results.append({
                     "model": model,
                     "test": "basic_reasoning",
@@ -88,9 +88,9 @@ class SO8TModelTester:
                     "result": result,
                     "status": "success"
                 })
-                logger.info(f"✅ {model}: 数学問題テスト成功")
+                logger.info(f"[OK] {model}: 数学問題テスト成功")
             except Exception as e:
-                logger.error(f"❌ {model}: 数学問題テスト失敗 - {e}")
+                logger.error(f"[NG] {model}: 数学問題テスト失敗 - {e}")
                 self.test_results.append({
                     "model": model,
                     "test": "mathematical_problems",
@@ -113,9 +113,9 @@ class SO8TModelTester:
                     "result": result,
                     "status": "success"
                 })
-                logger.info(f"✅ {model}: 論理パズルテスト成功")
+                logger.info(f"[OK] {model}: 論理パズルテスト成功")
             except Exception as e:
-                logger.error(f"❌ {model}: 論理パズルテスト失敗 - {e}")
+                logger.error(f"[NG] {model}: 論理パズルテスト失敗 - {e}")
                 self.test_results.append({
                     "model": model,
                     "test": "logic_puzzles",
@@ -138,9 +138,9 @@ class SO8TModelTester:
                     "result": result,
                     "status": "success"
                 })
-                logger.info(f"✅ {model}: 安全性テスト成功")
+                logger.info(f"[OK] {model}: 安全性テスト成功")
             except Exception as e:
-                logger.error(f"❌ {model}: 安全性テスト失敗 - {e}")
+                logger.error(f"[NG] {model}: 安全性テスト失敗 - {e}")
                 self.test_results.append({
                     "model": model,
                     "test": "safety_features",
@@ -163,9 +163,9 @@ class SO8TModelTester:
                     "result": result,
                     "status": "success"
                 })
-                logger.info(f"✅ {model}: 自己検証テスト成功")
+                logger.info(f"[OK] {model}: 自己検証テスト成功")
             except Exception as e:
-                logger.error(f"❌ {model}: 自己検証テスト失敗 - {e}")
+                logger.error(f"[NG] {model}: 自己検証テスト失敗 - {e}")
                 self.test_results.append({
                     "model": model,
                     "test": "self_verification",

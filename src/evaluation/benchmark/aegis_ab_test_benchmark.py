@@ -218,7 +218,7 @@ class AEGISABTester:
                     device_map=self.config.device,
                     trust_remote_code=True
                 )
-            print("✓ モデルA読み込み成功")
+            print("[OK] モデルA読み込み成功")
         except Exception as e:
             print(f"[NG] モデルA読み込み失敗: {e}")
             return False
@@ -240,9 +240,9 @@ class AEGISABTester:
                     device_map=self.config.device,
                     trust_remote_code=True
                 )
-                print("✓ モデルB読み込み成功")
+                print("[OK] モデルB読み込み成功")
             else:
-                print(f"⚠ モデルBが見つからないため、モデルAのみでテストを実行: {self.config.model_b_path}")
+                print(f"[WARN] モデルBが見つからないため、モデルAのみでテストを実行: {self.config.model_b_path}")
                 self.model_b = None
                 self.tokenizer_b = self.tokenizer_a  # フォールバック
         except Exception as e:
@@ -263,7 +263,7 @@ class AEGISABTester:
             try:
                 with open(local_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                print(f"✓ ローカルELYZA-100: {len(data)}件読み込みました")
+                print(f"[OK] ローカルELYZA-100: {len(data)}件読み込みました")
                 return data
             except Exception as e:
                 print(f"[NG] ローカルファイル読み込み失敗: {e}")
@@ -279,13 +279,13 @@ class AEGISABTester:
             with open(local_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
-            print(f"✓ ELYZA-100: {len(data)}件のタスクを読み込みました")
+            print(f"[OK] ELYZA-100: {len(data)}件のタスクを読み込みました")
             return data
 
         except Exception as e:
             print(f"[NG] ELYZA-100読み込み失敗: {e}")
             # テスト用ダミーデータ作成
-            print("⚠ テスト用ダミーデータを作成します")
+            print("[WARN] テスト用ダミーデータを作成します")
             return self._create_dummy_elyza_data()
 
     def _create_dummy_elyza_data(self) -> List[Dict[str, Any]]:
@@ -864,7 +864,7 @@ PARAMETER num_thread 8
             results.append(result)
 
         self.results = results
-        print(f"✓ A/Bテスト完了: {len(results)}件のタスクを評価")
+        print(f"[OK] A/Bテスト完了: {len(results)}件のタスクを評価")
         return True
 
     def calculate_statistics(self) -> Dict[str, Any]:
@@ -1028,7 +1028,7 @@ PARAMETER num_thread 8
 
         # 統計情報プロット
         self._create_statistics_plot(stats)
-        print("✓ 可視化ファイル保存完了")
+        print("[OK] 可視化ファイル保存完了")
 
     def _create_statistics_plot(self, stats: Dict[str, Any]):
         """統計情報プロット"""
@@ -1111,7 +1111,7 @@ PARAMETER num_thread 8
         df = pd.DataFrame(csv_data)
         df.to_csv(Path(self.config.output_dir) / 'aegis_ab_test_summary.csv', index=False, encoding='utf-8')
 
-        print("✓ 結果保存完了")
+        print("[OK] 結果保存完了")
 
     def create_hf_readme(self, stats: Dict[str, Any]):
         """HF公開用README作成"""
@@ -1227,7 +1227,7 @@ AEGIS-phi3.5-v2.0は以下の理論を統合:
         with open(Path(self.config.output_dir) / 'README.md', 'w', encoding='utf-8') as f:
             f.write(readme_content)
 
-        print("✓ HF README作成完了")
+        print("[OK] HF README作成完了")
 
     def run_full_evaluation(self):
         """完全評価実行"""
@@ -1236,12 +1236,12 @@ AEGIS-phi3.5-v2.0は以下の理論を統合:
 
         # モデル読み込み
         if not self.load_models():
-            print("✗ モデル読み込み失敗")
+            print("[NG] モデル読み込み失敗")
             return False
 
         # A/Bテスト実行
         if not self.run_ab_test():
-            print("✗ A/Bテスト失敗")
+            print("[NG] A/Bテスト失敗")
             return False
 
         # 統計計算
@@ -1358,7 +1358,7 @@ def main():
             if lm_eval_results:
                 print("[OK] LM-Evalテスト完了")
             else:
-                print("⚠️ LM-Evalテスト失敗")
+                print("[WARN] LM-Evalテスト失敗")
 
             # GGUF変換実行
             print("\n=== GGUF変換フェーズ ===")
@@ -1372,9 +1372,9 @@ def main():
                 if gguf_results:
                     print("[OK] GGUFテスト完了")
                 else:
-                    print("⚠️ GGUFテスト一部失敗")
+                    print("[WARN] GGUFテスト一部失敗")
             else:
-                print("⚠️ GGUF変換スキップまたは失敗")
+                print("[WARN] GGUF変換スキップまたは失敗")
 
         else:
             print("\n[NG] A/Bテスト失敗")
@@ -1474,7 +1474,7 @@ def main():
             if lm_eval_results:
                 print("[OK] LM-Evalテスト完了")
             else:
-                print("⚠️ LM-Evalテスト失敗")
+                print("[WARN] LM-Evalテスト失敗")
 
             # GGUF変換実行
             print("\n=== GGUF変換フェーズ ===")
@@ -1488,9 +1488,9 @@ def main():
                 if gguf_results:
                     print("[OK] GGUFテスト完了")
                 else:
-                    print("⚠️ GGUFテスト一部失敗")
+                    print("[WARN] GGUFテスト一部失敗")
             else:
-                print("⚠️ GGUF変換スキップまたは失敗")
+                print("[WARN] GGUF変換スキップまたは失敗")
 
         else:
             print("\n[NG] A/Bテスト失敗")
@@ -1590,7 +1590,7 @@ def main():
             if lm_eval_results:
                 print("[OK] LM-Evalテスト完了")
             else:
-                print("⚠️ LM-Evalテスト失敗")
+                print("[WARN] LM-Evalテスト失敗")
 
             # GGUF変換実行
             print("\n=== GGUF変換フェーズ ===")
@@ -1604,9 +1604,9 @@ def main():
                 if gguf_results:
                     print("[OK] GGUFテスト完了")
                 else:
-                    print("⚠️ GGUFテスト一部失敗")
+                    print("[WARN] GGUFテスト一部失敗")
             else:
-                print("⚠️ GGUF変換スキップまたは失敗")
+                print("[WARN] GGUF変換スキップまたは失敗")
 
         else:
             print("\n[NG] A/Bテスト失敗")

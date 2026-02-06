@@ -26,7 +26,7 @@ class DummyModel(nn.Module):
 
 def test_session_checkpoint_manager():
     """セッション管理の基本機能をテスト"""
-    print("🧪 Testing SessionCheckpointManager...")
+    print("[TEST] Testing SessionCheckpointManager...")
     
     with tempfile.TemporaryDirectory() as temp_dir:
         output_dir = Path(temp_dir)
@@ -39,7 +39,7 @@ def test_session_checkpoint_manager():
         info = mgr.get_session_info()
         assert info['session_id'] == session_id
         assert not info['has_checkpoint']
-        print("✅ Session initialization successful")
+        print("[OK] Session initialization successful")
         
         # ダミーモデルとオプティマイザーを作成
         model = DummyModel()
@@ -54,7 +54,7 @@ def test_session_checkpoint_manager():
         checkpoint_path = mgr.save(model, optimizer, scaler, scheduler, meta)
         
         assert checkpoint_path.exists()
-        print(f"✅ Checkpoint saved: {checkpoint_path}")
+        print(f"[OK] Checkpoint saved: {checkpoint_path}")
         
         # チェックポイントを読み込み
         loaded_data = mgr.load_latest()
@@ -62,7 +62,7 @@ def test_session_checkpoint_manager():
         assert loaded_data['session_id'] == session_id
         assert loaded_data['meta']['epoch'] == 1
         assert loaded_data['meta']['step'] == 100
-        print("✅ Checkpoint loading successful")
+        print("[OK] Checkpoint loading successful")
         
         # 新しいモデルに状態を読み込み
         new_model = DummyModel()
@@ -70,18 +70,18 @@ def test_session_checkpoint_manager():
         
         new_model.load_state_dict(loaded_data['model_state_dict'])
         new_optimizer.load_state_dict(loaded_data['optimizer_state_dict'])
-        print("✅ Model state restoration successful")
+        print("[OK] Model state restoration successful")
         
         # セッション情報を再確認
         info_after = mgr.get_session_info()
         assert info_after['has_checkpoint']
         assert info_after['latest_timestamp'] is not None
-        print("✅ Session info updated correctly")
+        print("[OK] Session info updated correctly")
 
 
 def test_backup_rotation():
     """バックアップローテーションをテスト"""
-    print("🧪 Testing backup rotation...")
+    print("[TEST] Testing backup rotation...")
     
     with tempfile.TemporaryDirectory() as temp_dir:
         output_dir = Path(temp_dir)
@@ -108,18 +108,18 @@ def test_backup_rotation():
         
         # 最大3個までしか残っていないはず
         assert len(checkpoint_files) <= 3, f"Expected ≤3 backups, got {len(checkpoint_files)}"
-        print(f"✅ Backup rotation working: {len(checkpoint_files)} files remaining")
+        print(f"[OK] Backup rotation working: {len(checkpoint_files)} files remaining")
         
         # 最新のチェックポイントが存在することを確認
         latest = mgr.load_latest()
         assert latest is not None
         assert latest['meta']['epoch'] == 4  # 最後に保存したエポック
-        print("✅ Latest checkpoint accessible after rotation")
+        print("[OK] Latest checkpoint accessible after rotation")
 
 
 def test_emergency_save():
     """緊急保存機能をテスト"""
-    print("🧪 Testing emergency save...")
+    print("[TEST] Testing emergency save...")
     
     with tempfile.TemporaryDirectory() as temp_dir:
         output_dir = Path(temp_dir)
@@ -145,16 +145,16 @@ def test_emergency_save():
         
         assert emergency_path is not None
         assert emergency_path.exists()
-        print(f"✅ Emergency save successful: {emergency_path}")
+        print(f"[OK] Emergency save successful: {emergency_path}")
         
         # 緊急保存フラグがリセットされていることを確認
         assert not mgr.check_emergency_save()
-        print("✅ Emergency save flag reset correctly")
+        print("[OK] Emergency save flag reset correctly")
 
 
 def test_dual_metrics():
     """両系統KPIの計算をテスト"""
-    print("🧪 Testing dual metrics calculation...")
+    print("[TEST] Testing dual metrics calculation...")
     
     from safety_losses import SafetyMetrics
     
@@ -181,7 +181,7 @@ def test_dual_metrics():
         assert key in dual_metrics, f"Missing key: {key}"
         assert isinstance(dual_metrics[key], (int, float)), f"Invalid type for {key}: {type(dual_metrics[key])}"
     
-    print("✅ Dual metrics calculation successful")
+    print("[OK] Dual metrics calculation successful")
     print(f"   Combined safety score: {dual_metrics['combined_safety_score']:.4f}")
 
 
@@ -203,10 +203,10 @@ def main():
         test_dual_metrics()
         print()
         
-        print("🎉 All tests passed successfully!")
+        print("[DONE] All tests passed successfully!")
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f"[NG] Test failed: {e}")
         import traceback
         traceback.print_exc()
         return 1

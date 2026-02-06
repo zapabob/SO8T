@@ -47,7 +47,7 @@ try:
             print('.2f')
             print('.2f')
         else:
-            print('❌ Baseline loss is 0 or invalid - cannot compute ratio')
+            print('[NG] Baseline loss is 0 or invalid - cannot compute ratio')
     print()
 
     # 問題点の分析
@@ -60,22 +60,22 @@ try:
         issues.append("SO8T orthogonality error not computed")
 
     if issues:
-        print("⚠️  WARNING: Issues detected:")
+        print("[WARN]  WARNING: Issues detected:")
         for issue in issues:
             print(f"   - {issue}")
         print()
-        print("🔧 DEBUGGING REQUIRED:")
+        print("[FIX] DEBUGGING REQUIRED:")
         print("   1. Check SO(8) adapter alpha parameter updates")
         print("   2. Verify gradient flow to adapter parameters")
         print("   3. Confirm orthogonality constraints are working")
         print("   4. Test with higher learning rate for adapter")
         print()
-        print("❌ NOT READY for LM-eval testing - fix training issues first")
+        print("[NG] NOT READY for LM-eval testing - fix training issues first")
     else:
-        print("✅ Phase 2.5 Training Completed Successfully!")
-        print("🎯 SO(8) Adapter is now integrated with NKAT Theory data")
-        print("🚀 Ready for Quadruple Inference Integration!")
-        print("📊 Ready for LM-eval AB testing")
+        print("[OK] Phase 2.5 Training Completed Successfully!")
+        print("[TARGET] SO(8) Adapter is now integrated with NKAT Theory data")
+        print("[START] Ready for Quadruple Inference Integration!")
+        print("[STATS] Ready for LM-eval AB testing")
 
 except Exception as e:
     print(f'Error reading results: {e}')

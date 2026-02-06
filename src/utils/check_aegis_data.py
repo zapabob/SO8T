@@ -16,10 +16,10 @@ def check_data_format():
 
     # Check input file
     if not input_file.exists():
-        print("❌ Input file not found")
+        print("[NG] Input file not found")
         return False
 
-    print(f"✅ Input file exists: {input_file}")
+    print(f"[OK] Input file exists: {input_file}")
     print(f"   Size: {input_file.stat().st_size:,} bytes")
 
     # Check first few samples
@@ -39,10 +39,10 @@ def check_data_format():
                     print(f"  Has 'rejected': {'rejected' in data}")
                     print(f"  Has 'prompt': {'prompt' in data}")
                 except json.JSONDecodeError as e:
-                    print(f"❌ JSON decode error on line {i+1}: {e}")
+                    print(f"[NG] JSON decode error on line {i+1}: {e}")
                     return False
     except Exception as e:
-        print(f"❌ Error reading input file: {e}")
+        print(f"[NG] Error reading input file: {e}")
         return False
 
     # Check output file
@@ -52,12 +52,12 @@ def check_data_format():
         print(f"Output file size: {size} bytes")
 
         if size == 0:
-            print("❌ Output file is empty - cleansing failed")
+            print("[NG] Output file is empty - cleansing failed")
             return False
         else:
-            print("✅ Output file has content")
+            print("[OK] Output file has content")
     else:
-        print("❌ Output file not found")
+        print("[NG] Output file not found")
 
     # Check data quality
     labels = [s.get('four_class_label') for s in samples if s.get('four_class_label')]
@@ -99,10 +99,10 @@ def check_data_format():
 
     # Check input file
     if not input_file.exists():
-        print("❌ Input file not found")
+        print("[NG] Input file not found")
         return False
 
-    print(f"✅ Input file exists: {input_file}")
+    print(f"[OK] Input file exists: {input_file}")
     print(f"   Size: {input_file.stat().st_size:,} bytes")
 
     # Check first few samples
@@ -122,10 +122,10 @@ def check_data_format():
                     print(f"  Has 'rejected': {'rejected' in data}")
                     print(f"  Has 'prompt': {'prompt' in data}")
                 except json.JSONDecodeError as e:
-                    print(f"❌ JSON decode error on line {i+1}: {e}")
+                    print(f"[NG] JSON decode error on line {i+1}: {e}")
                     return False
     except Exception as e:
-        print(f"❌ Error reading input file: {e}")
+        print(f"[NG] Error reading input file: {e}")
         return False
 
     # Check output file
@@ -135,12 +135,12 @@ def check_data_format():
         print(f"Output file size: {size} bytes")
 
         if size == 0:
-            print("❌ Output file is empty - cleansing failed")
+            print("[NG] Output file is empty - cleansing failed")
             return False
         else:
-            print("✅ Output file has content")
+            print("[OK] Output file has content")
     else:
-        print("❌ Output file not found")
+        print("[NG] Output file not found")
 
     # Check data quality
     labels = [s.get('four_class_label') for s in samples if s.get('four_class_label')]

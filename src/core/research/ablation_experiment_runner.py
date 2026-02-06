@@ -47,9 +47,9 @@ class AblationExperimentRunner:
             logger.info(f"Running experiment: {exp_name}")
             try:
                 results[exp_name] = exp_func()
-                logger.info(f"✅ {exp_name} completed: {results[exp_name]}")
+                logger.info(f"[OK] {exp_name} completed: {results[exp_name]}")
             except Exception as e:
-                logger.error(f"❌ {exp_name} failed: {e}")
+                logger.error(f"[NG] {exp_name} failed: {e}")
                 results[exp_name] = {"error": str(e)}
 
         # 結果分析
@@ -306,15 +306,15 @@ class AblationExperimentRunner:
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
 
-        logger.info(f"✅ Ablation results saved to {output_file}")
+        logger.info(f"[OK] Ablation results saved to {output_file}")
 
 if __name__ == "__main__":
     runner = AblationExperimentRunner()
     results = runner.run_ablation_experiments()
     runner.save_results(results)
 
-    print("🔬 Ablation experiments completed!")
-    print("📊 Results saved to 'ablation_experiment_results.json'")
+    print("[RESEARCH] Ablation experiments completed!")
+    print("[STATS] Results saved to 'ablation_experiment_results.json'")
 
     # 結果表示
     print("\nKey Findings:")

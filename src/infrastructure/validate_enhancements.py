@@ -33,7 +33,7 @@ class EnhancementValidator:
 
     def execute_comprehensive_validation(self) -> Dict[str, Any]:
         """包括的検証実行"""
-        logger.info("🔬 Starting comprehensive enhancement validation")
+        logger.info("[RESEARCH] Starting comprehensive enhancement validation")
 
         validation_results = {
             "continual_learning_validation": self.validate_continual_learning(),
@@ -52,7 +52,7 @@ class EnhancementValidator:
         # 結果保存
         self._save_validation_results(validation_results)
 
-        logger.info("✅ Comprehensive validation completed")
+        logger.info("[OK] Comprehensive validation completed")
         return validation_results
 
     def validate_industry_standard_compliance(self) -> Dict[str, Any]:
@@ -1040,7 +1040,7 @@ def main():
     validator = EnhancementValidator()
     results = validator.execute_comprehensive_validation()
 
-    print("🔬 Enhancement Validation Results")
+    print("[RESEARCH] Enhancement Validation Results")
     print("=" * 50)
 
     assessment = results.get("overall_assessment", {})

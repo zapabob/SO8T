@@ -4,9 +4,9 @@ with open('scripts/training/aegis_finetuning_pipeline.py', 'r', encoding='utf-8'
     content = f.read()
 
 # Replace Unicode characters with ASCII
-content = content.replace('✓', '[OK]')
-content = content.replace('✗', '[NG]')
-content = content.replace('❌', '[ERROR]')
+content = content.replace('[OK]', '[OK]')
+content = content.replace('[NG]', '[NG]')
+content = content.replace('[NG]', '[ERROR]')
 
 with open('scripts/training/aegis_finetuning_pipeline.py', 'w', encoding='utf-8') as f:
     f.write(content)

@@ -78,7 +78,7 @@ def upload_aegis_to_hf():
         # 評価結果もアップロード
         upload_evaluation_results(api, repo_id)
 
-        logger.info("🎉 Model upload completed successfully!")
+        logger.info("[DONE] Model upload completed successfully!")
         logger.info(f"📍 Model available at: https://huggingface.co/{repo_id}")
 
         return True
@@ -216,10 +216,10 @@ AEGIS v2.5 is a state-of-the-art language model that integrates cutting-edge AI 
 
 | Benchmark | Mean Score | Std Dev | 95% CI | Cohen's d | p-value | Significance |
 |-----------|------------|---------|--------|-----------|---------|--------------|
-| GSM8K (8-shot CoT) | {benchmark_stats['gsm8k']['mean']:.1f}% | ±{benchmark_stats['gsm8k']['std']:.2f} | ±{benchmark_stats['gsm8k']['ci_95']:.2f} | {benchmark_stats['gsm8k']['cohens_d']:.2f} | <0.001 | ✓ Highly Significant |
-| MATH (0-shot CoT) | {benchmark_stats['math']['mean']:.1f}% | ±{benchmark_stats['math']['std']:.2f} | ±{benchmark_stats['math']['ci_95']:.2f} | {benchmark_stats['math']['cohens_d']:.2f} | <0.001 | ✓ Highly Significant |
-| ARC-Challenge (10-shot) | {benchmark_stats['arc_challenge']['mean']:.1f}% | ±{benchmark_stats['arc_challenge']['std']:.2f} | ±{benchmark_stats['arc_challenge']['ci_95']:.2f} | {benchmark_stats['arc_challenge']['cohens_d']:.2f} | <0.001 | ✓ Highly Significant |
-| ELYZA Tasks 100 | {benchmark_stats['elyza_tasks']['mean']:.1f}% | ±{benchmark_stats['elyza_tasks']['std']:.2f} | ±{benchmark_stats['elyza_tasks']['ci_95']:.2f} | {benchmark_stats['elyza_tasks']['cohens_d']:.2f} | <0.001 | ✓ Highly Significant |
+| GSM8K (8-shot CoT) | {benchmark_stats['gsm8k']['mean']:.1f}% | ±{benchmark_stats['gsm8k']['std']:.2f} | ±{benchmark_stats['gsm8k']['ci_95']:.2f} | {benchmark_stats['gsm8k']['cohens_d']:.2f} | <0.001 | [OK] Highly Significant |
+| MATH (0-shot CoT) | {benchmark_stats['math']['mean']:.1f}% | ±{benchmark_stats['math']['std']:.2f} | ±{benchmark_stats['math']['ci_95']:.2f} | {benchmark_stats['math']['cohens_d']:.2f} | <0.001 | [OK] Highly Significant |
+| ARC-Challenge (10-shot) | {benchmark_stats['arc_challenge']['mean']:.1f}% | ±{benchmark_stats['arc_challenge']['std']:.2f} | ±{benchmark_stats['arc_challenge']['ci_95']:.2f} | {benchmark_stats['arc_challenge']['cohens_d']:.2f} | <0.001 | [OK] Highly Significant |
+| ELYZA Tasks 100 | {benchmark_stats['elyza_tasks']['mean']:.1f}% | ±{benchmark_stats['elyza_tasks']['std']:.2f} | ±{benchmark_stats['elyza_tasks']['ci_95']:.2f} | {benchmark_stats['elyza_tasks']['cohens_d']:.2f} | <0.001 | [OK] Highly Significant |
 
 ### Performance Comparison (2026)
 
@@ -385,8 +385,8 @@ def upload_evaluation_results(api, repo_id):
 if __name__ == "__main__":
     success = upload_aegis_to_hf()
     if success:
-        print("🎉 AEGIS v2.5 successfully uploaded to Hugging Face!")
+        print("[DONE] AEGIS v2.5 successfully uploaded to Hugging Face!")
         print("📍 Model URL: https://huggingface.co/zapabobouj/AEGIS-v2.5-SO8T-Quadrality-imatrix")
     else:
-        print("❌ Upload failed")
+        print("[NG] Upload failed")
         exit(1)

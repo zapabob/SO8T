@@ -278,7 +278,7 @@ Please reason step by step and give your final answer."""
             if is_correct:
                 correct += 1
 
-            print(f"MATH {i+1}: {'✓' if is_correct else '✗'} (Level: {problem['level']}, Subject: {problem['subject']})")
+            print(f"MATH {i+1}: {'[OK]' if is_correct else '[NG]'} (Level: {problem['level']}, Subject: {problem['subject']})")
 
         accuracy = correct / total if total > 0 else 0
         return {
@@ -335,7 +335,7 @@ Answer:"""
             if predicted == problem['correct']:
                 correct += 1
 
-            print(f"{benchmark_name} {i+1}: {'✓' if predicted == problem['correct'] else '✗'} "
+            print(f"{benchmark_name} {i+1}: {'[OK]' if predicted == problem['correct'] else '[NG]'} "
                   f"(Predicted: {chr(65+predicted) if predicted >= 0 else '?'}, "
                   f"Correct: {chr(65+problem['correct'])})")
 

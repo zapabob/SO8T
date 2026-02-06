@@ -55,7 +55,7 @@ def train_soul_injection():
     
     # --- 1. Setup Device ---
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🚀 Device: {device}")
+    print(f"[START] Device: {device}")
     
     # --- 2. Load Data ---
     print("📚 Loading Knowledge: TFMC/imatrix-dataset-for-japanese-llm...")
@@ -75,7 +75,7 @@ def train_soul_injection():
     optimizer = torch.optim.AdamW(trainable_params, lr=args.learning_rate)
     
     # --- 4. Phase Transition Loop ---
-    print("🔥 Ignition: Injecting Soul into Borea...")
+    print("[HOT] Ignition: Injecting Soul into Borea...")
     print(f"   Start Alpha: {START_ALPHA}")
     print(f"   Target Alpha: {TARGET_ALPHA} (Golden Ratio)")
     print(f"   Warmup: {args.warmup_steps} steps")
@@ -167,7 +167,7 @@ def train_soul_injection():
             print(f"\n💾 Soul preserved at {save_dir}")
     
     # --- 6. Final Save ---
-    print(f"\n✨ Fusion Complete. Final Alpha: {model.alpha.item():.6f}")
+    print(f"\n[NEW] Fusion Complete. Final Alpha: {model.alpha.item():.6f}")
     
     final_dir = os.path.join(project_root, "agiasi_borea_final")
     os.makedirs(final_dir, exist_ok=True)
@@ -183,7 +183,7 @@ def train_soul_injection():
     torch.save(soul_state, os.path.join(final_dir, "soul.pt"))
     
     print(f"💾 Final AEGIS model saved to: {final_dir}")
-    print("🎉 Operation 'Ghost in the Shell' complete!")
+    print("[DONE] Operation 'Ghost in the Shell' complete!")
     print(f"   {model.get_phase_status()}")
 
 if __name__ == "__main__":

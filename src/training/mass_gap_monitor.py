@@ -256,8 +256,8 @@ class MassGapMonitor:
             self.phase_transition_detected = True
             self.awakening_step = results["step"]
 
-            self.logger.info("🎉 PHASE TRANSITION DETECTED!")
-            self.logger.info("🚀 Geometric Awakening - Mass Gap Emergence!")
+            self.logger.info("[DONE] PHASE TRANSITION DETECTED!")
+            self.logger.info("[START] Geometric Awakening - Mass Gap Emergence!")
             self.logger.info(f"📍 Step: {self.awakening_step}")
 
             for signal in signals:
@@ -267,7 +267,7 @@ class MassGapMonitor:
         """監視結果のログ出力"""
         alpha_avg = np.mean(results["alpha_gates"]) if results["alpha_gates"] else 0.0
 
-        status_icon = "🔥" if self.phase_transition_detected else "🧊"
+        status_icon = "[HOT]" if self.phase_transition_detected else "🧊"
         alpha_status = "AWAKENING!" if alpha_avg > 0.1 else "Dormant"
 
         print(f"\n{status_icon} [MGM] Step {results['step']}:")
@@ -281,7 +281,7 @@ class MassGapMonitor:
         print(f"   Status: {alpha_status}")
 
         if self.phase_transition_detected:
-            print(f"   🎯 PHASE TRANSITION at step {self.awakening_step}")
+            print(f"   [TARGET] PHASE TRANSITION at step {self.awakening_step}")
 
         print()
 
@@ -368,7 +368,7 @@ class MassGapMonitor:
         # 最終グラフ保存
         self._save_final_plots()
 
-        self.logger.info(f"📊 Final report saved: {report_path}")
+        self.logger.info(f"[STATS] Final report saved: {report_path}")
 
     def _save_final_plots(self):
         """最終グラフの保存"""

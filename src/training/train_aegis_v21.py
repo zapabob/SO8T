@@ -311,7 +311,7 @@ class GrokkingMonitorCallback(TrainerCallback):
 
             # 詳細ログ出力
             logger.info("=" * 60)
-            logger.info(f"🎯 GROKKING DETECTED at Step {state.global_step}!")
+            logger.info(f"[TARGET] GROKKING DETECTED at Step {state.global_step}!")
             logger.info(f"   Loss Drop: {loss_drop:.6f} ({loss_drop_ratio:.2%})")
             logger.info(f"   Loss: {self.prev_loss:.6f} -> {current_loss:.6f}")
             if eval_loss is not None:
@@ -335,7 +335,7 @@ class GrokkingMonitorCallback(TrainerCallback):
         """トレーニング終了時にGrokking統計をまとめて出力"""
         if self.grokking_events:
             logger.info("=" * 80)
-            logger.info("📊 GROKKING ANALYSIS SUMMARY")
+            logger.info("[STATS] GROKKING ANALYSIS SUMMARY")
             logger.info("=" * 80)
             logger.info(f"Total Grokking Events Detected: {len(self.grokking_events)}")
 
@@ -1332,7 +1332,7 @@ def merge_models(sft_model_path: str, ppo_model_path: str, final_model_path: str
 def main():
     """メイン処理"""
     print("[START] AEGIS v2.1 統合トレーニング with Optuna Hyperparameter Optimization")
-    print("🎯 Grokking検知機能有効化済み")
+    print("[TARGET] Grokking検知機能有効化済み")
     print("=" * 70)
 
     # 設定
@@ -1872,13 +1872,13 @@ def quick_test_training():
 
         # Grokking結果出力
         if grokking_callback.grokking_events:
-            print("\n🎯 GROKKING EVENTS DETECTED:")
+            print("\n[TARGET] GROKKING EVENTS DETECTED:")
             for event in grokking_callback.grokking_events:
                 print(f"  Step {event['step']}: Loss drop {event['loss_drop']:.6f}")
         else:
-            print("\n📊 No Grokking events detected in this quick test")
+            print("\n[STATS] No Grokking events detected in this quick test")
 
-        print("\n✅ Grokking detection test completed successfully!")
+        print("\n[OK] Grokking detection test completed successfully!")
 
     except Exception as e:
         logger.error(f"[QUICK TEST] Failed: {e}")

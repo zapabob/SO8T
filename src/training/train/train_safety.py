@@ -426,9 +426,9 @@ def main():
                 start_epoch = meta.get('epoch', 0)
                 global_step = meta.get('step', 0)
                 
-                print(f"✅ Resumed from checkpoint: epoch {start_epoch}, step {global_step}")
+                print(f"[OK] Resumed from checkpoint: epoch {start_epoch}, step {global_step}")
             except Exception as e:
-                print(f"❌ Failed to resume from checkpoint: {e}")
+                print(f"[NG] Failed to resume from checkpoint: {e}")
                 print("Starting fresh training...")
                 start_epoch = 0
                 global_step = 0

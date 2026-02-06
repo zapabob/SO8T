@@ -209,8 +209,8 @@ class ProgressManager:
             status_emoji = {
                 'pending': '⏳',
                 'running': '🔄',
-                'completed': '✅',
-                'failed': '❌'
+                'completed': '[OK]',
+                'failed': '[NG]'
             }.get(phase_data['status'], '❓')
             
             progress_bar = self._generate_progress_bar(phase_data['progress'])

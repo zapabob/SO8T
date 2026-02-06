@@ -185,8 +185,8 @@ class ChecklistUpdater:
         
         # 状態を更新
         status_emoji = {
-            'completed': '✅ 完了',
-            'failed': '❌ 失敗',
+            'completed': '[OK] 完了',
+            'failed': '[NG] 失敗',
             'running': '🔄 実行中',
             'pending': '⏳ 未開始'
         }.get(status, status)

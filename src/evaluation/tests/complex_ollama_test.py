@@ -337,7 +337,7 @@ class ComplexSO8TTester:
                 f.write("## 詳細結果\n\n")
                 for i, result in enumerate(self.test_results, 1):
                     f.write(f"### テスト {i}: {result['test_type']}\n\n")
-                    f.write(f"**ステータス**: {'✅ 成功' if result['status'] == 'success' else '❌ 失敗'}\n\n")
+                    f.write(f"**ステータス**: {'[OK] 成功' if result['status'] == 'success' else '[NG] 失敗'}\n\n")
                     f.write(f"**応答時間**: {result['response_time']:.2f}秒\n\n")
                     f.write(f"**生成文字数**: {result['text_length']}文字\n\n")
                     f.write(f"**プロンプト**:\n```\n{result['prompt']}\n```\n\n")

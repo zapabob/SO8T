@@ -221,7 +221,7 @@ def main():
         # 3. 焼き込み済みモデルを保存
         save_baked_so8_model(baked_model, args.output_dir, tokenizer)
 
-        print("\n✅ SO(8) アダプターの焼き込みが完了しました！")
+        print("\n[OK] SO(8) アダプターの焼き込みが完了しました！")
         print(f"出力ディレクトリ: {args.output_dir}")
         print(f"アダプター位置: {args.adapter_position}")
         print(f"モデルサイズ: {sum(p.numel() for p in baked_model.parameters()):,}")
@@ -239,13 +239,13 @@ def main():
             )
 
             if success:
-                print(f"✅ GGUF変換完了: {gguf_output}")
+                print(f"[OK] GGUF変換完了: {gguf_output}")
             else:
-                print("❌ GGUF変換失敗")
+                print("[NG] GGUF変換失敗")
                 return 1
 
         # 完了通知
-        print("\n🎉 すべての処理が完了しました！")
+        print("\n[DONE] すべての処理が完了しました！")
         print("llama.cpp で GGUF モデルを使用できます。")
 
         return 0

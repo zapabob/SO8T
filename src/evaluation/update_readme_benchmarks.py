@@ -55,7 +55,7 @@ class ReadmeUpdater:
             return "No benchmark results available."
         
         lines = [
-            "## 📊 Industry Standard Benchmark Results",
+            "## [STATS] Industry Standard Benchmark Results",
             "",
             "### Model Comparison (lm-evaluation-harness)",
             "",
@@ -156,7 +156,7 @@ class ReadmeUpdater:
         
         return "\n".join(sections)
 
-    def update_readme(self, insert_after: str = "## 🔬 Benchmark Method"):
+    def update_readme(self, insert_after: str = "## [RESEARCH] Benchmark Method"):
         """READMEを更新"""
         if not self.readme_path.exists():
             logger.error(f"README not found: {self.readme_path}")
@@ -167,7 +167,7 @@ class ReadmeUpdater:
             content = f.read()
         
         # 既存のベンチマーク結果セクションを検索・削除
-        pattern = r"## 📊 Industry Standard Benchmark Results.*?(?=## |\Z)"
+        pattern = r"## [STATS] Industry Standard Benchmark Results.*?(?=## |\Z)"
         content = re.sub(pattern, "", content, flags=re.DOTALL)
         
         # 挿入位置を検索
@@ -224,7 +224,7 @@ def main():
     parser.add_argument(
         "--insert-after",
         type=str,
-        default="## 🔬 Benchmark Method",
+        default="## [RESEARCH] Benchmark Method",
         help="Insert benchmark section after this marker"
     )
     

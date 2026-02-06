@@ -539,10 +539,10 @@ This repository contains comprehensive benchmark results comparing two Phi-3.5 m
 #### Hypothesis Tests
 | Test | Statistic | p-value | Significant |
 |------|-----------|---------|-------------|
-| **t-test** | {overall['statistical_tests']['t_test']['statistic']:.4f} | {overall['statistical_tests']['t_test']['p_value']:.4f} | {'✓' if overall['statistical_tests']['t_test']['significant'] else '✗'} |
-| **Mann-Whitney U** | {overall['statistical_tests']['mann_whitney']['statistic']:.4f} | {overall['statistical_tests']['mann_whitney']['p_value']:.4f} | {'✓' if overall['statistical_tests']['mann_whitney']['significant'] else '✗'} |
-| **ANOVA** | {analysis_report.get('anova_analysis', {}).get('overall', {}).get('f_statistic', 'N/A')} | {analysis_report.get('anova_analysis', {}).get('overall', {}).get('p_value', 'N/A')} | {'✓' if analysis_report.get('anova_analysis', {}).get('overall', {}).get('significant', False) else '✗'} |
-| **Spherical t-test** | {analysis_report.get('spherical_t_tests', {}).get('overall', {}).get('t_statistic', 'N/A')} | {analysis_report.get('spherical_t_tests', {}).get('overall', {}).get('p_value', 'N/A')} | {'✓' if analysis_report.get('spherical_t_tests', {}).get('overall', {}).get('significant', False) else '✗'} |
+| **t-test** | {overall['statistical_tests']['t_test']['statistic']:.4f} | {overall['statistical_tests']['t_test']['p_value']:.4f} | {'[OK]' if overall['statistical_tests']['t_test']['significant'] else '[NG]'} |
+| **Mann-Whitney U** | {overall['statistical_tests']['mann_whitney']['statistic']:.4f} | {overall['statistical_tests']['mann_whitney']['p_value']:.4f} | {'[OK]' if overall['statistical_tests']['mann_whitney']['significant'] else '[NG]'} |
+| **ANOVA** | {analysis_report.get('anova_analysis', {}).get('overall', {}).get('f_statistic', 'N/A')} | {analysis_report.get('anova_analysis', {}).get('overall', {}).get('p_value', 'N/A')} | {'[OK]' if analysis_report.get('anova_analysis', {}).get('overall', {}).get('significant', False) else '[NG]'} |
+| **Spherical t-test** | {analysis_report.get('spherical_t_tests', {}).get('overall', {}).get('t_statistic', 'N/A')} | {analysis_report.get('spherical_t_tests', {}).get('overall', {}).get('p_value', 'N/A')} | {'[OK]' if analysis_report.get('spherical_t_tests', {}).get('overall', {}).get('significant', False) else '[NG]'} |
 
 #### Advanced Metrics
 - **Probability of Superiority**: {analysis_report.get('enhanced_effect_sizes', {}).get('overall', {}).get('probability_superiority', 'N/A')}
@@ -551,17 +551,17 @@ This repository contains comprehensive benchmark results comparing two Phi-3.5 m
 ## Files Structure
 
 ```
-📁 statistics/
+[DIR] statistics/
 ├── benchmark_results.json      # Raw benchmark data
 ├── statistical_analysis.json   # Detailed statistical analysis
 └── enhanced_metrics.json       # Advanced statistical metrics
 
-📁 visualizations/
+[DIR] visualizations/
 ├── benchmark_comparison.png    # Performance comparison plots
 ├── statistical_analysis.png    # Statistical test visualizations
 └── effect_size_analysis.png    # Effect size distributions
 
-📁 models/
+[DIR] models/
 ├── borea_phi35_base/          # modelA GGUF files
 │   └── *.gguf
 └── borea_phi35_so8t_ppo/      # modelB GGUF files
@@ -637,7 +637,7 @@ def create_benchmark_config() -> Dict[str, Any]:
 
 def main():
     """メイン関数"""
-    print("🚀 SO(8)T Benchmark Pipeline")
+    print("[START] SO(8)T Benchmark Pipeline")
     print("=" * 50)
 
     # 設定
@@ -656,14 +656,14 @@ def main():
     hf_preparator = SO8THFPreparator(config)
     hf_dir = hf_preparator.prepare_hf_structure(benchmark_results, analysis_report)
 
-    print("✅ ベンチマーク完了!")
-    print(f"📊 結果保存先: {config['results_dir']}")
+    print("[OK] ベンチマーク完了!")
+    print(f"[STATS] 結果保存先: {config['results_dir']}")
     print(f"📈 分析結果: {config['results_dir']}/analysis")
-    print(f"📁 HFアップロード: {hf_dir}")
+    print(f"[DIR] HFアップロード: {hf_dir}")
 
     # 結果表示
     overall = analysis_report['overall']
-    print("🎯 Overall Results:")
+    print("[TARGET] Overall Results:")
     print(".3f")
     print(".3f")
     print(".3f")

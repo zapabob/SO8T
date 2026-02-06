@@ -37,7 +37,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -200,7 +200,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -236,7 +236,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -246,7 +246,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -260,13 +260,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -309,7 +309,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -472,7 +472,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -508,7 +508,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -518,7 +518,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -532,13 +532,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -581,7 +581,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -744,7 +744,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -780,7 +780,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -790,7 +790,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -804,13 +804,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -853,7 +853,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -1016,7 +1016,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -1052,7 +1052,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -1062,7 +1062,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -1076,13 +1076,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -1125,7 +1125,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -1288,7 +1288,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -1324,7 +1324,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -1334,7 +1334,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -1348,13 +1348,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -1397,7 +1397,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -1560,7 +1560,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -1596,7 +1596,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -1606,7 +1606,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -1620,13 +1620,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -1669,7 +1669,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -1832,7 +1832,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -1868,7 +1868,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -1878,7 +1878,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -1892,13 +1892,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -1941,7 +1941,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -2104,7 +2104,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -2140,7 +2140,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -2150,7 +2150,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -2164,13 +2164,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -2213,7 +2213,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -2376,7 +2376,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -2412,7 +2412,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -2422,7 +2422,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -2436,13 +2436,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -2485,7 +2485,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -2648,7 +2648,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -2684,7 +2684,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -2694,7 +2694,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -2708,13 +2708,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":
@@ -2757,7 +2757,7 @@ class SunshineAnalyzer:
         baseline_df = pd.read_csv(self.baseline_log) if self.baseline_log.exists() else pd.DataFrame()
         so8t_df = pd.read_csv(self.so8t_log) if self.so8t_log.exists() else pd.DataFrame()
 
-        print(f"📊 Loaded data:")
+        print(f"[STATS] Loaded data:")
         print(f"  Baseline: {len(baseline_df)} steps")
         print(f"  SO8T: {len(so8t_df)} steps")
 
@@ -2920,7 +2920,7 @@ class SunshineAnalyzer:
 
     def analyze_convergence(self, baseline_df: pd.DataFrame, so8t_df: pd.DataFrame):
         """収束性分析"""
-        print("\n🎯 CONVERGENCE ANALYSIS")
+        print("\n[TARGET] CONVERGENCE ANALYSIS")
         print("=" * 60)
 
         def analyze_run(name: str, df: pd.DataFrame):
@@ -2956,7 +2956,7 @@ class SunshineAnalyzer:
 
 def main():
     """メイン分析実行"""
-    print("🔬 SO8T SUNSHINE RESULTS ANALYZER")
+    print("[RESEARCH] SO8T SUNSHINE RESULTS ANALYZER")
     print("=" * 50)
 
     analyzer = SunshineAnalyzer()
@@ -2966,7 +2966,7 @@ def main():
     baseline_metrics, so8t_metrics = analyzer.load_metrics()
 
     if baseline_df.empty and so8t_df.empty:
-        print("❌ No experiment data found in logs/sunshine/")
+        print("[NG] No experiment data found in logs/sunshine/")
         print("Run sunshine pipeline first:")
         print("  py scripts/pipeline/sunshine_pipeline.py")
         return
@@ -2980,13 +2980,13 @@ def main():
     # 可視化
     try:
         analyzer.plot_loss_curves(baseline_df, so8t_df)
-        print("\n📊 Charts saved to: logs/sunshine/sunshine_comparison.png")
+        print("\n[STATS] Charts saved to: logs/sunshine/sunshine_comparison.png")
     except ImportError:
-        print("\n⚠️  Matplotlib not available, skipping charts")
+        print("\n[WARN]  Matplotlib not available, skipping charts")
     except Exception as e:
-        print(f"\n⚠️  Chart generation failed: {e}")
+        print(f"\n[WARN]  Chart generation failed: {e}")
 
-    print("\n✅ Analysis completed!")
+    print("\n[OK] Analysis completed!")
 
 
 if __name__ == "__main__":

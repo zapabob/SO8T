@@ -176,7 +176,7 @@ class LightweightModelTester:
             }
             
             results.append(result)
-            logger.info(f"     ✓ 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
+            logger.info(f"     [OK] 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
         
         return {
             "test_type": "mathematical_reasoning",
@@ -269,7 +269,7 @@ class LightweightModelTester:
             }
             
             results.append(result)
-            logger.info(f"     ✓ 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
+            logger.info(f"     [OK] 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
         
         return {
             "test_type": "scientific_concepts",
@@ -362,7 +362,7 @@ class LightweightModelTester:
             }
             
             results.append(result)
-            logger.info(f"     ✓ 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
+            logger.info(f"     [OK] 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
         
         return {
             "test_type": "logical_reasoning",
@@ -463,7 +463,7 @@ class LightweightModelTester:
             }
             
             results.append(result)
-            logger.info(f"     ✓ 完了 (応答時間: {response_time:.2f}秒, 文字数: {word_count}, 創造性: {creativity_score:.2f})")
+            logger.info(f"     [OK] 完了 (応答時間: {response_time:.2f}秒, 文字数: {word_count}, 創造性: {creativity_score:.2f})")
         
         return {
             "test_type": "creative_writing",
@@ -557,7 +557,7 @@ class LightweightModelTester:
             }
             
             results.append(result)
-            logger.info(f"     ✓ 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
+            logger.info(f"     [OK] 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
         
         return {
             "test_type": "ethical_reasoning",
@@ -650,7 +650,7 @@ class LightweightModelTester:
             }
             
             results.append(result)
-            logger.info(f"     ✓ 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
+            logger.info(f"     [OK] 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
         
         return {
             "test_type": "advanced_programming",
@@ -743,7 +743,7 @@ class LightweightModelTester:
             }
             
             results.append(result)
-            logger.info(f"     ✓ 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
+            logger.info(f"     [OK] 完了 (応答時間: {response_time:.2f}秒, キーワード: {len(keywords_found)}/{len(test_case['expected_keywords'])})")
         
         return {
             "test_type": "cognitive_psychology",

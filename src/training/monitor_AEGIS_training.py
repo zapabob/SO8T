@@ -34,7 +34,7 @@ def monitor_checkpoints(checkpoint_dir="checkpoints_agiasi"):
     checkpoint_path = project_root / checkpoint_dir
     
     if not checkpoint_path.exists():
-        console.print(f"[yellow]⚠️ Checkpoint directory not found: {checkpoint_path}[/yellow]")
+        console.print(f"[yellow][WARN] Checkpoint directory not found: {checkpoint_path}[/yellow]")
         console.print("[cyan]Waiting for training to start...[/cyan]")
         return None
     
@@ -72,7 +72,7 @@ def get_phase_status(alpha):
     elif diff > 0.1:
         return "🟢 Approaching Golden Ratio", "green"
     else:
-        return "✨ Golden Ratio Achieved!", "bright_green"
+        return "[NEW] Golden Ratio Achieved!", "bright_green"
 
 def create_status_table(data):
     """Create status display table"""

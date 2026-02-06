@@ -232,7 +232,7 @@ def main():
 
     # パフォーマンス分析
     analysis = comparator.analyze_performance()
-    print("\n📊 Performance Analysis:")
+    print("\n[STATS] Performance Analysis:")
     print(f"Baseline Loss: {analysis['baseline']['final_loss']:.6f}")
     print(f"SO8T Loss: {analysis['so8t']['final_loss']:.6f}")
     print(f"Improvement: {analysis['improvement']}")
@@ -241,7 +241,7 @@ def main():
     report = comparator.generate_comparison_report()
     comparator.save_comparison_report(report)
 
-    print("✅ Comparison analysis completed!")
+    print("[OK] Comparison analysis completed!")
 
 if __name__ == "__main__":
     main()

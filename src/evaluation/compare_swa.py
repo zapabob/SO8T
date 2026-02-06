@@ -274,42 +274,42 @@ def print_swa_comparison_report(analysis: Dict[str, Any]):
     
     # Loss Variance (高い方が良い - 局所安定解脱出)
     if swa['loss_variance'] > no_swa['loss_variance']:
-        print("  ✅ SWA increases loss variance (better local minimum escape)")
+        print("  [OK] SWA increases loss variance (better local minimum escape)")
     else:
-        print("  ❌ SWA decreases loss variance (worse local minimum escape)")
+        print("  [NG] SWA decreases loss variance (worse local minimum escape)")
     
     # Accuracy Variance (適度な方が良い)
     if 0.001 < swa['accuracy_variance'] < 0.01 and 0.001 < no_swa['accuracy_variance'] < 0.01:
-        print("  ✅ Both show healthy accuracy variance")
+        print("  [OK] Both show healthy accuracy variance")
     elif swa['accuracy_variance'] < no_swa['accuracy_variance']:
-        print("  ✅ SWA reduces overfitting (lower accuracy variance)")
+        print("  [OK] SWA reduces overfitting (lower accuracy variance)")
     else:
-        print("  ⚠️  SWA increases accuracy variance")
+        print("  [WARN]  SWA increases accuracy variance")
     
     # Accuracy Range (広い方が良い - 柔軟性)
     if swa_range > no_swa_range:
-        print("  ✅ SWA increases accuracy range (more flexibility)")
+        print("  [OK] SWA increases accuracy range (more flexibility)")
     else:
-        print("  ❌ SWA decreases accuracy range (less flexibility)")
+        print("  [NG] SWA decreases accuracy range (less flexibility)")
     
     # 汎化ギャップ
     if swa['generalization'] and no_swa['generalization']:
         if swa_gen['generalization_gap_accuracy'] < no_swa_gen['generalization_gap_accuracy']:
-            print("  ✅ SWA improves generalization (smaller gap)")
+            print("  [OK] SWA improves generalization (smaller gap)")
         else:
-            print("  ❌ SWA worsens generalization (larger gap)")
+            print("  [NG] SWA worsens generalization (larger gap)")
     
     print()
     print("Conclusion:")
     if (swa['loss_variance'] > no_swa['loss_variance'] and 
         swa['accuracy_variance'] < no_swa['accuracy_variance'] and
         swa_range > no_swa_range):
-        print("  🎉 SWA provides better local minimum escape and generalization!")
+        print("  [DONE] SWA provides better local minimum escape and generalization!")
     elif (swa['loss_variance'] > no_swa['loss_variance'] and 
           swa['accuracy_variance'] < no_swa['accuracy_variance']):
-        print("  ✅ SWA provides some benefits for local minimum escape")
+        print("  [OK] SWA provides some benefits for local minimum escape")
     else:
-        print("  ⚠️  SWA effects are mixed or negative")
+        print("  [WARN]  SWA effects are mixed or negative")
     
     print("=" * 80)
 

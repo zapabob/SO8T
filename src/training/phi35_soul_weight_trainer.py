@@ -516,7 +516,7 @@ class Phi35SoulTrainer:
 
                     if loss_ratio < (1.0 - self.grokking_threshold):
                         grokking_detected = True
-                        print(f"\n🎯 [GROKKING DETECTED #{self.grokking_count + 1}]")
+                        print(f"\n[TARGET] [GROKKING DETECTED #{self.grokking_count + 1}]")
                         print(f"   Loss急減: {self.prev_loss:.4f} → {loss.item():.4f}")
                         print(f"   変化率: {loss_ratio:.3f}x ({loss_change_percent:.1f}%減)")
                         print(f"   ステップ: {global_step}")
@@ -1093,7 +1093,7 @@ The model was trained on:
             with open(readme_file, 'w', encoding='utf-8') as f:
                 f.write(readme_content)
 
-            print(f"✅ HF形式モデル保存完了: {hf_model_dir}")
+            print(f"[OK] HF形式モデル保存完了: {hf_model_dir}")
             print(f"   - config.json")
             print(f"   - model.safetensors ({safetensors_file.stat().st_size / (1024**3):.2f}GB)")
             print(f"   - pytorch_model.bin ({pytorch_file.stat().st_size / (1024**3):.2f}GB)")
@@ -1102,7 +1102,7 @@ The model was trained on:
             print(f"   - README.md")
 
         except Exception as e:
-            print(f"❌ HF形式保存エラー: {e}")
+            print(f"[NG] HF形式保存エラー: {e}")
             import traceback
             traceback.print_exc()
 

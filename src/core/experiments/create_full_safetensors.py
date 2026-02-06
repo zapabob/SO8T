@@ -66,7 +66,7 @@ def create_full_safetensors():
         # トークナイザーの保存
         tokenizer.save_pretrained(output_path)
 
-        logger.info("✅ Full SafeTensor model created successfully!")
+        logger.info("[OK] Full SafeTensor model created successfully!")
 
         # モデルサイズの確認
         total_size = 0

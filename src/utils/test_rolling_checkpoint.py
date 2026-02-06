@@ -117,7 +117,7 @@ def test_rolling_checkpoint_system():
         mtime = time.ctime(cp.stat().st_mtime)
         logger.info(f"  {cp.name} (modified: {mtime})")
 
-    logger.info("✅ Rolling Checkpoint System Test PASSED")
+    logger.info("[OK] Rolling Checkpoint System Test PASSED")
 
     # クリーンアップ
     logger.info("Cleaning up test directory...")
@@ -156,7 +156,7 @@ def test_execution_checkpoint():
     # チェックポイントファイルの存在確認
     checkpoint_files = list(Path("test_checkpoints").glob("execution_*.json"))
     if checkpoint_files:
-        logger.info(f"✅ Execution checkpoint saved: {checkpoint_files[0]}")
+        logger.info(f"[OK] Execution checkpoint saved: {checkpoint_files[0]}")
 
         # 内容確認
         import json
@@ -164,7 +164,7 @@ def test_execution_checkpoint():
             data = json.load(f)
             logger.info(f"Execution data: {data.keys()}")
     else:
-        logger.error("❌ Execution checkpoint not found")
+        logger.error("[NG] Execution checkpoint not found")
         return False
 
     # クリーンアップ
@@ -174,7 +174,7 @@ def test_execution_checkpoint():
     if Path("test_checkpoints").exists():
         shutil.rmtree("test_checkpoints")
 
-    logger.info("✅ Execution Checkpoint Test PASSED")
+    logger.info("[OK] Execution Checkpoint Test PASSED")
     return True
 
 def main():
@@ -194,10 +194,10 @@ def main():
     logger.info(f"Execution Checkpoint Test: {'PASSED' if test2_passed else 'FAILED'}")
 
     if test1_passed and test2_passed:
-        logger.info("🎉 All tests PASSED! SO8T Rolling Checkpoint System is ready.")
+        logger.info("[DONE] All tests PASSED! SO8T Rolling Checkpoint System is ready.")
         return 0
     else:
-        logger.error("❌ Some tests FAILED. Please check the implementation.")
+        logger.error("[NG] Some tests FAILED. Please check the implementation.")
         return 1
 
 if __name__ == "__main__":

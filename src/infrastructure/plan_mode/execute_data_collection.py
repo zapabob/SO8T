@@ -378,9 +378,9 @@ def main():
 
     results = collector.execute_complete_data_collection(args.datasets)
 
-    print("🎉 Mathematical Data Collection Completed!")
-    print(f"📊 Total samples collected: {results['statistics']['total_samples']}")
-    print(f"📁 Datasets collected: {', '.join(results['statistics']['datasets_collected'])}")
+    print("[DONE] Mathematical Data Collection Completed!")
+    print(f"[STATS] Total samples collected: {results['statistics']['total_samples']}")
+    print(f"[DIR] Datasets collected: {', '.join(results['statistics']['datasets_collected'])}")
 
     for name, count in results['statistics']['data_distribution'].items():
         print(f"  {name}: {count} samples")

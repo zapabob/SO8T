@@ -21,14 +21,14 @@ def get_current_datetime() -> str:
         # 実際の実装では適切なMCPサーバー呼び出しを行う
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S JST")
     except Exception as e:
-        print(f"⚠️ MCP時刻取得失敗、ローカル時刻を使用: {e}")
+        print(f"[WARN] MCP時刻取得失敗、ローカル時刻を使用: {e}")
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S JST")
 
 
 def load_training_summary(summary_file: Path) -> Optional[Dict[str, Any]]:
     """訓練ログからサマリーを読み込み"""
     if not summary_file.exists():
-        print(f"⚠️ 訓練ログファイルが見つかりません: {summary_file}")
+        print(f"[WARN] 訓練ログファイルが見つかりません: {summary_file}")
         return None
     
     try:
@@ -37,7 +37,7 @@ def load_training_summary(summary_file: Path) -> Optional[Dict[str, Any]]:
             lines = f.readlines()
         
         if not lines:
-            print("⚠️ 訓練ログが空です")
+            print("[WARN] 訓練ログが空です")
             return None
         
         # 最新のエントリを取得
@@ -67,7 +67,7 @@ def load_training_summary(summary_file: Path) -> Optional[Dict[str, Any]]:
             'total_entries': len(all_entries)
         }
     except Exception as e:
-        print(f"❌ 訓練ログの読み込みに失敗: {e}")
+        print(f"[NG] 訓練ログの読み込みに失敗: {e}")
         return None
 
 
@@ -153,10 +153,10 @@ def generate_impl_log(feature_name: str, summary_file: Path, output_dir: Path) -
         with open(log_path, 'a', encoding='utf-8') as f:
             f.write(log_entry)
         
-        print(f"✅ 実装ログを生成しました: {log_path}")
+        print(f"[OK] 実装ログを生成しました: {log_path}")
         return log_path
     except Exception as e:
-        print(f"❌ 実装ログの生成に失敗: {e}")
+        print(f"[NG] 実装ログの生成に失敗: {e}")
         return None
 
 
@@ -168,17 +168,17 @@ def main():
     
     args = parser.parse_args()
     
-    print(f"📝 Generating implementation log for: {args.feature}")
-    print(f"📊 Summary file: {args.summary_file}")
-    print(f"📁 Output directory: {args.output_dir}")
+    print(f"[NOTE] Generating implementation log for: {args.feature}")
+    print(f"[STATS] Summary file: {args.summary_file}")
+    print(f"[DIR] Output directory: {args.output_dir}")
     
     log_path = generate_impl_log(args.feature, args.summary_file, args.output_dir)
     
     if log_path:
-        print(f"🎉 Implementation log generated successfully!")
+        print(f"[DONE] Implementation log generated successfully!")
         print(f"📄 Log file: {log_path}")
     else:
-        print("❌ Failed to generate implementation log")
+        print("[NG] Failed to generate implementation log")
         sys.exit(1)
 
 

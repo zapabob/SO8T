@@ -298,25 +298,25 @@ def print_recovery_report(analysis: Dict[str, Any]):
         
         # 汎化ギャップの評価
         if gen['generalization_gap_accuracy'] < 0.1:
-            print("  ✅ Good Generalization: Small accuracy gap")
+            print("  [OK] Good Generalization: Small accuracy gap")
         elif gen['generalization_gap_accuracy'] < 0.2:
-            print("  ⚠️  Moderate Generalization: Medium accuracy gap")
+            print("  [WARN]  Moderate Generalization: Medium accuracy gap")
         else:
-            print("  ❌ Poor Generalization: Large accuracy gap")
+            print("  [NG] Poor Generalization: Large accuracy gap")
         print()
     
     if "Recovering" in analysis['status']:
-        print("🎉 SUCCESS: Anti-local-minimum measures are working!")
+        print("[DONE] SUCCESS: Anti-local-minimum measures are working!")
         print("   - Model is no longer stuck in local minimum")
         print("   - Loss is fluctuating (good sign)")
         print("   - Accuracy is varying (realistic)")
         print("   - PET regularization is active")
     elif "Partially" in analysis['status']:
-        print("⚠️  PARTIAL SUCCESS: Some measures working")
+        print("[WARN]  PARTIAL SUCCESS: Some measures working")
         print("   - Some improvement detected")
         print("   - May need further tuning")
     else:
-        print("❌ STILL STUCK: Local minimum persists")
+        print("[NG] STILL STUCK: Local minimum persists")
         print("   - May need stronger interventions")
         print("   - Consider increasing noise levels")
     

@@ -259,14 +259,14 @@ def generate_improvement_report(baseline_results: Dict, improved_results: Dict, 
         hallucination_reduction = analysis["hallucination_reduction"]["reduction"]
 
         if improvement > 0:
-            f.write(f"✅ **Positive improvement detected:** +{improvement:.1%} accuracy increase\n")
+            f.write(f"[OK] **Positive improvement detected:** +{improvement:.1%} accuracy increase\n")
         else:
-            f.write(f"⚠️ **No significant improvement:** {improvement:.1%} accuracy change\n")
+            f.write(f"[WARN] **No significant improvement:** {improvement:.1%} accuracy change\n")
 
         if hallucination_reduction > 0:
-            f.write(f"✅ **Hallucination reduction:** -{hallucination_reduction:.1%} hallucination rate\n")
+            f.write(f"[OK] **Hallucination reduction:** -{hallucination_reduction:.1%} hallucination rate\n")
         else:
-            f.write(f"⚠️ **Hallucination unchanged:** {hallucination_reduction:.1%} change\n")
+            f.write(f"[WARN] **Hallucination unchanged:** {hallucination_reduction:.1%} change\n")
 
         f.write("\n## Detailed Results\n\n")
 
@@ -296,22 +296,22 @@ def generate_improvement_report(baseline_results: Dict, improved_results: Dict, 
             f.write(f"- Response: {baseline['response'][:200]}...\n" if len(baseline['response']) > 200 else f"- Response: {baseline['response']}\n")
             f.write(".2f")
             eval_b = baseline_results["evaluations"][i-1]
-            f.write(f"- Correct: {'✅' if eval_b['correct'] else '❌'}\n")
+            f.write(f"- Correct: {'[OK]' if eval_b['correct'] else '[NG]'}\n")
             f.write(f"- Reasoning Quality: {eval_b['reasoning_quality']}\n")
-            f.write(f"- Hallucination: {'⚠️' if eval_b['hallucination_detected'] else '✅'}\n\n")
+            f.write(f"- Hallucination: {'[WARN]' if eval_b['hallucination_detected'] else '[OK]'}\n\n")
 
             f.write("**Improved Model:**\n")
             f.write(f"- Response: {improved['response'][:200]}...\n" if len(improved['response']) > 200 else f"- Response: {improved['response']}\n")
             f.write(".2f")
             eval_i = improved_results["evaluations"][i-1]
-            f.write(f"- Correct: {'✅' if eval_i['correct'] else '❌'}\n")
+            f.write(f"- Correct: {'[OK]' if eval_i['correct'] else '[NG]'}\n")
             f.write(f"- Reasoning Quality: {eval_i['reasoning_quality']}\n")
-            f.write(f"- Hallucination: {'⚠️' if eval_i['hallucination_detected'] else '✅'}\n\n")
+            f.write(f"- Hallucination: {'[WARN]' if eval_i['hallucination_detected'] else '[OK]'}\n\n")
 
         f.write("## Recommendations\n\n")
 
         if improvement > 0.1:
-            f.write("### 🎯 Strong Positive Results\n")
+            f.write("### [TARGET] Strong Positive Results\n")
             f.write("- Current improvements are significant and promising\n")
             f.write("- Consider deploying improved model for production testing\n")
             f.write("- Further optimization may yield additional gains\n\n")

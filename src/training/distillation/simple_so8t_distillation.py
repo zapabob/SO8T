@@ -263,7 +263,7 @@ class SimpleSO8TDistillation:
                 'created_at': datetime.now().isoformat()
             })
         
-        logger.info(f"   ✓ データセット作成完了: {len(dataset)}サンプル")
+        logger.info(f"   [OK] データセット作成完了: {len(dataset)}サンプル")
         return dataset
     
     def distill_knowledge(self, 

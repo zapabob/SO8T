@@ -260,7 +260,7 @@ class UnifiedScrapingDashboard:
             error_logs = self.load_error_logs()
         
         # 全体統計
-        st.subheader("📊 全体統計")
+        st.subheader("[STATS] 全体統計")
         col1, col2, col3, col4 = st.columns(4)
         
         total_scripts = len(all_status)
@@ -353,7 +353,7 @@ class UnifiedScrapingDashboard:
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("🚀 全スクリプト開始", use_container_width=True):
+            if st.button("[START] 全スクリプト開始", use_container_width=True):
                 for script_key in self.scraping_scripts.keys():
                     if script_key not in st.session_state.running_processes:
                         self.start_scraping_script(script_key)

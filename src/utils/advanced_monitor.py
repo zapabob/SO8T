@@ -260,7 +260,7 @@ class MoonshotMonitor:
                 # 完了チェック
                 completed_phases = sum(1 for status in self.phase_status.values() if status == "completed")
                 if completed_phases >= len(self.phases):
-                    logger.info("🎉 MOONSHOT完了を検知しました！")
+                    logger.info("[DONE] MOONSHOT完了を検知しました！")
                     break
 
                 # 待機

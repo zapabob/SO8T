@@ -37,10 +37,10 @@ pause
             with open(self.bat_path, "w", encoding="cp932") as f:
                 f.write(bat_content)
                 
-            logger.info(f"✅ スタートアップに登録完了: {self.bat_path}")
+            logger.info(f"[OK] スタートアップに登録完了: {self.bat_path}")
             return True
         except Exception as e:
-            logger.error(f"❌ スタートアップ登録失敗: {e}")
+            logger.error(f"[NG] スタートアップ登録失敗: {e}")
             return False
             
     def unregister(self):
@@ -52,7 +52,7 @@ pause
                 return True
             return False
         except Exception as e:
-            logger.error(f"❌ スタートアップ削除失敗: {e}")
+            logger.error(f"[NG] スタートアップ削除失敗: {e}")
             return False
 
     def is_registered(self) -> bool:

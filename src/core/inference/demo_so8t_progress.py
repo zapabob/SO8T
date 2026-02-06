@@ -20,7 +20,7 @@ from typing import Dict, Any, List, Optional
 def print_banner():
     """バナーを表示します。"""
     print("=" * 80)
-    print("🚀 SO8T Safe Agent 学習進捗デモンストレーション")
+    print("[START] SO8T Safe Agent 学習進捗デモンストレーション")
     print("=" * 80)
     print(f"時刻: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 80)
@@ -35,31 +35,31 @@ def check_training_process():
         ], capture_output=True, text=True, timeout=10)
         
         if result.returncode == 0 and result.stdout.strip():
-            print("✅ 学習プロセスが実行中です:")
+            print("[OK] 学習プロセスが実行中です:")
             print(result.stdout)
             return True
         else:
-            print("❌ 学習プロセスが見つかりません")
+            print("[NG] 学習プロセスが見つかりません")
             return False
     except Exception as e:
-        print(f"❌ プロセス確認エラー: {e}")
+        print(f"[NG] プロセス確認エラー: {e}")
         return False
 
 def check_checkpoints():
     """チェックポイントを確認します。"""
     checkpoint_dir = Path("checkpoints")
     if not checkpoint_dir.exists():
-        print("❌ チェックポイントディレクトリが存在しません")
+        print("[NG] チェックポイントディレクトリが存在しません")
         return False
     
     # 最新のセッションディレクトリを取得
     sessions = list(checkpoint_dir.glob("so8t_qwen2.5-7b_session_*"))
     if not sessions:
-        print("❌ セッションディレクトリが見つかりません")
+        print("[NG] セッションディレクトリが見つかりません")
         return False
     
     latest_session = max(sessions, key=lambda x: x.stat().st_mtime)
-    print(f"📁 最新セッション: {latest_session.name}")
+    print(f"[DIR] 最新セッション: {latest_session.name}")
     
     # セッション内のファイルを確認
     files = list(latest_session.glob("*"))
@@ -92,10 +92,10 @@ def check_gpu_usage():
                     print(f"🎮 GPU {i}: 使用率 {gpu_util}%, メモリ {mem_used}/{mem_total}MB, 温度 {temp}°C")
             return True
         else:
-            print("❌ nvidia-smiが利用できません")
+            print("[NG] nvidia-smiが利用できません")
             return False
     except Exception as e:
-        print(f"❌ GPU確認エラー: {e}")
+        print(f"[NG] GPU確認エラー: {e}")
         return False
 
 def estimate_training_time():
@@ -125,21 +125,21 @@ def main():
     # 学習時間推定
     estimate_training_time()
     
-    print("\n📊 状況サマリー:")
-    print(f"  - 学習プロセス: {'✅ 実行中' if process_running else '❌ 停止中'}")
-    print(f"  - チェックポイント: {'✅ 存在' if checkpoints_exist else '❌ 未作成'}")
-    print(f"  - GPU: {'✅ 利用可能' if gpu_available else '❌ 利用不可'}")
+    print("\n[STATS] 状況サマリー:")
+    print(f"  - 学習プロセス: {'[OK] 実行中' if process_running else '[NG] 停止中'}")
+    print(f"  - チェックポイント: {'[OK] 存在' if checkpoints_exist else '[NG] 未作成'}")
+    print(f"  - GPU: {'[OK] 利用可能' if gpu_available else '[NG] 利用不可'}")
     
     if process_running and checkpoints_exist:
-        print("\n🎉 SO8T学習が正常に進行中です！")
-        print("💡 電源断からの復旧システムが動作しています")
+        print("\n[DONE] SO8T学習が正常に進行中です！")
+        print("[TIP] 電源断からの復旧システムが動作しています")
         print("🔄 5分間隔で自動チェックポイント保存中")
     elif process_running:
         print("\n⏳ 学習プロセスは実行中ですが、まだチェックポイントが作成されていません")
-        print("💡 学習が開始されるまでしばらくお待ちください")
+        print("[TIP] 学習が開始されるまでしばらくお待ちください")
     else:
-        print("\n❌ 学習プロセスが停止しています")
-        print("💡 学習を再開してください")
+        print("\n[NG] 学習プロセスが停止しています")
+        print("[TIP] 学習を再開してください")
     
     print("\n" + "=" * 80)
     print("SO8T Safe Agent - 安全で信頼できるAIエージェントの実現を目指して")

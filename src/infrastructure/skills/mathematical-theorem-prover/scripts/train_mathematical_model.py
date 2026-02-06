@@ -443,17 +443,17 @@ def main():
 
     try:
         results = trainer.execute_full_training_pipeline(args.math_data)
-        print("🎉 Mathematical theorem prover training completed!")
-        print(f"📊 Results saved to: {args.output_dir}/training_results.json")
+        print("[DONE] Mathematical theorem prover training completed!")
+        print(f"[STATS] Results saved to: {args.output_dir}/training_results.json")
 
         if results["status"] == "completed":
             print(f"🏆 Final model: {results['final_model_path']}")
         else:
-            print(f"❌ Training failed: {results.get('error', 'Unknown error')}")
+            print(f"[NG] Training failed: {results.get('error', 'Unknown error')}")
 
     except Exception as e:
         logger.error(f"Training execution failed: {e}")
-        print(f"❌ Training failed: {e}")
+        print(f"[NG] Training failed: {e}")
         exit(1)
 
 

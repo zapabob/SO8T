@@ -128,9 +128,9 @@ class Phi35SO8TThinkingPipeline:
                 if success:
                     self.pipeline_state['completed_steps'].append(step_name)
                     self.pipeline_state['checkpoints'][step_name] = datetime.now().isoformat()
-                    logger.info(f"✓ Step {step_name} completed successfully")
+                    logger.info(f"[OK] Step {step_name} completed successfully")
                 else:
-                    logger.error(f"✗ Step {step_name} failed")
+                    logger.error(f"[NG] Step {step_name} failed")
                     self.pipeline_state['errors'].append({
                         'step': step_name,
                         'timestamp': datetime.now().isoformat(),
@@ -143,7 +143,7 @@ class Phi35SO8TThinkingPipeline:
             # パイプライン完了
             if len(self.pipeline_state['completed_steps']) == len(steps):
                 logger.info("="*80)
-                logger.info("🎉 Phi-3.5 SO8T /thinking Model Conversion Pipeline COMPLETED!")
+                logger.info("[DONE] Phi-3.5 SO8T /thinking Model Conversion Pipeline COMPLETED!")
                 logger.info("="*80)
 
                 # 最終オーディオ通知

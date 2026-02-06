@@ -367,10 +367,10 @@ class DynamicThinkingSO8TModel(SafetyAwareSO8TModel):
         self.so8_trinality_enabled = True  # SO8 Trinality推論有効化
 
         logger.info("Dynamic Thinking SO8T Model initialized with:")
-        logger.info("  - SO8ViT Thinking Adapter: ✓")
-        logger.info("  - Multimodal Integration: ✓")
-        logger.info("  - Meta Reasoning Analyzer: ✓")
-        logger.info("  - Query Type Classification: ✓")
+        logger.info("  - SO8ViT Thinking Adapter: [OK]")
+        logger.info("  - Multimodal Integration: [OK]")
+        logger.info("  - Meta Reasoning Analyzer: [OK]")
+        logger.info("  - Query Type Classification: [OK]")
 
     def forward(
         self,
@@ -583,10 +583,10 @@ class DynamicThinkingSO8TModel(SafetyAwareSO8TModel):
 
         logger.info("Thinking features updated:")
         logger.info(f"  Dynamic Thinking: {'?' if dynamic else '?'}")
-        logger.info(f"  Multimodal Integration: {'✓' if multimodal else '✗'}")
-        logger.info(f"  Meta Reasoning: {'✓' if meta_reasoning else '✗'}")
-        logger.info(f"  SO8 Trinality Inference: {'✓' if so8_trinality else '✗'}")
-        logger.info(f"  Temperature Control: {'✓' if temperature_control else '✗'}")
+        logger.info(f"  Multimodal Integration: {'[OK]' if multimodal else '[NG]'}")
+        logger.info(f"  Meta Reasoning: {'[OK]' if meta_reasoning else '[NG]'}")
+        logger.info(f"  SO8 Trinality Inference: {'[OK]' if so8_trinality else '[NG]'}")
+        logger.info(f"  Temperature Control: {'[OK]' if temperature_control else '[NG]'}")
 
     def get_thinking_stats(self) -> Dict[str, Any]:
         """Thinking統計取得"""

@@ -790,7 +790,7 @@ class AEGISV2BenchmarkEvaluator:
                     f.write(f"- **F/H Statistic**: {overall.get('f_statistic', 'N/A')}\n")
                     f.write(f"- **Normality Tests**: {overall.get('normality_tests', 'N/A')}\n")
                     f.write(f"- **Equal Variance**: {overall.get('equal_variance', 'N/A')}\n")
-                    f.write(f"- **Statistically Significant**: {'✓' if overall.get('statistically_significant', False) else '✗'}\n\n")
+                    f.write(f"- **Statistically Significant**: {'[OK]' if overall.get('statistically_significant', False) else '[NG]'}\n\n")
 
                 # カテゴリ別ANOVA
                 if 'anova_analysis' in self.results['statistical_analysis'] and self.results['statistical_analysis']['anova_analysis']:
@@ -899,8 +899,8 @@ def main():
     try:
         results = evaluator.run_comprehensive_evaluation()
 
-        print("\n🎉 AEGIS-v2.0 Evaluation completed successfully!")
-        print(f"📊 Results saved to: {evaluator.output_dir}")
+        print("\n[DONE] AEGIS-v2.0 Evaluation completed successfully!")
+        print(f"[STATS] Results saved to: {evaluator.output_dir}")
         print("📈 Performance plots and statistical analysis generated")
         # 主要な結果表示
         if 'statistical_analysis' in results and 'overall_comparison' in results['statistical_analysis']:
@@ -910,7 +910,7 @@ def main():
             print(".3f")
             print("+.1f")
             print(".1f")
-            print(f"🎯 Statistical Significance: {'✓ SIGNIFICANT' if overall['statistically_significant'] else '✗ Not Significant'}")
+            print(f"[TARGET] Statistical Significance: {'[OK] SIGNIFICANT' if overall['statistically_significant'] else '[NG] Not Significant'}")
 
     except Exception as e:
         print(f"\n[ERROR] Evaluation failed: {e}")

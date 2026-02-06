@@ -637,7 +637,7 @@ This report documents the SO8T burn-in process, quantization, and verification r
 
 ## Status
 
-✅ **Pipeline completed successfully**
+[OK] **Pipeline completed successfully**
 
 Generated: {Path(__file__).parent.parent}
 """

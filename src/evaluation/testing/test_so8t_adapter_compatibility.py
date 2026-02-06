@@ -112,14 +112,14 @@ def test_adapter_zero_strength_compatibility():
         # 許容誤差: 数値誤差程度（1e-6以下）
         tolerance = 1e-6
         if max_diff < tolerance:
-            logger.info("[TEST] ✓ PASSED: λ=0 adapter output matches baseline perfectly")
+            logger.info("[TEST] [OK] PASSED: λ=0 adapter output matches baseline perfectly")
             return True
         else:
-            logger.error(f"[TEST] ✗ FAILED: λ=0 adapter output differs from baseline (max_diff: {max_diff:.2e})")
+            logger.error(f"[TEST] [NG] FAILED: λ=0 adapter output differs from baseline (max_diff: {max_diff:.2e})")
             return False
 
     except Exception as e:
-        logger.error(f"[TEST] ✗ ERROR: {e}")
+        logger.error(f"[TEST] [NG] ERROR: {e}")
         return False
 
 
@@ -170,14 +170,14 @@ def test_adapter_gradient_flow():
         if (strength_grad is not None and strength_grad.item() != 0.0 and
             proj_grad is not None and proj_grad.norm().item() > 0 and
             A_grad is not None and A_grad.norm().item() > 0):
-            logger.info("[TEST] ✓ PASSED: All gradients flow correctly")
+            logger.info("[TEST] [OK] PASSED: All gradients flow correctly")
             return True
         else:
-            logger.error("[TEST] ✗ FAILED: Some gradients are missing or zero")
+            logger.error("[TEST] [NG] FAILED: Some gradients are missing or zero")
             return False
 
     except Exception as e:
-        logger.error(f"[TEST] ✗ ERROR: {e}")
+        logger.error(f"[TEST] [NG] ERROR: {e}")
         return False
 
 
@@ -213,7 +213,7 @@ def test_adapter_orthogonal_property():
 
             # 直交誤差が小さすぎる場合、行列指数が機能していない可能性
             if orth_error > 1e-10:  # 数値誤差より大きい
-                logger.info("[TEST] ✓ Matrix exponential appears to be working")
+                logger.info("[TEST] [OK] Matrix exponential appears to be working")
             else:
                 logger.warning("[TEST] Matrix exponential may not be working properly")
 
@@ -225,14 +225,14 @@ def test_adapter_orthogonal_property():
         logger.info(f"[TEST] Alpha=0: Orth error={orth_error_zero:.2e}, Det error={det_error_zero:.2e}")
 
         if orth_error_zero < 1e-12 and abs(det_error_zero) < 1e-12:
-            logger.info("[TEST] ✓ PASSED: Alpha=0 gives identity matrix")
+            logger.info("[TEST] [OK] PASSED: Alpha=0 gives identity matrix")
             return True
         else:
             logger.warning("[TEST] Alpha=0 does not give perfect identity matrix (may be acceptable)")
             return True  # 警告だが合格とする
 
     except Exception as e:
-        logger.error(f"[TEST] ✗ ERROR: {e}")
+        logger.error(f"[TEST] [NG] ERROR: {e}")
         return False
 
 
@@ -270,7 +270,7 @@ def main():
     total = len(results)
 
     for test_name, result in results:
-        status = "✓ PASSED" if result else "✗ FAILED"
+        status = "[OK] PASSED" if result else "[NG] FAILED"
         logger.info(f"{test_name}: {status}")
         if result:
             passed += 1
@@ -278,10 +278,10 @@ def main():
     logger.info(f"\nPassed: {passed}/{total}")
 
     if passed == total:
-        logger.info("🎉 All tests passed! SO8TAdapter is ready for use.")
+        logger.info("[DONE] All tests passed! SO8TAdapter is ready for use.")
         return 0
     else:
-        logger.error(f"❌ {total - passed} test(s) failed. Please check the implementation.")
+        logger.error(f"[NG] {total - passed} test(s) failed. Please check the implementation.")
         return 1
 
 

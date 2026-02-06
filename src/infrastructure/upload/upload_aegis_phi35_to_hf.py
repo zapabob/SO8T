@@ -254,13 +254,13 @@ def main():
 
     # Upload
     if upload_to_huggingface(args.repo_name, token):
-        print("\\n🎉 AEGIS v2.4 successfully uploaded to HuggingFace!")
+        print("\\n[DONE] AEGIS v2.4 successfully uploaded to HuggingFace!")
         print("Next steps:")
         print("1. Visit your model page to verify files")
         print("2. Set up model tags and description")
         print("3. Share with the community!")
     else:
-        print("\\n❌ Upload failed. Check error messages above.")
+        print("\\n[NG] Upload failed. Check error messages above.")
         sys.exit(1)
 
 if __name__ == "__main__":

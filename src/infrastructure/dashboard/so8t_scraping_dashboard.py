@@ -314,7 +314,7 @@ class ScrapingDashboard:
                 stats['nsfw_samples'] = dashboard_state.get('nsfw_samples', stats['nsfw_samples'])
         
         # メトリクス表示
-        st.subheader("📊 全体統計")
+        st.subheader("[STATS] 全体統計")
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:

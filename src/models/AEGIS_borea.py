@@ -72,7 +72,7 @@ class AEGIS_SO8T_Wrapper(nn.Module):
         # 3. Orthogonality Monitor
         self.ortho_loss = 0.0
         
-        print(f"✨ AEGIS Soul initialized. Alpha: {self.alpha.item():.4f}")
+        print(f"[NEW] AEGIS Soul initialized. Alpha: {self.alpha.item():.4f}")
 
     def forward(self, input_ids, attention_mask=None, labels=None):
         """

@@ -78,10 +78,10 @@ class NKATDebugCallback(TrainerCallback):
 
             # 異常検知
             if ortho_err > 1e-2:
-                print("    ⚠️ Orthogonality breaking down! (Check precision)")
+                print("    [WARN] Orthogonality breaking down! (Check precision)")
             if alpha > 1.0:
-                print("    ⚠️ Alpha too large! (Risk of divergence)")
+                print("    [WARN] Alpha too large! (Risk of divergence)")
             if grad_norm == "None":
-                print("    ⚠️ Gradient detached! (Check requires_grad)")
+                print("    [WARN] Gradient detached! (Check requires_grad)")
 
         print("-" * 40)

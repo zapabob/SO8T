@@ -13,7 +13,7 @@ def check_available_tasks():
     lm_eval_path = Path('./lm-evaluation-harness')
 
     if not lm_eval_path.exists():
-        print("❌ lm-evaluation-harness ディレクトリが見つかりません")
+        print("[NG] lm-evaluation-harness ディレクトリが見つかりません")
         return False
 
     print("🔍 lm-evaluation-harness 利用可能タスクを確認中...")
@@ -30,24 +30,24 @@ def check_available_tasks():
             check=True
         )
 
-        print("✅ 利用可能タスク一覧:")
+        print("[OK] 利用可能タスク一覧:")
         print(result.stdout)
 
         # hellaswag と mmlu が利用可能か確認
         key_tasks = ['hellaswag', 'mmlu']
         available_tasks = result.stdout.lower()
 
-        print("\n🎯 SO(8)T推奨タスク確認:")
+        print("\n[TARGET] SO(8)T推奨タスク確認:")
         for task in key_tasks:
             if task.lower() in available_tasks:
-                print(f"✅ {task}: 利用可能")
+                print(f"[OK] {task}: 利用可能")
             else:
-                print(f"❌ {task}: 利用不可")
+                print(f"[NG] {task}: 利用不可")
 
         return True
 
     except subprocess.CalledProcessError as e:
-        print(f"❌ タスク確認失敗: {e}")
+        print(f"[NG] タスク確認失敗: {e}")
         print(f"stdout: {e.stdout}")
         print(f"stderr: {e.stderr}")
         return False
@@ -56,7 +56,7 @@ def check_model_loading():
     """モデル読み込みテスト"""
     lm_eval_path = Path('./lm-evaluation-harness')
 
-    print("\n🔧 HFモデル読み込みテスト...")
+    print("\n[FIX] HFモデル読み込みテスト...")
     print("=" * 60)
 
     try:
@@ -79,19 +79,19 @@ def check_model_loading():
         )
 
         if result.returncode == 0:
-            print("✅ HFモデル読み込み: 成功")
+            print("[OK] HFモデル読み込み: 成功")
         else:
-            print(f"⚠️ HFモデル読み込み: 失敗 (exit code: {result.returncode})")
+            print(f"[WARN] HFモデル読み込み: 失敗 (exit code: {result.returncode})")
             print(f"stderr: {result.stderr[-500:]}")  # 末尾500文字
 
     except subprocess.TimeoutExpired:
-        print("⚠️ HFモデル読み込み: タイムアウト")
+        print("[WARN] HFモデル読み込み: タイムアウト")
     except Exception as e:
-        print(f"⚠️ HFモデル読み込み: エラー - {e}")
+        print(f"[WARN] HFモデル読み込み: エラー - {e}")
 
 def main():
     """メイン関数"""
-    print("🚀 lm-evaluation-harness 環境チェック")
+    print("[START] lm-evaluation-harness 環境チェック")
     print("=" * 60)
 
     # タスク確認
@@ -102,13 +102,13 @@ def main():
 
     print("\n" + "=" * 60)
     if tasks_ok:
-        print("✅ lm-evaluation-harness 環境チェック完了")
+        print("[OK] lm-evaluation-harness 環境チェック完了")
         print("\n📋 SO(8)Tベンチマーク実行例:")
         print("python so8t_lm_eval_benchmark.py --ab-compare")
         print("python so8t_lm_eval_benchmark.py --model-a-only")
         print("python so8t_lm_eval_benchmark.py --model-b-only")
     else:
-        print("❌ lm-evaluation-harness 環境チェック失敗")
+        print("[NG] lm-evaluation-harness 環境チェック失敗")
 
     # 音声通知
     try:

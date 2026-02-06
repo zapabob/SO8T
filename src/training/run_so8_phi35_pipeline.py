@@ -168,7 +168,7 @@ def main():
         # 完了
         elapsed_time = time.time() - start_time
         logger.info("=" * 50)
-        logger.info("🎉 SO(8) Phi-3.5 Pipeline Completed Successfully!")
+        logger.info("[DONE] SO(8) Phi-3.5 Pipeline Completed Successfully!")
         logger.info(".2f")
         logger.info(f"GGUF Model: {args.gguf_output}")
         logger.info("")

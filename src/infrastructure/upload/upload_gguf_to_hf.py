@@ -66,7 +66,7 @@ def upload_gguf_to_hf():
             commit_message="Upload AEGIS v2.5 SO8T GGUF quantized model (imatrix protected)"
         )
 
-        logger.info("✅ GGUF upload completed successfully!")
+        logger.info("[OK] GGUF upload completed successfully!")
         logger.info(f"📍 GGUF URL: https://huggingface.co/{repo_id}/resolve/main/aegis_v25_so8t_gguf.gguf")
 
         return True
@@ -109,7 +109,7 @@ def upload_full_safetensors():
                     logger.error(f"Failed to upload {relative_path}: {e}")
                     continue
 
-        logger.info("✅ Full SafeTensor model upload completed!")
+        logger.info("[OK] Full SafeTensor model upload completed!")
         return True
 
     except Exception as e:

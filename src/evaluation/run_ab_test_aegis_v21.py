@@ -402,7 +402,7 @@ This report presents the results of A/B testing between the base model (Borea-Ph
 
         for task, stats in stats_results.items():
             if task != "overall":
-                report += f"""| {task} | {stats['base_mean']:.4f} | {stats['aegis_mean']:.4f} | {stats['mean_difference']:+.4f} | {stats['t_statistic']:.3f} | {stats['p_value']:.4f} | {stats['cohens_d']:.3f} | {stats['effect_size_interpretation']} | {'✓' if stats['significant'] else '✗'} | {stats['anova_f']:.3f} | {stats['anova_p']:.4f} |
+                report += f"""| {task} | {stats['base_mean']:.4f} | {stats['aegis_mean']:.4f} | {stats['mean_difference']:+.4f} | {stats['t_statistic']:.3f} | {stats['p_value']:.4f} | {stats['cohens_d']:.3f} | {stats['effect_size_interpretation']} | {'[OK]' if stats['significant'] else '[NG]'} | {stats['anova_f']:.3f} | {stats['anova_p']:.4f} |
 """
 
         report += f"""

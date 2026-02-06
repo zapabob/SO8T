@@ -39,7 +39,7 @@ class RLPOTestSuite:
 
     def run_all_tests(self):
         """全テスト実行"""
-        logger.info("🚀 Starting RLPO Automated Test Suite...")
+        logger.info("[START] Starting RLPO Automated Test Suite...")
 
         try:
             # 1. 環境チェック
@@ -60,11 +60,11 @@ class RLPOTestSuite:
             # 6. 結果レポート生成
             self.generate_report()
 
-            logger.info("✅ All tests completed successfully!")
+            logger.info("[OK] All tests completed successfully!")
             return True
 
         except Exception as e:
-            logger.error(f"❌ Test suite failed: {e}")
+            logger.error(f"[NG] Test suite failed: {e}")
             self.results['final_status'] = 'FAILED'
             self.generate_report()
             return False
@@ -103,11 +103,11 @@ class RLPOTestSuite:
             results['nkat_available'] = False
 
         self.results['environment'] = results
-        logger.info("✅ Environment test completed")
+        logger.info("[OK] Environment test completed")
 
     def test_datasets(self):
         """データセットチェック"""
-        logger.info("📊 Testing datasets...")
+        logger.info("[STATS] Testing datasets...")
 
         results = {}
 
@@ -130,7 +130,7 @@ class RLPOTestSuite:
             results['nsfw_dataset'] = {'exists': False, 'count': 0}
 
         self.results['datasets'] = results
-        logger.info("✅ Dataset test completed")
+        logger.info("[OK] Dataset test completed")
 
     def test_model_loading(self):
         """モデルロードテスト"""
@@ -163,11 +163,11 @@ class RLPOTestSuite:
             logger.error(f"Model loading failed: {e}")
 
         self.results['model_loading'] = results
-        logger.info("✅ Model loading test completed")
+        logger.info("[OK] Model loading test completed")
 
     def test_nkat_integration(self):
         """NKATアダプター統合テスト"""
-        logger.info("🧬 Testing NKAT integration...")
+        logger.info("[SO8T] Testing NKAT integration...")
 
         results = {}
 
@@ -194,11 +194,11 @@ class RLPOTestSuite:
             logger.error(f"NKAT integration failed: {e}")
 
         self.results['nkat_integration'] = results
-        logger.info("✅ NKAT integration test completed")
+        logger.info("[OK] NKAT integration test completed")
 
     def test_mini_training(self):
         """ミニトレーニング実行"""
-        logger.info("🎯 Running mini training test...")
+        logger.info("[TARGET] Running mini training test...")
 
         results = {}
 
@@ -225,17 +225,17 @@ class RLPOTestSuite:
 
             if result.returncode == 0:
                 results['success'] = True
-                logger.info("✅ Mini training completed successfully")
+                logger.info("[OK] Mini training completed successfully")
             else:
                 results['success'] = False
-                logger.error(f"❌ Mini training failed: {result.stderr}")
+                logger.error(f"[NG] Mini training failed: {result.stderr}")
 
         except subprocess.TimeoutExpired:
             results['error'] = 'Timeout'
-            logger.error("❌ Mini training timed out")
+            logger.error("[NG] Mini training timed out")
         except Exception as e:
             results['error'] = str(e)
-            logger.error(f"❌ Mini training failed: {e}")
+            logger.error(f"[NG] Mini training failed: {e}")
 
         self.results['mini_training'] = results
 
@@ -264,17 +264,17 @@ class RLPOTestSuite:
 
         # コンソールレポート
         print("\n" + "="*60)
-        print("🎯 RLPO AUTOMATED TEST REPORT")
+        print("[TARGET] RLPO AUTOMATED TEST REPORT")
         print("="*60)
         print(f"Test Directory: {self.test_dir}")
-        print(f"Final Status: {'✅ PASSED' if all_passed else '❌ FAILED'}")
+        print(f"Final Status: {'[OK] PASSED' if all_passed else '[NG] FAILED'}")
         print(f"Report saved to: {report_path}")
         print("="*60)
 
         # 詳細表示
         for test_name, results in self.results.items():
             if test_name != 'final_status':
-                status = "✅" if self._is_test_passed(test_name, results) else "❌"
+                status = "[OK]" if self._is_test_passed(test_name, results) else "[NG]"
                 print(f"{status} {test_name.replace('_', ' ').title()}")
 
         print("="*60)
@@ -299,7 +299,7 @@ class RLPOTestSuite:
 
 def main():
     """メイン実行関数"""
-    print("🚀 RLPO Science + NSFW + NKAT Automated Test Suite")
+    print("[START] RLPO Science + NSFW + NKAT Automated Test Suite")
     print("=" * 60)
 
     test_suite = RLPOTestSuite()

@@ -72,7 +72,7 @@ class HFReadmeUpdater:
     def generate_benchmark_table(self) -> str:
         """ベンチマーク結果テーブルを生成（エラーバー付き）"""
         table_lines = [
-            "## 📊 Benchmark Results / ベンチマーク結果",
+            "## [STATS] Benchmark Results / ベンチマーク結果",
             "",
             "### Industry Standard Benchmarks / 業界標準ベンチマーク",
             "",
@@ -271,7 +271,7 @@ class HFReadmeUpdater:
         ]
         
         section_lines = [
-            "## 📊 ABC Test Visualizations / ABCテスト可視化",
+            "## [STATS] ABC Test Visualizations / ABCテスト可視化",
             "",
             "### Performance Comparison Charts / 性能比較チャート",
             ""
@@ -389,19 +389,19 @@ class HFReadmeUpdater:
             visualization_section = self.generate_visualization_section()
             
             # 既存のセクションを置き換えまたは追加
-            if "## 📊 Benchmark Results" in current_content:
+            if "## [STATS] Benchmark Results" in current_content:
                 # 既存セクションを置き換え
                 import re
-                pattern = r"## 📊 Benchmark Results.*?(?=## |$)"
+                pattern = r"## [STATS] Benchmark Results.*?(?=## |$)"
                 current_content = re.sub(pattern, benchmark_table + "\n\n", current_content, flags=re.DOTALL)
             else:
                 # 新規追加
                 current_content += "\n\n" + benchmark_table + "\n\n"
             
-            if "## 📊 ABC Test Visualizations" in current_content:
+            if "## [STATS] ABC Test Visualizations" in current_content:
                 # 既存セクションを置き換え
                 import re
-                pattern = r"## 📊 ABC Test Visualizations.*?(?=## |$)"
+                pattern = r"## [STATS] ABC Test Visualizations.*?(?=## |$)"
                 current_content = re.sub(pattern, visualization_section + "\n\n", current_content, flags=re.DOTALL)
             else:
                 # 新規追加

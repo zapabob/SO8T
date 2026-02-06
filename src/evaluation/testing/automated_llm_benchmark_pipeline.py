@@ -511,7 +511,7 @@ def main():
     print(f"  Difference: {agiasi_avg - model_a_avg:+.3f}")
 
     if agiasi_avg > model_a_avg + 0.05:
-        print("  Winner: AEGIS ✨")
+        print("  Winner: AEGIS [NEW]")
     elif model_a_avg > agiasi_avg + 0.05:
         print("  Winner: Model A")
     else:

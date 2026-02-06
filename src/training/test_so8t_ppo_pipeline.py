@@ -16,18 +16,18 @@ def test_dataset_loading():
     dataset_path = "data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
 
     if not Path(dataset_path).exists():
-        print(f"❌ Dataset not found: {dataset_path}")
+        print(f"[NG] Dataset not found: {dataset_path}")
         return False
 
     try:
         dataset = SO8TIntegratedDataset(dataset_path)
-        print(f"✅ Dataset loaded successfully: {len(dataset)} entries")
+        print(f"[OK] Dataset loaded successfully: {len(dataset)} entries")
 
         # サンプルデータの確認
         if len(dataset) > 0:
             sample = dataset[0]
             print(f"📋 Sample data keys: {list(sample.keys())}")
-            print(f"🎯 Sample instruction: {sample['instruction'][:100]}...")
+            print(f"[TARGET] Sample instruction: {sample['instruction'][:100]}...")
             print(f"🏷️  Sample label: {sample['four_class_label']}")
             print(f"💰 Sample reward: {sample['reward_value']}")
             print(f"🧠 SO(8) score: {sample['so8t_combined_score']:.3f}")
@@ -35,22 +35,22 @@ def test_dataset_loading():
         return True
 
     except Exception as e:
-        print(f"❌ Dataset loading failed: {e}")
+        print(f"[NG] Dataset loading failed: {e}")
         return False
 
 def test_ppo_trainer_init():
     """PPOトレーナー初期化テスト"""
-    print("\n🔧 Testing SO(8) PPO Trainer Initialization...")
+    print("\n[FIX] Testing SO(8) PPO Trainer Initialization...")
 
     dataset_path = "data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
     config_path = "scripts/training/so8t_ppo_config.json"
 
     if not Path(dataset_path).exists():
-        print(f"❌ Dataset not found: {dataset_path}")
+        print(f"[NG] Dataset not found: {dataset_path}")
         return False
 
     if not Path(config_path).exists():
-        print(f"❌ Config not found: {config_path}")
+        print(f"[NG] Config not found: {config_path}")
         return False
 
     try:
@@ -65,15 +65,15 @@ def test_ppo_trainer_init():
             config=config
         )
 
-        print(f"✅ PPO Trainer initialized successfully")
-        print(f"📊 Dataset size: {len(trainer.dataset)}")
-        print(f"🔧 PPO config: learning_rate={trainer.ppo_config.learning_rate}")
+        print(f"[OK] PPO Trainer initialized successfully")
+        print(f"[STATS] Dataset size: {len(trainer.dataset)}")
+        print(f"[FIX] PPO config: learning_rate={trainer.ppo_config.learning_rate}")
         print(f"🧠 SO(8) config: vector_weight={trainer.so8t_config.vector_weight}")
 
         return True
 
     except Exception as e:
-        print(f"❌ PPO Trainer initialization failed: {e}")
+        print(f"[NG] PPO Trainer initialization failed: {e}")
         return False
 
 def test_reward_calculation():
@@ -122,19 +122,19 @@ def test_reward_calculation():
 
             rewards.append(final_reward)
 
-        print("✅ SO(8) Reward calculation test results:")
+        print("[OK] SO(8) Reward calculation test results:")
         for i, reward in enumerate(rewards):
             print(".3f")
         print(".3f")
         return True
 
     except Exception as e:
-        print(f"❌ Reward calculation test failed: {e}")
+        print(f"[NG] Reward calculation test failed: {e}")
         return False
 
 def main():
     """メイン関数"""
-    print("🧪 SO(8) PPO Pipeline Test Suite")
+    print("[TEST] SO(8) PPO Pipeline Test Suite")
     print("=" * 50)
 
     tests = [
@@ -149,26 +149,26 @@ def main():
             result = test_func()
             results.append((test_name, result))
         except Exception as e:
-            print(f"❌ {test_name} crashed: {e}")
+            print(f"[NG] {test_name} crashed: {e}")
             results.append((test_name, False))
 
     # 結果サマリー
     print("\n" + "=" * 50)
-    print("📊 Test Results Summary:")
+    print("[STATS] Test Results Summary:")
 
     passed = 0
     total = len(results)
 
     for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = "[OK] PASS" if result else "[NG] FAIL"
         print(f"  {test_name}: {status}")
         if result:
             passed += 1
 
-    print(f"\n🎯 Overall: {passed}/{total} tests passed")
+    print(f"\n[TARGET] Overall: {passed}/{total} tests passed")
 
     if passed == total:
-        print("🎉 All tests passed! SO(8) PPO pipeline is ready!")
+        print("[DONE] All tests passed! SO(8) PPO pipeline is ready!")
         # 成功音声通知
         try:
             import subprocess
@@ -179,7 +179,7 @@ def main():
         except Exception as e:
             print(f"[WARNING] Audio notification failed: {e}")
     else:
-        print("⚠️  Some tests failed. Please check the implementation.")
+        print("[WARN]  Some tests failed. Please check the implementation.")
 
 if __name__ == "__main__":
     main()
@@ -200,18 +200,18 @@ def test_dataset_loading():
     dataset_path = "data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
 
     if not Path(dataset_path).exists():
-        print(f"❌ Dataset not found: {dataset_path}")
+        print(f"[NG] Dataset not found: {dataset_path}")
         return False
 
     try:
         dataset = SO8TIntegratedDataset(dataset_path)
-        print(f"✅ Dataset loaded successfully: {len(dataset)} entries")
+        print(f"[OK] Dataset loaded successfully: {len(dataset)} entries")
 
         # サンプルデータの確認
         if len(dataset) > 0:
             sample = dataset[0]
             print(f"📋 Sample data keys: {list(sample.keys())}")
-            print(f"🎯 Sample instruction: {sample['instruction'][:100]}...")
+            print(f"[TARGET] Sample instruction: {sample['instruction'][:100]}...")
             print(f"🏷️  Sample label: {sample['four_class_label']}")
             print(f"💰 Sample reward: {sample['reward_value']}")
             print(f"🧠 SO(8) score: {sample['so8t_combined_score']:.3f}")
@@ -219,22 +219,22 @@ def test_dataset_loading():
         return True
 
     except Exception as e:
-        print(f"❌ Dataset loading failed: {e}")
+        print(f"[NG] Dataset loading failed: {e}")
         return False
 
 def test_ppo_trainer_init():
     """PPOトレーナー初期化テスト"""
-    print("\n🔧 Testing SO(8) PPO Trainer Initialization...")
+    print("\n[FIX] Testing SO(8) PPO Trainer Initialization...")
 
     dataset_path = "data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
     config_path = "scripts/training/so8t_ppo_config.json"
 
     if not Path(dataset_path).exists():
-        print(f"❌ Dataset not found: {dataset_path}")
+        print(f"[NG] Dataset not found: {dataset_path}")
         return False
 
     if not Path(config_path).exists():
-        print(f"❌ Config not found: {config_path}")
+        print(f"[NG] Config not found: {config_path}")
         return False
 
     try:
@@ -249,15 +249,15 @@ def test_ppo_trainer_init():
             config=config
         )
 
-        print(f"✅ PPO Trainer initialized successfully")
-        print(f"📊 Dataset size: {len(trainer.dataset)}")
-        print(f"🔧 PPO config: learning_rate={trainer.ppo_config.learning_rate}")
+        print(f"[OK] PPO Trainer initialized successfully")
+        print(f"[STATS] Dataset size: {len(trainer.dataset)}")
+        print(f"[FIX] PPO config: learning_rate={trainer.ppo_config.learning_rate}")
         print(f"🧠 SO(8) config: vector_weight={trainer.so8t_config.vector_weight}")
 
         return True
 
     except Exception as e:
-        print(f"❌ PPO Trainer initialization failed: {e}")
+        print(f"[NG] PPO Trainer initialization failed: {e}")
         return False
 
 def test_reward_calculation():
@@ -306,19 +306,19 @@ def test_reward_calculation():
 
             rewards.append(final_reward)
 
-        print("✅ SO(8) Reward calculation test results:")
+        print("[OK] SO(8) Reward calculation test results:")
         for i, reward in enumerate(rewards):
             print(".3f")
         print(".3f")
         return True
 
     except Exception as e:
-        print(f"❌ Reward calculation test failed: {e}")
+        print(f"[NG] Reward calculation test failed: {e}")
         return False
 
 def main():
     """メイン関数"""
-    print("🧪 SO(8) PPO Pipeline Test Suite")
+    print("[TEST] SO(8) PPO Pipeline Test Suite")
     print("=" * 50)
 
     tests = [
@@ -333,26 +333,26 @@ def main():
             result = test_func()
             results.append((test_name, result))
         except Exception as e:
-            print(f"❌ {test_name} crashed: {e}")
+            print(f"[NG] {test_name} crashed: {e}")
             results.append((test_name, False))
 
     # 結果サマリー
     print("\n" + "=" * 50)
-    print("📊 Test Results Summary:")
+    print("[STATS] Test Results Summary:")
 
     passed = 0
     total = len(results)
 
     for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = "[OK] PASS" if result else "[NG] FAIL"
         print(f"  {test_name}: {status}")
         if result:
             passed += 1
 
-    print(f"\n🎯 Overall: {passed}/{total} tests passed")
+    print(f"\n[TARGET] Overall: {passed}/{total} tests passed")
 
     if passed == total:
-        print("🎉 All tests passed! SO(8) PPO pipeline is ready!")
+        print("[DONE] All tests passed! SO(8) PPO pipeline is ready!")
         # 成功音声通知
         try:
             import subprocess
@@ -363,7 +363,7 @@ def main():
         except Exception as e:
             print(f"[WARNING] Audio notification failed: {e}")
     else:
-        print("⚠️  Some tests failed. Please check the implementation.")
+        print("[WARN]  Some tests failed. Please check the implementation.")
 
 if __name__ == "__main__":
     main()
@@ -384,18 +384,18 @@ def test_dataset_loading():
     dataset_path = "data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
 
     if not Path(dataset_path).exists():
-        print(f"❌ Dataset not found: {dataset_path}")
+        print(f"[NG] Dataset not found: {dataset_path}")
         return False
 
     try:
         dataset = SO8TIntegratedDataset(dataset_path)
-        print(f"✅ Dataset loaded successfully: {len(dataset)} entries")
+        print(f"[OK] Dataset loaded successfully: {len(dataset)} entries")
 
         # サンプルデータの確認
         if len(dataset) > 0:
             sample = dataset[0]
             print(f"📋 Sample data keys: {list(sample.keys())}")
-            print(f"🎯 Sample instruction: {sample['instruction'][:100]}...")
+            print(f"[TARGET] Sample instruction: {sample['instruction'][:100]}...")
             print(f"🏷️  Sample label: {sample['four_class_label']}")
             print(f"💰 Sample reward: {sample['reward_value']}")
             print(f"🧠 SO(8) score: {sample['so8t_combined_score']:.3f}")
@@ -403,22 +403,22 @@ def test_dataset_loading():
         return True
 
     except Exception as e:
-        print(f"❌ Dataset loading failed: {e}")
+        print(f"[NG] Dataset loading failed: {e}")
         return False
 
 def test_ppo_trainer_init():
     """PPOトレーナー初期化テスト"""
-    print("\n🔧 Testing SO(8) PPO Trainer Initialization...")
+    print("\n[FIX] Testing SO(8) PPO Trainer Initialization...")
 
     dataset_path = "data/integrated/so8t_integrated_ppo_dataset_main_20251201_205340.jsonl"
     config_path = "scripts/training/so8t_ppo_config.json"
 
     if not Path(dataset_path).exists():
-        print(f"❌ Dataset not found: {dataset_path}")
+        print(f"[NG] Dataset not found: {dataset_path}")
         return False
 
     if not Path(config_path).exists():
-        print(f"❌ Config not found: {config_path}")
+        print(f"[NG] Config not found: {config_path}")
         return False
 
     try:
@@ -433,15 +433,15 @@ def test_ppo_trainer_init():
             config=config
         )
 
-        print(f"✅ PPO Trainer initialized successfully")
-        print(f"📊 Dataset size: {len(trainer.dataset)}")
-        print(f"🔧 PPO config: learning_rate={trainer.ppo_config.learning_rate}")
+        print(f"[OK] PPO Trainer initialized successfully")
+        print(f"[STATS] Dataset size: {len(trainer.dataset)}")
+        print(f"[FIX] PPO config: learning_rate={trainer.ppo_config.learning_rate}")
         print(f"🧠 SO(8) config: vector_weight={trainer.so8t_config.vector_weight}")
 
         return True
 
     except Exception as e:
-        print(f"❌ PPO Trainer initialization failed: {e}")
+        print(f"[NG] PPO Trainer initialization failed: {e}")
         return False
 
 def test_reward_calculation():
@@ -490,19 +490,19 @@ def test_reward_calculation():
 
             rewards.append(final_reward)
 
-        print("✅ SO(8) Reward calculation test results:")
+        print("[OK] SO(8) Reward calculation test results:")
         for i, reward in enumerate(rewards):
             print(".3f")
         print(".3f")
         return True
 
     except Exception as e:
-        print(f"❌ Reward calculation test failed: {e}")
+        print(f"[NG] Reward calculation test failed: {e}")
         return False
 
 def main():
     """メイン関数"""
-    print("🧪 SO(8) PPO Pipeline Test Suite")
+    print("[TEST] SO(8) PPO Pipeline Test Suite")
     print("=" * 50)
 
     tests = [
@@ -517,26 +517,26 @@ def main():
             result = test_func()
             results.append((test_name, result))
         except Exception as e:
-            print(f"❌ {test_name} crashed: {e}")
+            print(f"[NG] {test_name} crashed: {e}")
             results.append((test_name, False))
 
     # 結果サマリー
     print("\n" + "=" * 50)
-    print("📊 Test Results Summary:")
+    print("[STATS] Test Results Summary:")
 
     passed = 0
     total = len(results)
 
     for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
+        status = "[OK] PASS" if result else "[NG] FAIL"
         print(f"  {test_name}: {status}")
         if result:
             passed += 1
 
-    print(f"\n🎯 Overall: {passed}/{total} tests passed")
+    print(f"\n[TARGET] Overall: {passed}/{total} tests passed")
 
     if passed == total:
-        print("🎉 All tests passed! SO(8) PPO pipeline is ready!")
+        print("[DONE] All tests passed! SO(8) PPO pipeline is ready!")
         # 成功音声通知
         try:
             import subprocess
@@ -547,7 +547,7 @@ def main():
         except Exception as e:
             print(f"[WARNING] Audio notification failed: {e}")
     else:
-        print("⚠️  Some tests failed. Please check the implementation.")
+        print("[WARN]  Some tests failed. Please check the implementation.")
 
 if __name__ == "__main__":
     main()

@@ -53,7 +53,7 @@ def adjust_and_fuse():
     effective_gate = original_gate * args.scale_factor
     
     print(f"   Original Alpha: {alpha_raw:.4f} (Sigmoid: {original_gate:.4f})")
-    print(f"   🎯 Target Effective Gate: {effective_gate:.4f} (Adjusted by x{args.scale_factor})")
+    print(f"   [TARGET] Target Effective Gate: {effective_gate:.4f} (Adjusted by x{args.scale_factor})")
 
     # Reconstruct Rotation Matrix R
     hidden_dim = base_model.config.hidden_size
@@ -75,7 +75,7 @@ def adjust_and_fuse():
              dummy_layer = torch.nn.Linear(hidden_dim, hidden_dim, bias=False).to("cuda")
              dummy_layer.weight.data = rotation_state["weight"].to("cuda")
         else:
-            print("   ⚠️ Unknown keys. Trying strict load_state_dict...")
+            print("   [WARN] Unknown keys. Trying strict load_state_dict...")
             dummy_layer.load_state_dict(rotation_state)
     elif isinstance(rotation_state, torch.Tensor):
         print("   Rotation is a Tensor. Loading directly...")
@@ -103,7 +103,7 @@ def adjust_and_fuse():
     print(f"   💾 Saving Adjusted AEGIS to {args.output_dir}...")
     base_model.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
-    print("   ✅ Calibration Complete.")
+    print("   [OK] Calibration Complete.")
 
 if __name__ == "__main__":
     adjust_and_fuse()

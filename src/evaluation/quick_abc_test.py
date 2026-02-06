@@ -164,10 +164,10 @@ def generate_report(results, analysis):
     aegis_vs_boreas = analysis["pairwise_comparisons"].get("boreas_phi35 vs aegis_v25", {}).get("math", {})
 
     if aegis_vs_ms:
-        report += f"- **AEGIS vs Microsoft Phi-3.5**: +{aegis_vs_ms['difference']:.1f}pt (p={aegis_vs_ms['p_value']:.4f}) {'✅ Significant' if aegis_vs_ms['significant'] else '❌ Not significant'}\n"
+        report += f"- **AEGIS vs Microsoft Phi-3.5**: +{aegis_vs_ms['difference']:.1f}pt (p={aegis_vs_ms['p_value']:.4f}) {'[OK] Significant' if aegis_vs_ms['significant'] else '[NG] Not significant'}\n"
 
     if aegis_vs_boreas:
-        report += f"- **AEGIS vs Boreas**: +{aegis_vs_boreas['difference']:.1f}pt (p={aegis_vs_boreas['p_value']:.4f}) {'✅ Significant' if aegis_vs_boreas['significant'] else '❌ Not significant'}\n"
+        report += f"- **AEGIS vs Boreas**: +{aegis_vs_boreas['difference']:.1f}pt (p={aegis_vs_boreas['p_value']:.4f}) {'[OK] Significant' if aegis_vs_boreas['significant'] else '[NG] Not significant'}\n"
 
     report += "\n## Industry Standard Comparison\n\n"
 

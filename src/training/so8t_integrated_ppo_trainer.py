@@ -343,9 +343,9 @@ class SO8TPPOTrainer:
 
     def train(self):
         """SO(8)統合PPO学習の実行"""
-        logger.info("🚀 Starting SO(8) Integrated PPO Training")
-        logger.info(f"📊 Dataset size: {len(self.dataset)}")
-        logger.info(f"🎯 Max steps: {self.ppo_config.max_steps}")
+        logger.info("[START] Starting SO(8) Integrated PPO Training")
+        logger.info(f"[STATS] Dataset size: {len(self.dataset)}")
+        logger.info(f"[TARGET] Max steps: {self.ppo_config.max_steps}")
         logger.info(f"🧠 SO(8) config: {self.so8t_config}")
 
         start_time = time.time()
@@ -398,14 +398,14 @@ class SO8TPPOTrainer:
         if self.model is not None:
             try:
                 self.model.save_pretrained(final_model_path)
-                logger.info(f"✅ Final model saved to {final_model_path}")
+                logger.info(f"[OK] Final model saved to {final_model_path}")
             except Exception as e:
                 logger.error(f"Failed to save model: {e}")
         else:
             logger.error("Model is None, cannot save final model")
 
         total_time = time.time() - start_time
-        logger.info("✅ SO(8) PPO Training completed!")
+        logger.info("[OK] SO(8) PPO Training completed!")
         logger.info(".2f")
         logger.info(".2f")
         # 音声通知

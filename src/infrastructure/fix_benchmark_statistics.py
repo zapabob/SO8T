@@ -93,7 +93,7 @@ def fix_benchmark_statistics():
     with open("corrected_benchmark_statistics.json", 'w', encoding='utf-8') as f:
         json.dump(output_data, f, indent=2, ensure_ascii=False)
 
-    logger.info("\n✅ Statistics corrections saved to 'corrected_benchmark_statistics.json'")
+    logger.info("\n[OK] Statistics corrections saved to 'corrected_benchmark_statistics.json'")
 
     return benchmark_corrections
 

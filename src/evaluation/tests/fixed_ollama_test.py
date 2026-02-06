@@ -57,10 +57,10 @@ def test_so8t_without_stop():
             print(f"eval_count: {result.get('eval_count', 0)}")
             
             if len(generated_text) > 0:
-                print("✅ SO8Tテキスト生成成功！")
+                print("[OK] SO8Tテキスト生成成功！")
                 return True
             else:
-                print("❌ SO8Tテキスト生成失敗（空のレスポンス）")
+                print("[NG] SO8Tテキスト生成失敗（空のレスポンス）")
                 return False
         else:
             print(f"APIエラー: {response.status_code}")
@@ -128,7 +128,7 @@ def main():
     print(f"シンプルプロンプトテスト: {'成功' if success2 else '失敗'}")
     
     if success1 or success2:
-        print("🎉 SO8Tモデルが正常に動作しています！")
+        print("[DONE] SO8Tモデルが正常に動作しています！")
     else:
         print("💥 SO8Tモデルに問題があります。")
 

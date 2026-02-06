@@ -107,7 +107,7 @@ class SO8TComprehensiveTester:
             logger.info(f"基本機能テスト {i+1}: {'成功' if success else '失敗'}")
         
         self.test_results["basic_functionality"] = results
-        logger.info("✅ 基本機能テスト完了")
+        logger.info("[OK] 基本機能テスト完了")
     
     def _test_mathematical_reasoning(self):
         """数学的推論テスト"""
@@ -134,7 +134,7 @@ class SO8TComprehensiveTester:
             logger.info(f"数学的推論テスト {i+1}: {'成功' if success else '失敗'}")
         
         self.test_results["mathematical_reasoning"] = results
-        logger.info("✅ 数学的推論テスト完了")
+        logger.info("[OK] 数学的推論テスト完了")
     
     def _test_logical_reasoning(self):
         """論理推論テスト"""
@@ -161,7 +161,7 @@ class SO8TComprehensiveTester:
             logger.info(f"論理推論テスト {i+1}: {'成功' if success else '失敗'}")
         
         self.test_results["logical_reasoning"] = results
-        logger.info("✅ 論理推論テスト完了")
+        logger.info("[OK] 論理推論テスト完了")
     
     def _test_ethical_analysis(self):
         """倫理的分析テスト"""
@@ -188,7 +188,7 @@ class SO8TComprehensiveTester:
             logger.info(f"倫理的分析テスト {i+1}: {'成功' if success else '失敗'}")
         
         self.test_results["ethical_analysis"] = results
-        logger.info("✅ 倫理的分析テスト完了")
+        logger.info("[OK] 倫理的分析テスト完了")
     
     def _test_safety_assessment(self):
         """安全性評価テスト"""
@@ -215,7 +215,7 @@ class SO8TComprehensiveTester:
             logger.info(f"安全性評価テスト {i+1}: {'成功' if success else '失敗'}")
         
         self.test_results["safety_assessment"] = results
-        logger.info("✅ 安全性評価テスト完了")
+        logger.info("[OK] 安全性評価テスト完了")
     
     def _test_so8_group_structure(self):
         """SO(8)群構造テスト"""
@@ -242,7 +242,7 @@ class SO8TComprehensiveTester:
             logger.info(f"SO(8)群構造テスト {i+1}: {'成功' if success else '失敗'}")
         
         self.test_results["so8_group_structure"] = results
-        logger.info("✅ SO(8)群構造テスト完了")
+        logger.info("[OK] SO(8)群構造テスト完了")
     
     def _test_self_verification(self):
         """自己検証システムテスト"""
@@ -269,7 +269,7 @@ class SO8TComprehensiveTester:
             logger.info(f"自己検証システムテスト {i+1}: {'成功' if success else '失敗'}")
         
         self.test_results["self_verification"] = results
-        logger.info("✅ 自己検証システムテスト完了")
+        logger.info("[OK] 自己検証システムテスト完了")
     
     def _test_memory_usage(self):
         """メモリ使用量テスト"""
@@ -290,7 +290,7 @@ class SO8TComprehensiveTester:
         
         self.test_results["memory_usage"] = [result]
         logger.info(f"メモリ使用量テスト: {'成功' if success else '失敗'}")
-        logger.info("✅ メモリ使用量テスト完了")
+        logger.info("[OK] メモリ使用量テスト完了")
     
     def _test_inference_speed(self):
         """推論速度テスト"""
@@ -315,7 +315,7 @@ class SO8TComprehensiveTester:
         
         self.test_results["inference_speed"] = [result]
         logger.info(f"推論速度テスト: {inference_time:.2f}秒 ({'成功' if success else '失敗'})")
-        logger.info("✅ 推論速度テスト完了")
+        logger.info("[OK] 推論速度テスト完了")
     
     def _test_complex_problem_solving(self):
         """複雑な問題解決テスト"""
@@ -342,7 +342,7 @@ class SO8TComprehensiveTester:
             logger.info(f"複雑な問題解決テスト {i+1}: {'成功' if success else '失敗'}")
         
         self.test_results["complex_problem_solving"] = results
-        logger.info("✅ 複雑な問題解決テスト完了")
+        logger.info("[OK] 複雑な問題解決テスト完了")
     
     def _generate_comprehensive_report(self):
         """包括的レポート生成"""
@@ -381,7 +381,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("basic_functionality", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - プロンプト: {test['prompt']}
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -393,7 +393,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("mathematical_reasoning", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - プロンプト: {test['prompt']}
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -405,7 +405,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("logical_reasoning", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - プロンプト: {test['prompt']}
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -417,7 +417,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("ethical_analysis", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - プロンプト: {test['prompt']}
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -429,7 +429,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("safety_assessment", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - プロンプト: {test['prompt']}
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -441,7 +441,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("so8_group_structure", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - プロンプト: {test['prompt']}
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -453,7 +453,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("self_verification", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - プロンプト: {test['prompt']}
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -465,7 +465,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("memory_usage", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - プロンプト長: {test['prompt_length']}文字
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -477,7 +477,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("inference_speed", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - 推論時間: {test['inference_time']:.2f}秒
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -489,7 +489,7 @@ class SO8TComprehensiveTester:
         
         for test in self.test_results.get("complex_problem_solving", []):
             report_content += f"""
-- **{test['test_case']}**: {'✅ 成功' if test['success'] else '❌ 失敗'}
+- **{test['test_case']}**: {'[OK] 成功' if test['success'] else '[NG] 失敗'}
   - プロンプト: {test['prompt'][:100]}...
   - 出力長: {test['output_length']}文字
   - エラー: {test['error'] if test['error'] else 'なし'}
@@ -556,7 +556,7 @@ SO8T-Phi31-Mini-128K-Enhanced-Lightweightモデルの包括的テストが完了
         with open(report_file, 'w', encoding='utf-8') as f:
             f.write(report_content)
         
-        logger.info(f"✅ 包括的レポート生成完了: {report_file}")
+        logger.info(f"[OK] 包括的レポート生成完了: {report_file}")
     
     def _calculate_category_success_rate(self, category):
         """カテゴリ別成功率計算"""

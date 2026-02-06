@@ -130,12 +130,12 @@ class AdvancedPhi35Trainer:
             )
 
         logger.info("Advanced Phi-3.5 SO8T Model initialized with:")
-        logger.info(f"  - SO8ViT Adapter: {'✓' if self.advanced_features.get('so8vit_adapter') else '✗'}")
-        logger.info(f"  - Dynamic Thinking: {'✓' if self.advanced_features.get('dynamic_thinking') else '✗'}")
-        logger.info(f"  - Multimodal Integration: {'✓' if self.advanced_features.get('multimodal_integration') else '✗'}")
-        logger.info(f"  - Meta Reasoning: {'✓' if self.advanced_features.get('meta_reasoning') else '✗'}")
-        logger.info(f"  - Bayesian Optimization: {'✓' if self.bayesian_optimizer else '✗'}")
-        logger.info(f"  - Orthogonal Error Logging: {'✓' if self.advanced_features.get('orthogonal_error_logging') else '✗'}")
+        logger.info(f"  - SO8ViT Adapter: {'[OK]' if self.advanced_features.get('so8vit_adapter') else '[NG]'}")
+        logger.info(f"  - Dynamic Thinking: {'[OK]' if self.advanced_features.get('dynamic_thinking') else '[NG]'}")
+        logger.info(f"  - Multimodal Integration: {'[OK]' if self.advanced_features.get('multimodal_integration') else '[NG]'}")
+        logger.info(f"  - Meta Reasoning: {'[OK]' if self.advanced_features.get('meta_reasoning') else '[NG]'}")
+        logger.info(f"  - Bayesian Optimization: {'[OK]' if self.bayesian_optimizer else '[NG]'}")
+        logger.info(f"  - Orthogonal Error Logging: {'[OK]' if self.advanced_features.get('orthogonal_error_logging') else '[NG]'}")
 
     def setup_tokenizer_and_dataset(self):
         """トークナイザーとデータセット設定"""

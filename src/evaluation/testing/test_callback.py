@@ -18,9 +18,9 @@ try:
 
     # Check if on_init_end exists
     if hasattr(callback, 'on_init_end'):
-        print("on_init_end method exists ✓")
+        print("on_init_end method exists [OK]")
     else:
-        print("on_init_end method missing ✗")
+        print("on_init_end method missing [NG]")
 
 except Exception as e:
     print(f"Error: {e}")

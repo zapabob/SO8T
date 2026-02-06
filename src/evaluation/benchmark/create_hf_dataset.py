@@ -79,7 +79,7 @@ def create_hf_dataset(results: Dict[str, Any], output_dir: str):
     # README作成
     create_hf_readme(results, output_path)
 
-    print(f"✓ HFデータセット作成完了: {output_path}")
+    print(f"[OK] HFデータセット作成完了: {output_path}")
 
 
 def create_hf_readme(results: Dict[str, Any], output_path: Path):
@@ -216,7 +216,7 @@ def main():
     # 結果読み込み
     results_path = PROJECT_ROOT / args.results_path
     if not results_path.exists():
-        print(f"❌ Results file not found: {results_path}")
+        print(f"[NG] Results file not found: {results_path}")
         sys.exit(1)
 
     print(f"Loading A/B test results: {results_path}")
@@ -226,8 +226,8 @@ def main():
     output_dir = PROJECT_ROOT / args.output_dir
     create_hf_dataset(results, str(output_dir))
 
-    print(f"\n✅ HF dataset created successfully!")
-    print(f"📁 Output directory: {output_dir}")
+    print(f"\n[OK] HF dataset created successfully!")
+    print(f"[DIR] Output directory: {output_dir}")
     print("\nTo upload to HF Datasets:")
     print("1. Create a new dataset on Hugging Face"
     print(f"2. Upload the contents of {output_dir}")

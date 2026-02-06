@@ -117,7 +117,7 @@ def test_inference():
     with open("outputs/inference_results.json", "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     
-    print("\\n✅ 推論テスト完了!")
+    print("\\n[OK] 推論テスト完了!")
     return True
 
 if __name__ == "__main__":
@@ -159,13 +159,13 @@ import subprocess
 import sys
 
 def convert_to_gguf():
-    print("🔧 SO8TモデルをGGUF形式に変換中...")
+    print("[FIX] SO8TモデルをGGUF形式に変換中...")
     
     # llama.cppのconvert.pyを使用
     convert_script = "llama.cpp/convert_hf_to_gguf.py"
     
     if not os.path.exists(convert_script):
-        print("❌ llama.cpp not found. Installing...")
+        print("[NG] llama.cpp not found. Installing...")
         subprocess.run(["git", "clone", "https://github.com/ggerganov/llama.cpp.git"])
     
     # 変換実行
@@ -180,14 +180,14 @@ def convert_to_gguf():
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         
         if result.returncode == 0:
-            print("✅ GGUF変換完了!")
+            print("[OK] GGUF変換完了!")
             return True
         else:
-            print(f"❌ GGUF変換失敗: {result.stderr}")
+            print(f"[NG] GGUF変換失敗: {result.stderr}")
             return False
             
     except Exception as e:
-        print(f"❌ GGUF変換エラー: {e}")
+        print(f"[NG] GGUF変換エラー: {e}")
         return False
 
 if __name__ == "__main__":

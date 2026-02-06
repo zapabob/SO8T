@@ -427,11 +427,11 @@ class RLPOCheckpointCallback(TrainerCallback):
             print(f"    Grad Norm: {grad_norm}")
 
             if ortho_err > 1e-2:
-                print("    ⚠️ Orthogonality breaking down!")
+                print("    [WARN] Orthogonality breaking down!")
             if alpha > 1.0:
-                print("    ⚠️ Alpha too large!")
+                print("    [WARN] Alpha too large!")
             if grad_norm == "None":
-                print("    ⚠️ Gradient detached!")
+                print("    [WARN] Gradient detached!")
 
         print("-" * 40)
 
@@ -454,7 +454,7 @@ class RLPOTrainer:
             logger.info(f"🔄 Resuming from checkpoint: {latest_ckpt.name}")
             self.model, self.tokenizer = self._setup_model_from_checkpoint(latest_ckpt)
         else:
-            logger.info("✨ Starting new RLPO training session")
+            logger.info("[NEW] Starting new RLPO training session")
             self.model, self.tokenizer = self._setup_model()
 
         # データセット

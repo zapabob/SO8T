@@ -52,7 +52,7 @@ class AutoHFUploadSystem:
 
     def execute_full_upload_pipeline(self) -> bool:
         """完全自動アップロードパイプライン実行"""
-        print("🚀 MOONSHOT HFアップロード完全自動化システム開始")
+        print("[START] MOONSHOT HFアップロード完全自動化システム開始")
         print("=" * 80)
 
         try:
@@ -61,32 +61,32 @@ class AutoHFUploadSystem:
 
             # ステップ1: アップロードパッケージ準備
             if not self._prepare_upload_package():
-                print("❌ アップロードパッケージ準備失敗")
+                print("[NG] アップロードパッケージ準備失敗")
                 return False
 
             # ステップ2: リポジトリ作成
             repo_url = self._create_hf_repository()
             if not repo_url:
-                print("❌ HFリポジトリ作成失敗")
+                print("[NG] HFリポジトリ作成失敗")
                 return False
 
             # ステップ3: モデルアップロード
             if not self._upload_model_files(repo_url):
-                print("❌ モデルファイルアップロード失敗")
+                print("[NG] モデルファイルアップロード失敗")
                 return False
 
             # ステップ4: データセットアップロード
             if not self._upload_datasets(repo_url):
-                print("❌ データセットアップロード失敗")
+                print("[NG] データセットアップロード失敗")
                 return False
 
             # ステップ5: メタデータアップロード
             if not self._upload_metadata(repo_url):
-                print("❌ メタデータアップロード失敗")
+                print("[NG] メタデータアップロード失敗")
                 return False
 
             # Phase 8: Autonomous Completion
-            print("\n🎯 Phase 8: Autonomous Completion")
+            print("\n[TARGET] Phase 8: Autonomous Completion")
 
             # ステップ6: 完了ログ作成
             self._create_completion_log()
@@ -97,19 +97,19 @@ class AutoHFUploadSystem:
             # ステップ8: 最終通知
             self._send_completion_notification()
 
-            print("\n🎉 MOONSHOT完全自動化完了！")
+            print("\n[DONE] MOONSHOT完全自動化完了！")
             print(f"📍 HFリポジトリ: {repo_url}")
             print("=" * 80)
 
             return True
 
         except Exception as e:
-            print(f"❌ HFアップロード中にエラー発生: {e}")
+            print(f"[NG] HFアップロード中にエラー発生: {e}")
             return False
 
     def _prepare_upload_package(self) -> bool:
         """アップロードパッケージ準備"""
-        print("  📁 アップロードパッケージ準備中...")
+        print("  [DIR] アップロードパッケージ準備中...")
 
         try:
             # 必要なファイルの存在確認
@@ -126,24 +126,24 @@ class AutoHFUploadSystem:
                     missing_files.append(str(file_path))
 
             if missing_files:
-                print(f"    ⚠️  不足ファイル: {missing_files}")
+                print(f"    [WARN]  不足ファイル: {missing_files}")
                 # 不足ファイル作成を試行
                 self._create_missing_files(missing_files)
 
             # GGUFファイル確認
             gguf_files = list(self.model_dirs['gguf_models'].glob("**/*.gguf"))
             if not gguf_files:
-                print("    ⚠️  GGUFファイルが見つからないため、変換を試行")
+                print("    [WARN]  GGUFファイルが見つからないため、変換を試行")
                 self._convert_to_gguf()
 
             # パッケージ構造作成
             self._create_package_structure()
 
-            print("  ✅ アップロードパッケージ準備完了")
+            print("  [OK] アップロードパッケージ準備完了")
             return True
 
         except Exception as e:
-            print(f"  ❌ パッケージ準備エラー: {e}")
+            print(f"  [NG] パッケージ準備エラー: {e}")
             return False
 
     def _create_missing_files(self, missing_files: List[str]):
@@ -216,7 +216,7 @@ class AutoHFUploadSystem:
             convert_script = llama_cpp_dir / 'convert_hf_to_gguf.py'
 
             if not convert_script.exists():
-                print("    ⚠️  llama.cppが見つからないため、ダウンロード")
+                print("    [WARN]  llama.cppが見つからないため、ダウンロード")
                 subprocess.run(['git', 'clone', 'https://github.com/ggerganov/llama.cpp.git',
                               'external/llama.cpp-master'], check=True, cwd=self.project_root)
 
@@ -254,10 +254,10 @@ class AutoHFUploadSystem:
                 try:
                     subprocess.run(cmd, check=True, cwd=self.project_root)
                 except subprocess.CalledProcessError as e:
-                    print(f"    ⚠️  GGUF変換一部失敗: {e}")
+                    print(f"    [WARN]  GGUF変換一部失敗: {e}")
 
         except Exception as e:
-            print(f"    ❌ GGUF変換エラー: {e}")
+            print(f"    [NG] GGUF変換エラー: {e}")
 
     def _create_package_structure(self):
         """パッケージ構造作成"""
@@ -341,11 +341,11 @@ tokenizer = AutoTokenizer.from_pretrained("your-username/{self.upload_config['mo
                 exist_ok=True
             )
 
-            print(f"  ✅ リポジトリ作成完了: {repo_url}")
+            print(f"  [OK] リポジトリ作成完了: {repo_url}")
             return repo_url
 
         except Exception as e:
-            print(f"  ❌ リポジトリ作成エラー: {e}")
+            print(f"  [NG] リポジトリ作成エラー: {e}")
             return None
 
     def _upload_model_files(self, repo_url: str) -> bool:
@@ -361,7 +361,7 @@ tokenizer = AutoTokenizer.from_pretrained("your-username/{self.upload_config['mo
                     repo_type="model",
                     path_in_repo="model"
                 )
-                print("  ✅ HFモデルアップロード完了")
+                print("  [OK] HFモデルアップロード完了")
 
             # GGUFモデルアップロード
             if self.model_dirs['gguf_models'].exists():
@@ -374,17 +374,17 @@ tokenizer = AutoTokenizer.from_pretrained("your-username/{self.upload_config['mo
                             repo_id=repo_url,
                             repo_type="model"
                         )
-                    print("  ✅ GGUFモデルアップロード完了")
+                    print("  [OK] GGUFモデルアップロード完了")
 
             return True
 
         except Exception as e:
-            print(f"  ❌ モデルアップロードエラー: {e}")
+            print(f"  [NG] モデルアップロードエラー: {e}")
             return False
 
     def _upload_datasets(self, repo_url: str) -> bool:
         """データセットアップロード"""
-        print("  📊 データセットアップロード中...")
+        print("  [STATS] データセットアップロード中...")
 
         try:
             dataset_dir = self.project_root / 'data' / 'datasets' / 'phi35_thinking'
@@ -406,12 +406,12 @@ tokenizer = AutoTokenizer.from_pretrained("your-username/{self.upload_config['mo
                             repo_type="model"
                         )
 
-                print("  ✅ データセットアップロード完了")
+                print("  [OK] データセットアップロード完了")
 
             return True
 
         except Exception as e:
-            print(f"  ❌ データセットアップロードエラー: {e}")
+            print(f"  [NG] データセットアップロードエラー: {e}")
             return False
 
     def _upload_metadata(self, repo_url: str) -> bool:
@@ -453,11 +453,11 @@ tokenizer = AutoTokenizer.from_pretrained("your-username/{self.upload_config['mo
                 repo_type="model"
             )
 
-            print("  ✅ メタデータアップロード完了")
+            print("  [OK] メタデータアップロード完了")
             return True
 
         except Exception as e:
-            print(f"  ❌ メタデータアップロードエラー: {e}")
+            print(f"  [NG] メタデータアップロードエラー: {e}")
             return False
 
     def _create_model_card(self) -> str:
@@ -612,7 +612,7 @@ For questions or issues, please check the documentation folder.
 
     def _create_completion_log(self):
         """完了ログ作成"""
-        print("  📝 完了ログ作成中...")
+        print("  [NOTE] 完了ログ作成中...")
 
         completion_log = {
             'completion_timestamp': datetime.now().isoformat(),
@@ -645,7 +645,7 @@ For questions or issues, please check the documentation folder.
         with open(log_file, 'w', encoding='utf-8') as f:
             json.dump(completion_log, f, indent=2, ensure_ascii=False)
 
-        print("  ✅ 完了ログ作成完了")
+        print("  [OK] 完了ログ作成完了")
 
     def _cleanup_after_upload(self):
         """アップロード後のクリーンアップ"""
@@ -660,15 +660,15 @@ For questions or issues, please check the documentation folder.
             for temp_dir in temp_dirs:
                 if temp_dir.exists():
                     shutil.rmtree(temp_dir)
-                    print(f"  ✅ 削除: {temp_dir}")
+                    print(f"  [OK] 削除: {temp_dir}")
 
             # ログ整理
             self._organize_logs()
 
-            print("  ✅ クリーンアップ完了")
+            print("  [OK] クリーンアップ完了")
 
         except Exception as e:
-            print(f"  ⚠️  クリーンアップ一部失敗: {e}")
+            print(f"  [WARN]  クリーンアップ一部失敗: {e}")
 
     def _organize_logs(self):
         """ログ整理"""
@@ -699,22 +699,22 @@ For questions or issues, please check the documentation folder.
             notification_script = self.project_root / 'scripts' / 'utils' / 'play_audio_notification.ps1'
             if notification_script.exists():
                 subprocess.run(['powershell', '-ExecutionPolicy', 'Bypass', '-File', str(notification_script)])
-                print("  ✅ 音声通知送信完了")
+                print("  [OK] 音声通知送信完了")
             else:
-                print("  ⚠️  音声通知スクリプトが見つからない")
+                print("  [WARN]  音声通知スクリプトが見つからない")
 
             # 完了メッセージ
             print("\n" + "="*80)
-            print("🎯 MOONSHOT MISSION ACCOMPLISHED!")
+            print("[TARGET] MOONSHOT MISSION ACCOMPLISHED!")
             print("="*80)
-            print("✅ 全Phase完了 (8/8)")
-            print("✅ HFアップロード完了")
-            print("✅ 完全自動化システム稼働")
-            print("✅ SO(8) NKAT理論統合完了")
+            print("[OK] 全Phase完了 (8/8)")
+            print("[OK] HFアップロード完了")
+            print("[OK] 完全自動化システム稼働")
+            print("[OK] SO(8) NKAT理論統合完了")
             print("="*80)
 
         except Exception as e:
-            print(f"  ⚠️  通知送信失敗: {e}")
+            print(f"  [WARN]  通知送信失敗: {e}")
 
 def main():
     """メイン関数"""
@@ -722,10 +722,10 @@ def main():
     success = upload_system.execute_full_upload_pipeline()
 
     if success:
-        print("\n🚀 MOONSHOT HFアップロード完全自動化システム - 完了")
+        print("\n[START] MOONSHOT HFアップロード完全自動化システム - 完了")
         sys.exit(0)
     else:
-        print("\n❌ MOONSHOT HFアップロード失敗")
+        print("\n[NG] MOONSHOT HFアップロード失敗")
         sys.exit(1)
 
 if __name__ == '__main__':

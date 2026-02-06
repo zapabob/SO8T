@@ -1234,7 +1234,7 @@ Apache License 2.0
                 summary += f"### {metric.replace('_', ' ').title()}\n\n"
                 for comparison_name, results in comparisons.items():
                     if isinstance(results, dict) and 'p_value' in results:
-                        sig_symbol = "✅" if results.get('significant', False) else "❌"
+                        sig_symbol = "[OK]" if results.get('significant', False) else "[NG]"
                         summary += f"- {comparison_name}: p={results['p_value']:.4f} {sig_symbol}\n"
                 summary += "\n"
 

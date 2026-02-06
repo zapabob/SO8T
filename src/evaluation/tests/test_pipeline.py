@@ -16,26 +16,26 @@ if not os.getenv("SO8T_RUN_PIPELINE_TEST"):
 try:
     print("Testing enhanced moonshot pipeline import...")
     import enhanced_moonshot_pipeline
-    print("✅ Import successful")
+    print("[OK] Import successful")
 
     print("Testing pipeline initialization...")
     pipeline = enhanced_moonshot_pipeline.EnhancedMoonshotPipeline()
-    print("✅ Initialization successful")
+    print("[OK] Initialization successful")
 
     print("Testing basic attributes...")
     print(f"Model path: {pipeline.boreas_model_path}")
     print(f"Device: {pipeline.device}")
-    print("✅ Basic attributes OK")
+    print("[OK] Basic attributes OK")
 
     print("Testing resume functionality...")
     can_resume = pipeline.attempt_resume()
     print(f"Resume available: {can_resume}")
-    print("✅ Resume test completed")
+    print("[OK] Resume test completed")
 
-    print("\n🎉 All tests passed! Pipeline is ready to run.")
+    print("\n[DONE] All tests passed! Pipeline is ready to run.")
 
 except Exception as e:
-    print(f"❌ Error: {e}")
+    print(f"[NG] Error: {e}")
     import traceback
     traceback.print_exc()
     sys.exit(1)

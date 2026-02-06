@@ -527,7 +527,7 @@ def main():
     if args.report_generation:
         report = monitor.generate_progress_report()
 
-        print("📊 AEGIS v2.5 Development Progress Report")
+        print("[STATS] AEGIS v2.5 Development Progress Report")
         print("=" * 50)
         print(f"Overall Completion: {report['overall_completion']:.1f}%")
 
@@ -542,12 +542,12 @@ def main():
             print(f"  {phase_name}: {status} ({completion:.1f}%)")
 
         if report.get('critical_issues'):
-            print(f"\n⚠️ Critical Issues ({len(report['critical_issues'])}):")
+            print(f"\n[WARN] Critical Issues ({len(report['critical_issues'])}):")
             for issue in report['critical_issues']:
                 print(f"  - {issue}")
 
         if report.get('next_milestones'):
-            print(f"\n🎯 Next Milestones ({len(report['next_milestones'])}):")
+            print(f"\n[TARGET] Next Milestones ({len(report['next_milestones'])}):")
             for milestone in report['next_milestones']:
                 print(f"  - {milestone}")
 
@@ -561,7 +561,7 @@ def main():
     monitor.save_monitoring_data(args.output_dir)
 
     print("
-✅ Progress monitoring completed!"    print(f"📁 Data saved to: {args.output_dir}")
+[OK] Progress monitoring completed!"    print(f"[DIR] Data saved to: {args.output_dir}")
 
 if __name__ == "__main__":
     main()

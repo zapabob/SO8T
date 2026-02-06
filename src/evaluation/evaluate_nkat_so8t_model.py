@@ -349,11 +349,11 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         # NKAT-specific metrics
         nkat = self.metrics.get('nkat_metrics', {})
         report += "## NKAT-SO8T Specific Metrics\n\n"
-        report += f"- **Adapter Present**: {'✅ Yes' if nkat.get('adapter_present', False) else '❌ No'}\n"
+        report += f"- **Adapter Present**: {'[OK] Yes' if nkat.get('adapter_present', False) else '[NG] No'}\n"
 
         if nkat.get('adapter_present', False):
             report += f"- **Average Gate Activation**: {nkat.get('avg_gate_activation', 0):.4f}\n"
-            report += f"- **Phase Transition Achieved**: {'✅ Yes' if nkat.get('phase_transition_achieved', False) else '❌ No'}\n"
+            report += f"- **Phase Transition Achieved**: {'[OK] Yes' if nkat.get('phase_transition_achieved', False) else '[NG] No'}\n"
             report += f"- **Geometric Consistency**: {nkat.get('geometric_consistency', 0):.4f}\n\n"
 
             report += "### Alpha Gates Status\n"
@@ -372,8 +372,8 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             performance = "Needs Improvement"
 
         report += f"- **Overall Performance**: {performance}\n"
-        report += f"- **NKAT Integration**: {'✅ Successful' if nkat.get('phase_transition_achieved', False) else '❌ Not Achieved'}\n"
-        report += f"- **Ready for Production**: {'✅ Yes' if avg_loss < 3.0 and nkat.get('phase_transition_achieved', False) else '❌ No'}\n"
+        report += f"- **NKAT Integration**: {'[OK] Successful' if nkat.get('phase_transition_achieved', False) else '[NG] Not Achieved'}\n"
+        report += f"- **Ready for Production**: {'[OK] Yes' if avg_loss < 3.0 and nkat.get('phase_transition_achieved', False) else '[NG] No'}\n"
 
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(report)

@@ -41,7 +41,7 @@ def upload_scientifically_rigorous_model():
             import shutil
             target_card_path = os.path.join(model_path, "README.md")
             shutil.copy2(rigorous_card_path, target_card_path)
-            logger.info("✅ Scientifically rigorous model card applied")
+            logger.info("[OK] Scientifically rigorous model card applied")
 
         # 科学的厳密性関連ファイルをアップロード
         scientific_files = {
@@ -61,7 +61,7 @@ def upload_scientifically_rigorous_model():
                     repo_id=repo_id,
                     commit_message=f"Upload {commit_msg}"
                 )
-                logger.info(f"✅ Uploaded: {file_name}")
+                logger.info(f"[OK] Uploaded: {file_name}")
             else:
                 logger.warning(f"File not found: {file_name}")
 
@@ -94,14 +94,14 @@ def upload_scientifically_rigorous_model():
                 repo_id=repo_id,
                 commit_message="Upload GGUF quantized model with imatrix protection"
             )
-            logger.info("✅ GGUF model uploaded")
+            logger.info("[OK] GGUF model uploaded")
 
-        logger.info("🎉 Scientifically rigorous model upload completed!")
+        logger.info("[DONE] Scientifically rigorous model upload completed!")
         logger.info(f"📍 Repository: https://huggingface.co/{repo_id}")
-        logger.info("📊 Scientific validation files included:")
+        logger.info("[STATS] Scientific validation files included:")
         for file_name in scientific_files.keys():
             if os.path.exists(file_name):
-                logger.info(f"   ✅ {file_name}")
+                logger.info(f"   [OK] {file_name}")
 
         return True
 
@@ -141,43 +141,43 @@ def validate_scientific_rigor_files():
             missing_optional.append(file)
 
     if missing_required:
-        logger.error("❌ Missing required scientific rigor files:")
+        logger.error("[NG] Missing required scientific rigor files:")
         for file in missing_required:
             logger.error(f"   - {file}")
         return False
 
     if missing_optional:
-        logger.warning("⚠️  Missing optional scientific rigor files:")
+        logger.warning("[WARN]  Missing optional scientific rigor files:")
         for file in missing_optional:
             logger.warning(f"   - {file}")
 
-    logger.info("✅ Scientific rigor validation passed")
+    logger.info("[OK] Scientific rigor validation passed")
     return True
 
 if __name__ == "__main__":
-    print("🔬 Starting scientifically rigorous AEGIS v2.5 upload...")
+    print("[RESEARCH] Starting scientifically rigorous AEGIS v2.5 upload...")
     print("📋 Validating scientific rigor files...")
 
     # 科学的厳密性ファイルの検証
     if not validate_scientific_rigor_files():
-        print("❌ Scientific rigor validation failed. Cannot proceed with upload.")
+        print("[NG] Scientific rigor validation failed. Cannot proceed with upload.")
         exit(1)
 
-    print("✅ Scientific rigor validation passed")
+    print("[OK] Scientific rigor validation passed")
 
     # アップロード実行
     success = upload_scientifically_rigorous_model()
 
     if success:
-        print("\n🎉 SUCCESS: Scientifically rigorous AEGIS v2.5 uploaded!")
+        print("\n[DONE] SUCCESS: Scientifically rigorous AEGIS v2.5 uploaded!")
         print("📍 HF Repository: https://huggingface.co/zapabobouj/AEGIS-v2.5-SO8T-Quadrality-Scientifically-Rigorous")
-        print("\n📊 Included scientific validation:")
-        print("   ✅ Corrected statistical calculations (t-distribution CI)")
-        print("   ✅ Baseline comparison results (identical conditions)")
-        print("   ✅ Ablation study results (technique contributions)")
-        print("   ✅ Evaluation standardization documentation")
-        print("   ✅ Scientific rigor methodology report")
-        print("\n🔬 This model represents the gold standard for scientific rigor in LLM benchmarking!")
+        print("\n[STATS] Included scientific validation:")
+        print("   [OK] Corrected statistical calculations (t-distribution CI)")
+        print("   [OK] Baseline comparison results (identical conditions)")
+        print("   [OK] Ablation study results (technique contributions)")
+        print("   [OK] Evaluation standardization documentation")
+        print("   [OK] Scientific rigor methodology report")
+        print("\n[RESEARCH] This model represents the gold standard for scientific rigor in LLM benchmarking!")
     else:
-        print("❌ Upload failed")
+        print("[NG] Upload failed")
         exit(1)

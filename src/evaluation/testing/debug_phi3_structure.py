@@ -46,19 +46,19 @@ def debug_phi3_structure():
                 # layersを探す
                 if hasattr(model.base_model.model, 'layers'):
                     print("
-✅ Found layers in base_model.model.layers"                    print(f"Layers count: {len(model.base_model.model.layers)}")
+[OK] Found layers in base_model.model.layers"                    print(f"Layers count: {len(model.base_model.model.layers)}")
                     print(f"First layer type: {type(model.base_model.model.layers[0])}")
                 elif hasattr(model.base_model.model, 'model') and hasattr(model.base_model.model.model, 'layers'):
                     print("
-✅ Found layers in base_model.model.model.layers"                    print(f"Layers count: {len(model.base_model.model.model.layers)}")
+[OK] Found layers in base_model.model.model.layers"                    print(f"Layers count: {len(model.base_model.model.model.layers)}")
                     print(f"First layer type: {type(model.base_model.model.model.layers[0])}")
                 else:
-                    print("\n❌ Layers not found in expected locations")
+                    print("\n[NG] Layers not found in expected locations")
 
                     # 再帰的に探す
                     def find_layers(obj, path=""):
                         if hasattr(obj, 'layers'):
-                            print(f"✅ Found layers at: {path}.layers")
+                            print(f"[OK] Found layers at: {path}.layers")
                             return True
                         for attr in dir(obj):
                             if not attr.startswith('_') and not callable(getattr(obj, attr)):
@@ -75,11 +75,11 @@ def debug_phi3_structure():
 
         # 直接layers確認
         if hasattr(model, 'layers'):
-            print(f"\n✅ Found layers directly in model.layers")
+            print(f"\n[OK] Found layers directly in model.layers")
             print(f"Layers count: {len(model.layers)}")
 
     except Exception as e:
-        print(f"❌ Error during debugging: {e}")
+        print(f"[NG] Error during debugging: {e}")
         import traceback
         traceback.print_exc()
 

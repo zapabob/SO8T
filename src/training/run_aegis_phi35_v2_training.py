@@ -191,7 +191,7 @@ class AEGISTrainingPipeline:
 
     def run_pipeline(self):
         """パイプライン実行"""
-        print("🎯 AEGIS-phi3.5-v2.0 トレーニングパイプライン開始")
+        print("[TARGET] AEGIS-phi3.5-v2.0 トレーニングパイプライン開始")
         print("=" * 60)
         print(f"モデル名: {self.args.model_name}")
         print(f"データセット: {self.dataset_dir}")
@@ -218,7 +218,7 @@ class AEGISTrainingPipeline:
         # ステップ3: サマリー作成
         self.create_training_summary()
 
-        print("\n🎉 AEGIS-phi3.5-v2.0 パイプライン完了！")
+        print("\n[DONE] AEGIS-phi3.5-v2.0 パイプライン完了！")
         print("高度知能AIシステムの統合が完了しました。")
         print(f"モデル保存先: {self.model_dir}")
 
@@ -259,10 +259,10 @@ def main():
     success = pipeline.run_pipeline()
 
     if success:
-        print("\n✅ AEGIS-phi3.5-v2.0 トレーニング成功！")
+        print("\n[OK] AEGIS-phi3.5-v2.0 トレーニング成功！")
         print("HFモデルにノーベル賞・フィールズ賞級の推論機能が統合されました。")
     else:
-        print("\n❌ AEGISトレーニング失敗")
+        print("\n[NG] AEGISトレーニング失敗")
         sys.exit(1)
 
 

@@ -68,7 +68,7 @@ class ComprehensiveABCTest:
 
     def run_comprehensive_test(self):
         """包括的なABCテスト実行"""
-        logger.info("🚀 Starting Comprehensive ABC Test (3 models, 5 benchmarks, 10 seeds)")
+        logger.info("[START] Starting Comprehensive ABC Test (3 models, 5 benchmarks, 10 seeds)")
         logger.info(f"Models: {list(self.models.keys())}")
         logger.info(f"Benchmarks: {list(self.benchmarks.keys())}")
 
@@ -76,11 +76,11 @@ class ComprehensiveABCTest:
 
         # 全モデルの評価
         for model_key, model_info in self.models.items():
-            logger.info(f"\n🔬 Evaluating {model_info['name']}...")
+            logger.info(f"\n[RESEARCH] Evaluating {model_info['name']}...")
             self.results[model_key] = self.evaluate_model(model_key, model_info)
 
         # 統計分析
-        logger.info("\n📊 Performing statistical analysis...")
+        logger.info("\n[STATS] Performing statistical analysis...")
         statistical_results = self.perform_comprehensive_analysis()
 
         # レポート生成
@@ -89,7 +89,7 @@ class ComprehensiveABCTest:
         end_time = time.time()
         duration = end_time - start_time
 
-        logger.info(f"\n✅ Comprehensive ABC Test completed in {duration:.1f} seconds")
+        logger.info(f"\n[OK] Comprehensive ABC Test completed in {duration:.1f} seconds")
         logger.info("📈 Results saved to 'comprehensive_abc_test_results.json'")
         logger.info("📋 Report saved to 'comprehensive_abc_test_report.md'")
 
@@ -124,7 +124,7 @@ class ComprehensiveABCTest:
 
             # 各ベンチマークの評価
             for benchmark_key, benchmark_info in self.benchmarks.items():
-                logger.info(f"  📝 Running {benchmark_info['name']} ({benchmark_info['samples']} samples)...")
+                logger.info(f"  [NOTE] Running {benchmark_info['name']} ({benchmark_info['samples']} samples)...")
 
                 scores = []
                 for seed in self.seeds:
@@ -163,7 +163,7 @@ class ComprehensiveABCTest:
             return model_results
 
         except Exception as e:
-            logger.error(f"❌ Failed to evaluate {model_info['name']}: {e}")
+            logger.error(f"[NG] Failed to evaluate {model_info['name']}: {e}")
             return {"error": str(e)}
 
     def evaluate_gsm8k(self, model, tokenizer, num_samples):
@@ -494,12 +494,12 @@ This comprehensive ABC test compares three Phi-3.5-based models across industry-
             if "math" in aegis_vs_ms:
                 math_ms = aegis_vs_ms["math"]
                 report += f"- **AEGIS vs Microsoft Phi-3.5**: {math_ms['difference']:+.1f}pt "
-                report += f"(p={math_ms['p_value']:.4f}, d={math_ms['cohen_d']:.2f}) {'✅' if math_ms['significant'] else '❌'}\n"
+                report += f"(p={math_ms['p_value']:.4f}, d={math_ms['cohen_d']:.2f}) {'[OK]' if math_ms['significant'] else '[NG]'}\n"
 
             if "math" in aegis_vs_boreas:
                 math_boreas = aegis_vs_boreas["math"]
                 report += f"- **AEGIS vs Boreas**: {math_boreas['difference']:+.1f}pt "
-                report += f"(p={math_boreas['p_value']:.4f}, d={math_boreas['cohen_d']:.2f}) {'✅' if math_boreas['significant'] else '❌'}\n"
+                report += f"(p={math_boreas['p_value']:.4f}, d={math_boreas['cohen_d']:.2f}) {'[OK]' if math_boreas['significant'] else '[NG]'}\n"
 
         report += """
 ### Industry Standard Comparison
@@ -588,7 +588,7 @@ This comprehensive ABC test compares three Phi-3.5-based models across industry-
 
 def main():
     """メイン実行関数"""
-    print("🔬 Starting Comprehensive ABC Test...")
+    print("[RESEARCH] Starting Comprehensive ABC Test...")
     print("Models: Microsoft Phi-3.5, Boreas Phi-3.5, AEGIS v2.5")
     print("Benchmarks: GSM8K, MATH, ARC-Challenge, MMLU, ELYZA Tasks")
     print("Seeds: 10 for statistical significance")
@@ -598,12 +598,12 @@ def main():
         results, statistical_results, report = tester.run_comprehensive_test()
         tester.save_results()
 
-        print("\n✅ Comprehensive ABC Test completed successfully!")
-        print("📊 Check 'comprehensive_abc_test_results.json' for detailed results")
+        print("\n[OK] Comprehensive ABC Test completed successfully!")
+        print("[STATS] Check 'comprehensive_abc_test_results.json' for detailed results")
         print("📋 Check 'comprehensive_abc_test_report.md' for analysis report")
 
     except Exception as e:
-        print(f"\n❌ Test failed: {e}")
+        print(f"\n[NG] Test failed: {e}")
         import traceback
         traceback.print_exc()
 

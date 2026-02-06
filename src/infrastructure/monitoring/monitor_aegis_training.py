@@ -97,13 +97,13 @@ class AEGISTrainingMonitor:
     def display_detailed_stats(self, stats):
         """詳細統計を表示"""
         print("\n" + "="*80)
-        print("🎯 AEGIS v2.1 トレーニング詳細状況")
+        print("[TARGET] AEGIS v2.1 トレーニング詳細状況")
         print("="*80)
 
-        print(f"📊 総トライアル数: {stats['total_trials']}")
-        print(f"✅ 完了済み: {stats['completed_trials']} ({stats['progress_percentage']:.1f}%)")
+        print(f"[STATS] 総トライアル数: {stats['total_trials']}")
+        print(f"[OK] 完了済み: {stats['completed_trials']} ({stats['progress_percentage']:.1f}%)")
         print(f"🔄 実行中: {stats['running_trials']}")
-        print(f"❌ 失敗: {stats['failed_trials']}")
+        print(f"[NG] 失敗: {stats['failed_trials']}")
 
         print(f"\n🎲 最新トライアル: #{stats['latest_trial_number']}")
         state_str = "実行中" if stats['latest_trial_state'] == 0 else "完了" if stats['latest_trial_state'] == 1 else "失敗"
@@ -113,7 +113,7 @@ class AEGISTrainingMonitor:
             print(f"🏆 ベストスコア: {stats['best_value']:.6f}")
 
         if stats['best_params']:
-            print("\n🔧 最適パラメータ:")
+            print("\n[FIX] 最適パラメータ:")
             for key, value in stats['best_params'].items():
                 print(f"   {key}: {value:.2e}")
 
@@ -121,8 +121,8 @@ class AEGISTrainingMonitor:
 
     def monitor_progress(self, interval=30):
         """進捗を定期的に監視"""
-        logger.info("🎯 Starting AEGIS training progress monitoring...")
-        logger.info(f"📊 Monitoring interval: {interval} seconds")
+        logger.info("[TARGET] Starting AEGIS training progress monitoring...")
+        logger.info(f"[STATS] Monitoring interval: {interval} seconds")
 
         try:
             while True:
@@ -143,7 +143,7 @@ class AEGISTrainingMonitor:
 
                         # 完了チェック
                         if stats['running_trials'] == 0 and stats['total_trials'] > 0:
-                            logger.info("🎉 All Optuna trials completed!")
+                            logger.info("[DONE] All Optuna trials completed!")
                             self.display_final_results(study, stats)
                             break
 
@@ -152,15 +152,15 @@ class AEGISTrainingMonitor:
         except KeyboardInterrupt:
             logger.info("🛑 Monitoring stopped by user")
         except Exception as e:
-            logger.error(f"❌ Monitoring error: {e}")
+            logger.error(f"[NG] Monitoring error: {e}")
 
     def display_final_results(self, study, stats):
         """最終結果を表示"""
-        print("\n" + "🎉"*40)
+        print("\n" + "[DONE]"*40)
         print("🏆 AEGIS v2.1 Optuna最適化完了！")
-        print("🎉"*40)
+        print("[DONE]"*40)
 
-        print("\n📊 最終統計:")
+        print("\n[STATS] 最終統計:")
         print(f"   総トライアル数: {stats['total_trials']}")
         print(f"   成功完了: {stats['completed_trials']}")
         print(f"   失敗: {stats['failed_trials']}")
@@ -173,12 +173,12 @@ class AEGISTrainingMonitor:
                 print("   PPO学習率: {stats['best_params']['ppo_learning_rate']:.2e}")
                 print("   SO(8)アダプタ学習率: {stats['best_params']['adapter_learning_rate']:.2e}")
 
-        print("\n🚀 次のステップ:")
+        print("\n[START] 次のステップ:")
         print("   1. PPOトレーニング開始 (Enhancedデータセット使用)")
         print("   2. Grokking現象観測")
         print("   3. 最終モデル保存")
-        print("\n🎯 Grokking検知システム: 活性化済み")
-        print("\n" + "🎉"*40)
+        print("\n[TARGET] Grokking検知システム: 活性化済み")
+        print("\n" + "[DONE]"*40)
 
         logger.info("🏆 Optuna optimization completed successfully")
         logger.info(f"Best value: {stats['best_value']}")
@@ -204,9 +204,9 @@ def create_monitoring_dashboard():
     """モニタリングダッシュボード作成"""
     monitor = AEGISTrainingMonitor()
 
-    print("🎯 AEGIS v2.1 トレーニング進捗モニタリング開始")
+    print("[TARGET] AEGIS v2.1 トレーニング進捗モニタリング開始")
     print("=" * 60)
-    print("📊 リアルタイムでトレーニング状況を表示します")
+    print("[STATS] リアルタイムでトレーニング状況を表示します")
     print("🛑 停止するには Ctrl+C を押してください")
     print("=" * 60)
 
@@ -232,7 +232,7 @@ def main():
         print("\n\n🛑 モニタリングを停止しました")
         logger.info("Monitoring stopped by user")
     except Exception as e:
-        print(f"\n❌ エラーが発生しました: {e}")
+        print(f"\n[NG] エラーが発生しました: {e}")
         logger.error(f"Monitoring failed: {e}")
         raise
 

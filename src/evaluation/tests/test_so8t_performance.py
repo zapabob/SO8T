@@ -70,9 +70,9 @@ class SO8TPerformanceTester:
                     "inference_time": inference_time,
                     "status": "success"
                 })
-                logger.info(f"✅ {model}: 推論速度テスト成功 - {inference_time:.2f}秒")
+                logger.info(f"[OK] {model}: 推論速度テスト成功 - {inference_time:.2f}秒")
             except Exception as e:
-                logger.error(f"❌ {model}: 推論速度テスト失敗 - {e}")
+                logger.error(f"[NG] {model}: 推論速度テスト失敗 - {e}")
                 self.test_results.append({
                     "model": model,
                     "test": "inference_speed",
@@ -101,9 +101,9 @@ class SO8TPerformanceTester:
                     "memory_estimate": memory_estimate,
                     "status": "success"
                 })
-                logger.info(f"✅ {model}: メモリ使用量テスト成功 - 推定{memory_estimate:.2f}KB")
+                logger.info(f"[OK] {model}: メモリ使用量テスト成功 - 推定{memory_estimate:.2f}KB")
             except Exception as e:
-                logger.error(f"❌ {model}: メモリ使用量テスト失敗 - {e}")
+                logger.error(f"[NG] {model}: メモリ使用量テスト失敗 - {e}")
                 self.test_results.append({
                     "model": model,
                     "test": "memory_usage",
@@ -144,7 +144,7 @@ class SO8TPerformanceTester:
                         correct_answers += 1
                     
                 except Exception as e:
-                    logger.error(f"❌ {model}: 精度テスト失敗 - {e}")
+                    logger.error(f"[NG] {model}: 精度テスト失敗 - {e}")
             
             accuracy = (correct_answers / total_answers) * 100
             
@@ -155,7 +155,7 @@ class SO8TPerformanceTester:
                 "accuracy": accuracy,
                 "status": "success"
             })
-            logger.info(f"✅ {model}: 精度テスト成功 - {accuracy:.1f}%")
+            logger.info(f"[OK] {model}: 精度テスト成功 - {accuracy:.1f}%")
     
     async def _test_stability(self):
         """安定性テスト"""
@@ -171,7 +171,7 @@ class SO8TPerformanceTester:
                     result = await self._run_model_test(model, test_prompt, timeout=10)
                     successful_runs += 1
                 except Exception as e:
-                    logger.error(f"❌ {model}: 安定性テスト失敗 (試行{i+1}) - {e}")
+                    logger.error(f"[NG] {model}: 安定性テスト失敗 (試行{i+1}) - {e}")
             
             stability_rate = (successful_runs / total_runs) * 100
             
@@ -182,7 +182,7 @@ class SO8TPerformanceTester:
                 "stability_rate": stability_rate,
                 "status": "success"
             })
-            logger.info(f"✅ {model}: 安定性テスト成功 - {stability_rate:.1f}%")
+            logger.info(f"[OK] {model}: 安定性テスト成功 - {stability_rate:.1f}%")
     
     async def _test_scalability(self):
         """スケーラビリティテスト"""
@@ -213,7 +213,7 @@ class SO8TPerformanceTester:
                     scalability_scores.append(scalability_score)
                     
                 except Exception as e:
-                    logger.error(f"❌ {model}: スケーラビリティテスト失敗 (プロンプト{i+1}) - {e}")
+                    logger.error(f"[NG] {model}: スケーラビリティテスト失敗 (プロンプト{i+1}) - {e}")
                     scalability_scores.append(float('inf'))
             
             # 平均スケーラビリティスコア
@@ -226,7 +226,7 @@ class SO8TPerformanceTester:
                 "scalability_score": avg_scalability,
                 "status": "success"
             })
-            logger.info(f"✅ {model}: スケーラビリティテスト成功 - スコア: {avg_scalability:.4f}")
+            logger.info(f"[OK] {model}: スケーラビリティテスト成功 - スコア: {avg_scalability:.4f}")
     
     async def _run_model_test(self, model: str, prompt: str, timeout: int = 30) -> str:
         """モデルテストを実行"""

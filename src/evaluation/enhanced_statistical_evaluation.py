@@ -25,7 +25,7 @@ class EnhancedStatisticalEvaluator:
 
     def run_enhanced_evaluation(self):
         """増強された評価を実行 (シミュレーション)"""
-        logger.info(f"🔬 Starting enhanced statistical evaluation (n={self.num_seeds} seeds)...")
+        logger.info(f"[RESEARCH] Starting enhanced statistical evaluation (n={self.num_seeds} seeds)...")
 
         # 既存の結果を基にしたシミュレーション
         # GSM8K: 77.0%, MATH: 43.0%, ARC: 74.0% を基準にばらつきを追加
@@ -159,7 +159,7 @@ class EnhancedStatisticalEvaluator:
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False, default=str)
 
-        logger.info(f"✅ Enhanced statistical results saved to {output_file}")
+        logger.info(f"[OK] Enhanced statistical results saved to {output_file}")
 
     def generate_report(self, results):
         """レポート生成"""
@@ -179,7 +179,7 @@ class EnhancedStatisticalEvaluator:
 - **Baseline**: {results['statistical_analysis']['baseline_stats']['math_accuracy']['mean']:.1f}% ±{results['statistical_analysis']['baseline_stats']['math_accuracy']['std']:.1f}%
 - **Improvement**: +{results['statistical_analysis']['comparisons']['math_accuracy']['improvement']:.1f}pt
 - **p-value**: {results['statistical_analysis']['comparisons']['math_accuracy']['p_value']:.4f}
-- **Significant**: {"✅ YES (p<0.05)" if results['statistical_analysis']['comparisons']['math_accuracy']['significant'] else "❌ NO"}
+- **Significant**: {"[OK] YES (p<0.05)" if results['statistical_analysis']['comparisons']['math_accuracy']['significant'] else "[NG] NO"}
 
 #### 95%信頼区間 (t分布正確)
 - **MATH CI**: [{results['statistical_analysis']['aegis_stats']['math_accuracy']['95%_ci'][0]:.1f}, {results['statistical_analysis']['aegis_stats']['math_accuracy']['95%_ci'][1]:.1f}]
@@ -192,10 +192,10 @@ class EnhancedStatisticalEvaluator:
 - **ARC**: {results['statistical_analysis']['comparisons']['arc_accuracy']['cohen_d']:.2f} ({results['statistical_analysis']['comparisons']['arc_accuracy']['effect_size_interpretation']})
 
 ### ボブにゃん指摘対応状況
-✅ **シード数増加**: n=5 → n={self.num_seeds}  
-✅ **t分布正確計算**: df={self.num_seeds-1}の信頼区間  
-✅ **MATH特化強化**: 効果サイズ {results['statistical_analysis']['comparisons']['math_accuracy']['cohen_d']:.2f} (large)  
-✅ **統計的有意性**: MATHでp<0.05達成  
+[OK] **シード数増加**: n=5 → n={self.num_seeds}  
+[OK] **t分布正確計算**: df={self.num_seeds-1}の信頼区間  
+[OK] **MATH特化強化**: 効果サイズ {results['statistical_analysis']['comparisons']['math_accuracy']['cohen_d']:.2f} (large)  
+[OK] **統計的有意性**: MATHでp<0.05達成  
 
 ### 結論
 - **科学的厳密性向上**: 信頼区間を正確に算出
@@ -209,7 +209,7 @@ class EnhancedStatisticalEvaluator:
         with open("enhanced_evaluation_report.md", 'w', encoding='utf-8') as f:
             f.write(report)
 
-        logger.info("✅ Enhanced evaluation report saved to enhanced_evaluation_report.md")
+        logger.info("[OK] Enhanced evaluation report saved to enhanced_evaluation_report.md")
 
 if __name__ == "__main__":
     evaluator = EnhancedStatisticalEvaluator()
@@ -217,6 +217,6 @@ if __name__ == "__main__":
     evaluator.save_results(results)
     evaluator.generate_report(results)
 
-    print("🎯 Enhanced statistical evaluation completed!")
-    print(f"📊 Results saved to 'enhanced_statistical_evaluation_results.json'")
+    print("[TARGET] Enhanced statistical evaluation completed!")
+    print(f"[STATS] Results saved to 'enhanced_statistical_evaluation_results.json'")
     print(f"📈 Report saved to 'enhanced_evaluation_report.md'")

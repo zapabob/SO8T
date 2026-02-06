@@ -37,15 +37,15 @@ def upload_bilingual_model_card():
                     repo_id=repo_id,
                     commit_message=f"Upload bilingual model card with comprehensive ABC test results (3 models, 5 benchmarks, statistical significance)"
                 )
-                logger.info(f"✅ Uploaded: {local_file} -> {repo_path}")
+                logger.info(f"[OK] Uploaded: {local_file} -> {repo_path}")
             except Exception as e:
-                logger.error(f"❌ Failed to upload {local_file}: {e}")
+                logger.error(f"[NG] Failed to upload {local_file}: {e}")
         else:
-            logger.warning(f"⚠️  File not found: {local_file}")
+            logger.warning(f"[WARN]  File not found: {local_file}")
 
     # モデルカードの更新メッセージ
     update_message = """
-## 🚀 Major Update: Comprehensive ABC Testing & Bilingual Documentation
+## [START] Major Update: Comprehensive ABC Testing & Bilingual Documentation
 
 ### What's New / 新機能
 - **Comprehensive ABC Test Results** / 包括的なABCテスト結果
@@ -83,7 +83,7 @@ def upload_bilingual_model_card():
             current_content = f.read()
 
         # 更新メッセージを追加
-        if "## 🚀 Major Update" not in current_content:
+        if "## [START] Major Update" not in current_content:
             updated_content = current_content + "\n" + update_message
 
             with open("temp_readme.md", "w", encoding="utf-8") as f:
@@ -95,7 +95,7 @@ def upload_bilingual_model_card():
                 repo_id=repo_id,
                 commit_message="Add comprehensive ABC test results and bilingual documentation"
             )
-            logger.info("✅ Updated README with ABC test summary")
+            logger.info("[OK] Updated README with ABC test summary")
 
             # クリーンアップ
             if os.path.exists("temp_readme.md"):
@@ -106,9 +106,9 @@ def upload_bilingual_model_card():
     except Exception as e:
         logger.warning(f"Could not update README: {e}")
 
-    logger.info("🎉 Bilingual model card upload completed!")
+    logger.info("[DONE] Bilingual model card upload completed!")
     logger.info(f"📍 Repository: https://huggingface.co/{repo_id}")
-    logger.info("📊 Includes comprehensive ABC test results with statistical significance")
+    logger.info("[STATS] Includes comprehensive ABC test results with statistical significance")
     logger.info("🌐 Bilingual documentation (English + Japanese)")
 
 if __name__ == "__main__":

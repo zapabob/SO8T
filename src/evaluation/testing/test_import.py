@@ -10,8 +10,8 @@ print(f"Sys Path: {sys.path}")
 
 try:
     from src.models.nkat_so8t import NKAT_SO8T_ThinkingModel
-    print("✅ Import successful!")
+    print("[OK] Import successful!")
 except Exception as e:
-    print(f"❌ Import failed: {e}")
+    print(f"[NG] Import failed: {e}")
     import traceback
     traceback.print_exc()

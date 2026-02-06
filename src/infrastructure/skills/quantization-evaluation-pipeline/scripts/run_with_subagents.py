@@ -476,12 +476,12 @@ def main():
             json.dump(results, f, indent=2, ensure_ascii=False)
 
         if results["status"] == "completed":
-            print("🎉 Subagent-based quantization evaluation pipeline completed!")
-            print(f"📊 Pipeline ID: {pipeline_id}")
+            print("[DONE] Subagent-based quantization evaluation pipeline completed!")
+            print(f"[STATS] Pipeline ID: {pipeline_id}")
             print(f"📈 Results saved to: {output_file}")
             print("📋 Progress monitor should show completion status"
         else:
-            print(f"❌ Pipeline failed: {results.get('error', 'Unknown error')}")
+            print(f"[NG] Pipeline failed: {results.get('error', 'Unknown error')}")
             exit(1)
 
     except KeyboardInterrupt:
@@ -490,7 +490,7 @@ def main():
         exit(1)
     except Exception as e:
         logger.error(f"Pipeline execution failed: {e}")
-        print(f"❌ Pipeline failed: {e}")
+        print(f"[NG] Pipeline failed: {e}")
         exit(1)
 
 

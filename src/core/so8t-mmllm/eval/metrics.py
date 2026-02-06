@@ -471,7 +471,7 @@ class SO8TEvaluator:
         test_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """包括的な評価を実行"""
-        self.logger.info("🎯 包括的評価を開始...")
+        self.logger.info("[TARGET] 包括的評価を開始...")
         
         # 各評価を実行
         basic_results = self.evaluate_basic_reasoning(
@@ -527,7 +527,7 @@ class SO8TEvaluator:
                 }
             )
         
-        self.logger.info(f"✅ 包括的評価完了 - 総合スコア: {overall_score:.3f}")
+        self.logger.info(f"[OK] 包括的評価完了 - 総合スコア: {overall_score:.3f}")
         
         return self.evaluation_results
     
@@ -536,4 +536,4 @@ class SO8TEvaluator:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(self.evaluation_results, f, indent=2, ensure_ascii=False)
         
-        self.logger.info(f"📁 評価結果を保存しました: {filepath}")
+        self.logger.info(f"[DIR] 評価結果を保存しました: {filepath}")

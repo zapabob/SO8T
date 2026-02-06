@@ -110,7 +110,7 @@ Please reason step by step and give your final answer."""
             if is_correct:
                 math_correct += 1
 
-            print(f"  MATH {i+1}: {'✓' if is_correct else '✗'}")
+            print(f"  MATH {i+1}: {'[OK]' if is_correct else '[NG]'}")
 
         # GPQA評価
         print("[GPQA] Evaluating GPQA problems...")
@@ -157,7 +157,7 @@ Answer:"""
             if is_correct:
                 gpqa_correct += 1
 
-            print(f"  GPQA {i+1}: {'✓' if is_correct else '✗'} (Predicted: {chr(65+predicted) if predicted >= 0 else '?'}, Correct: {chr(65+problem['correct'])})")
+            print(f"  GPQA {i+1}: {'[OK]' if is_correct else '[NG]'} (Predicted: {chr(65+predicted) if predicted >= 0 else '?'}, Correct: {chr(65+problem['correct'])})")
 
         # ARC-Challenge評価
         print("[ARC] Evaluating ARC-Challenge problems...")
@@ -202,7 +202,7 @@ Answer:"""
             if is_correct:
                 arc_correct += 1
 
-            print(f"  ARC {i+1}: {'✓' if is_correct else '✗'} (Predicted: {chr(65+predicted) if predicted >= 0 else '?'}, Correct: {chr(65+problem['correct'])})")
+            print(f"  ARC {i+1}: {'[OK]' if is_correct else '[NG]'} (Predicted: {chr(65+predicted) if predicted >= 0 else '?'}, Correct: {chr(65+problem['correct'])})")
 
         # 結果集計
         results = {
