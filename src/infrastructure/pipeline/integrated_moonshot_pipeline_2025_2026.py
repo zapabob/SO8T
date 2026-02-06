@@ -245,11 +245,11 @@ class IntegratedMoonshotPipeline2025_2026:
         if self.checkpoint_index_file.exists():
             try:
                 idx = int(self.checkpoint_index_file.read_text(encoding="utf-8").strip())
-                ckpt = self.rolling_checkpoints[idx]
+                ckpt = self.rolling_checkpoints[idx - 1]  # idx is 1-based, list is 0-based
                 if ckpt.exists():
                     return json.loads(ckpt.read_text(encoding="utf-8"))
-            except Exception:
-                pass
+            except (IndexError, ValueError) as e:
+                logger.warning("[CHECKPOINT] Index lookup failed: %s, falling back to latest file", e)
 
         # fallback: newest file
         existing = [p for p in self.rolling_checkpoints if p.exists()]
@@ -1068,10 +1068,6 @@ class IntegratedMoonshotPipeline2025_2026:
         self._stop_periodic_checkpoint()
         self.db.end_run(self.run_id, status="completed")
         logger.info("Pipeline completed successfully.")
-
-        self._stop_periodic_checkpoint()
-        self.db.end_run(self.run_id, status="completed")
-        logger.info("Pipeline completed.")
 
 if __name__ == "__main__":
     try:

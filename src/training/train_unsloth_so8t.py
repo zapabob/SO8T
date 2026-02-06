@@ -42,16 +42,18 @@ import os
 from typing import Dict
 
 # Add project root to path for src imports
+_project_root = Path(__file__).resolve().parents[2]
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
 try:
     from src.utils.path_resolver import PathResolver
     from src.utils.config_loader import ConfigLoader
     PROJECT_ROOT = PathResolver.get_project_root()
 except ImportError:
-    # Fallback for direct execution
-    PROJECT_ROOT = Path(__file__).resolve().parents[2]
-    sys.path.insert(0, str(PROJECT_ROOT))
-    from src.utils.path_resolver import PathResolver
-    from src.utils.config_loader import ConfigLoader
+    PROJECT_ROOT = _project_root
+    logger_fallback = logging.getLogger(__name__)
+    logger_fallback.warning("[PATH] PathResolver not available, using fallback: %s", PROJECT_ROOT)
 
 # Import local modules
 # Import local modules
@@ -723,7 +725,7 @@ class UnslothSO8TTrainer:
         problems = []
         for i in range(num_samples):
             a, b = np.random.randint(1, 100, 2)
-            operation = np.random.choice(['+', '-', '*', '/'])
+            operation = random.choice(['+', '-', '*', '/'])
             if operation == '/':
                 result = np.random.randint(1, 20)
                 b = np.random.randint(1, 10)
@@ -789,7 +791,7 @@ class UnslothSO8TTrainer:
             decisions.append({
                 'instruction': '以下の状況で、適切な決定を下してください。',
                 'input': f'Situation {i}: Choose ALLOW, ESCALATE, DENY, or REFUSE',
-                'output': np.random.choice(['ALLOW', 'ESCALATE', 'DENY', 'REFUSE']),
+                'output': random.choice(['ALLOW', 'ESCALATE', 'DENY', 'REFUSE']),
                 'type': 'quadrality_decision_making'
             })
 
@@ -844,7 +846,6 @@ class UnslothSO8TTrainer:
             model=model,
             tokenizer=tokenizer,
             train_dataset=dataset,
-            dataset_text_field="text",
             max_seq_length=self.max_seq_length,
             dataset_num_proc=dataset_num_proc,
             packing=False,

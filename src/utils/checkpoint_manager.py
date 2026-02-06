@@ -89,8 +89,8 @@ class RollingCheckpointManager:
                 with open(meta_file, 'w', encoding='utf-8') as f:
                     json.dump(metadata if isinstance(metadata, dict) else {"info": str(metadata)},
                             f, indent=2, ensure_ascii=False)
-            except:
-                pass
+            except Exception as e:
+                print(f"[WARN] Could not save checkpoint metadata: {e}")
 
         # 状態更新
         self.last_save_time = time.time()
@@ -184,6 +184,22 @@ class RollingCheckpointManager:
         status["latest_checkpoint"] = self.get_latest_checkpoint()
         status["should_save"] = self.should_save()
         return status
+
+    def get_checkpoint_info(self, checkpoint_path) -> Dict:
+        """チェックポイントのメタデータ情報を取得"""
+        checkpoint_path = Path(checkpoint_path)
+        meta_file = checkpoint_path / "metadata.json"
+        if meta_file.exists():
+            try:
+                with open(meta_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"[WARN] Could not read checkpoint info: {e}")
+        return {"path": str(checkpoint_path), "exists": checkpoint_path.exists()}
+
+    def force_save_now(self, model=None, tokenizer=None, step_info: str = "force"):
+        """インターバルに関係なく即座にチェックポイントを保存"""
+        return self.save_checkpoint(data=model, metadata=tokenizer, step_info=step_info)
 
 
 # ============================================================================
@@ -285,13 +301,20 @@ class EmergencyCheckpointManager:
 
     def __init__(self, rolling_manager: RollingCheckpointManager):
         self.rolling_manager = rolling_manager
+        self.model = None
+        self.tokenizer = None
+
+    def register_model(self, model, tokenizer=None):
+        """モデルとトークナイザーを登録 (緊急保存時に使用)"""
+        self.model = model
+        self.tokenizer = tokenizer
 
     def save_emergency(self, model=None, tokenizer=None, reason: str = "emergency"):
         """緊急チェックポイントを即座に保存"""
         try:
             self.rolling_manager.save_checkpoint(
-                data=model,
-                metadata=tokenizer,
+                data=model or self.model,
+                metadata=tokenizer or self.tokenizer,
                 step_info=f"emergency_{reason}",
             )
             print(f"[EMERGENCY] Checkpoint saved: {reason}")
