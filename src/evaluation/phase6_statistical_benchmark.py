@@ -59,17 +59,17 @@ class IndustryStandardBenchmark:
     # Model definitions
     MODELS = {
         "model_a": {
-            "name": "microsoft/Phi-3.5-mini-instruct",
+            "name": r"H:\from_D\SO8T_models\model_a",
             "label": "Model A (Baseline)",
             "description": "Phi-3.5-mini-instruct オリジナル（ベースライン）",
         },
         "model_b": {
-            "name": "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp",
+            "name": r"H:\from_D\SO8T_models\model_b",
             "label": "Model B (Borea)",
             "description": "日本語拡張済み Borea モデル",
         },
         "model_c": {
-            "name": "zapabobouj/AEGIS-phi3.5-jp-v3.0",
+            "name": r"H:\from_D\SO8T_models\model_c",
             "label": "Model C (AEGIS)",
             "description": "SO8T 四重推論強化 AEGIS モデル",
         },
