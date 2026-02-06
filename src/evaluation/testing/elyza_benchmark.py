@@ -10,8 +10,21 @@ import time
 from pathlib import Path
 from typing import Dict, List
 
+import os
+import shutil
+
+
+def _check_ollama_available() -> bool:
+    """Check if Ollama is installed and accessible"""
+    if os.environ.get("SO8T_SKIP_OLLAMA", "0") == "1":
+        return False
+    return shutil.which("ollama") is not None
+
+
 def run_ollama(model: str, prompt: str, timeout: int = 60) -> tuple[str, float]:
     """Run inference via Ollama"""
+    if not _check_ollama_available():
+        return "ERROR: Ollama not available (set SO8T_SKIP_OLLAMA=0 and install Ollama)", 0.0
     start_time = time.time()
     try:
         result = subprocess.run(
@@ -25,6 +38,8 @@ def run_ollama(model: str, prompt: str, timeout: int = 60) -> tuple[str, float]:
         return result.stdout.strip(), duration
     except subprocess.TimeoutExpired:
         return "TIMEOUT", timeout
+    except FileNotFoundError:
+        return "ERROR: Ollama binary not found", 0.0
     except Exception as e:
         return f"ERROR: {e}", 0.0
 
