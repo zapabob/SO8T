@@ -33,6 +33,7 @@ import torch
 import json
 import logging
 import numpy as np
+import random
 from pathlib import Path
 from tqdm import tqdm
 import time
@@ -405,11 +406,14 @@ class UnslothSO8TTrainer:
             
             logger.info(f"[DATASET] Found {len(mcp_api_skill_sources)} MCP/API/Skill/General Agent data sources")
             for source in mcp_api_skill_sources:
-                if source.startswith('moonshot:'):
+                dataset = None
+                if source.startswith('local:'):
+                    dataset = self._load_local_jsonl_dataset(source.replace('local:', ''))
+                elif source.startswith('moonshot:'):
                     dataset = self._load_moonshot_dataset(source.replace('moonshot:', ''))
                 elif source.startswith('huggingface:'):
                     dataset = self._load_huggingface_dataset(source.replace('huggingface:', ''))
-                
+
                 if dataset:
                     all_datasets.append(dataset)
                     logger.info(f"[DATASET] Loaded MCP/API/Skill/General Agent dataset: {source} ({len(dataset)} samples)")
@@ -420,7 +424,10 @@ class UnslothSO8TTrainer:
             if prioritize_mcp_api_skill and ('mcp' in source.lower() or 'api' in source.lower() or 'skill' in source.lower() or 'general_agent' in source.lower()):
                 continue
                 
-            if source.startswith('moonshot:'):
+            dataset = None
+            if source.startswith('local:'):
+                dataset = self._load_local_jsonl_dataset(source.replace('local:', ''))
+            elif source.startswith('moonshot:'):
                 dataset = self._load_moonshot_dataset(source.replace('moonshot:', ''))
             elif source.startswith('huggingface:'):
                 dataset = self._load_huggingface_dataset(source.replace('huggingface:', ''))
@@ -561,7 +568,7 @@ class UnslothSO8TTrainer:
         """Moonshotデータセット読み込み（MCP/API/Skill統合版）"""
         # dataset_pipeline.pyの機能を使用
         try:
-            from src.data_processing.dataset_pipeline import RTX3060DatasetPipeline
+            from src.data.processing.dataset_pipeline import RTX3060DatasetPipeline
             
             pipeline = RTX3060DatasetPipeline()
             
@@ -605,11 +612,42 @@ class UnslothSO8TTrainer:
                 logger.warning(f"Moonshot dataset {dataset_name} not found")
                 return None
 
-    def _load_huggingface_dataset(self, dataset_name):
-        """HuggingFaceデータセット読み込み"""
+    def _load_local_jsonl_dataset(self, file_path):
+        """ローカルJSONLファイルから直接データセット読み込み"""
         try:
-            return load_dataset(dataset_name, split='train')
+            fpath = Path(file_path)
+            if not fpath.exists():
+                logger.warning(f"[LOCAL] File not found: {file_path}")
+                return None
+            dataset = load_dataset('json', data_files=str(fpath), split='train')
+            logger.info(f"[LOCAL] Loaded {len(dataset)} samples from {fpath.name}")
+            return dataset
         except Exception as e:
+            logger.warning(f"[LOCAL] Failed to load {file_path}: {e}")
+            return None
+
+    def _load_huggingface_dataset(self, dataset_name):
+        """HuggingFaceデータセット読み込み (name:config形式対応)"""
+        try:
+            # Support huggingface:owner/repo:config syntax
+            config = None
+            parts = dataset_name.split(':')
+            if len(parts) == 2:
+                dataset_name, config = parts[0], parts[1]
+            return load_dataset(dataset_name, config, split='train')
+        except Exception as e:
+            # Fallback: some datasets only have 'test' split (e.g. elyza/ELYZA-tasks-100)
+            if "Unknown split" in str(e) and "test" in str(e):
+                try:
+                    logger.info(f"Retrying {dataset_name} with split='test'")
+                    config = None
+                    parts = dataset_name.split(':')
+                    if len(parts) == 2:
+                        dataset_name, config = parts[0], parts[1]
+                    return load_dataset(dataset_name, config, split='test')
+                except Exception as e2:
+                    logger.warning(f"Failed to load HF dataset {dataset_name} (test split): {e2}")
+                    return None
             logger.warning(f"Failed to load HF dataset {dataset_name}: {e}")
             return None
 
@@ -721,7 +759,7 @@ class UnslothSO8TTrainer:
         ]
 
         for i in range(num_samples):
-            greeting, response = np.random.choice(patterns)
+            greeting, response = random.choice(patterns)
             conversations.append({
                 'instruction': '以下の日本語の挨拶に対して、適切な応答をしてください。',
                 'input': greeting,

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s /b \"C:\\\\Users\\\\downl\\\\desktop\\\\SO8T\\\\data\\\\arxiv_biorxiv\")",
+      "Bash(dir:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -File:*)",
+      "Bash(powershell:*)",
+      "Bash(py -3 -c:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(py -3:*)"
+    ]
+  }
+}

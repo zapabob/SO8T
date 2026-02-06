@@ -15,7 +15,7 @@ class RollingCheckpointManager:
     """
 
     def __init__(self, base_dir: str, max_keep: int = 5, save_interval_sec: int = 180,
-                 task_name: str = "generic_task"):
+                 task_name: str = "generic_task", enable_logging: bool = False):
         self.base_dir = Path(base_dir)
         self.max_keep = max_keep
         self.save_interval_sec = save_interval_sec
@@ -278,3 +278,40 @@ def checkpoint_context(task_name: str, output_dir: str = None):
                 manager.save_checkpoint(step_info="error_exit")
 
     return CheckpointContext()
+
+
+class EmergencyCheckpointManager:
+    """緊急チェックポイント保存マネージャー (クラッシュ時の自動保存)"""
+
+    def __init__(self, rolling_manager: RollingCheckpointManager):
+        self.rolling_manager = rolling_manager
+
+    def save_emergency(self, model=None, tokenizer=None, reason: str = "emergency"):
+        """緊急チェックポイントを即座に保存"""
+        try:
+            self.rolling_manager.save_checkpoint(
+                data=model,
+                metadata=tokenizer,
+                step_info=f"emergency_{reason}",
+            )
+            print(f"[EMERGENCY] Checkpoint saved: {reason}")
+        except Exception as e:
+            print(f"[EMERGENCY] Failed to save checkpoint: {e}")
+
+
+class RollingCheckpointCallback:
+    """TrainerCallback互換のローリングチェックポイントコールバック"""
+
+    def __init__(self, checkpoint_manager: RollingCheckpointManager, model=None, tokenizer=None):
+        self.checkpoint_manager = checkpoint_manager
+        self.model = model
+        self.tokenizer = tokenizer
+
+    def on_step_end(self, args=None, state=None, control=None, model=None, **kwargs):
+        if self.checkpoint_manager and self.checkpoint_manager.should_save():
+            step_info = f"step_{state.global_step}" if state else "auto"
+            self.checkpoint_manager.save_checkpoint(
+                data=model or self.model,
+                metadata=self.tokenizer,
+                step_info=step_info,
+            )
