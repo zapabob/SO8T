@@ -111,4 +111,4 @@ Industry-standard benchmarks evaluated using [lm-eval-harness](https://github.co
 9. Akiba, T., et al. (2024). Evolutionary Optimization of Model Merging. arXiv:2403.13187. (Sakana AI)
 10. mHC: Multi-Head Control/Consistency for Reasoning Models.
 ```
-Generated: 2026-02-07T01:18:36.150318
+Generated: 2026-02-07T08:33:02.420210

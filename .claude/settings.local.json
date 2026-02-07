@@ -9,7 +9,14 @@
       "Bash(py -3 -c:*)",
       "Bash(timeout:*)",
       "Bash(ping:*)",
-      "Bash(py -3:*)"
+      "Bash(py -3:*)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: add codebase review log and phase6 benchmark results\n\nComprehensive review identified 8 CRITICAL, 7 HIGH severity issues.\nKey findings: ModuleNotFoundError blocking SFT, empty benchmark results,\ncheckpoint index OOB, missing methods, and dataset field mismatch.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(python -c:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: resolve 7 critical and medium-severity bugs blocking pipeline execution\n\nCRITICAL fixes:\n- C-1: Fix ModuleNotFoundError in train_unsloth_so8t.py \\(sys.path before imports\\)\n- C-2: Fix checkpoint index OOB \\(1-based to 0-based conversion\\)\n- C-3: Add missing methods: register_model, get_checkpoint_info, force_save_now\n- C-4: Remove incorrect dataset_text_field=\"text\" \\(data uses messages format\\)\n- C-5: Fix wrong import path src.data_processing -> src.data.processing\n- C-7: Replace np.random.choice with random.choice for string lists\n\nMEDIUM fixes:\n- M-1: Remove duplicate pipeline shutdown code\n- M-2: Replace bare except:pass with proper exception handling\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)"
     ]
   }
 }
