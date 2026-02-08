@@ -11,10 +11,12 @@ echo   C: zapabobouj-AEGIS-phi3.5-jp_v4.0 (pipeline output)
 echo ============================================================
 echo.
 echo Options:
-echo   --skip-data-collection   Skip data collection (data already exists)
-echo   --skip-data-processing   Skip data processing (data already processed)
-echo   --skip-data-cleansing    Skip data cleansing (use cleansed data)
-echo   --resume                 Resume from checkpoint
+echo   --use-llama-cpp         Use llama.cpp.python (GGUF models) instead of Ollama
+echo   --llama-cpp-dir PATH    GGUF models directory (default: D:\webdataset\gguf_models)
+echo   --skip-data-collection  Skip data collection (data already exists)
+echo   --skip-data-processing  Skip data processing (data already processed)
+echo   --skip-data-cleansing   Skip data cleansing (use cleansed data)
+echo   --resume                Resume from checkpoint
 echo.
 
 set "PYTHON_EXE=py -3"
@@ -22,12 +24,14 @@ set "SCRIPT_DIR=%~dp0..\.."
 set "LOG_DIR=%SCRIPT_DIR%\logs"
 set "CHECKPOINT_DIR=D:\webdataset\checkpoints\abc_pipeline"
 set "DATA_DIR=D:\webdataset\data"
+set "GGUF_DIR=D:\webdataset\gguf_models"
 
 mkdir "%LOG_DIR%" 2>nul
 mkdir "%CHECKPOINT_DIR%" 2>nul
 mkdir "%DATA_DIR%\datasets" 2>nul
 mkdir "%DATA_DIR%\datasets\cleansed" 2>nul
 mkdir "%DATA_DIR%\datasets\vssi_tagged" 2>nul
+mkdir "%GGUF_DIR%" 2>nul
 
 echo [START] %date% %time%
 echo.
@@ -35,6 +39,13 @@ echo.
 if "%1"=="--resume" (
     echo [RESUME] Resuming from last checkpoint...
     %PYTHON_EXE% "%SCRIPT_DIR%\src\evaluation\abc_pipeline.py" --resume --interval 300
+) else if "%1"=="--use-llama-cpp" (
+    echo [LLAMA.CPP] Using llama.cpp.python for inference
+    if "%2"=="" (
+        %PYTHON_EXE% "%SCRIPT_DIR%\src\evaluation\abc_pipeline.py" --use-llama-cpp --llama-cpp-dir "%GGUF_DIR%" --interval 300
+    ) else (
+        %PYTHON_EXE% "%SCRIPT_DIR%\src\evaluation\abc_pipeline.py" --use-llama-cpp --llama-cpp-dir "%2" --interval 300
+    )
 ) else if "%1"=="--skip-data-collection" (
     echo [SKIP] Data collection skipped (--skip-data-collection)
     echo [RUN] Starting from data processing phase...

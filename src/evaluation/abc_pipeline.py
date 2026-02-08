@@ -31,6 +31,8 @@ import logging
 import subprocess
 import signal
 import atexit
+import random
+import numpy as np
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
@@ -140,7 +142,8 @@ class ModelConfig:
 
     name: str
     ollama_name: str
-    hf_repo_id: str
+    gguf_name: str = ""
+    hf_repo_id: str = ""
     is_pipeline_output: bool = False
     quantize_types: List[str] = field(
         default_factory=lambda: ["BF16", "Q8_0", "Q4_K_M"]
@@ -180,22 +183,27 @@ MODELS = {
     "A": ModelConfig(
         name="microsoft-phi3.5mini-instinct",
         ollama_name="microsoft/phi-3.5-mini-instinct",
+        gguf_name="phi-3.5-mini-instinct-q8_0.gguf",
         hf_repo_id="zapabobouj/microsoft-phi-3.5-mini-instinct",
         is_pipeline_output=False,
     ),
     "B": ModelConfig(
         name="AXCEPT-Borea-phi3.5mini-jp",
         ollama_name="AXCEPT/Borea-phi-3.5-mini-Jp",
+        gguf_name="Borea-phi-3.5-mini-Jp-q8_0.gguf",
         hf_repo_id="zapabobouj/AXCEPT-Borea-phi-3.5-mini-Jp",
         is_pipeline_output=False,
     ),
     "C": ModelConfig(
         name="zapabobouj-AEGIS-phi3.5-jp_v4.0",
         ollama_name="zapabobouj/AEGIS-phi-3.5-jp:v4.0",
+        gguf_name="AEGIS-phi-3.5-jp-v4.0-q8_0.gguf",
         hf_repo_id="zapabobouj/AEGIS-phi-3.5-jp-v4.0",
         is_pipeline_output=True,
     ),
 }
+
+RANDOM_SEED = 42
 
 BENCHMARK_SUITE = {
     "japanese": [
@@ -368,21 +376,118 @@ class FreezeParameterEvolver:
         return list(range(num_freeze))
 
 
-class ABCBenchmarkHarness:
-    """Industry-standard A/B/C benchmark harness"""
+def get_test_order(seed: int = RANDOM_SEED) -> List[str]:
+    """Get fixed random order for ABC testing"""
+    models = list(MODELS.keys())
+    random.seed(seed)
+    random.shuffle(models)
+    logger.info(f"[ORDER] Model test order (seed={seed}): {models}")
+    return models
 
-    def __init__(self):
+
+class LlamaCPPClient:
+    """llama.cpp.python client for model inference"""
+
+    def __init__(self, model_path: str, n_gpu_layers: int = -1, n_ctx: int = 4096):
+        self.model_path = model_path
+        self.n_gpu_layers = n_gpu_layers
+        self.n_ctx = n_ctx
+        self.client = None
+        self._initialize()
+
+    def _initialize(self):
+        """Initialize llama.cpp.python client"""
+        try:
+            from llama_cpp import Llama
+
+            self.client = Llama(
+                model_path=self.model_path,
+                n_gpu_layers=self.n_gpu_layers,
+                n_ctx=self.n_ctx,
+                verbose=False,
+            )
+            logger.info(f"[LLAMA.CPP] Initialized: {self.model_path}")
+        except ImportError:
+            logger.warning(
+                "[LLAMA.CPP] llama-cpp-python not installed, using Ollama fallback"
+            )
+            self.client = None
+
+    def generate(
+        self, prompt: str, max_tokens: int = 512, temperature: float = 0.7
+    ) -> Tuple[str, float]:
+        """Generate text with timing"""
+        if self.client is None:
+            return "[LLAMA.CPP] Not available", 0.0
+
+        start = time.time()
+        try:
+            output = self.client(
+                prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stop=["</s>", "<|endoftext|>"],
+            )
+            elapsed = time.time() - start
+            return output["choices"][0]["text"].strip(), elapsed
+        except Exception as e:
+            return f"[ERROR] {e}", 0.0
+
+    def __del__(self):
+        if self.client:
+            try:
+                self.client.__del__()
+            except:
+                pass
+
+
+class ABCBenchmarkHarness:
+    """Industry-standard A/B/C benchmark harness with llama.cpp.python support"""
+
+    def __init__(
+        self, use_llama_cpp: bool = False, llama_cpp_dir: Optional[str] = None
+    ):
+        self.use_llama_cpp = use_llama_cpp
+        self.llama_cpp_dir = (
+            Path(llama_cpp_dir) if llama_cpp_dir else Path("D:/webdataset/gguf_models")
+        )
+        self.llama_clients: Dict[str, LlamaCPPClient] = {}
         self.results: List[BenchmarkResult] = []
         self.model_scores: Dict[str, List[float]] = {m: [] for m in MODELS.keys()}
+        self.test_order = get_test_order()
+        self._initialize_llama_clients()
+
+    def _initialize_llama_clients(self):
+        """Initialize llama.cpp.python clients for available models"""
+        if not self.use_llama_cpp:
+            return
+
+        for model_key, config in MODELS.items():
+            gguf_path = self.llama_cpp_dir / config.gguf_name
+            if gguf_path.exists():
+                try:
+                    client = LlamaCPPClient(str(gguf_path))
+                    self.llama_clients[model_key] = client
+                    logger.info(f"[LLAMA.CPP] Loaded: {config.gguf_name}")
+                except Exception as e:
+                    logger.warning(
+                        f"[LLAMA.CPP] Failed to load {config.gguf_name}: {e}"
+                    )
 
     def run_ollama(
-        self, model: str, prompt: str, timeout: int = 300
+        self, model_key: str, prompt: str, timeout: int = 300
     ) -> Tuple[str, float]:
-        """Execute Ollama command with timing"""
+        """Execute inference via llama.cpp.python or Ollama with timing"""
+        config = MODELS[model_key]
+
+        if self.use_llama_cpp and model_key in self.llama_clients:
+            client = self.llama_clients[model_key]
+            return client.generate(prompt, max_tokens=512, temperature=0.7)
+
         start = time.time()
         try:
             result = subprocess.run(
-                ["ollama", "run", model, prompt],
+                ["ollama", "run", config.ollama_name, prompt],
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -432,9 +537,7 @@ class ABCBenchmarkHarness:
             for task_name, samples in tasks:
                 for i in range(samples):
                     prompt = f"[TEST] {task_name} sample {i + 1}: "
-                    response, elapsed = self.run_ollama(
-                        model_config.ollama_name, prompt
-                    )
+                    response, elapsed = self.run_ollama(model_key, prompt)
                     score = self.evaluate_response(response, "pass", task_name)
 
                     ci = stats.t.interval(
@@ -466,6 +569,17 @@ class ABCBenchmarkHarness:
 
         logger.info(f"[BENCHMARK] Completed {model_key}: {len(model_results)} results")
         return model_results
+
+    def run_all_benchmarks(self) -> Dict[str, List[BenchmarkResult]]:
+        """Run benchmarks for all models in fixed random order"""
+        logger.info(f"[BENCHMARK] Test order: {self.test_order}")
+
+        results = {}
+        for model_key in self.test_order:
+            config = MODELS[model_key]
+            results[model_key] = self.run_benchmark(model_key, config)
+
+        return results
 
 
 class StatisticalAnalyzer:
@@ -792,6 +906,8 @@ class ABCPipeline:
         skip_data_collection: bool = False,
         skip_data_processing: bool = False,
         base_dir: Optional[Path] = None,
+        use_llama_cpp: bool = False,
+        llama_cpp_dir: Optional[str] = None,
     ):
         if base_dir:
             self.base_dir = base_dir
@@ -807,15 +923,20 @@ class ABCPipeline:
         self.output_dir = self.base_dir / "models/final"
         self.results_dir = self.base_dir / "results/abc_test_results"
         self.hf_package_dir = self.base_dir / "hf_upload_package"
+        self.gguf_dir = (
+            Path(llama_cpp_dir) if llama_cpp_dir else self.base_dir / "gguf_models"
+        )
 
         self.skip_data_collection = skip_data_collection
         self.skip_data_processing = skip_data_processing
+        self.use_llama_cpp = use_llama_cpp
 
         for d in [
             self.checkpoint_dir,
             self.output_dir,
             self.results_dir,
             self.hf_package_dir,
+            self.gguf_dir,
         ]:
             try:
                 d.mkdir(parents=True, exist_ok=True)
@@ -825,7 +946,10 @@ class ABCPipeline:
         self.data_checker = DataChecker(self.data_dir)
         self.checkpoint_manager = RollingCheckpointManager(self.checkpoint_dir)
         self.evolver = FreezeParameterEvolver()
-        self.benchmark = ABCBenchmarkHarness()
+        self.benchmark = ABCBenchmarkHarness(
+            use_llama_cpp=use_llama_cpp,
+            llama_cpp_dir=str(self.gguf_dir) if use_llama_cpp else None,
+        )
         self.analyzer = StatisticalAnalyzer()
         self.card_generator = ModelCardGenerator(self.results_dir)
         self.hf_uploader = HFuploader()
@@ -1225,11 +1349,24 @@ def main():
         action="store_true",
         help="Skip data cleansing (use existing cleansed data)",
     )
+    parser.add_argument(
+        "--use-llama-cpp",
+        action="store_true",
+        help="Use llama.cpp.python for inference instead of Ollama",
+    )
+    parser.add_argument(
+        "--llama-cpp-dir",
+        type=str,
+        default="D:/webdataset/gguf_models",
+        help="Directory containing GGUF models for llama.cpp.python",
+    )
     args = parser.parse_args()
 
     pipeline = ABCPipeline(
         skip_data_collection=args.skip_data_collection,
         skip_data_processing=args.skip_data_processing,
+        use_llama_cpp=args.use_llama_cpp,
+        llama_cpp_dir=args.llama_cpp_dir,
     )
     pipeline.run(
         resume=args.resume,

@@ -101,7 +101,8 @@ function Start-ABCPipeline {
         [switch]$Resume,
         [switch]$SkipDataCollection,
         [switch]$SkipDataProcessing,
-        [switch]$SkipDataCleansing
+        [switch]$SkipDataCleansing,
+        [switch]$UseLlamaCpp
     )
 
     Write-Log "========================================"
@@ -111,23 +112,33 @@ function Start-ABCPipeline {
     Write-Log "        C=zapabobouj-AEGIS-phi3.5-jp_v4.0"
     Write-Log "========================================"
     Write-Log "Skip flags: Collection=$SkipDataCollection, Processing=$SkipDataProcessing, Cleansing=$SkipDataCleansing"
+    Write-Log "Inference: $(if ($UseLlamaCpp) { 'llama.cpp.python (GGUF)' } else { 'Ollama' })"
 
     $DataReady = Test-DataReadiness -DataDir $DataDir
 
-    $OllamaReady = Test-OllamaHealth
-    $RetryCount = 0
-    $MaxRetries = 3
-
-    while (-not $OllamaReady -and $RetryCount -lt $MaxRetries) {
-        Write-Log "[WAIT] Waiting for Ollama... (attempt $($RetryCount + 1)/$MaxRetries)"
-        Start-Sleep -Seconds 30
+    if (-not $UseLlamaCpp) {
         $OllamaReady = Test-OllamaHealth
-        $RetryCount++
-    }
+        $RetryCount = 0
+        $MaxRetries = 3
 
-    if (-not $OllamaReady) {
-        Write-Log "[ERROR] Ollama not available after $MaxRetries attempts"
-        return $false
+        while (-not $OllamaReady -and $RetryCount -lt $MaxRetries) {
+            Write-Log "[WAIT] Waiting for Ollama... (attempt $($RetryCount + 1)/$MaxRetries)"
+            Start-Sleep -Seconds 30
+            $OllamaReady = Test-OllamaHealth
+            $RetryCount++
+        }
+
+        if (-not $OllamaReady) {
+            Write-Log "[ERROR] Ollama not available after $MaxRetries attempts"
+            return $false
+        }
+    }
+    else {
+        Write-Log "[INFO] Using llama.cpp.python for inference"
+        $GgufDir = "$CheckpointDir\..\..\gguf_models"
+        if (-not (Test-Path $GgufDir)) {
+            Write-Log "[WARNING] GGUF directory not found: $GgufDir"
+        }
     }
 
     try {
@@ -146,6 +157,10 @@ function Start-ABCPipeline {
         }
         if ($SkipDataCleansing) {
             $ProcessArgs += "--skip-data-cleansing"
+        }
+        if ($UseLlamaCpp) {
+            $ProcessArgs += "--use-llama-cpp"
+            $ProcessArgs += "--llama-cpp-dir", $GgufDir
         }
 
         $Process = Start-Process -FilePath $PythonExe -ArgumentList $ProcessArgs -PassThru -NoNewWindow
@@ -185,6 +200,10 @@ function Start-ABCPipeline {
 }
 
 function Invoke-AutoResume {
+    param(
+        [switch]$UseLlamaCpp
+    )
+
     Write-Log "[AUTO-RESUME] Checking for checkpoints..."
 
     $LatestCheckpoint = Get-ChildItem -Path $CheckpointDir -Filter "checkpoint_*.json" |
@@ -204,11 +223,11 @@ function Invoke-AutoResume {
         $SkipCollection = if ($LockContent.DataReady -eq $true) { $true } else { $false }
         $SkipProcessing = if ($LockContent.DataReady -eq $true) { $true } else { $false }
 
-        Start-ABCPipeline -Resume -SkipDataCollection:$SkipCollection -SkipDataProcessing:$SkipProcessing
+        Start-ABCPipeline -Resume -SkipDataCollection:$SkipCollection -SkipDataProcessing:$SkipProcessing -UseLlamaCpp:$UseLlamaCpp
     }
     else {
         Write-Log "[AUTO-RESUME] No checkpoints found"
-        Start-ABCPipeline
+        Start-ABCPipeline -UseLlamaCpp:$UseLlamaCpp
     }
 }
 
@@ -217,8 +236,10 @@ Write-Log "[START] ABC Continuous Pipeline Script"
 
 $Arguments = $args
 
+$UseLlamaCpp = $Arguments -contains "--use-llama-cpp"
+
 if ($Arguments -contains "--resume") {
-    Invoke-AutoResume
+    Invoke-AutoResume -UseLlamaCpp:$UseLlamaCpp
 }
 elseif ($Arguments -contains "--check") {
     Test-OllamaHealth
