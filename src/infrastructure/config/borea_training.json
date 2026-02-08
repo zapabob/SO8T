@@ -1,6 +1,6 @@
 {
   "model": {
-    "base_model": "models/Borea-Phi-3.5-mini-Instruct-Jp",
+    "base_model": "AXCXEPT/Borea-Phi-3.5-mini-Instruct-Jp",
     "use_unsloth": true,
     "lora_rank": 64,
     "lora_alpha": 128,

@@ -228,7 +228,7 @@ class IntegratedMoonshotPipeline2025_2026:
                 idx = 1
         self.checkpoint_index_file.write_text(str(idx), encoding="utf-8")
  
-        ckpt_path = self.data_dir / f"pipeline_checkpoint_{idx}.json"
+        ckpt_path = self.data_dir / f"{self.pipeline_name.lower()}_checkpoint_{idx}.json"
         payload = {
             "phase": phase,
             "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -403,17 +403,16 @@ class IntegratedMoonshotPipeline2025_2026:
             logger.info("Dry-run mode: skipping new dataset collection")
             return collected
         
+        processes = []
+        
         # 1. Arxiv/BioRxiv 論文収集 (設計書準拠: 100k papers)
-        # Force strict 50k + 50k count
         if os.getenv("SO8T_COLLECT_ARXIV", "1") == "1":
             try:
                 arxiv_output = output_dir / "arxiv_biorxiv_vssi.jsonl"
-                
-                # Strict enforcement of 50k targets per spec
                 arxiv_count = os.getenv("SO8T_ARXIV_COUNT", "50000")
                 biorxiv_count = os.getenv("SO8T_BIORXIV_COUNT", "50000")
                 
-                logger.info(f"[ARXIV] Enforcing VSSI Quadruple Reasoning collection: Arxiv={arxiv_count}, BioRxiv={biorxiv_count}")
+                logger.info(f"[ARXIV] Launching parallel collection: Arxiv={arxiv_count}, BioRxiv={biorxiv_count}")
 
                 cmd = [
                     "py", "-3",
@@ -424,22 +423,20 @@ class IntegratedMoonshotPipeline2025_2026:
                     "--vssi-output", str(arxiv_output),
                 ]
                 
-                subprocess.run(cmd, check=False, cwd=self.project_root, 
-                               env={**os.environ, "PYTHONPATH": str(self.project_root)})
-                if arxiv_output.exists():
-                    collected["arxiv_biorxiv"] = arxiv_output
-                    logger.info(f"[ARXIV] Collected VSSI dataset to {arxiv_output}")
+                p = subprocess.Popen(cmd, cwd=self.project_root, 
+                                     env={**os.environ, "PYTHONPATH": str(self.project_root)})
+                processes.append(("arxiv_biorxiv", p, arxiv_output))
             except Exception as e:
-                logger.warning(f"Arxiv collection failed: {e}")
+                logger.warning(f"Failed to launch Arxiv collection: {e}")
 
         # 1b. Semantic Scholar 論文収集 (Parallel)
         if os.getenv("SO8T_COLLECT_SEMANTIC_SCHOLAR", "1") == "1":
             try:
                 ss_output = output_dir / "semanticscholar_vssi.jsonl"
                 ss_query = os.getenv("SO8T_SS_QUERY", "deep learning transformer architecture")
-                ss_count = os.getenv("SO8T_SS_COUNT", "1000")
+                ss_count = os.getenv("SO8T_SS_COUNT", "50000")
                 
-                logger.info(f"[SEMANTIC_SCHOLAR] Collecting papers for query: {ss_query}, limit: {ss_count}")
+                logger.info(f"[SEMANTIC_SCHOLAR] Launching parallel collection for query: {ss_query}, limit: {ss_count}")
                 
                 cmd = [
                     "py", "-3",
@@ -449,15 +446,20 @@ class IntegratedMoonshotPipeline2025_2026:
                     "--output", str(ss_output),
                 ]
                 
-                # 並行実行を想定しているが、シンプルに逐次実行するか Popen を使う
-                subprocess.run(cmd, check=False, cwd=self.project_root,
-                               env={**os.environ, "PYTHONPATH": str(self.project_root)})
-                
-                if ss_output.exists():
-                    collected["semanticscholar"] = ss_output
-                    logger.info(f"[SEMANTIC_SCHOLAR] Collected VSSI dataset to {ss_output}")
+                p = subprocess.Popen(cmd, cwd=self.project_root,
+                                     env={**os.environ, "PYTHONPATH": str(self.project_root)})
+                processes.append(("semanticscholar", p, ss_output))
             except Exception as e:
-                logger.warning(f"Semantic Scholar collection failed: {e}")
+                logger.warning(f"Failed to launch Semantic Scholar collection: {e}")
+
+        # Wait for parallel processes to complete
+        for name, p, output_path in processes:
+            p.wait()
+            if p.returncode == 0 and output_path.exists():
+                collected[name] = output_path
+                logger.info(f"[{name.upper()}] Parallel collection completed: {output_path}")
+            else:
+                logger.warning(f"[{name.upper()}] Collection failed or output missing (code: {p.returncode})")
         
         # 2. OSINT ソース収集 (Pop-culture & World Affairs via Script, NO OLLAMA)
         if os.getenv("SO8T_COLLECT_OSINT", "1") == "1":
@@ -891,7 +893,12 @@ class IntegratedMoonshotPipeline2025_2026:
         
         # Power-on Auto-Resume logic
         checkpoint = self._load_latest_checkpoint()
-        last_completed_phase = checkpoint.get("phase") if checkpoint else None
+        if checkpoint:
+            last_completed_phase = checkpoint.get("phase")
+            self._current_phase = last_completed_phase
+            self._current_data = checkpoint.get("data", {})
+        else:
+            last_completed_phase = None
         
         phases_order = ["collect", "enrich", "reward", "research", "sft", "advanced", "benchmark", "upload"]
         
