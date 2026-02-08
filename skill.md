@@ -82,3 +82,79 @@ SO8Tリポジトリに対し、Borea-phi3.5-instinct-jpを核にした「グラ�
 
 - **安定性重視**: 初期状態では LLM 本体を凍結し、アダプターと接続部から順次解凍する動的制御。
 - **ロールバック**: KL閾値超過時に直近 stable チェックポイントへ自動復帰する機構。
+
+---
+
+## DeepResearch ベストプラクティス
+
+DeepResearch（深層研究）は、AI エージェントが自律的に調査・分析を行い、複雑な問いに対して深い洞察を提供する能力です。
+
+### 1. 研究フェーズの構造化
+
+DeepResearch は以下のフェーズで進行します：
+
+```python
+# 研究フェーズの定義
+RESEARCH_PHASES = [
+    "question_analysis",      # 問いの分析と分解
+    "hypothesis_generation",  # 仮説生成
+    "information_gathering",  # 情報収集
+    "evidence_evaluation",    # 証拠評価
+    "synthesis",              # 統合
+    "verification",           # 検証
+    "reporting"               # 報告
+]
+```
+
+### 2. 自律的調査戦略
+
+- **多角的アプローチ**: 複数の情報源（学術論文、ニュース、政府文書）から情報を収集
+- **反復的深化**: 初期調査結果に基づいて調査を深化
+- **信頼性評価**: 情報源の信頼性を評価（学術誌 > 政府機関 > ニュース）
+- **矛盾検出**: 複数情報源の矛盾を検出し検証
+
+### 3. ツール・ツール連鎖
+
+```python
+# 推奨されるツール連鎖
+TOOL_CHAINS = {
+    "research": ["web_search", "arxiv_search", "llm_analysis"],
+    "fact_check": ["web_search", "source_verification", "cross_reference"],
+    "trend_analysis": ["data_collection", "statistical_analysis", "visualization"]
+}
+```
+
+### 4. 検証と品質保証
+
+- **根拠付き回答**: すべての主張に情報源を明示
+- **不確実性の定量化**: 確信度を数値化（0-1）
+- **論理的整合性チェック**: 推論の妥当性を検証
+- **専門家レビュー**: 重要結論は専門家によるレビューを経る
+
+### 5. 代表的な DeepResearch タスク
+
+```python
+DEEP_RESEARCH_TASKS = [
+    "政策影響分析",           # 政策変更の影響を多角的に分析
+    "技術トレンド予測",       # 新興技術の将来を予測
+    "リスク評価",             # リスク要因の特定と評価
+    "比較分析",              # 複数オプションの比較評価
+    "シナリオ分析",          # 将来シナリオの構築と評価
+    "因果推論",              # 因果関係の特定と検証
+    "知識統合",              # 複数分野の知識を統合
+    "長期的影響予測"         # 長期的な影響を予測
+]
+```
+
+### 6. 実装ガイドライン
+
+- **研究ログの記録**: すべての調査過程をログに記録
+- **中間成果物の保存**: 部分的な発見を保存し再利用可能に
+- **並列研究**: 独立した調査は並列実行して効率化
+- **人間によるレビュー**: 重要な判断は人間にレビュー依頼
+
+### 7. 参照ファイル
+
+- `scripts/research/deep_research_events.py`: DeepResearch イベント処理
+- `scripts/research/shinka_neat_ai_scientist.py`: 進化的研究エージェント
+- `src/agents/sakana_ai_integrated_agent.py`: 自律研究エージェント統合
