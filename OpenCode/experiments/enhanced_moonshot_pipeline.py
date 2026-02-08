@@ -132,6 +132,8 @@ class EnhancedMoonshotPipeline:
         self.checkpoint_data = {}
         self.is_shutting_down = False
         self.resume_attempt_count = 0
+        self.knowledge_weight_file = Path("data/knowledge_weight.json")
+        self.knowledge_retention = {}
 
         # シグナルハンドラー設定
         self._setup_signal_handlers()
@@ -294,6 +296,36 @@ class EnhancedMoonshotPipeline:
         except Exception as e:
             logger.error(f"Checkpoint save failed: {e}")
             return None
+
+    def _load_knowledge_weights(self) -> Dict[str, float]:
+        """エビングハウスの忘却曲線に基づいた重みの読み込みと減衰"""
+        if not self.knowledge_weight_file.exists():
+            return {}
+            
+        try:
+            with open(self.knowledge_weight_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            decayed_weights = {}
+            now = datetime.now()
+            
+            for key, info in data.items():
+                ts = datetime.fromisoformat(info["timestamp"])
+                t_hours = (now - ts).total_seconds() / 3600
+                stability = info.get("stability", 1.0)
+                
+                # R = exp(-t / S)
+                retention = math.exp(-t_hours / (24 * 7 * stability)) # 1週間を半減期の目安とする
+                weight = info["weight"] * retention
+                
+                if retention > 0.1: # 忘却しきっていない知識のみ保持
+                    decayed_weights[key] = weight
+            
+            logger.info(f"Loaded {len(decayed_weights)} knowledge weights with Ebbinghaus decay")
+            return decayed_weights
+        except Exception as e:
+            logger.error(f"Failed to load knowledge weights: {e}")
+            return {}
 
     def _load_checkpoint(self) -> Optional[Dict]:
         """最新の有効なチェックポイントを読み込み"""

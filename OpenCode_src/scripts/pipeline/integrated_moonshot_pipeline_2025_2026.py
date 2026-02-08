@@ -21,9 +21,10 @@ from tqdm import tqdm
 import subprocess
 import time
 
-# プロジェクトルートをパスに追加
-project_root = Path(__file__).parent.parent.parent
+# プロジェクトルートとOpenCodeをパスに追加（絶対パスを保証）
+project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / "OpenCode"))
 
 from experiments.enhanced_moonshot_pipeline import EnhancedMoonshotPipeline
 
@@ -241,12 +242,17 @@ class IntegratedMoonshotPipeline2025_2026:
             checkpoint_file = self.data_dir / f"{source}_checkpoint.json"
             
             # citation_fetcherを使用
-            # ノーベル賞・フィールズ賞級のトピックを優先するクエリ
-            scientific_query = "quantum gravity OR topological insulators OR protein folding OR prime number theorem OR Riemann hypothesis OR P vs NP OR Hodge conjecture OR Birch and Swinnerton-Dyer conjecture OR Navier-Stokes existence and smoothness"
+            # ノーベル賞・フィールズ賞級のトピック、および専門ドメイン（軍事、宇宙、生物、薬理）を優先するクエリ
+            scientific_query = (
+                "quantum gravity OR topological insulators OR protein folding OR prime number theorem OR Riemann hypothesis OR P vs NP OR "
+                "stealth technology OR hypersonic weapons OR autonomous defense systems OR "
+                "orbital mechanics OR deep space exploration OR satellite constellation OR "
+                "CRISPR gene editing OR synthetic biology OR neuropharmacology"
+            )
             
             cmd = [
                 "py", "-3",
-                str(self.project_root / "scripts" / "data_processing" / "citation_fetcher.py"),
+                str(self.project_root / "OpenCode_src" / "scripts" / "data_processing" / "citation_fetcher.py"),
                 "--source", source,
                 "--query", scientific_query,
                 "--max-papers", "50000",
