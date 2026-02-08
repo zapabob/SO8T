@@ -431,6 +431,33 @@ class IntegratedMoonshotPipeline2025_2026:
                     logger.info(f"[ARXIV] Collected VSSI dataset to {arxiv_output}")
             except Exception as e:
                 logger.warning(f"Arxiv collection failed: {e}")
+
+        # 1b. Semantic Scholar 論文収集 (Parallel)
+        if os.getenv("SO8T_COLLECT_SEMANTIC_SCHOLAR", "1") == "1":
+            try:
+                ss_output = output_dir / "semanticscholar_vssi.jsonl"
+                ss_query = os.getenv("SO8T_SS_QUERY", "deep learning transformer architecture")
+                ss_count = os.getenv("SO8T_SS_COUNT", "1000")
+                
+                logger.info(f"[SEMANTIC_SCHOLAR] Collecting papers for query: {ss_query}, limit: {ss_count}")
+                
+                cmd = [
+                    "py", "-3",
+                    str(self.project_root / "src" / "data" / "collection" / "semanticscholar_fetcher.py"),
+                    "--query", ss_query,
+                    "--max-papers", ss_count,
+                    "--output", str(ss_output),
+                ]
+                
+                # 並行実行を想定しているが、シンプルに逐次実行するか Popen を使う
+                subprocess.run(cmd, check=False, cwd=self.project_root,
+                               env={**os.environ, "PYTHONPATH": str(self.project_root)})
+                
+                if ss_output.exists():
+                    collected["semanticscholar"] = ss_output
+                    logger.info(f"[SEMANTIC_SCHOLAR] Collected VSSI dataset to {ss_output}")
+            except Exception as e:
+                logger.warning(f"Semantic Scholar collection failed: {e}")
         
         # 2. OSINT ソース収集 (Pop-culture & World Affairs via Script, NO OLLAMA)
         if os.getenv("SO8T_COLLECT_OSINT", "1") == "1":
