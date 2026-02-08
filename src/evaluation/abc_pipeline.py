@@ -836,6 +836,7 @@ class ABCPipeline:
             checkpoint_time=time.time(),
             models_tested=[],
             benchmarks_completed=[],
+            current_checkpoint=1,
         )
 
     def check_data_status(self):
