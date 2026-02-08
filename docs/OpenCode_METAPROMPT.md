@@ -1,0 +1,2 @@
+# OpenCode git worktree meta prompt
+## Purpose\n- Track pipeline automation, dataset management, and ABC stats for zapabob/SO8T into OpenCode branch.\n## Usage\n- Start shell in project root and cd OpenCode.\n- Run python scripts/utils/boot_pipeline_launcher.py for automated retraining.\n- Use python scripts/analysis/abc_summary_report.py to regenerate Prism-friendly reports.\n- Keep docs bilingual (JP/EN) and maintain dataset citations from data/.*

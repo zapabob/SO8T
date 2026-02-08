@@ -11,6 +11,7 @@ import re
 import time
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+from tqdm import tqdm
 
 from src.utils.vssi_template import render_thinking
 from datetime import datetime
@@ -132,7 +133,7 @@ class ArxivBioRxivProcessor:
         # 50k規模の検索に対応するため、カテゴリごとの取得件数を調整
         per_category = max_results // len(categories)
 
-        for category in categories:
+        for category in tqdm(categories, desc="Arxiv Categories"):
             try:
                 logger.info(f"[SEARCH] Searching category: {category}")
 

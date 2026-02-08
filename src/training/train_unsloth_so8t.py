@@ -34,6 +34,7 @@ except ImportError as e:
 from transformers import TrainingArguments, DataCollatorForSeq2Seq, TrainerCallback
 from datasets import load_dataset, Dataset
 from trl import SFTTrainer, GRPOConfig, GRPOTrainer
+from src.models.pet_adapters import PETAdapterBank # Added
 import torch
 import json
 import logging
@@ -65,8 +66,15 @@ except ImportError:
 
 # Import local modules
 # Import local modules
-from src.utils.vssi_template import normalize_prompt_text
-from src.utils.execution_guards import ExecutionGuards
+# SO8T Grand Design Components
+from src.models.model_patcher import patch_phi3_with_so8t
+from src.models.losses_pet import pet_loss
+from src.models.mhc_projection import project_mhc_l2
+from src.training.evofreeze_cem import EvoFreezeCEM
+from src.training.monitoring import StabilityMonitor
+from src.training.eval_anchors import AnchorEvaluator
+from src.models.vision_encoder import VisionEncoderWrapper
+from src.models.projector import SO8ViTProjector
 
 # ログ設定
 # ログ設定
@@ -140,6 +148,98 @@ class RollingCheckpointCallback(TrainerCallback):
             except Exception as e:
                 logger.warning(f"[CHECKPOINT] Failed to save final checkpoint: {e}")
 
+
+class StabilityMonitor:
+    """
+    Tracks stability metrics: Anchor KL and Representation Drift.
+    Used for evolutionary fitness and early stopping.
+    """
+    def __init__(self, model, tokenizer):
+        self.model = model
+        self.tokenizer = tokenizer
+        self.anchors = StabilityAnchors(tokenizer)
+        self.ref_model_states = None
+        
+    def capture_reference(self):
+        """Captures hidden states of the current model as reference."""
+        self.ref_model_states = {}
+        # Placeholder for actual reference state capture logic
+        
+    def calculate_metrics(self) -> Dict[str, float]:
+        """Calculates KL and Rep-Drift relative to reference."""
+        anchor_batch = self.anchors.get_batch(batch_size=2)
+        
+        with torch.no_grad():
+            outputs = self.model(**anchor_batch, output_hidden_states=True)
+            # Placeholder: In reality, we'd compare with captured ref
+            kl_div = 0.01 # Mock
+            rep_drift = 0.005 # Mock
+            
+        return {"kl": kl_div, "rep_drift": rep_drift}
+
+class TrustRegionCallback(TrainerCallback):
+    """
+    Prevents parameter explosion by clipping updates that exceed a trust region norm.
+    Specifically targets newly unfastened submodules.
+    """
+    def __init__(self, max_norm: float = 0.1):
+        self.max_norm = max_norm
+        self.initial_params = {}
+
+    def on_step_begin(self, args, state, control, model=None, **kwargs):
+        if model is None: return
+        # Store current params if not stored
+        for name, param in model.named_parameters():
+            if param.requires_grad and name not in self.initial_params:
+                self.initial_params[name] = param.data.clone()
+
+    def on_step_end(self, args, state, control, model=None, **kwargs):
+        if model is None: return
+        with torch.no_grad():
+            for name, param in model.named_parameters():
+                if not param.requires_grad: 
+                    if name in self.initial_params: del self.initial_params[name]
+                    continue
+                
+                if name in self.initial_params:
+                    # Calculate update norm
+                    diff = param.data - self.initial_params[name]
+                    norm = torch.norm(diff)
+                    if norm > self.max_norm:
+                        # Rescale update to stay within trust region
+                        param.data = self.initial_params[name] + diff * (self.max_norm / norm)
+                    
+                    # Update reference for next step
+                    self.initial_params[name] = param.data.clone()
+
+class PETSFTTrainer(SFTTrainer):
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        # Pass rotation (Pass 1..4)
+        if not hasattr(self, "_step_count"): self._step_count = 0
+        pass_id = self._step_count % 4
+        model.current_pass_id = pass_id
+        self._step_count += 1
+        
+        # Handle Multimodal Inputs (Conceptual integration)
+        pixel_values = inputs.pop("pixel_values", None)
+        if pixel_values is not None and hasattr(model, "vision_tower"):
+            # 1. Extract Vision Features
+            vision_outputs = model.vision_tower(pixel_values)
+            # 2. Project to LLM Space with pass_id conditioning
+            vision_embeds = model.vision_projector(vision_outputs, pass_id=pass_id)
+            # 3. Interleave with text embeddings (Simplified)
+            # This would normally happen in the model forward, but we can patch it here
+            inputs["vision_embeds"] = vision_embeds
+            
+        outputs = model(**inputs)
+        loss = outputs.loss if isinstance(outputs, dict) else outputs[0]
+        
+        # PET Regularization (Pass & Layer depth)
+        if hasattr(model, "so8t_adapter_bank"):
+            l_pet = pet_loss(model.so8t_adapter_bank.alpha, lam_p=0.001, lam_d=0.0005)
+            loss = loss + l_pet
+            
+        return (loss, outputs) if return_outputs else loss
 
 class UnslothSO8TTrainer:
     def __init__(self, config_path=None):
@@ -385,6 +485,8 @@ class UnslothSO8TTrainer:
             "rotation",  # 回転行列
             "alpha_gate",  # Alpha Gate
             "so8t",  # SO8T関連
+            "layernorm",  # 空間適応
+            "norm",  # 正則化適応
         ]
 
         # 魂の重みを保持する場合は追加
@@ -1021,6 +1123,10 @@ class UnslothSO8TTrainer:
             )
             callbacks.append(checkpoint_callback)
             logger.info("[SFT] Rolling checkpoint callback enabled")
+            
+        # Trust Region stability callback
+        callbacks.append(TrustRegionCallback(max_norm=0.05))
+        logger.info("[SFT] TrustRegionCallback enabled (max_norm=0.05)")
 
         # Unsloth SFT Trainer
         # Windows multiprocessing issue fix: use ExecutionGuards
@@ -1064,9 +1170,13 @@ class UnslothSO8TTrainer:
             return example
 
         # Apply text field preprocessing
-        dataset = dataset.map(add_text_field, desc="Formatting dataset")
+        dataset = dataset.map(
+            add_text_field,
+            desc="Formatting dataset",
+            num_proc=dataset_num_proc,
+        )
 
-        trainer = SFTTrainer(
+        trainer = PETSFTTrainer(
             model=model,
             tokenizer=tokenizer,
             train_dataset=dataset,
@@ -1209,9 +1319,9 @@ class UnslothSO8TTrainer:
                 ]
                 found_tags = sum(1 for tag in quad_tags if tag in completion)
                 if found_tags == 4:
-                    reward += 1.0  # 満点ボーナス
+                    reward += 2.0  # 満点ボーナス (Reinforced)
                 elif found_tags > 0:
-                    reward += 0.2 * found_tags
+                    reward += 0.5 * found_tags  # タグごとの重み増加
 
                 # タグの順序検証
                 if "<think-task>" in completion and "<think-policy>" in completion:
@@ -1423,8 +1533,44 @@ class UnslothSO8TTrainer:
             tokenizer, prioritize_mcp_api_skill=prioritize_mcp_api_skill
         )
 
+        # PET Adapters Setup (Top 1/3 layers, rank 16, 4 passes)
+        model = patch_phi3_with_pet(model, rank=16, num_passes=4)
+        model.current_pass_id = 0 # Default pass
+
+        # Phase 0: Model Patching (Grand Design)
+        model = patch_phi3_with_so8t(model, rank=16, num_passes=4)
+
+        # Phase 0b: Multimodal Integration (SO8ViT)
+        if os.getenv("SO8T_ENABLE_MULTIMODAL", "0") == "1":
+            logger.info("[SO8ViT] Integrating Vision Tower and Projector...")
+            model.vision_tower = VisionEncoderWrapper("google/vit-base-patch16-224-in21k")
+            model.vision_projector = SO8ViTProjector(
+                vision_hidden_size=768, 
+                llm_hidden_size=model.config.hidden_size
+            )
+            model.vision_tower.to(model.device)
+            model.vision_projector.to(model.device)
+
+        # Phase 1: EvoFreeze-CEM & Stability Setup
+        evo_manager = EvoFreezeCEM(model)
+        stability_monitor = StabilityMonitor(model, tokenizer)
+        
+        logger.info("[EVO] Starting EvoFreeze-CEM Cycle...")
+        
+        # Sampling and initial evaluation
+        mask = evo_manager.sample_mask()
+        evo_manager.apply_mask(mask)
+        
         # SFTトレーニング
         model = self.run_sft_training(model, tokenizer, dataset)
+        
+        # Stability check & Possible Rollback
+        stability = stability_monitor.check_stability()
+        if stability["should_rollback"]:
+            evo_manager.rollback_and_adjust("checkpoints/last_stable")
+            
+        # Manifold projection (mHC)
+        project_mhc_l2(model)
 
         # GRPOトレーニング（オプション）
         try:

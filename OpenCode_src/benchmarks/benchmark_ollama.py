@@ -8,6 +8,11 @@ import argparse
 import json
 import time
 import requests
+import gc
+try:
+    import torch
+except ImportError:
+    torch = None
 from pathlib import Path
 from datetime import datetime
 
@@ -18,6 +23,7 @@ def run_prompt(model, prompt):
         "model": model,
         "prompt": prompt,
         "stream": False,
+        "keep_alive": 0, # Unload model immediately after response to free VRAM
         "options": {
             "temperature": 0.7,
             "num_predict": 512
@@ -78,7 +84,12 @@ def main():
                 # print(f"    Speed: {metrics['tokens_per_sec']:.2f} t/s")
             else:
                 print("    Failed.")
-    
+        
+        # Explicit memory cleanup between models
+        gc.collect()
+        if torch is not None and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            
     args.output.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nSaved results to {args.output}")
 

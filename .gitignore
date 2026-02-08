@@ -17,7 +17,6 @@ eggs/
 lib/
 lib64/
 parts/
-sdist/
 var/
 wheels/
 pip-wheel-metadata/
@@ -143,7 +142,7 @@ dmypy.json
 *.bin
 
 # Data files
-data/
+/data/
 *.jsonl
 *.csv
 *.parquet
@@ -604,41 +603,28 @@ fingerprint_test_data/
 canvas_fingerprints/
 webgl_fingerprints/
 models/Borea-Phi-3.5-mini-Instruct-Jp
-models/Borea-Phi-3.5-mini-Instruct-Jp
 lm-evaluation-harness
 .specstory/.gitignore
-.specstory/history/2025-12-03_10-05Z-untitled.md
-.specstory/history/2025-12-06_23-37Z-機能損なわずリポジトリ整理.md
-.specstory/history/2025-12-07_01-31Z-ムーンショットの起動.md
-.specstory/history/2025-12-07_08-19Z-aegis-v2-1-groking現象と学習損失.md
-.specstory/history/2025-12-08_04-49Z-aegis-borea-phi3-5-v2-1のollama登録.md
-.specstory/history/2025-12-08_06-16Z-nsfwデータでモデルを微調整.md
-.specstory/history/2026-01-07_08-29Z-hugging-faceとgithubの最適化.md
-.specstory/history/2026-01-16_14-46Z-chart-values-and-skill-plan-mode.md
-Qwen2.5-7B-Instruct
-Qwen2.5-7B-Instruct
-models/from_webdataset/Borea-Phi-3.5-mini-Instruct-Jp
-u n s l o t h _ c o m p i l e d _ c a c h e / 
- 
- . s p e c s t o r y / 
- 
- 
-unsloth_compiled_cache/
-
+.specstory/history/2024-*.md
+.specstory/history/2025-*.md
+.specstory/history/2026-*.md
 
 # Security & Cache fix
 unsloth_compiled_cache/
 .specstory/
 push_result.txt
 
-
-# Ignore embedded external repo
-external/GRAPE/
-
+# Windows Reserved Device Names
+CON
+PRN
+AUX
+NUL
+COM[1-9]
+LPT[1-9]
+nul
 
 # User requested cleanup (2026-02-06)
 *.txt
 *.log
 !requirements.txt
-!**/requirements.txt
-
+**/requirements.txt

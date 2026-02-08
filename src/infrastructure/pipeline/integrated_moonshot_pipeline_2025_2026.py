@@ -52,6 +52,7 @@ except Exception:
 from agents.sakana_ai_integrated_agent import SakanaAIIntegratedAgent
 from data.research.evolutionary_optimizer import EvolutionaryOptimizer
 from infrastructure.documentation.generate_model_card import ModelCardGenerator
+from utils.statistical_cleansing import StatisticalDataCleanser
 
 # Statistical Benchmark integration
 try:
@@ -629,7 +630,7 @@ class IntegratedMoonshotPipeline2025_2026:
         try:
             subprocess.run(cmd, check=True, cwd=self.project_root)
         except subprocess.CalledProcessError as exc:
-            logger.error("Reward strategy failed: %s", exc)
+            logger.error(f"[RESEARCH] Failed to generate soul weights: {exc}")
             return None
 
         if output_path.exists():
@@ -913,10 +914,15 @@ class IntegratedMoonshotPipeline2025_2026:
         else:
             logger.info("[START] Starting new pipeline run")
 
+        self.db.log_event(self.run_id, "pipeline_execution_start", f"Starting at phase index {start_idx}")
+        self._start_periodic_checkpoint()
+
         datasets = self.discover_existing_datasets()
         dataset_paths: List[Path] = []
         for items in datasets.values():
             dataset_paths.extend(items)
+
+        phases_order = ["collect", "cleanse", "enrich", "reward", "research", "sft", "advanced", "benchmark", "upload"]
 
         # ----------------------------------------------------------------
         # Phase 1: Collect
@@ -954,9 +960,28 @@ class IntegratedMoonshotPipeline2025_2026:
             self._save_checkpoint("collect", {"datasets": [str(p) for p in dataset_paths], "new_datasets": [], "subagent_routing": routing})
         
         # ----------------------------------------------------------------
-        # Phase 2: Enrich
+        # Phase 2: Cleanse
         # ----------------------------------------------------------------
         current_idx = 1
+        if start_idx <= current_idx:
+            phase = "cleanse"
+            self._current_phase = phase
+            logger.info(f"\n[PHASE START] {phase}: Statistical Data Cleansing (95% Sig)")
+            
+            routing = self._route_phase("cleanse", "Statistical data cleansing", tags=["dataset", "cleaning"])
+            try:
+                cleansed_path = self.execute_data_cleansing(dataset_paths)
+                # After cleansing, we primarily use the cleansed dataset
+                dataset_paths = [cleansed_path]
+                self._save_checkpoint("cleanse", {"cleansed_path": str(cleansed_path), "subagent_routing": routing})
+            except Exception as e:
+                logger.error(f"Data cleansing failed: {e}")
+                # Continue if possible
+        
+        # ----------------------------------------------------------------
+        # Phase 3: Enrich
+        # ----------------------------------------------------------------
+        current_idx = 2
         if start_idx <= current_idx:
             phase = "enrich"
             self._current_phase = phase
@@ -974,9 +999,9 @@ class IntegratedMoonshotPipeline2025_2026:
             self._save_checkpoint("enrich", {"enriched_paths": [str(p) for p in enriched_paths], "subagent_routing": routing})
 
         # ----------------------------------------------------------------
-        # Phase 3: Reward
+        # Phase 4: Reward
         # ----------------------------------------------------------------
-        current_idx = 2
+        current_idx = 3
         if start_idx <= current_idx:
             phase = "reward"
             self._current_phase = phase
@@ -993,9 +1018,9 @@ class IntegratedMoonshotPipeline2025_2026:
             self._save_checkpoint("reward", {"reward_path": str(reward_path) if reward_path else None, "subagent_routing": routing})
 
         # ----------------------------------------------------------------
-        # Phase 4: Research
+        # Phase 5: Research
         # ----------------------------------------------------------------
-        current_idx = 3
+        current_idx = 4
         if start_idx <= current_idx:
             phase = "research"
             self._current_phase = phase
@@ -1012,9 +1037,9 @@ class IntegratedMoonshotPipeline2025_2026:
             self._save_checkpoint("research", {"research_results": research_results, "subagent_routing": routing})
 
         # ----------------------------------------------------------------
-        # Phase 5: SFT (GPU Training)
+        # Phase 6: SFT (GPU Training)
         # ----------------------------------------------------------------
-        current_idx = 4
+        current_idx = 5
         if start_idx <= current_idx:
             phase = "sft"
             self._current_phase = phase
@@ -1035,9 +1060,9 @@ class IntegratedMoonshotPipeline2025_2026:
                 raise e
 
         # ----------------------------------------------------------------
-        # Phase 6: Advanced (Integration)
+        # Phase 7: Advanced (Integration)
         # ----------------------------------------------------------------
-        current_idx = 5
+        current_idx = 6
         if start_idx <= current_idx:
             phase = "advanced"
             self._current_phase = phase
@@ -1062,9 +1087,9 @@ class IntegratedMoonshotPipeline2025_2026:
                 logger.error(f"Advanced integration failed: {e}")
 
         # ----------------------------------------------------------------
-        # Phase 7: Benchmark
+        # Phase 8: Benchmark
         # ----------------------------------------------------------------
-        current_idx = 6
+        current_idx = 7
         if start_idx <= current_idx:
             phase = "benchmark"
             self._current_phase = phase
@@ -1078,9 +1103,9 @@ class IntegratedMoonshotPipeline2025_2026:
                 logger.error(f"Benchmark failed: {e}")
 
         # ----------------------------------------------------------------
-        # Phase 8: Upload
+        # Phase 9: Upload
         # ----------------------------------------------------------------
-        current_idx = 7
+        current_idx = 8
         if start_idx <= current_idx:
             phase = "upload"
             self._current_phase = phase

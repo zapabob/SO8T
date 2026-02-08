@@ -22,7 +22,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.utils import is_flash_attn_2_available
 
 try:
-    from src.models.grape_position_encoding import (
+    from src.core.models.grape_position_encoding import (
         GrapePatchConfig,
         patch_rotary_embeddings,
         enable_additive_grape,
