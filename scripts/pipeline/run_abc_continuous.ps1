@@ -1,12 +1,14 @@
 #!/usr/bin/env pwsh
 # ABC Pipeline Continuous Operation Script
 # 5-minute rolling checkpoints, auto-resume on power-on, startup file cleanup
+# Supports skipping data collection/processing if data already exists
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $LogDir = "$ProjectRoot\logs"
 $CheckpointDir = "D:\webdataset\checkpoints\abc_pipeline"
+$DataDir = "D:\webdataset\data"
 $LockFile = "$ScriptDir\running.lock"
 
 $PythonExe = "py -3"
@@ -28,6 +30,9 @@ function Initialize-Directories {
     if (-not (Test-Path $CheckpointDir)) {
         New-Item -ItemType Directory -Path $CheckpointDir -Force | Out-Null
     }
+    if (-not (Test-Path $DataDir)) {
+        New-Item -ItemType Directory -Path $DataDir -Force | Out-Null
+    }
 }
 
 function Test-OllamaHealth {
@@ -41,6 +46,38 @@ function Test-OllamaHealth {
         Write-Log "[WARNING] Ollama health check failed: $_"
     }
     return $false
+}
+
+function Test-DataReadiness {
+    param([string]$DataDir)
+
+    Write-Log "[DATA] Checking data readiness..."
+
+    $DatasetPatterns = @(
+        "datasets\arxiv_papers\*",
+        "datasets\biorxiv_papers\*",
+        "datasets\world_events\*",
+        "datasets\cleansed\*",
+        "datasets\vssi_tagged\*"
+    )
+
+    $ReadyCount = 0
+    $TotalPatterns = $DatasetPatterns.Length
+
+    foreach ($Pattern in $DatasetPatterns) {
+        $FullPath = Join-Path $DataDir $Pattern
+        if (Test-Path $FullPath) {
+            $Files = Get-ChildItem $FullPath -ErrorAction SilentlyContinue | Measure-Object
+            if ($Files.Count -gt 0) {
+                $ReadyCount++
+                Write-Log "[OK] Found data matching: $Pattern"
+            }
+        }
+    }
+
+    $IsReady = $ReadyCount -ge ($TotalPatterns * 0.5)  # 50% ready
+    Write-Log "[DATA] Data readiness: $ReadyCount/$TotalPatterns patterns found, IsReady=$IsReady"
+    return $IsReady
 }
 
 function Remove-StartupFiles {
@@ -61,7 +98,10 @@ function Remove-StartupFiles {
 
 function Start-ABCPipeline {
     param(
-        [switch]$Resume
+        [switch]$Resume,
+        [switch]$SkipDataCollection,
+        [switch]$SkipDataProcessing,
+        [switch]$SkipDataCleansing
     )
 
     Write-Log "========================================"
@@ -70,6 +110,9 @@ function Start-ABCPipeline {
     Write-Log "        B=AXCEPT-Borea-phi3.5mini-jp"
     Write-Log "        C=zapabobouj-AEGIS-phi3.5-jp_v4.0"
     Write-Log "========================================"
+    Write-Log "Skip flags: Collection=$SkipDataCollection, Processing=$SkipDataProcessing, Cleansing=$SkipDataCleansing"
+
+    $DataReady = Test-DataReadiness -DataDir $DataDir
 
     $OllamaReady = Test-OllamaHealth
     $RetryCount = 0
@@ -95,6 +138,15 @@ function Start-ABCPipeline {
         if ($Resume) {
             $ProcessArgs += "--resume"
         }
+        if ($SkipDataCollection) {
+            $ProcessArgs += "--skip-data-collection"
+        }
+        if ($SkipDataProcessing) {
+            $ProcessArgs += "--skip-data-processing"
+        }
+        if ($SkipDataCleansing) {
+            $ProcessArgs += "--skip-data-cleansing"
+        }
 
         $Process = Start-Process -FilePath $PythonExe -ArgumentList $ProcessArgs -PassThru -NoNewWindow
 
@@ -104,6 +156,7 @@ function Start-ABCPipeline {
             PID = $Process.Id
             StartTime = (Get-Date).ToString("o")
             CheckpointDir = $CheckpointDir
+            DataReady = $DataReady
         }
         $LockContent | ConvertTo-Json -Depth 3 | Set-Content -Path $LockFile -Encoding UTF8
 
@@ -140,10 +193,21 @@ function Invoke-AutoResume {
 
     if ($LatestCheckpoint) {
         Write-Log "[AUTO-RESUME] Found checkpoint: $($LatestCheckpoint.Name)"
-        Start-ABCPipeline -Resume
+
+        $LockContent = @{}
+        if (Test-Path $LockFile) {
+            try {
+                $LockContent = Get-Content $LockFile | ConvertFrom-Json
+            } catch {}
+        }
+
+        $SkipCollection = if ($LockContent.DataReady -eq $true) { $true } else { $false }
+        $SkipProcessing = if ($LockContent.DataReady -eq $true) { $true } else { $false }
+
+        Start-ABCPipeline -Resume -SkipDataCollection:$SkipCollection -SkipDataProcessing:$SkipProcessing
     }
     else {
-        Write-Log "[AUTO-RESUME] No checkpoints found, starting fresh"
+        Write-Log "[AUTO-RESUME] No checkpoints found"
         Start-ABCPipeline
     }
 }
@@ -151,15 +215,22 @@ function Invoke-AutoResume {
 Initialize-Directories
 Write-Log "[START] ABC Continuous Pipeline Script"
 
-if ($args -contains "--resume") {
+$Arguments = $args
+
+if ($Arguments -contains "--resume") {
     Invoke-AutoResume
 }
-elseif ($args -contains "--check") {
+elseif ($Arguments -contains "--check") {
     Test-OllamaHealth
+    Test-DataReadiness -DataDir $DataDir
     Get-ChildItem $CheckpointDir -Filter "checkpoint_*.json" | Format-Table Name, LastWriteTime
 }
 else {
-    Invoke-AutoResume
+    $SkipCollection = $Arguments -contains "--skip-data-collection"
+    $SkipProcessing = $Arguments -contains "--skip-data-processing"
+    $SkipCleansing = $Arguments -contains "--skip-data-cleansing"
+
+    Start-ABCPipeline -SkipDataCollection:$SkipCollection -SkipDataProcessing:$SkipProcessing -SkipDataCleansing:$SkipCleansing
 }
 
 Write-Log "[END] ABC Continuous Pipeline Script completed"

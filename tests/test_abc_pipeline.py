@@ -4,7 +4,9 @@
 import sys
 import os
 import time
+import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -17,6 +19,8 @@ from src.evaluation.abc_pipeline import (
     ABCBenchmarkHarness,
     StatisticalAnalyzer,
     ModelCardGenerator,
+    DataChecker,
+    ABCPipeline,
 )
 
 
@@ -48,8 +52,6 @@ def test_benchmark_suite():
 def test_checkpoint_manager():
     """Test checkpoint manager"""
     print("[TEST] Rolling Checkpoint Manager")
-    from tempfile import TemporaryDirectory
-
     with TemporaryDirectory() as tmpdir:
         manager = RollingCheckpointManager(
             Path(tmpdir), interval_seconds=1, max_slots=2
@@ -92,7 +94,7 @@ def test_statistical_analyzer():
     scores = [0.72, 0.78, 0.75, 0.80, 0.77, 0.73, 0.79, 0.76]
     stats = analyzer.compute_statistics(scores)
     print(f"  N: {stats['n']}")
-    print(f"  Mean: {stats['mean']:.4f} ± {stats['std']:.4f}")
+    print(f"  Mean: {stats['mean']:.4f} +/- {stats['std']:.4f}")
     print(f"  95% CI: [{stats['ci_95'][0]:.4f}, {stats['ci_95'][1]:.4f}]")
     print(f"  Acceptable: {stats['is_acceptable']}")
     assert stats["mean"] > 0.70
@@ -118,8 +120,6 @@ def test_model_comparison():
 def test_visualization():
     """Test model card visualization"""
     print("[TEST] Model Card Generator")
-    from tempfile import TemporaryDirectory
-
     with TemporaryDirectory() as tmpdir:
         generator = ModelCardGenerator(Path(tmpdir))
         results = {
@@ -131,6 +131,115 @@ def test_visualization():
         assert Path(plot).exists()
         print(f"  Generated: {Path(plot).name}")
     print("[OK] Visualization functional\n")
+
+
+def test_data_checker():
+    """Test data checker functionality"""
+    print("[TEST] Data Checker")
+    with TemporaryDirectory() as tmpdir:
+        data_dir = Path(tmpdir) / "data"
+        data_dir.mkdir()
+        checker = DataChecker(data_dir)
+
+        status = checker.check_all_data_status()
+        print(f"  Default status: {len(status)} datasets checked")
+
+        datasets_dir = data_dir / "datasets"
+        datasets_dir.mkdir()
+        cleansed_dir = datasets_dir / "cleansed"
+        cleansed_dir.mkdir()
+        vssi_dir = datasets_dir / "vssi_tagged"
+        vssi_dir.mkdir()
+
+        for ds in ["arxiv_papers", "biorxiv_papers", "world_events"]:
+            dataset_path = datasets_dir / ds
+            dataset_path.mkdir()
+
+            json_file = dataset_path / f"{ds}_processed.json"
+            with open(json_file, "w") as f:
+                json.dump({"samples": 100}, f)
+
+            meta_file = dataset_path / f"{ds}_meta.json"
+            with open(meta_file, "w") as f:
+                json.dump({"total_samples": 100}, f)
+
+            exists, msg = checker.check_dataset_exists(ds)
+            print(f"  Dataset {ds} exists: {exists}, {msg}")
+            assert exists, f"Dataset {ds} should exist"
+
+            cleansed_json = cleansed_dir / f"{ds}_cleansed.json"
+            with open(cleansed_json, "w") as f:
+                json.dump({"samples": 95}, f)
+
+            stats_file = cleansed_dir / f"{ds}_stats.json"
+            with open(stats_file, "w") as f:
+                json.dump({"samples_remaining": 95, "outliers_removed": 5}, f)
+
+            cleansed_exists, cleansed_msg = checker.check_cleansed_exists(ds)
+            print(f"  Cleansed {ds} exists: {cleansed_exists}, {cleansed_msg}")
+            assert cleansed_exists, f"Cleansed {ds} should exist"
+
+            vssi_json = vssi_dir / f"{ds}_vssi.json"
+            with open(vssi_json, "w") as f:
+                json.dump({"vssi_tagged": True}, f)
+
+            vssi_stats = vssi_dir / f"{ds}_vssi_stats.json"
+            with open(vssi_stats, "w") as f:
+                json.dump({"vssi_tagged": True}, f)
+
+            vssi_exists, vssi_msg = checker.check_vssi_tagged_exists(ds)
+            print(f"  VSSI {ds} exists: {vssi_exists}, {vssi_msg}")
+            assert vssi_exists, f"VSSI {ds} should exist"
+
+        all_status = checker.check_all_data_status()
+        print(f"  All datasets: {len(all_status)}")
+
+        is_ready = checker.is_training_data_ready()
+        print(f"  Training ready: {is_ready}")
+    print("[OK] Data checker functional\n")
+
+
+def test_pipeline_skip_flags():
+    """Test pipeline skip flags"""
+    print("[TEST] Pipeline Skip Flags")
+    with TemporaryDirectory() as tmpdir:
+        base_dir = Path(tmpdir)
+        data_dir = base_dir / "data"
+        data_dir.mkdir()
+
+        datasets_dir = data_dir / "datasets"
+        datasets_dir.mkdir()
+        cleansed_dir = datasets_dir / "cleansed"
+        cleansed_dir.mkdir()
+        vssi_dir = datasets_dir / "vssi_tagged"
+        vssi_dir.mkdir()
+        checkpoint_dir = base_dir / "checkpoints"
+        checkpoint_dir.mkdir()
+
+        for ds in ["arxiv_papers", "biorxiv_papers", "world_events"]:
+            meta = datasets_dir / f"{ds}_meta.json"
+            with open(meta, "w") as f:
+                json.dump({"total_samples": 100}, f)
+
+            stats = cleansed_dir / f"{ds}_stats.json"
+            with open(stats, "w") as f:
+                json.dump({"samples_remaining": 95, "outliers_removed": 5}, f)
+
+            vssi_stats = vssi_dir / f"{ds}_vssi_stats.json"
+            with open(vssi_stats, "w") as f:
+                json.dump({"vssi_tagged": True}, f)
+
+        pipeline = ABCPipeline(
+            skip_data_collection=True, skip_data_processing=True, base_dir=base_dir
+        )
+
+        print(f"  Base dir: {pipeline.base_dir}")
+        print(f"  Skip collection: {pipeline.skip_data_collection}")
+        print(f"  Skip processing: {pipeline.skip_data_processing}")
+        assert pipeline.skip_data_collection
+        assert pipeline.skip_data_processing
+        assert pipeline.base_dir == base_dir
+    print("[OK] Skip flags functional\n")
 
 
 def main():
@@ -146,6 +255,8 @@ def main():
     test_statistical_analyzer()
     test_model_comparison()
     test_visualization()
+    test_data_checker()
+    test_pipeline_skip_flags()
 
     print("=" * 60)
     print("[OK] All ABC Pipeline tests passed!")
