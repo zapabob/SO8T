@@ -13,63 +13,22 @@
 | Data Skip Flags | COMPLETED | 2026-02-09 | Collection/Processing/Cleansing skip |
 | Model Card Generation | COMPLETED | 2026-02-09 | Error bars, degradation graphs |
 | HF Upload | COMPLETED | 2026-02-09 | SafeTensors, BF16 GGUF |
+| llama.cpp.python Support | COMPLETED | 2026-02-09 | GGUF model inference |
+| Random Seed Ordering | COMPLETED | 2026-02-09 | Seed=42, fixed order for reproducibility |
 | Tests | COMPLETED | 2026-02-09 | All 9 tests passing |
 
-## Operational Notes
+## Random Seed Ordering
 
-### Data Collection Policy
-- `--skip-data-collection`: Skip if raw data exists at `D:\webdataset\data\datasets\*`
-- `--skip-data-processing`: Skip VSSI tagging if already processed
-- `--skip-data-cleansing`: Skip cleansing if cleansed data exists
-
-### NSFW Corpus Usage
-- Used exclusively for safety judgment training
-- NOT used for generation tasks
-- Filtered from main training dataset
-
-### Checkpoint Management
-- Location: `D:\webdataset\checkpoints\abc_pipeline\`
-- Interval: 300 seconds (5 minutes)
-- Slots: 3 (rotating)
-- Resume: Automatic via `run_abc_continuous.ps1 --resume`
-
-### /think Endpoint Handling
-- Quadruple reasoning output: think-task, think-analysis, think-safety, think-policy
-- Rendered via `src/utils/vssi_template.py`
-- Controlled by `SO8T_THINK_TAG_STYLE` env var
-
-## Files Modified
-
+Models are tested in fixed random order (seed=42) for reproducibility:
 ```
-src/evaluation/abc_pipeline.py      - Main pipeline (84KB)
-scripts/pipeline/run_abc_continuous.ps1 - Continuous operation script
-scripts/pipeline/abc_pipeline.bat   - Batch launcher
-tests/test_abc_pipeline.py          - Test suite (9 tests)
+Test Order: B -> A -> C
 ```
 
-## Commands Executed
+## llama.cpp.python Support
 
-```powershell
-# Test run
-py -3 tests/test_abc_pipeline.py
+GGUF models directory: `D:\webdataset\gguf_models\`
 
-# Pipeline launch
-.\scripts\pipeline\run_abc_continuous.ps1 --skip-data-collection --skip-data-processing
-
-# Auto-resume on power-on
-.\scripts\pipeline\install_abc_scheduler.bat
-```
-
-## Known Issues
-
-| Issue | Status | Resolution |
-|-------|--------|------------|
-| D: drive unavailable | WORKAROUND | Fallback to Path.cwd()/webdataset |
-| Lock file cleanup | FIXED | atexit.register(self.checkpoint_manager.stop) |
-
-## Next Steps
-
-1. Run full pipeline with actual Ollama models
-2. Generate benchmark visualizations
-3. Upload winning model to HuggingFace
-4. Register Task Scheduler for auto-start
+Models:
+- A: `phi-3.5-mini-instinct-q8_0.gguf`
+- B: `Borea-phi-3.5-mini-Jp-q8_0.gguf`
+- C: `AEGIS-phi-3.5-jp-v4.0-q8_0.gguf`
