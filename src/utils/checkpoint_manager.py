@@ -1,340 +1,169 @@
-import os
-import time
-import shutil
-import glob
-import pickle
-import json
-from datetime import datetime
+from __future__ import annotations
+
+from typing import Dict, Any, Optional, List
+import torch
+import torch.nn as nn
 from pathlib import Path
-from typing import Any, Dict, Optional, Callable
+import time
+import json
+import threading
+from dataclasses import dataclass, field
+import logging
+from datetime import datetime
+
+
+@dataclass
+class CheckpointConfig:
+    interval_seconds: int = 300
+    max_slots: int = 3
+    checkpoint_dir: str = "D:\\webdataset\\checkpoints\\training"
+    emergency_threshold_mb: int = 500
+
 
 class RollingCheckpointManager:
-    """
-    汎用ローリングチェックポイントマネージャー
-    すべての時間のかかる作業に適用可能
-    """
+    def __init__(
+        self,
+        config: Optional[CheckpointConfig] = None,
+        logger: Optional[logging.Logger] = None,
+    ):
+        self.config = config or CheckpointConfig()
+        self.logger = logger or logging.getLogger(__name__)
+        self.checkpoint_dir = Path(self.config.checkpoint_dir)
+        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        self.last_save_time: float = 0.0
+        self.current_slot: int = 0
+        self.save_lock = threading.Lock()
+        self.is_emergency: bool = False
+        self._epoch: int = 0
+        self._step: int = 0
+        self._model_state: Optional[Dict[str, torch.Tensor]] = None
+        self._optimizer_state: Optional[Dict[str, Any]] = None
+        self._scheduler_state: Optional[Dict[str, Any]] = None
+        self._scaler_state: Optional[torch.cuda.amp.GradScaler] = None
+        self._metadata: Dict[str, Any] = {}
 
-    def __init__(self, base_dir: str, max_keep: int = 5, save_interval_sec: int = 180,
-                 task_name: str = "generic_task", enable_logging: bool = False):
-        self.base_dir = Path(base_dir)
-        self.max_keep = max_keep
-        self.save_interval_sec = save_interval_sec
-        self.task_name = task_name
-        self.last_save_time = time.time()
+    def update(
+        self,
+        model: nn.Module,
+        optimizer: Optional[torch.optim.Optimizer] = None,
+        scheduler: Optional[Any] = None,
+        scaler: Optional[torch.cuda.amp.GradScaler] = None,
+        epoch: int = 0,
+        step: int = 0,
+        metrics: Optional[Dict[str, float]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        self._epoch = epoch
+        self._step = step
+        self._metadata = metadata or {}
+        with self.save_lock:
+            self._model_state = {
+                k: v.cpu().clone() for k, v in model.state_dict().items()
+            }
+            if optimizer is not None:
+                self._optimizer_state = optimizer.state_dict()
+            if scheduler is not None:
+                self._scheduler_state = scheduler.state_dict()
+            if scaler is not None:
+                self._scaler_state = scaler.state_dict()
+        self._save_checkpoint(metrics)
 
-        # 作業状態保存用
-        self.state_file = self.base_dir / "task_state.json"
-        self.current_state = {
-            "task_name": task_name,
-            "start_time": datetime.now().isoformat(),
-            "last_checkpoint": None,
-            "total_checkpoints": 0,
-            "is_completed": False
-        }
+    def _save_checkpoint(
+        self, metrics: Optional[Dict[str, float]] = None, is_emergency: bool = False
+    ) -> None:
+        current_time = time.time()
+        if (
+            not is_emergency
+            and (current_time - self.last_save_time) < self.config.interval_seconds
+        ):
+            return
+        self._atomic_save()
+        self.last_save_time = current_time
+        self.is_emergency = False
 
-        # 保存ディレクトリがなければ作成
-        self.base_dir.mkdir(parents=True, exist_ok=True)
-        self._load_state()
-
-    def _load_state(self):
-        """状態ファイルを読み込み"""
-        if self.state_file.exists():
-            try:
-                with open(self.state_file, 'r', encoding='utf-8') as f:
-                    self.current_state.update(json.load(f))
-            except Exception as e:
-                print(f"Warning: Could not load state file: {e}")
-
-    def _save_state(self):
-        """状態ファイルを保存"""
+    def _atomic_save(self) -> None:
+        slot_path = self.checkpoint_dir / f"checkpoint_slot_{self.current_slot}.pt"
+        metadata_path = (
+            self.checkpoint_dir / f"checkpoint_slot_{self.current_slot}.json"
+        )
+        temp_path = self.checkpoint_dir / f"checkpoint_slot_{self.current_slot}.tmp"
         try:
-            with open(self.state_file, 'w', encoding='utf-8') as f:
-                json.dump(self.current_state, f, indent=2, ensure_ascii=False)
+            checkpoint = {
+                "model_state": self._model_state,
+                "optimizer_state": self._optimizer_state,
+                "scheduler_state": self._scheduler_state,
+                "scaler_state": self._scaler_state,
+                "epoch": self._epoch,
+                "step": self._step,
+                "timestamp": datetime.now().isoformat(),
+                "metadata": self._metadata,
+            }
+            torch.save(checkpoint, temp_path)
+            temp_path.replace(slot_path)
+            metadata = {
+                "slot": self.current_slot,
+                "timestamp": checkpoint["timestamp"],
+                "epoch": self._epoch,
+                "step": self._step,
+                "metadata": self._metadata,
+            }
+            with open(metadata_path, "w") as f:
+                json.dump(metadata, f, indent=2)
+            self._rotate_slots()
+            self.logger.info(
+                f"Checkpoint saved: slot={self.current_slot}, epoch={self._epoch}, step={self._step}"
+            )
         except Exception as e:
-            print(f"Warning: Could not save state file: {e}")
+            self.logger.error(f"Failed to save checkpoint: {e}")
+            if temp_path.exists():
+                temp_path.unlink(missing_ok=True)
 
-    def update_state(self, **kwargs):
-        """状態を更新"""
-        self.current_state.update(kwargs)
-        self._save_state()
+    def _rotate_slots(self) -> None:
+        self.current_slot = (self.current_slot + 1) % self.config.max_slots
 
-    def should_save(self) -> bool:
-        """前回の保存から指定時間が経過したかチェック"""
-        return (time.time() - self.last_save_time) >= self.save_interval_sec
-
-    def save_checkpoint(self, data: Any = None, metadata: Dict = None,
-                       step_info: str = "auto", custom_save_func: Callable = None):
-        """汎用チェックポイント保存"""
-        # 1. 保存
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        checkpoint_name = f"ckpt_{timestamp}_{step_info}"
-        save_path = self.base_dir / checkpoint_name
-
-        print(f"[SAVE] [{self.task_name}] Saving checkpoint: {checkpoint_name} ...")
-
-        # カスタム保存関数があれば使用
-        if custom_save_func:
-            custom_save_func(save_path, data, metadata)
-        else:
-            # デフォルト保存（モデル/トークナイザー）
-            if hasattr(data, 'save_pretrained'):
-                data.save_pretrained(str(save_path))
-                if metadata and hasattr(metadata, 'save_pretrained'):
-                    metadata.save_pretrained(str(save_path))
-
-        # メタデータ保存
-        if metadata:
-            meta_file = save_path / "metadata.json"
-            try:
-                with open(meta_file, 'w', encoding='utf-8') as f:
-                    json.dump(metadata if isinstance(metadata, dict) else {"info": str(metadata)},
-                            f, indent=2, ensure_ascii=False)
-            except Exception as e:
-                print(f"[WARN] Could not save checkpoint metadata: {e}")
-
-        # 状態更新
-        self.last_save_time = time.time()
-        self.current_state["last_checkpoint"] = checkpoint_name
-        self.current_state["total_checkpoints"] += 1
-        self.update_state()
-
-        # 2. ローリングストック（古い削除）
-        self._cleanup_old_checkpoints()
-
-        return save_path
-
-    def _cleanup_old_checkpoints(self):
-        """最新5個以外を削除"""
-        # ckpt_ で始まるフォルダを全取得
-        checkpoints = glob.glob(os.path.join(self.base_dir, "ckpt_*"))
-        # 作成日時順にソート（新しいのが後ろ）
-        checkpoints.sort(key=os.path.getmtime)
-        # 保持数を超えている場合、古いものから削除
-        if len(checkpoints) > self.max_keep:
-            to_delete = checkpoints[: -self.max_keep]
-            for ckpt in to_delete:
-                print(f"[CLEAN] Removing old checkpoint: {ckpt}")
-                try:
-                    shutil.rmtree(ckpt) # ディレクトリごと削除
-                except Exception as e:
-                    print(f"Error deleting {ckpt}: {e}")
-
-    def get_latest_checkpoint(self) -> Optional[Path]:
-        """再開用に最新のチェックポイントパスを取得"""
-        checkpoints = list(self.base_dir.glob("ckpt_*"))
-        checkpoints = [p for p in checkpoints if p.is_dir()]  # ディレクトリのみ
-
-        if not checkpoints:
-            return None
-
-        # 最新を返す
-        return max(checkpoints, key=lambda p: p.stat().st_mtime)
-
-    def load_checkpoint(self, checkpoint_path: Path = None, custom_load_func: Callable = None) -> Any:
-        """チェックポイントからデータを読み込み"""
-        if checkpoint_path is None:
-            checkpoint_path = self.get_latest_checkpoint()
-
-        if checkpoint_path is None or not checkpoint_path.exists():
-            print(f"[ERROR] No checkpoint found for {self.task_name}")
-            return None
-
-        print(f"[LOAD] [{self.task_name}] Loading checkpoint: {checkpoint_path.name}")
-
-        # カスタム読み込み関数があれば使用
-        if custom_load_func:
-            return custom_load_func(checkpoint_path)
-
-        # デフォルト読み込み（モデル/トークナイザー）
-        try:
-            # metadata読み込み
-            meta_file = checkpoint_path / "metadata.json"
-            metadata = None
-            if meta_file.exists():
-                with open(meta_file, 'r', encoding='utf-8') as f:
+    def load_latest_checkpoint(self) -> Optional[Dict[str, Any]]:
+        latest_slot = -1
+        latest_time = 0
+        for slot in range(self.config.max_slots):
+            metadata_path = self.checkpoint_dir / f"checkpoint_slot_{slot}.json"
+            if metadata_path.exists():
+                with open(metadata_path, "r") as f:
                     metadata = json.load(f)
-            return checkpoint_path, metadata
-        except Exception as e:
-            print(f"Warning: Could not load checkpoint metadata: {e}")
-            return checkpoint_path, None
+                timestamp = datetime.fromisoformat(metadata["timestamp"]).timestamp()
+                if timestamp > latest_time:
+                    latest_time = timestamp
+                    latest_slot = slot
+        if latest_slot >= 0:
+            return self._load_from_slot(latest_slot)
+        return None
 
-    def auto_resume(self, resume_func: Callable) -> bool:
-        """自動再開機能"""
-        latest_ckpt = self.get_latest_checkpoint()
-        if latest_ckpt and not self.current_state.get("is_completed", False):
-            print(f"[RESUME] [{self.task_name}] Auto-resuming from: {latest_ckpt.name}")
-            try:
-                resume_func(latest_ckpt)
-                return True
-            except Exception as e:
-                print(f"[ERROR] Auto-resume failed: {e}")
-                return False
-        return False
+    def _load_from_slot(self, slot: int) -> Dict[str, Any]:
+        slot_path = self.checkpoint_dir / f"checkpoint_slot_{slot}.pt"
+        if slot_path.exists():
+            return torch.load(slot_path, map_location="cpu")
+        return {}
 
-    def mark_completed(self):
-        """タスク完了をマーク"""
-        self.current_state["is_completed"] = True
-        self.current_state["completion_time"] = datetime.now().isoformat()
-        self.update_state()
-        print(f"[SUCCESS] [{self.task_name}] Task completed!")
+    def get_checkpoint_info(self) -> List[Dict[str, Any]]:
+        info = []
+        for slot in range(self.config.max_slots):
+            metadata_path = self.checkpoint_dir / f"checkpoint_slot_{slot}.json"
+            if metadata_path.exists():
+                with open(metadata_path, "r") as f:
+                    info.append(json.load(f))
+        return sorted(info, key=lambda x: x.get("timestamp", ""), reverse=True)
 
-    def get_status(self) -> Dict:
-        """現在の状態を取得"""
-        status = self.current_state.copy()
-        status["latest_checkpoint"] = self.get_latest_checkpoint()
-        status["should_save"] = self.should_save()
-        return status
+    def save_emergency(self, model: nn.Module, metrics: Dict[str, float]) -> None:
+        self.is_emergency = True
+        self._metadata["emergency"] = True
+        self._metadata["metrics"] = metrics
+        self._save_checkpoint(is_emergency=True)
 
-    def get_checkpoint_info(self, checkpoint_path) -> Dict:
-        """チェックポイントのメタデータ情報を取得"""
-        checkpoint_path = Path(checkpoint_path)
-        meta_file = checkpoint_path / "metadata.json"
-        if meta_file.exists():
-            try:
-                with open(meta_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"[WARN] Could not read checkpoint info: {e}")
-        return {"path": str(checkpoint_path), "exists": checkpoint_path.exists()}
-
-    def force_save_now(self, model=None, tokenizer=None, step_info: str = "force"):
-        """インターバルに関係なく即座にチェックポイントを保存"""
-        return self.save_checkpoint(data=model, metadata=tokenizer, step_info=step_info)
-
-
-# ============================================================================
-# ユーティリティ関数群（すべてのスクリプトで使用可能）
-# ============================================================================
-
-def create_task_manager(task_name: str, output_dir: str = None, max_keep: int = 5,
-                      save_interval_sec: int = 180) -> RollingCheckpointManager:
-    """タスク用のチェックポイントマネージャーを作成"""
-    if output_dir is None:
-        output_dir = f"checkpoints/{task_name}"
-
-    return RollingCheckpointManager(
-        base_dir=output_dir,
-        max_keep=max_keep,
-        save_interval_sec=save_interval_sec,
-        task_name=task_name
-    )
-
-def with_checkpointing(task_func: Callable, task_name: str, output_dir: str = None):
-    """
-    デコレータ: 任意の関数にチェックポイント機能を追加
-    使用例:
-    @with_checkpointing("my_task", "checkpoints/my_task")
-    def my_long_running_function():
-        pass
-    """
-    manager = create_task_manager(task_name, output_dir)
-
-    def wrapper(*args, **kwargs):
-        # 自動再開チェック
-        def resume_func(checkpoint_path):
-            print(f"Resuming {task_name} from {checkpoint_path}")
-            # 本番実装: checkpointファイルをロードして状態を復元する例
-            if checkpoint_path.endswith(".pkl"):
-                import pickle
-                with open(checkpoint_path, "rb") as f:
-                    checkpoint_data = pickle.load(f)
-                # 必要な変数・状態を復元（タスクごとに適切に変更すること）
-                # 例: globals().update(checkpoint_data)
-                print(f"[INFO] checkpoint内容: {checkpoint_data}")
-            else:
-                print("[WARNING] 未対応のcheckpoint形式")
-
-        if manager.auto_resume(resume_func):
-            return  # 再開成功したら終了
-
-        # 通常実行
-        try:
-            result = task_func(*args, **kwargs)
-
-            # 定期チェックポイント（ループ内で手動で呼ぶ）
-            # manager.save_checkpoint(data=result, step_info="final")
-
-            manager.mark_completed()
-            return result
-
-        except KeyboardInterrupt:
-            print(f"\n[WARNING] {task_name} interrupted. Saving checkpoint...")
-            manager.save_checkpoint(step_info="interrupted")
-            raise
-        except Exception as e:
-            print(f"\n[ERROR] {task_name} failed: {e}. Saving checkpoint...")
-            manager.save_checkpoint(step_info="error")
-            raise
-
-    return wrapper
-
-def checkpoint_context(task_name: str, output_dir: str = None):
-    """
-    コンテキストマネージャー: with文でチェックポイント機能を有効化
-    使用例:
-    with checkpoint_context("my_task"):
-        for i in range(1000):
-            # 時間のかかる処理
-            do_something()
-            # 自動チェックポイント（3分ごと）
-            if manager.should_save():
-                manager.save_checkpoint(data={"step": i}, step_info=f"step_{i}")
-    """
-    manager = create_task_manager(task_name, output_dir)
-
-    class CheckpointContext:
-        def __enter__(self):
-            return manager
-
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            if exc_type is None:
-                manager.mark_completed()
-            else:
-                print(f"\n[WARNING] Task {task_name} exited with exception. Saving checkpoint...")
-                manager.save_checkpoint(step_info="error_exit")
-
-    return CheckpointContext()
-
-
-class EmergencyCheckpointManager:
-    """緊急チェックポイント保存マネージャー (クラッシュ時の自動保存)"""
-
-    def __init__(self, rolling_manager: RollingCheckpointManager):
-        self.rolling_manager = rolling_manager
-        self.model = None
-        self.tokenizer = None
-
-    def register_model(self, model, tokenizer=None):
-        """モデルとトークナイザーを登録 (緊急保存時に使用)"""
-        self.model = model
-        self.tokenizer = tokenizer
-
-    def save_emergency(self, model=None, tokenizer=None, reason: str = "emergency"):
-        """緊急チェックポイントを即座に保存"""
-        try:
-            self.rolling_manager.save_checkpoint(
-                data=model or self.model,
-                metadata=tokenizer or self.tokenizer,
-                step_info=f"emergency_{reason}",
-            )
-            print(f"[EMERGENCY] Checkpoint saved: {reason}")
-        except Exception as e:
-            print(f"[EMERGENCY] Failed to save checkpoint: {e}")
-
-
-class RollingCheckpointCallback:
-    """TrainerCallback互換のローリングチェックポイントコールバック"""
-
-    def __init__(self, checkpoint_manager: RollingCheckpointManager, model=None, tokenizer=None):
-        self.checkpoint_manager = checkpoint_manager
-        self.model = model
-        self.tokenizer = tokenizer
-
-    def on_step_end(self, args=None, state=None, control=None, model=None, **kwargs):
-        if self.checkpoint_manager and self.checkpoint_manager.should_save():
-            step_info = f"step_{state.global_step}" if state else "auto"
-            self.checkpoint_manager.save_checkpoint(
-                data=model or self.model,
-                metadata=self.tokenizer,
-                step_info=step_info,
-            )
+    def cleanup_old_checkpoints(self, keep_slots: int = 1) -> None:
+        info = self.get_checkpoint_info()
+        if len(info) > keep_slots:
+            for checkpoint in info[keep_slots:]:
+                slot = checkpoint["slot"]
+                for ext in [".pt", ".json"]:
+                    path = self.checkpoint_dir / f"checkpoint_slot_{slot}{ext}"
+                    if path.exists():
+                        path.unlink()
