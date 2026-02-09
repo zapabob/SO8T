@@ -1,0 +1,8 @@
+{
+  "version": "v2.6",
+  "model_name_or_path": "./models/model_b",
+  "num_experts": 4,
+  "hidden_dim": 3072,
+  "max_steps": 20000,
+  "so8_adapter": true
+}

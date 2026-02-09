@@ -519,6 +519,15 @@ class SO8TMoETrainer:
         )
         logger.info(f"SO8 Adapter: {self.config.use_so8_adapter}")
         logger.info("=" * 60)
+
+        checkpoint = self.checkpoint_manager.load_latest()
+        if checkpoint:
+            self.model.load_state_dict(checkpoint)
+            start_step = self.global_step
+            logger.info(f"Checkpoint loaded: resuming from step {start_step}")
+        else:
+            logger.info("Starting training from scratch")
+
         self.model.train()
         dummy_data = [
             {
@@ -529,7 +538,10 @@ class SO8TMoETrainer:
         ] * 100
         for epoch in range(self.config.num_train_epochs):
             logger.info(f"Epoch {epoch + 1}/{self.config.num_train_epochs}")
-            for i in range(min(100, self.config.max_steps)):
+            while self.global_step < min(
+                (epoch + 1) * (self.config.max_steps // self.config.num_train_epochs),
+                self.config.max_steps,
+            ):
                 if self.global_step >= self.config.max_steps:
                     break
                 x = torch.randn(
