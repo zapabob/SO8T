@@ -46,9 +46,9 @@ logging.basicConfig(
 class SO8MultimodalMoEConfig:
     model_name_or_path: str = ""
     vision_model_name: str = "openai/clip-vit-base-patch32"
-    output_dir: str = "D:\\webdataset\\models\\so8t_multimodal_moe"
-    checkpoint_dir: str = "D:\\webdataset\\checkpoints\\training"
-    data_dir: str = "data\\multimodal_cot"
+    output_dir: str = "models/so8t_multimodal_moe"
+    checkpoint_dir: str = "checkpoints/training"
+    data_dir: str = "data/multimodal_cot"
 
     num_experts: int = 4
     top_k_experts: int = 2
