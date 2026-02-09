@@ -223,6 +223,10 @@ class SO8MoELayer(nn.Module):
         else:
             self.ortho_transform = None
 
+    def gradient_checkpointing_enable(self) -> None:
+        for expert in self.experts:
+            expert.gradient_checkpointing_enable = lambda: None
+
     def forward(
         self,
         x: torch.Tensor,
