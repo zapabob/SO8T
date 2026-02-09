@@ -180,7 +180,8 @@ class SO8TrialityRouter(nn.Module):
         spinor_neg = self.spinor_neg(x)
         triality_states = torch.stack([vector_state, spinor_pos, spinor_neg], dim=2)
         triality_flat = triality_states.mean(dim=(1, 2))
-        routing_weights = F.softmax(self.gate(triality_flat), dim=-1)
+        gate_output = self.gate(triality_flat)
+        routing_weights = F.softmax(gate_output, dim=-1)
         expert_indices = torch.argmax(routing_weights, dim=-1)
         return expert_indices, routing_weights
 
@@ -228,29 +229,19 @@ class SO8MoELayer(nn.Module):
         attention_mask: Optional[torch.Tensor] = None,
         image_features: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        batch, seq, _ = x.shape
+        batch, seq, hidden = x.shape
         if image_features is not None:
             if self.ortho_transform is not None:
                 image_features = self.ortho_transform(image_features)
             x = torch.cat([image_features, x], dim=1)
-            if attention_mask is not None:
-                img_mask = torch.ones(
-                    batch,
-                    image_features.shape[1],
-                    device=x.device,
-                    dtype=attention_mask.dtype,
-                )
-                attention_mask = torch.cat([img_mask, attention_mask], dim=1)
         expert_indices, routing_weights = self.router(x)
-        output = torch.zeros_like(x)
-        for i in range(self.num_experts):
-            mask = expert_indices == i
-            if mask.sum() > 0:
-                expert_output = self.experts[i](
-                    x[mask],
-                    attention_mask[mask] if attention_mask is not None else None,
-                )
-                output[mask] += expert_output * routing_weights[mask, i].unsqueeze(-1)
+        output = torch.zeros(batch, seq, hidden, device=x.device, dtype=x.dtype)
+        for b in range(batch):
+            for s in range(seq):
+                expert_id = expert_indices[b]
+                routing_weight = routing_weights[b, expert_id]
+                expert_output = self.experts[expert_id](x[b : b + 1, s : s + 1], None)
+                output[b, s] = expert_output.squeeze(0) * routing_weight
         return output
 
 
