@@ -2,7 +2,7 @@
 language:
   - en
   - ja
-license: apache-2.0
+license: MIT
 tags:
   - so8-quadrality-inference
   - mathematical-reasoning

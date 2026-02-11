@@ -1,5 +1,0 @@
-# Nsfw Datasets Datasets
-# Count: 2
-
-hotpotqa/hotpot_qa (Score: 1.000)
-mandarjoshi/trivia_qa (Score: 1.000)

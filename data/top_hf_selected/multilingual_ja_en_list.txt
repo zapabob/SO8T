@@ -1,6 +1,0 @@
-# Multilingual Ja En Datasets
-# Count: 3
-
-Helsinki-NLP/opus-100 (Score: 0.900)
-facebook/flores (Score: 0.891)
-alexandrainst/multi-wiki-qa (Score: 0.863)

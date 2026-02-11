@@ -64,14 +64,14 @@ class IndustryStandardBenchmark:
             "description": "Phi-3.5-mini-instruct オリジナル（ベースライン）",
         },
         "model_b": {
-            "name": r"H:\from_D\SO8T_models\model_b",
+            "name": r"H:\from_D\SO8T_models\converted_base",
             "label": "Model B (Borea)",
-            "description": "日本語拡張済み Borea モデル",
+            "description": "日本語拡張済み Borea モデル (Converted from GGUF)",
         },
         "model_c": {
-            "name": r"H:\from_D\SO8T_models\model_c",
+            "name": r"H:\from_D\SO8T_models\converted_aegis",
             "label": "Model C (AEGIS)",
-            "description": "SO8T 四重推論強化 AEGIS モデル",
+            "description": "SO8T 四重推論強化 AEGIS モデル (Converted from GGUF)",
         },
     }
 

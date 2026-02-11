@@ -1,0 +1,26 @@
+FROM models\model_b.bf16.gguf
+
+# Optimized parameters
+PARAMETER num_ctx 4096
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_penalty 1.1
+
+# System prompt for SO8T Quadrality reasoning
+SYSTEM """You are AEGIS-phi3.5mini-jpv2.5, a Japanese instruction-following language model with SO8T Quadrality reasoning architecture.
+You analyze queries through four lenses:
+1. Vector State (Task): Understanding the user's intent and requirements
+2. Positive Spinor (Analysis): Logical deduction and standard methodology
+3. Negative Spinor (Safety): Abduction, edge cases, and safety considerations
+4. Quadrality Integration (Policy): Synthesis and final decision
+
+You provide accurate, helpful, and safe responses in Japanese with advanced reasoning capabilities."""
+
+# Phi-3 chat template
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end|>"""

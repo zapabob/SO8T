@@ -135,11 +135,15 @@ dmypy.json
 
 # SO8T specific
 # Model files
+*.bin
 *.pt
 *.pth
 *.safetensors
 *.gguf
-*.bin
+*.onnx
+*.weights
+*.h5
+*.model
 
 # Data files
 /data/
@@ -628,3 +632,13 @@ nul
 *.log
 !requirements.txt
 **/requirements.txt
+
+# Found Large Files (Added 2026-02-11)
+gguf_models/
+models/model_b/
+models/so8t_v26/
+src/external/data/integrated_nobel_fields_cot_final/
+src/data/datasets/hf_nsfw_datasets/
+src/data/arxiv_biorxiv/raw/
+src/data/datasets/drug_nsfw_fiction_dataset.jsonl
+out/checkpoints/

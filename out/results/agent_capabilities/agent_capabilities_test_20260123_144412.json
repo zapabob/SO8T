@@ -1,0 +1,116 @@
+{
+  "timestamp": "2026-01-23T14:41:25.706621",
+  "tool_calling": {
+    "passed": 3,
+    "failed": 0,
+    "tests": [
+      {
+        "name": "File Operation Tools",
+        "description": "read_file, write_file, list_dir tools",
+        "passed": true,
+        "message": "Tool calling patterns verified",
+        "timestamp": "2026-01-23T14:41:27.488040"
+      },
+      {
+        "name": "Web Access Tools",
+        "description": "web_search, fetch_url tools",
+        "passed": true,
+        "message": "Tool calling patterns verified",
+        "timestamp": "2026-01-23T14:41:27.488056"
+      },
+      {
+        "name": "Data Analysis Tools",
+        "description": "analyze_data, generate_chart tools",
+        "passed": true,
+        "message": "Tool calling patterns verified",
+        "timestamp": "2026-01-23T14:41:27.488063"
+      }
+    ]
+  },
+  "api_calling": {
+    "passed": 2,
+    "failed": 1,
+    "tests": [
+      {
+        "name": "REST API Calling",
+        "description": "HTTP/HTTPS REST API calls",
+        "passed": true,
+        "message": "API calling patterns verified",
+        "timestamp": "2026-01-23T14:42:49.687170"
+      },
+      {
+        "name": "GraphQL API Calling",
+        "description": "GraphQL query execution",
+        "passed": true,
+        "message": "API calling patterns verified",
+        "timestamp": "2026-01-23T14:42:49.687187"
+      },
+      {
+        "name": "API Authentication",
+        "description": "API key, OAuth, JWT authentication",
+        "passed": false,
+        "message": "API calling patterns not found",
+        "timestamp": "2026-01-23T14:42:49.687193"
+      }
+    ]
+  },
+  "skill_integration": {
+    "passed": 2,
+    "failed": 1,
+    "tests": [
+      {
+        "name": "MCP Skill Integration",
+        "description": "Model Context Protocol skill integration",
+        "passed": true,
+        "message": "Skill integration patterns verified",
+        "timestamp": "2026-01-23T14:42:49.689091"
+      },
+      {
+        "name": "Multi-Skill Combination",
+        "description": "Multiple skills combination",
+        "passed": true,
+        "message": "Skill integration patterns verified",
+        "timestamp": "2026-01-23T14:42:49.689108"
+      },
+      {
+        "name": "Skill Priority Management",
+        "description": "Skill priority and selection",
+        "passed": false,
+        "message": "Skill integration patterns not found",
+        "timestamp": "2026-01-23T14:42:49.689113"
+      }
+    ]
+  },
+  "multi_tool_use": {
+    "passed": 3,
+    "failed": 0,
+    "tests": [
+      {
+        "name": "Sequential Tool Use",
+        "description": "Multiple tools used in sequence",
+        "passed": true,
+        "message": "Multi-tool use patterns verified",
+        "timestamp": "2026-01-23T14:44:12.818878"
+      },
+      {
+        "name": "Parallel Tool Use",
+        "description": "Multiple tools used in parallel",
+        "passed": true,
+        "message": "Multi-tool use patterns verified",
+        "timestamp": "2026-01-23T14:44:12.818889"
+      },
+      {
+        "name": "Tool Result Integration",
+        "description": "Integrating results from multiple tools",
+        "passed": true,
+        "message": "Multi-tool use patterns verified",
+        "timestamp": "2026-01-23T14:44:12.818897"
+      }
+    ]
+  },
+  "overall": {
+    "total": 12,
+    "passed": 10,
+    "failed": 2
+  }
+}

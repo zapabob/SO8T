@@ -1,2 +1,0 @@
-c:\Users\downl\Desktop\SO8T\external\llama.cpp-master\convert_hf_to_gguf.py
-c:\Users\downl\Desktop\SO8T\scripts\conversion\convert_hf_to_gguf.py

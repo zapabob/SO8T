@@ -1,30 +1,0 @@
-C:\Users\downl\AppData\Local\Programs\Python\Python312\Lib\site-packages\torch\cuda\__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
-  import pynvml  # type: ignore[import]
-2025-12-01 16:35:32.974878: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2025-12-01 16:35:34.239966: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-Skipping import of cpp extensions due to incompatible torch version 2.9.1+cu128 for torchao version 0.14.1             Please see https://github.com/pytorch/ao/issues/2919 for more info
-W1201 16:35:43.804000 31228 site-packages\torch\distributed\elastic\multiprocessing\redirects.py:29] NOTE: Redirects are currently not supported in Windows or MacOs.
-2025-12-01:16:35:57 WARNING  [__main__:369]  --limit SHOULD ONLY BE USED FOR TESTING.REAL METRICS SHOULD NOT BE COMPUTED USING LIMIT.
-2025-12-01:16:35:57 INFO     [__main__:465] Selected Tasks: ['hellaswag']
-2025-12-01:16:35:57 WARNING  [evaluator:172] pretrained=pretrained=../models/Borea-Phi-3.5-mini-Instruct-Jp appears to be an instruct or chat variant but chat template is not applied.
-        Recommend setting `apply_chat_template` (optionally `fewshot_as_multiturn`).
-2025-12-01:16:35:57 INFO     [evaluator:202] Setting random seed to 0 | Setting numpy seed to 1234 | Setting torch manual seed to 1234 | Setting fewshot manual seed to 1234
-2025-12-01:16:35:57 INFO     [evaluator:240] Initializing hf model, with arguments: {'pretrained': '../models/Borea-Phi-3.5-mini-Instruct-Jp'}
-2025-12-01:16:35:57 INFO     [models.huggingface:158] Using device 'cuda:0'
-2025-12-01:16:35:58 INFO     [models.huggingface:420] Model parallel was set to False, max memory was not set, and device map was set to {'': 'cuda:0'}
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|#####     | 1/2 [00:03<00:03,  3.17s/it]Loading checkpoint shards: 100%|##########| 2/2 [00:04<00:00,  2.25s/it]Loading checkpoint shards: 100%|##########| 2/2 [00:04<00:00,  2.39s/it]
-2025-12-01:16:36:14 INFO     [tasks:695] Selected tasks:
-2025-12-01:16:36:14 INFO     [tasks:686] Task: hellaswag (hellaswag\hellaswag.yaml)
-2025-12-01:16:36:14 INFO     [api.task:434] Building contexts for hellaswag on rank 0...
-  0%|          | 0/10 [00:00<?, ?it/s]100%|##########| 10/10 [00:00<00:00, 1250.20it/s]
-2025-12-01:16:36:14 INFO     [evaluator:574] Running loglikelihood requests
-Running loglikelihood requests:   0%|          | 0/40 [00:00<?, ?it/s]Running loglikelihood requests:   2%|2         | 1/40 [00:10<06:36, 10.18s/it]Running loglikelihood requests: 100%|##########| 40/40 [00:10<00:00,  3.92it/s]
-2025-12-01:16:36:31 INFO     [loggers.evaluation_tracker:280] Output path not provided, skipping saving results aggregated
-Passed argument batch_size = auto:1. Detecting largest batch size
-Determined largest batch size: 64
-hf (pretrained=../models/Borea-Phi-3.5-mini-Instruct-Jp), gen_kwargs: (None), limit: 10.0, num_fewshot: None, batch_size: auto (64)
-|  Tasks  |Version|Filter|n-shot| Metric |   |Value|   |Stderr|
-|---------|------:|------|-----:|--------|---|----:|---|-----:|
-|hellaswag|      1|none  |     0|acc     |ª  |  0.4|}  |0.1633|
-|         |       |none  |     0|acc_norm|ª  |  0.5|}  |0.1667|
-
